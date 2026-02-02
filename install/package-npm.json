@@ -1,0 +1,55 @@
+{
+  "name": "@yan/create-byan-agent",
+  "version": "1.0.0",
+  "description": "NPX installer for BYAN - Builder of YAN agent creator. Generates specialized AI agents using Merise Agile + TDD methodology with 64 mantras.",
+  "main": "bin/create-byan-agent.js",
+  "bin": {
+    "create-byan-agent": "./bin/create-byan-agent.js"
+  },
+  "scripts": {
+    "start": "node bin/create-byan-agent.js",
+    "test": "echo \"Tests coming soon\" && exit 0"
+  },
+  "keywords": [
+    "byan",
+    "agent",
+    "creator",
+    "ai",
+    "bmad",
+    "merise",
+    "tdd",
+    "copilot",
+    "vscode",
+    "claude",
+    "codex",
+    "zero-trust",
+    "mantras",
+    "agent-builder"
+  ],
+  "author": "Yan <yan@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yan/byan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yan/byan/issues"
+  },
+  "homepage": "https://github.com/yan/byan#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "inquirer": "^8.2.5",
+    "fs-extra": "^11.2.0",
+    "js-yaml": "^4.1.0",
+    "ora": "^5.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ]
+}
