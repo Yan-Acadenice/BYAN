@@ -1,5 +1,5 @@
 ---
-name: 'agent-builder'
+name: 'bmad-agent-bmb-agent-builder'
 description: 'agent-builder agent'
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: 'presentation-master'
+name: 'bmad-agent-cis-presentation-master'
 description: 'presentation-master agent'
 ---
 

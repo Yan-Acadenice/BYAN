@@ -1,5 +1,5 @@
 ---
-name: 'architect'
+name: 'bmad-agent-bmm-architect'
 description: 'architect agent'
 ---
 

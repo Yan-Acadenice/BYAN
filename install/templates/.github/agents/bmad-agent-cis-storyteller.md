@@ -1,5 +1,5 @@
 ---
-name: 'storyteller'
+name: 'bmad-agent-cis-storyteller'
 description: 'storyteller agent'
 ---
 

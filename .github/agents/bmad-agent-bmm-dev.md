@@ -1,5 +1,5 @@
 ---
-name: 'dev'
+name: 'bmad-agent-bmm-dev'
 description: 'dev agent'
 ---
 

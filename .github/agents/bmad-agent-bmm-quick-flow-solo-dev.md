@@ -1,5 +1,5 @@
 ---
-name: 'quick-flow-solo-dev'
+name: 'bmad-agent-bmm-quick-flow-solo-dev'
 description: 'quick-flow-solo-dev agent'
 ---
 

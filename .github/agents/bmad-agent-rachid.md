@@ -1,5 +1,5 @@
 ---
-name: 'rachid'
+name: 'bmad-agent-rachid'
 description: 'NPM/NPX deployment specialist for BYAN installation'
 ---
 

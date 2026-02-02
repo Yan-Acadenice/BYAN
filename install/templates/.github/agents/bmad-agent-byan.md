@@ -1,5 +1,5 @@
 ---
-name: 'byan'
+name: 'bmad-agent-byan'
 description: 'byan agent'
 ---
 

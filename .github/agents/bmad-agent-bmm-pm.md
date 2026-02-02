@@ -1,5 +1,5 @@
 ---
-name: 'pm'
+name: 'bmad-agent-bmm-pm'
 description: 'pm agent'
 ---
 

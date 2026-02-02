@@ -1,5 +1,5 @@
 ---
-name: 'brainstorming-coach'
+name: 'bmad-agent-cis-brainstorming-coach'
 description: 'brainstorming-coach agent'
 ---
 

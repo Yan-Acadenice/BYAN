@@ -1,5 +1,5 @@
 ---
-name: 'bmad-master'
+name: 'bmad-agent-bmad-master'
 description: 'bmad-master agent'
 ---
 
