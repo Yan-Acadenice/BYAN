@@ -1,12 +1,13 @@
 {
   "name": "create-byan-agent",
-  "version": "1.0.1",
-  "description": "NPX installer for BYAN - Builder of YAN agent creator",
+  "version": "1.0.2",
+  "description": "NPX installer for BYAN - Builder of YAN agent creator with RACHID and MARC",
   "bin": {
-    "create-byan-agent": "./bin/create-byan-agent.js"
+    "create-byan-agent": "bin/create-byan-agent.js"
   },
   "scripts": {
-    "start": "node bin/create-byan-agent.js"
+    "start": "node bin/create-byan-agent.js",
+    "test": "node bin/create-byan-agent.js"
   },
   "keywords": [
     "byan",
@@ -18,7 +19,11 @@
     "tdd",
     "copilot",
     "vscode",
-    "claude"
+    "claude",
+    "rachid",
+    "marc",
+    "npm",
+    "deployment"
   ],
   "author": "Yan",
   "license": "MIT",
@@ -35,7 +40,9 @@
   },
   "files": [
     "bin/",
+    "templates/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ]
 }

@@ -8,7 +8,7 @@ const chalk = require('chalk');
 const ora = require('ora');
 const yaml = require('js-yaml');
 
-const BYAN_VERSION = '1.0.2';
+const BYAN_VERSION = '1.0.0';
 
 // ASCII Art Banner
 const banner = `
@@ -21,24 +21,6 @@ ${chalk.blue('║')}   ${chalk.gray('Methodology: Merise Agile + TDD + 64 Mantra
 ${chalk.blue('║')}                                                            ${chalk.blue('║')}
 ${chalk.blue('╚════════════════════════════════════════════════════════════╝')}
 `;
-
-// Source template directory (where BYAN package files are)
-const getTemplateDir = () => {
-  // Check if running from npm package
-  const nodeModulesPath = path.join(__dirname, '..', '..', 'create-byan-agent', 'templates');
-  if (fs.existsSync(nodeModulesPath)) {
-    return nodeModulesPath;
-  }
-  
-  // Check if running from local installation
-  const localPath = path.join(__dirname, '..', 'templates');
-  if (fs.existsSync(localPath)) {
-    return localPath;
-  }
-  
-  // Fallback: assume we're in development
-  return path.join(__dirname, '..', '_bmad');
-};
 
 // Main installer
 async function install() {
@@ -112,7 +94,6 @@ async function install() {
   
   const bmadDir = path.join(projectRoot, '_bmad');
   const bmbDir = path.join(bmadDir, 'bmb');
-  const githubAgentsDir = path.join(projectRoot, '.github', 'agents');
   
   await fs.ensureDir(path.join(bmadDir, 'bmb', 'agents'));
   await fs.ensureDir(path.join(bmadDir, 'bmb', 'workflows', 'byan', 'steps'));
@@ -122,56 +103,14 @@ async function install() {
   await fs.ensureDir(path.join(bmadDir, '_config'));
   await fs.ensureDir(path.join(bmadDir, '_memory'));
   await fs.ensureDir(path.join(bmadDir, '_output'));
-  await fs.ensureDir(githubAgentsDir);
   
   installSpinner.succeed('Directory structure created');
   
-  // Step 5: Copy BYAN files from template
+  // Step 5: Copy BYAN files
   const copySpinner = ora('Installing BYAN files...').start();
   
-  const templateDir = getTemplateDir();
-  
-  try {
-    // Copy agent files
-    const agentsSource = path.join(templateDir, 'bmb', 'agents');
-    const agentsDest = path.join(bmbDir, 'agents');
-    
-    if (await fs.pathExists(agentsSource)) {
-      await fs.copy(agentsSource, agentsDest, { overwrite: true });
-      copySpinner.text = 'Copied agent files...';
-    } else {
-      copySpinner.warn(`Agent source not found: ${agentsSource}`);
-    }
-    
-    // Copy workflow files
-    const workflowsSource = path.join(templateDir, 'bmb', 'workflows', 'byan');
-    const workflowsDest = path.join(bmbDir, 'workflows', 'byan');
-    
-    if (await fs.pathExists(workflowsSource)) {
-      await fs.copy(workflowsSource, workflowsDest, { overwrite: true });
-      copySpinner.text = 'Copied workflow files...';
-    } else {
-      copySpinner.warn(`Workflow source not found: ${workflowsSource}`);
-    }
-    
-    // Copy .github/agents files for Copilot CLI detection
-    const githubAgentsSource = path.join(templateDir, '..', '.github', 'agents');
-    
-    if (await fs.pathExists(githubAgentsSource)) {
-      await fs.copy(githubAgentsSource, githubAgentsDir, { overwrite: true });
-      copySpinner.text = 'Copied Copilot CLI agent stubs...';
-    } else {
-      copySpinner.warn(`GitHub agents source not found: ${githubAgentsSource}`);
-    }
-    
-    copySpinner.succeed('BYAN files installed');
-  } catch (error) {
-    copySpinner.fail('Error copying files');
-    console.error(chalk.red('Details:'), error.message);
-  }
-  
-  // Step 6: Create config.yaml
-  const configSpinner = ora('Generating configuration...').start();
+  // In production, these would be copied from the package
+  // For now, we'll create minimal config
   
   const configContent = {
     bmb_creations_output_folder: "{project-root}/_bmad-output/bmb-creations",
@@ -185,11 +124,12 @@ async function install() {
   const configPath = path.join(bmbDir, 'config.yaml');
   await fs.writeFile(configPath, yaml.dump(configContent), 'utf8');
   
-  configSpinner.succeed('Configuration generated');
+  copySpinner.succeed('BYAN files installed');
   
-  // Step 7: Create package.json script
+  // Step 6: Create shortcuts
   const shortcutSpinner = ora('Creating shortcuts...').start();
   
+  // Create package.json scripts if it exists
   if (hasPackageJson) {
     const pkgPath = path.join(projectRoot, 'package.json');
     const pkg = await fs.readJson(pkgPath);
@@ -197,7 +137,7 @@ async function install() {
     if (!pkg.scripts) pkg.scripts = {};
     
     if (!pkg.scripts.byan) {
-      pkg.scripts.byan = 'echo "BYAN agent installed. Use: copilot and type /agent"';
+      pkg.scripts.byan = 'echo "BYAN agent installed. Activate in your AI platform."';
       await fs.writeJson(pkgPath, pkg, { spaces: 2 });
       shortcutSpinner.succeed('NPM script added');
     } else {
@@ -207,40 +147,21 @@ async function install() {
     shortcutSpinner.succeed('Shortcuts created');
   }
   
-  // Step 8: Verification
+  // Step 7: Verification
   const verifySpinner = ora('Verifying installation...').start();
   
   const checks = [
-    { name: 'Agents directory', path: path.join(bmbDir, 'agents') },
-    { name: 'BYAN agent', path: path.join(bmbDir, 'agents', 'byan.md') },
-    { name: 'RACHID agent', path: path.join(bmbDir, 'agents', 'rachid.md') },
-    { name: 'MARC agent', path: path.join(bmbDir, 'agents', 'marc.md') },
-    { name: 'Workflows', path: path.join(bmbDir, 'workflows', 'byan') },
-    { name: 'Config', path: configPath },
-    { name: 'GitHub agents dir', path: githubAgentsDir },
-    { name: 'BYAN stub', path: path.join(githubAgentsDir, 'bmad-agent-byan.md') },
-    { name: 'RACHID stub', path: path.join(githubAgentsDir, 'bmad-agent-rachid.md') },
-    { name: 'MARC stub', path: path.join(githubAgentsDir, 'bmad-agent-marc.md') }
+    await fs.pathExists(path.join(bmbDir, 'agents')),
+    await fs.pathExists(path.join(bmbDir, 'workflows', 'byan')),
+    await fs.pathExists(configPath)
   ];
   
-  let passed = 0;
-  let failed = [];
-  
-  for (const check of checks) {
-    if (await fs.pathExists(check.path)) {
-      passed++;
-    } else {
-      failed.push(check.name);
-    }
-  }
+  const passed = checks.filter(Boolean).length;
   
   if (passed === checks.length) {
-    verifySpinner.succeed(`Verification: ${passed}/${checks.length} checks passed ✅`);
+    verifySpinner.succeed(`Verification: ${passed}/${checks.length} checks passed`);
   } else {
     verifySpinner.warn(`Verification: ${passed}/${checks.length} checks passed`);
-    if (failed.length > 0) {
-      console.log(chalk.yellow('  Missing:'), failed.join(', '));
-    }
   }
   
   // Success message
@@ -258,32 +179,30 @@ async function install() {
   console.log(`  • Configuration: ${chalk.cyan(configPath)}`);
   console.log(`  • User: ${chalk.cyan(config.userName)}`);
   console.log(`  • Language: ${chalk.cyan(config.language)}`);
-  console.log(`  • Agents Installed: ${chalk.cyan('BYAN, RACHID, MARC')}`);
   console.log('');
   
   console.log(chalk.bold('Next Steps:'));
   console.log('');
-  console.log(chalk.yellow('1. Activate agents in GitHub Copilot CLI:'));
-  console.log(`   ${chalk.blue('copilot')}`);
-  console.log(`   Then type: ${chalk.blue('/agent')}`);
-  console.log(`   Select: ${chalk.cyan('byan')} (create agents)`);
-  console.log(`          ${chalk.cyan('rachid')} (NPM deployment)`);
-  console.log(`          ${chalk.cyan('marc')} (Copilot CLI integration)`);
-  console.log('');
+  console.log(chalk.yellow('1. Activate BYAN:'));
   
-  console.log(chalk.yellow('2. Create your first agent with BYAN:'));
+  if (platform === 'copilot') {
+    console.log(`   ${chalk.blue('gh copilot suggest "activate byan agent"')}`);
+  } else if (platform === 'vscode') {
+    console.log('   Open VSCode Command Palette (Ctrl+Shift+P)');
+    console.log('   Type: "Activate BYAN Agent"');
+  } else if (platform === 'claude') {
+    console.log(`   ${chalk.blue('claude chat --agent byan')}`);
+  }
+  
+  console.log('');
+  console.log(chalk.yellow('2. Create your first agent:'));
   console.log('   [INT] Start Intelligent Interview (30-45 min)');
   console.log('   [QC] Quick Create (10 min)');
   console.log('');
   
-  console.log(chalk.yellow('3. Deploy with RACHID:'));
-  console.log('   Use RACHID to publish BYAN to npm');
-  console.log('   Validate package.json and dependencies');
-  console.log('');
-  
-  console.log(chalk.yellow('4. Integrate with MARC:'));
-  console.log('   Use MARC to test /agent detection');
-  console.log('   Validate .github/agents/ structure');
+  console.log(chalk.yellow('3. Explore documentation:'));
+  console.log(`   • Configuration: ${chalk.cyan(configPath)}`);
+  console.log(`   • Workflows: ${chalk.cyan(path.join(bmbDir, 'workflows', 'byan'))}`);
   console.log('');
   
   console.log(chalk.gray('Need help? Type \'/bmad-help\' when BYAN is active'));
@@ -294,7 +213,7 @@ async function install() {
 // CLI Program
 program
   .name('create-byan-agent')
-  .description('Install BYAN - Builder of YAN agent creator with RACHID and MARC')
+  .description('Install BYAN - Builder of YAN agent creator')
   .version(BYAN_VERSION)
   .action(install);
 

@@ -1,7 +1,8 @@
 # BYAN - Builder of YAN
 
-**Version:** 1.0.0  
-**Methodology:** Merise Agile + TDD + 64 Mantras
+**Version:** 1.0.2  
+**Methodology:** Merise Agile + TDD + 64 Mantras  
+**Agents Included:** BYAN, RACHID, MARC
 
 ---
 
@@ -16,6 +17,8 @@
 - Multi-platform support (Copilot, VSCode, Claude, Codex)
 - TDD-driven validation
 - Consequences evaluation before actions
+- **NEW:** RACHID agent for NPM/NPX deployment
+- **NEW:** MARC agent for GitHub Copilot CLI integration
 
 ---
 
@@ -44,21 +47,31 @@ cd byan
 
 ## 📖 Usage
 
-### Activate BYAN
+### Activate Agents
 
 **GitHub Copilot CLI:**
 ```bash
-gh copilot suggest "activate byan agent"
+copilot
+# In interactive mode:
+/agent
+# Select one of:
+# - byan (create agents)
+# - rachid (NPM deployment)
+# - marc (Copilot CLI integration)
 ```
 
 **VSCode:**
 1. Open Command Palette (Ctrl+Shift+P)
-2. Type: "Activate BYAN Agent"
-3. Select BYAN from list
+2. Type: "Activate Agent"
+3. Select BYAN, RACHID, or MARC from list
 
 **Claude Code:**
 ```bash
 claude chat --agent byan
+# or
+claude chat --agent rachid
+# or
+claude chat --agent marc
 ```
 
 ### Create Your First Agent
@@ -74,6 +87,41 @@ Best for: First agent, critical agents, complex requirements
 [QC] Quick Create
 ```
 Best for: Additional agents, clear requirements, existing project context
+
+---
+
+## 🎯 Three Specialized Agents
+
+### 1. BYAN - Agent Creator
+**Full Interview (30-45 min):**
+```
+[INT] Start Intelligent Interview
+```
+Best for: First agent, critical agents, complex requirements
+
+**Quick Create (10 min):**
+```
+[QC] Quick Create
+```
+Best for: Additional agents, clear requirements, existing project context
+
+### 2. RACHID - NPM/NPX Specialist
+**Deploy to NPM:**
+```
+[PUBLISH] Publish to npm
+[VALIDATE] Validate _bmad structure
+[TEST-NPX] Test npx installation
+```
+Best for: Package deployment, dependency management, npm workflows
+
+### 3. MARC - Copilot CLI Expert
+**Copilot Integration:**
+```
+[VALIDATE] Validate .github/agents/
+[TEST] Test /agent detection
+[CREATE-STUB] Create agent stub
+```
+Best for: GitHub Copilot CLI integration, agent detection, MCP configuration
 
 ---
 
