@@ -25,12 +25,30 @@ async function show(config) {
   logger.info(chalk.gray('═'.repeat(60)));
   logger.info('');
   
-  // Show installation summary
+  // Show installation summary with null-checks
   logger.info(chalk.bold('📊 Installation Summary:'));
-  logger.info(`   • Agents installed: ${chalk.cyan(config.agents.length)}`);
-  logger.info(`   • Platforms: ${chalk.cyan(config.targetPlatforms.join(', '))}`);
-  logger.info(`   • Mode: ${chalk.cyan(config.mode)}`);
-  logger.info(`   • Location: ${chalk.gray(config.projectRoot)}`);
+  
+  if (config && config.agents && Array.isArray(config.agents)) {
+    logger.info(`   • Agents installed: ${chalk.cyan(config.agents.length)}`);
+  } else {
+    logger.info(`   • Agents installed: ${chalk.cyan(0)}`);
+  }
+  
+  if (config && config.targetPlatforms && Array.isArray(config.targetPlatforms)) {
+    logger.info(`   • Platforms: ${chalk.cyan(config.targetPlatforms.join(', '))}`);
+  } else if (config && config.platforms && Array.isArray(config.platforms)) {
+    logger.info(`   • Platforms: ${chalk.cyan(config.platforms.join(', '))}`);
+  } else {
+    logger.info(`   • Platforms: ${chalk.cyan('none')}`);
+  }
+  
+  if (config && config.mode) {
+    logger.info(`   • Mode: ${chalk.cyan(config.mode)}`);
+  }
+  
+  if (config && config.projectRoot) {
+    logger.info(`   • Location: ${chalk.gray(config.projectRoot)}`);
+  }
   logger.info('');
   
   const choices = [

@@ -22,6 +22,8 @@ PUBLISH-GUIDE.md
 UPDATE-SUMMARY.md
 PROGRESS-LOG.md
 QUICKSTART.md
+TEST-E2E-GUIDE.md
+PRE-PUBLISH-CHECKLIST.md
 
 # Development and build files
 *.tgz

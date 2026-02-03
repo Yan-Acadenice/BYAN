@@ -846,7 +846,7 @@ SOFTWARE.
 
 # 🏗️ YANSTALLER - Intelligent BYAN Installer
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://www.npmjs.com/package/create-byan-agent)
+[![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)](https://www.npmjs.com/package/create-byan-agent)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![Tests](https://img.shields.io/badge/tests-168%20passing-success.svg)](#tests)

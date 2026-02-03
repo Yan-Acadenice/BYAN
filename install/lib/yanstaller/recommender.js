@@ -176,18 +176,23 @@ function detectFramework(deps) {
  * @returns {string[]} - Agent names
  */
 function getRecommendedAgents(projectType, platforms = []) {
-  const baseAgents = ['byan', 'rachid', 'patnote', 'carmack'];
+  // Only recommend agents that exist in templates/_bmad/
+  // Available: byan, byan-test, rachid, patnote, marc, agent-builder, module-builder, workflow-builder
+  const availableAgents = ['byan', 'byan-test', 'rachid', 'patnote', 'marc', 'agent-builder', 'module-builder', 'workflow-builder'];
+  
+  const baseAgents = ['byan', 'rachid', 'patnote'];
   
   // Add MARC if Copilot CLI detected
   if (platforms && platforms.some(p => p.name === 'copilot-cli' && p.detected)) {
     baseAgents.push('marc');
   }
   
+  // Simple recommendations based on available agents only
   const recommendations = {
-    frontend: [...baseAgents, 'ux-designer', 'dev', 'quinn'],
-    backend: [...baseAgents, 'architect', 'dev', 'quinn'],
-    fullstack: [...baseAgents, 'architect', 'dev', 'ux-designer', 'quinn', 'pm'],
-    library: [...baseAgents, 'dev', 'tech-writer', 'quinn'],
+    frontend: [...baseAgents],
+    backend: [...baseAgents],
+    fullstack: [...baseAgents],
+    library: [...baseAgents],
     unknown: baseAgents
   };
   

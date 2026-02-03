@@ -92,6 +92,16 @@ async function writeFile(filePath, content) {
   await fs.writeFile(filePath, content, 'utf8');
 }
 
+/**
+ * Read directory contents
+ * 
+ * @param {string} dirPath - Directory path
+ * @returns {Promise<string[]>} - Array of file/directory names
+ */
+async function readDir(dirPath) {
+  return fs.readdir(dirPath);
+}
+
 module.exports = {
   copy,
   exists,
@@ -100,5 +110,6 @@ module.exports = {
   readJSON,
   writeJSON,
   readFile,
-  writeFile
+  writeFile,
+  readDir
 };

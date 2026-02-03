@@ -14,7 +14,7 @@ const wizard = require('../lib/yanstaller/wizard');
 const backuper = require('../lib/yanstaller/backuper');
 const logger = require('../lib/utils/logger');
 
-const YANSTALLER_VERSION = '1.2.0';
+const YANSTALLER_VERSION = '1.2.3';
 
 // ASCII Art Banner
 const banner = `
@@ -80,7 +80,8 @@ async function main() {
     if (answers.createBackup) {
       logger.info(chalk.bold('\n💾 STEP 4/7: Backup\n'));
       try {
-        const backup = await backuper.backup({ projectRoot });
+        const bmadPath = path.join(projectRoot, '_bmad');
+        const backup = await backuper.backup(bmadPath);
         logger.info(`✓ Backup created: ${chalk.cyan(backup.backupPath)}`);
       } catch (error) {
         logger.warn(`⚠ Backup failed (non-critical): ${error.message}`);
@@ -94,15 +95,16 @@ async function main() {
     const installResult = await installer.install({
       projectRoot,
       agents: answers.agents,
-      platforms: answers.targetPlatforms,
+      targetPlatforms: answers.targetPlatforms,
       userName: answers.userName,
       language: answers.language,
       mode: answers.mode
     });
     
-    logger.info(`✓ Installed ${chalk.cyan(installResult.installedAgents.length)} agents`);
-    logger.info(`✓ Created ${chalk.cyan(installResult.createdDirectories)} directories`);
-    logger.info(`✓ Generated ${chalk.cyan(installResult.generatedStubs)} platform stubs`);
+    logger.info(`✓ Installed ${chalk.cyan(installResult.agentsInstalled)} agents`);
+    if (installResult.errors && installResult.errors.length > 0) {
+      logger.warn(`⚠ ${installResult.errors.length} installation errors`);
+    }
     
     // STEP 6: VALIDATE - 10 Automated Checks
     logger.info(chalk.bold('\n✅ STEP 6/7: Validation\n'));
@@ -123,8 +125,10 @@ async function main() {
     // STEP 7: WIZARD - Post-Install Actions
     logger.info(chalk.bold('\n🧙 STEP 7/7: Post-Install Wizard\n'));
     await wizard.show({
-      installedAgents: installResult.installedAgents,
-      platforms: answers.targetPlatforms,
+      agents: answers.agents,
+      targetPlatforms: answers.targetPlatforms,
+      mode: answers.mode,
+      projectRoot,
       userName: answers.userName,
       language: answers.language
     });

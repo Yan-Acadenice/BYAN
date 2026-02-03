@@ -5,14 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.2] - 2026-02-03
+## [1.2.3] - 2026-02-03
+
+### Added
+- **E2E Test Suite** - Automated end-to-end testing before npm publish
+  - Tests complete installation flow (7 steps)
+  - Validates directory structure, agent files, config, platform stubs
+  - Smoke tests for all 8 YANSTALLER modules
+  - Runs automatically via `prepublishOnly` hook
+  - Prevents broken releases (caught 8 bugs before production)
+  - Command: `npm run test:e2e`
+  - Documentation: TEST-E2E-GUIDE.md
 
 ### Fixed
-- **CRITICAL BUG**: Fixed recommender crash when platforms is undefined
+- **CRITICAL BUG #1**: Fixed recommender crash when platforms is undefined
   - `recommender.recommend()` now properly handles both direct detection object and options wrapper
   - Added default empty array for platforms parameter in `getRecommendedAgents()`
   - Added null-check before calling `.some()` on platforms array
   - Fixed display of detected platforms in CLI (was showing "[object Object]")
+  
+- **CRITICAL BUG #2**: Fixed backup crash on wrong parameter format
+  - Fixed `backuper.backup()` call - now passes bmadPath directly instead of object wrapper
+  
+- **CRITICAL BUG #3**: Fixed installation result property access
+  - Fixed `installResult` property access - uses `agentsInstalled` instead of `installedAgents.length`
+  - Removed references to non-existent properties (`createdDirectories`, `generatedStubs`)
+  - Added error reporting for installation failures
+
+- **CRITICAL BUG #4**: Fixed wizard crash on undefined properties
+  - Added null-checks for `config.agents`, `config.targetPlatforms`, `config.platforms`
+  - Fixed wizard call to pass correct config object with all required properties
+  - Prevents crash when displaying installation summary
+
+- **CRITICAL BUG #5**: Fixed agent templates not found
+  - Limited recommendations to available agents only (byan, rachid, patnote, marc, etc.)
+  - Removed recommendations for non-existent agents (architect, dev, quinn, pm, ux-designer, tech-writer)
+  - Prevents installation failures due to missing template files
+
+- **CRITICAL BUG #6**: Fixed missing fileUtils.readDir function
+  - Added `readDir()` function to file-utils.js
+  - Fixes validator crashes when checking workflow directories
+  - Properly exports readDir in module.exports
+
+- **CRITICAL BUG #7**: Fixed installer config parameter mismatch
+  - Fixed installer.install() call to pass `targetPlatforms` instead of `platforms`
+  - Config file now created correctly during installation
+  - Matches InstallConfig typedef definition
+
+- **BUG #8**: Removed carmack from recommendations
+  - carmack.md template does not exist in templates/_bmad/
+  - Removed from baseAgents to prevent installation failures
+  - Updated E2E test to not expect carmack agent
+
+## [1.2.2] - 2026-02-03
+
+### Added
+- **E2E Test Suite** - Automated end-to-end testing before npm publish
+  - Tests complete installation flow (7 steps)
+  - Validates directory structure, agent files, config, platform stubs
+  - Smoke tests for all 8 YANSTALLER modules
+  - Runs automatically via `prepublishOnly` hook
+  - Prevents broken releases (caught 7 bugs before production)
+  - Command: `npm run test:e2e`
+  - Documentation: TEST-E2E-GUIDE.md
+
+### Fixed
+- **CRITICAL BUG #1**: Fixed recommender crash when platforms is undefined
+  - `recommender.recommend()` now properly handles both direct detection object and options wrapper
+  - Added default empty array for platforms parameter in `getRecommendedAgents()`
+  - Added null-check before calling `.some()` on platforms array
+  - Fixed display of detected platforms in CLI (was showing "[object Object]")
+  
+- **CRITICAL BUG #2**: Fixed backup crash on wrong parameter format
+  - Fixed `backuper.backup()` call - now passes bmadPath directly instead of object wrapper
+  
+- **CRITICAL BUG #3**: Fixed installation result property access
+  - Fixed `installResult` property access - uses `agentsInstalled` instead of `installedAgents.length`
+  - Removed references to non-existent properties (`createdDirectories`, `generatedStubs`)
+  - Added error reporting for installation failures
+
+- **CRITICAL BUG #4**: Fixed wizard crash on undefined properties
+  - Added null-checks for `config.agents`, `config.targetPlatforms`, `config.platforms`
+  - Fixed wizard call to pass correct config object with all required properties
+  - Prevents crash when displaying installation summary
+
+- **CRITICAL BUG #5**: Fixed agent templates not found
+  - Limited recommendations to available agents only (byan, rachid, patnote, carmack, marc, etc.)
+  - Removed recommendations for non-existent agents (architect, dev, quinn, pm, ux-designer, tech-writer)
+  - Prevents installation failures due to missing template files
+
+- **CRITICAL BUG #6**: Fixed missing fileUtils.readDir function
+  - Added `readDir()` function to file-utils.js
+  - Fixes validator crashes when checking workflow directories
+  - Properly exports readDir in module.exports
+
+- **CRITICAL BUG #7**: Fixed installer config parameter mismatch
+  - Fixed installer.install() call to pass `targetPlatforms` instead of `platforms`
+  - Config file now created correctly during installation
+  - Matches InstallConfig typedef definition
+
+- **BUG #8**: Removed carmack from recommendations
+  - carmack.md template does not exist in templates/_bmad/
+  - Removed from baseAgents to prevent installation failures
+  - Updated E2E test to not expect carmack agent
 
 ## [1.2.1] - 2026-02-03
 
