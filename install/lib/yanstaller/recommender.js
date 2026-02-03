@@ -22,11 +22,15 @@ const fileUtils = require('../utils/file-utils');
 /**
  * Analyze project and recommend configuration
  * 
- * @param {import('./detector').DetectionResult} detection - Detection results
+ * @param {Object} options - Options object
+ * @param {string} [options.projectRoot] - Project root path
+ * @param {import('./detector').DetectionResult} options.detection - Detection results
  * @returns {Promise<Recommendation>}
  */
-async function recommend(detection) {
-  const projectRoot = process.cwd();
+async function recommend(options) {
+  // Support both old API (direct detection) and new API (options object)
+  const detection = options.detection || options;
+  const projectRoot = options.projectRoot || process.cwd();
   
   // 1. Analyze project type
   let projectType = 'unknown';
@@ -40,7 +44,8 @@ async function recommend(detection) {
   }
   
   // 2. Recommend agents based on type + platforms
-  const agents = getRecommendedAgents(projectType, detection.platforms);
+  const platforms = detection.platforms || [];
+  const agents = getRecommendedAgents(projectType, platforms);
   
   // 3. Determine mode
   const mode = agents.length > 10 ? 'full' : 'minimal';
@@ -167,14 +172,14 @@ function detectFramework(deps) {
  * Get recommended agents based on project type
  * 
  * @param {string} projectType - Project type
- * @param {Array} platforms - Detected platforms
+ * @param {Array} platforms - Detected platforms (array of platform objects)
  * @returns {string[]} - Agent names
  */
-function getRecommendedAgents(projectType, platforms) {
+function getRecommendedAgents(projectType, platforms = []) {
   const baseAgents = ['byan', 'rachid', 'patnote', 'carmack'];
   
   // Add MARC if Copilot CLI detected
-  if (platforms.some(p => p.name === 'copilot-cli' && p.detected)) {
+  if (platforms && platforms.some(p => p.name === 'copilot-cli' && p.detected)) {
     baseAgents.push('marc');
   }
   
