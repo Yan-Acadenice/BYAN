@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-marc'
+name: 'marc'
 description: 'GitHub Copilot CLI integration specialist for BMAD agents'
 ---
 

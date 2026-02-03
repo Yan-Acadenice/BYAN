@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-cis-design-thinking-coach'
+name: 'cis-design-thinking-coach'
 description: 'design-thinking-coach agent'
 ---
 

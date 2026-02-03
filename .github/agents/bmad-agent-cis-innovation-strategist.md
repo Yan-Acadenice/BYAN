@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-cis-innovation-strategist'
+name: 'cis-innovation-strategist'
 description: 'innovation-strategist agent'
 ---
 

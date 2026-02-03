@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-test-dynamic'
+name: 'test-dynamic'
 description: 'Test Dynamic Loading - Phase B Validation'
 ---
 

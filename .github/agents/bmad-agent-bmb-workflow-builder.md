@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-bmb-workflow-builder'
+name: 'bmb-workflow-builder'
 description: 'workflow-builder agent'
 ---
 

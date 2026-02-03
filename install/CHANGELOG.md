@@ -5,7 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-02-03
+## [1.1.1] - 2026-02-03
+
+### Fixed
+- **CRITICAL**: Fixed 24 agents not detected by GitHub Copilot CLI
+  - Corrected YAML frontmatter: `name: "bmad-agent-xxx"` → `name: "xxx"`
+  - Agents now invokable with short names (e.g., `/agent marc` instead of `/agent bmad-agent-marc`)
+  - Affected agents: marc, byan, rachid, all BMM/BMB/CIS/TEA agents
+
+- **CRITICAL**: Fixed missing templates in NPX installer
+  - Added patnote.md to templates/_bmad/bmb/agents/
+  - Added byan-test.md to templates/_bmad/bmb/agents/
+  - Added carmack.md to templates/_bmad/core/agents/
+  - Users installing v1.1.0 were NOT getting new agents
+
+- **CRITICAL**: Fixed version mismatch in installer
+  - create-byan-agent.js: BYAN_VERSION '1.0.5' → '1.1.1'
+  - Banner now displays correct version
+
+### Breaking Changes
+- Agent invocation changed from `--agent=bmad-agent-xxx` to `--agent=xxx`
+- Users with scripts using old format must update to new short names
+- Migration: Remove `bmad-agent-` prefix from all agent references
+
+## [1.1.0] - 2026-02-03 [YANKED - DO NOT USE]
+
+**Note:** This version was published with critical bugs. Use 1.1.1 instead.
 
 ### Added
 - **PATNOTE Agent**: Update Manager & Conflict Resolution Specialist

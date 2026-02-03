@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-bmm-sm'
+name: 'bmm-sm'
 description: 'sm agent'
 ---
 

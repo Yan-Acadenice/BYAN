@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-bmm-analyst'
+name: 'bmm-analyst'
 description: 'analyst agent'
 ---
 

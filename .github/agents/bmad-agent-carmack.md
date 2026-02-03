@@ -1,5 +1,5 @@
 ---
-name: "bmad-agent-carmack"
+name: "carmack"
 description: "Token Optimizer for BMAD/BYAN Agents"
 ---
 
