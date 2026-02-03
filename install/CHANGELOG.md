@@ -5,6 +5,82 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-03
+
+### Added
+- **PATNOTE Agent**: Update Manager & Conflict Resolution Specialist
+  - Update existing agents intelligently
+  - Merge agent versions with conflict detection
+  - Preserve user customizations during updates
+  - Generate detailed changelogs
+  - Backup/restore functionality
+  - Never loses data principle
+
+- **CARMACK Agent**: Token Optimizer for BMAD/BYAN Agents
+  - Optimize agents for 40-50% token reduction
+  - Analyze token usage across agents
+  - Validate optimized agents maintain functionality
+  - Compare before/after metrics
+  - Batch optimize multiple agents
+  - Surgical precision in removing redundancy
+
+- **BYAN-Test Agent**: Optimized version of BYAN
+  - 46% token reduction vs standard BYAN
+  - Same capabilities, reduced token cost
+  - Ideal for high-volume agent creation
+
+### Changed
+- **README.md**: Complete documentation overhaul
+  - Five specialized agents section (vs three)
+  - Detailed role descriptions for all agents
+  - Usage examples for each agent
+  - Version bumped to 1.1.0 in docs
+
+- **package.json**: Enhanced metadata
+  - Description updated to reflect full ecosystem
+  - Keywords expanded: patnote, carmack, token-optimization, update-manager, conflict-resolution
+  - Version: 1.0.5 → 1.1.0
+
+### Excluded
+- **Franck Agent**: Client-specific (not part of BYAN core)
+- **Expert-Merise-Agile Agent**: Client application (excluded from npm/git)
+
+### Security
+- npm audit: 0 vulnerabilities
+- All dependencies up to date
+- .npmignore and .gitignore configured for security
+
+## [1.0.5] - 2026-02-02
+
+### Added
+- **GUIDE-INSTALLATION-SIMPLE.md**: Documentation utilisateur simplifiée (7 KB)
+  - Installation en 3 minutes
+  - Guide des 3 agents (BYAN, RACHID, MARC)
+  - Workflows typiques et cas d'usage
+  - Section dépannage rapide
+
+- **Validation MARC Complète**: 6 documents de validation (55 KB)
+  - MARC-VALIDATION-REPORT.md (rapport détaillé)
+  - MARC-VALIDATION-SUMMARY.md (résumé exécutif)
+  - MARC-PRE-PUBLICATION-CHECKLIST.md (checklist interactive)
+  - MARC-COPILOT-CLI-TEST-GUIDE.md (guide test)
+  - MARC-COMMANDS-CHEAT-SHEET.md (commandes essentielles)
+  - MARC-INDEX.md (index documents)
+
+### Changed
+- Templates mis à jour avec 37 fichiers (vs 24 précédemment)
+- YAML frontmatter aligné avec noms de fichiers pour Copilot CLI
+- Structure .github/agents/ étendue à 44 agents
+
+### Fixed
+- Alignment YAML agent names avec convention bmad-agent-{name}
+- Détection Copilot CLI améliorée
+
+## [1.0.4] - 2026-02-02
+
+### Changed
+- Version intermédiaire avec corrections mineures
+
 ## [1.0.2] - 2026-02-02
 
 ### Added

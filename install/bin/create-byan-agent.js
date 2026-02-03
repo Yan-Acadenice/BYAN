@@ -8,7 +8,7 @@ const chalk = require('chalk');
 const ora = require('ora');
 const yaml = require('js-yaml');
 
-const BYAN_VERSION = '1.0.2';
+const BYAN_VERSION = '1.0.5';
 
 // ASCII Art Banner
 const banner = `

@@ -1,0 +1,48 @@
+# NPM Ignore - BYAN Package
+# Exclude client-specific and internal files
+
+# Client-specific agents (not part of BYAN core)
+**/franck.md
+**/franck/
+**/expert-merise-agile.md
+**/expert-merise-agile/
+
+# Development and test files
+*.tgz
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation artifacts (keep only core docs)
+MARC-*.md
+GUIDE-INSTALLATION-SIMPLE.md
+README-PUBLICATION-*.md
+
+# Test and validation reports
+*-VALIDATION-*.md
+*-TEST-*.md
+*-REPORT.md
+
+# Backup files
+*.backup.*
+*.bak
+
+# Build artifacts
+dist/
+build/

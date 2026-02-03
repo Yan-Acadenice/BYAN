@@ -1,0 +1,68 @@
+# Git Ignore - BYAN Project Root
+
+# Node modules
+node_modules/
+install/node_modules/
+
+# NPM artifacts
+*.tgz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Client-specific agents (not tracked in git)
+.github/agents/franck.md
+.github/agents/expert-merise-agile.md
+_bmad/bmm/agents/expert-merise-agile.md
+_bmad-output/bmb-creations/franck/
+_bmad-output/agent-spec-expert-merise-agile.yaml
+_bmad-output/bmb-creations/expert-merise-agile*.md
+_bmad-output/interview-summary-*-franck-*.md
+_bmad-output/interview-summary-*-expert-merise-*.md
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.history/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Documentation artifacts (transient)
+install/MARC-VALIDATION-*.md
+install/*-TEST-*.md
+install/README-PUBLICATION-*.md
+install/create-byan-agent-*.tgz
+
+# Backup files
+*.backup.*
+*.bak
