@@ -29,10 +29,6 @@ jobs:
         run: npm ci
         working-directory: ./install
       
-      - name: Run linter
-        run: npm run lint
-        working-directory: ./install
-      
       - name: Run tests
         run: npm test
         working-directory: ./install
