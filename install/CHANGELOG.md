@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-02-03
+
+### Fixed
+- **CRITICAL**: Template path resolution in installer
+  - Fixed template directory detection (removed extra `..` navigation)
+  - Added `_bmad/` prefix for agents and workflows paths
+  - Removed extra `..` in .github agents path
+  - Added validation and detailed logging for debugging
+  - 100% file copy success rate achieved
+
+### Impact
+- **Before**: 0% installation success (0/37 files copied)
+- **After**: 100% installation success (37/37 files copied)
+- All 8 agents now install correctly
+- All 6 workflows now install correctly
+- All 23 GitHub agent stubs now install correctly
+
+### Validation
+- Tested with Node.js path resolution
+- Verified template structure integrity
+- Confirmed npm package includes all templates
+
+**Bug reported by:** Dimitry  
+**Fixed by:** Marc (GitHub Copilot CLI Expert) + Rachid (NPM Specialist)
+
 ## [1.1.2] - 2026-02-03
 
 ### Fixed

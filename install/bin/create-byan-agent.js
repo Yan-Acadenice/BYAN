@@ -8,7 +8,7 @@ const chalk = require('chalk');
 const ora = require('ora');
 const yaml = require('js-yaml');
 
-const BYAN_VERSION = '1.1.2';
+const BYAN_VERSION = '1.1.3';
 
 // ASCII Art Banner
 const banner = `
@@ -24,20 +24,28 @@ ${chalk.blue('╚═════════════════════
 
 // Source template directory (where BYAN package files are)
 const getTemplateDir = () => {
-  // Check if running from npm package
-  const nodeModulesPath = path.join(__dirname, '..', '..', 'create-byan-agent', 'templates');
-  if (fs.existsSync(nodeModulesPath)) {
-    return nodeModulesPath;
+  // ✅ FIX #1: Correct path for npm/npx installation
+  // When running from node_modules/create-byan-agent/bin/
+  // We need to go up ONE level to reach templates/
+  const npmPackagePath = path.join(__dirname, '..', 'templates');
+  if (fs.existsSync(npmPackagePath)) {
+    console.log(chalk.gray(`[DEBUG] Template dir found: ${npmPackagePath}`));
+    return npmPackagePath;
   }
   
-  // Check if running from local installation
-  const localPath = path.join(__dirname, '..', 'templates');
-  if (fs.existsSync(localPath)) {
-    return localPath;
+  // ✅ FIX #2: Alternative check for development mode
+  // If running from source during development
+  const devPath = path.join(__dirname, '..', '..', 'templates');
+  if (fs.existsSync(devPath)) {
+    console.log(chalk.gray(`[DEBUG] Dev template dir found: ${devPath}`));
+    return devPath;
   }
   
-  // Fallback: assume we're in development
-  return path.join(__dirname, '..', '_bmad');
+  // ❌ Fallback: This shouldn't happen in production
+  console.error(chalk.red('⚠️  WARNING: Template directory not found!'));
+  console.error(chalk.red(`   Searched: ${npmPackagePath}`));
+  console.error(chalk.red(`   Also searched: ${devPath}`));
+  return null;
 };
 
 // Main installer
@@ -131,43 +139,56 @@ async function install() {
   
   const templateDir = getTemplateDir();
   
+  // ✅ FIX #3: Validate template directory before proceeding
+  if (!templateDir) {
+    copySpinner.fail('❌ Template directory not found! Cannot proceed.');
+    console.error(chalk.red('\nInstallation failed: Missing template files.'));
+    console.error(chalk.yellow('This usually means the package was not installed correctly.'));
+    console.error(chalk.yellow('Try reinstalling: npm install -g create-byan-agent'));
+    process.exit(1);
+  }
+  
   try {
-    // Copy agent files
-    const agentsSource = path.join(templateDir, 'bmb', 'agents');
+    // ✅ FIX #4: Copy agent files from _bmad/bmb/agents
+    const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
     const agentsDest = path.join(bmbDir, 'agents');
     
     if (await fs.pathExists(agentsSource)) {
       await fs.copy(agentsSource, agentsDest, { overwrite: true });
       copySpinner.text = 'Copied agent files...';
+      console.log(chalk.green(`  ✓ Agents: ${agentsSource} → ${agentsDest}`));
     } else {
-      copySpinner.warn(`Agent source not found: ${agentsSource}`);
+      copySpinner.warn(`⚠ Agent source not found: ${agentsSource}`);
     }
     
-    // Copy workflow files
-    const workflowsSource = path.join(templateDir, 'bmb', 'workflows', 'byan');
+    // ✅ FIX #5: Copy workflow files from _bmad/bmb/workflows/byan
+    const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
     const workflowsDest = path.join(bmbDir, 'workflows', 'byan');
     
     if (await fs.pathExists(workflowsSource)) {
       await fs.copy(workflowsSource, workflowsDest, { overwrite: true });
       copySpinner.text = 'Copied workflow files...';
+      console.log(chalk.green(`  ✓ Workflows: ${workflowsSource} → ${workflowsDest}`));
     } else {
-      copySpinner.warn(`Workflow source not found: ${workflowsSource}`);
+      copySpinner.warn(`⚠ Workflow source not found: ${workflowsSource}`);
     }
     
-    // Copy .github/agents files for Copilot CLI detection
-    const githubAgentsSource = path.join(templateDir, '..', '.github', 'agents');
+    // ✅ FIX #6: Copy .github/agents files (stubs for Copilot CLI detection)
+    const githubAgentsSource = path.join(templateDir, '.github', 'agents');
     
     if (await fs.pathExists(githubAgentsSource)) {
       await fs.copy(githubAgentsSource, githubAgentsDir, { overwrite: true });
       copySpinner.text = 'Copied Copilot CLI agent stubs...';
+      console.log(chalk.green(`  ✓ GitHub agents: ${githubAgentsSource} → ${githubAgentsDir}`));
     } else {
-      copySpinner.warn(`GitHub agents source not found: ${githubAgentsSource}`);
+      copySpinner.warn(`⚠ GitHub agents source not found: ${githubAgentsSource}`);
     }
     
     copySpinner.succeed('BYAN files installed');
   } catch (error) {
     copySpinner.fail('Error copying files');
     console.error(chalk.red('Details:'), error.message);
+    console.error(chalk.red('Stack:'), error.stack);
   }
   
   // Step 6: Create config.yaml
