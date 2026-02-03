@@ -19,6 +19,16 @@ Complete step-by-step installation guide for Windows + Linux users:
 
 **Perfect for:** First-time users, Windows users, troubleshooting installation issues
 
+### ⚡ **[Quickstart Guide - 5 Minutes](QUICKSTART.md)** 🚀 NEW!
+Ultra-condensed installation for experienced developers:
+- ⚡ Zero explanations, only commands
+- ⚡ 5-minute install promise
+- ⚡ GitHub Copilot CLI + Claude Code
+- ⚡ 1-minute troubleshooting fixes
+- ⚡ Agent reference table
+
+**Perfect for:** Experienced developers, quick setup, command reference
+
 ---
 
 ## 🏗️ What is BYAN?
