@@ -48,4 +48,30 @@ describe('Codex Platform', () => {
       expect(codex.name).toBe('Codex');
     });
   });
+
+  describe('install()', () => {
+    const mockFileUtils = require('../../lib/utils/file-utils');
+    
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFileUtils.ensureDir.mockResolvedValue();
+      mockFileUtils.writeFile.mockResolvedValue();
+    });
+
+    it('should create .codex/prompts directory and install agents', async () => {
+      const result = await codex.install('/project', ['agent1', 'agent2'], {});
+      
+      expect(mockFileUtils.ensureDir).toHaveBeenCalledWith('/project/.codex/prompts');
+      expect(mockFileUtils.writeFile).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ success: true, installed: 2 });
+    });
+
+    it('should handle empty agent list', async () => {
+      const result = await codex.install('/project', [], {});
+      
+      expect(mockFileUtils.ensureDir).toHaveBeenCalled();
+      expect(mockFileUtils.writeFile).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, installed: 0 });
+    });
+  });
 });

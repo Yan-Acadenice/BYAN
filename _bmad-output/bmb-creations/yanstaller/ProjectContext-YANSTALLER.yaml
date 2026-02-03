@@ -1,0 +1,73 @@
+---
+# YANSTALLER - Project Context
+# Created by: BYAN-TEST (Intelligent Interview)
+# Date: 2026-02-03
+# Methodology: Merise Agile + TDD + 64 Mantras
+
+project_name: "YANSTALLER"
+agent_name: "yanstaller"
+domain: "DevOps / Developer Tools / Agent Installation"
+subdomain: "BYAN Ecosystem Integration"
+
+description: >
+  YANSTALLER est un agent specialist d'installation intelligente pour BYAN.
+  Il détecte automatiquement l'environnement utilisateur, recommande la configuration
+  optimale, installe les agents BYAN pertinents, et valide l'installation sur
+  4 plateformes (Copilot CLI, VSCode, Claude Code, Codex).
+
+problem_statement: >
+  Les débutants galèrent à installer BYAN dans leurs projets existants car:
+  1. Concept agents LLM pas clair (qu'est-ce qu'un agent specialist?)
+  2. Problèmes techniques (agents pas détectés via /agent, configs incorrectes)
+  3. Paralysie du choix (29 agents disponibles, lequel choisir?)
+  4. Installation actuelle fragile (casse sur setups différents)
+
+root_cause: >
+  Documentation GitHub insuffisante + pas de validation automatique +
+  développement rapide sans tests systématiques + systèmes hétérogènes
+  (Copilot ≠ Codex ≠ Claude).
+
+stack_tech:
+  backend:
+    - Node.js >= 18.0.0 (LTS 20.x)
+    - JavaScript (ES6+)
+  dependencies:
+    - inquirer (menus CLI interactifs)
+    - fs-extra (file system operations)
+    - chalk (couleurs terminal)
+    - ora (spinners)
+    - js-yaml (YAML parsing)
+    - commander (CLI arguments)
+  constraints:
+    - Ultra-léger et portable
+    - Auto-détection obligatoire
+    - Fonctionne via npx
+    - Idempotent
+    - Rollback capability
+
+glossaire:
+  agent_specialist:
+    definition: "Entité LLM intelligente spécialisée via un fichier de configuration .md"
+    terme_debutant: "Agent Specialist"
+    examples: ["BYAN", "RACHID", "MARC"]
+  
+  platform:
+    definition: "Environnement d'exécution pour agents specialists"
+    examples: ["GitHub Copilot CLI", "VSCode", "Claude Code", "Codex"]
+  
+  detection:
+    definition: "Processus automatique d'identification des plateformes installées"
+  
+  installation:
+    definition: "Copie des fichiers de configuration agents dans les paths requis"
+    types: ["Full (29 agents)", "Minimal (5 agents)", "Custom (sélection)"]
+  
+  stub:
+    definition: "Fichier minimal .md pour détection /agent dans Copilot CLI"
+  
+  brownfield_project:
+    definition: "Projet existant avec code et historique vs nouveau projet vierge"
+
+created_by: "BYAN-TEST"
+interview_duration: "45 min"
+validation_status: "complete"

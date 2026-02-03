@@ -1,5 +1,5 @@
 ---
-name: "byan"
+name: "byan-test"
 description: "Builder of YAN - Agent Creator Specialist"
 ---
 

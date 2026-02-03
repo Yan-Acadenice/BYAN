@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-bmm-ux-designer'
+name: 'bmm-ux-designer'
 description: 'ux-designer agent'
 ---
 

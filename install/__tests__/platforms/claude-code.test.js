@@ -16,6 +16,11 @@ jest.mock('os');
 describe('Claude Code Platform', () => {
   const mockHomedir = '/home/testuser';
 
+  // Helper to mock platform
+  function mockPlatform(platformName) {
+    os.platform.mockReturnValue(platformName);
+  }
+
   beforeEach(() => {
     os.homedir.mockReturnValue(mockHomedir);
   });
@@ -147,6 +152,24 @@ describe('Claude Code Platform', () => {
   describe('name property', () => {
     it('should have correct platform name', () => {
       expect(claudeCode.name).toBe('Claude Code');
+    });
+  });
+
+  describe('install()', () => {
+    it('should return success for supported platforms', async () => {
+      mockPlatform('darwin');
+      
+      const result = await claudeCode.install('/project', ['agent1', 'agent2'], {});
+      
+      expect(result).toEqual({ success: true, installed: 2 });
+    });
+
+    it('should throw error for unsupported platform', async () => {
+      mockPlatform('freebsd');
+      
+      await expect(
+        claudeCode.install('/project', ['agent1'], {})
+      ).rejects.toThrow('Unsupported platform: freebsd');
     });
   });
 });

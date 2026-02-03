@@ -86,4 +86,30 @@ describe('Copilot CLI Platform', () => {
       expect(copilotCli.name).toBe('GitHub Copilot CLI');
     });
   });
+
+  describe('install()', () => {
+    const mockFileUtils = require('../../lib/utils/file-utils');
+    
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockFileUtils.ensureDir.mockResolvedValue();
+      mockFileUtils.writeFile.mockResolvedValue();
+    });
+
+    it('should create .github/agents directory and install agents', async () => {
+      const result = await copilotCli.install('/project', ['agent1', 'agent2'], {});
+      
+      expect(mockFileUtils.ensureDir).toHaveBeenCalledWith('/project/.github/agents');
+      expect(mockFileUtils.writeFile).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ success: true, installed: 2 });
+    });
+
+    it('should handle empty agent list', async () => {
+      const result = await copilotCli.install('/project', [], {});
+      
+      expect(mockFileUtils.ensureDir).toHaveBeenCalled();
+      expect(mockFileUtils.writeFile).not.toHaveBeenCalled();
+      expect(result).toEqual({ success: true, installed: 0 });
+    });
+  });
 });

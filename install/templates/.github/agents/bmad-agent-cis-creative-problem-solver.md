@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-cis-creative-problem-solver'
+name: 'cis-creative-problem-solver'
 description: 'creative-problem-solver agent'
 ---
 

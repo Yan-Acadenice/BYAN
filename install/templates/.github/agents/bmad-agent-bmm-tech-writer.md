@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-bmm-tech-writer'
+name: 'bmm-tech-writer'
 description: 'tech-writer agent'
 ---
 

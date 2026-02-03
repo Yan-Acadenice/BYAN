@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-bmm-quinn'
+name: 'bmm-quinn'
 description: 'quinn agent'
 ---
 

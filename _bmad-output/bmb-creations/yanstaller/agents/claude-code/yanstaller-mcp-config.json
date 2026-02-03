@@ -1,0 +1,14 @@
+{
+  "name": "yanstaller",
+  "description": "BYAN Integration Specialist - Claude Code MCP Server",
+  "version": "1.0.0",
+  "type": "mcp-server",
+  "mcp_server": {
+    "protocol": "stdio",
+    "commands": {
+      "detect": {"description": "Detect environment"},
+      "install": {"description": "Install BYAN agents"},
+      "validate": {"description": "Validate installation"}
+    }
+  }
+}

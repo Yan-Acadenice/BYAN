@@ -1,5 +1,5 @@
 ---
-name: 'bmad-agent-tea-tea'
+name: 'tea-tea'
 description: 'tea agent'
 ---
 
