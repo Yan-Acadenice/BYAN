@@ -6,6 +6,7 @@
 
 const codex = require('../../lib/platforms/codex');
 const fileUtils = require('../../lib/utils/file-utils');
+const path = require('path');
 
 // Mock fileUtils
 jest.mock('../../lib/utils/file-utils');
@@ -61,7 +62,9 @@ describe('Codex Platform', () => {
     it('should create .codex/prompts directory and install agents', async () => {
       const result = await codex.install('/project', ['agent1', 'agent2'], {});
       
-      expect(mockFileUtils.ensureDir).toHaveBeenCalledWith('/project/.codex/prompts');
+      expect(mockFileUtils.ensureDir).toHaveBeenCalledWith(
+        path.join('/project', '.codex', 'prompts')
+      );
       expect(mockFileUtils.writeFile).toHaveBeenCalledTimes(2);
       expect(result).toEqual({ success: true, installed: 2 });
     });

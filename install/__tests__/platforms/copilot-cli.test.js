@@ -7,6 +7,7 @@
 const copilotCli = require('../../lib/platforms/copilot-cli');
 const fileUtils = require('../../lib/utils/file-utils');
 const { execSync } = require('child_process');
+const path = require('path');
 
 // Mock dependencies
 jest.mock('child_process');
@@ -99,7 +100,9 @@ describe('Copilot CLI Platform', () => {
     it('should create .github/agents directory and install agents', async () => {
       const result = await copilotCli.install('/project', ['agent1', 'agent2'], {});
       
-      expect(mockFileUtils.ensureDir).toHaveBeenCalledWith('/project/.github/agents');
+      expect(mockFileUtils.ensureDir).toHaveBeenCalledWith(
+        path.join('/project', '.github', 'agents')
+      );
       expect(mockFileUtils.writeFile).toHaveBeenCalledTimes(2);
       expect(result).toEqual({ success: true, installed: 2 });
     });
