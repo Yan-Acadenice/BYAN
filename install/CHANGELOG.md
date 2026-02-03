@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-02-03
+
+### Changed
+- **Attribution** - Added BMAD origin and author attribution
+  - README.md and README-YANSTALLER.md now mention "Basé sur BMAD" with link to original repository
+  - Made by section updated to "Yan de Acadenice" with link to https://acadenice.fr/
+  - Version badge updated to 1.2.1
+
 ## [1.2.0] - 2026-02-03
 
 ### Added
@@ -37,10 +45,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 20 tests: backuper.test.js
   - 10 tests: interviewer-wizard.test.js
 
+- **CLI Entry Point Rewrite** - bin/create-byan-agent.js now orchestrates full YANSTALLER flow
+  - 7-step installation pipeline (detect → recommend → interview → backup → install → validate → wizard)
+  - CLI options: --silent, --agents, --platforms, --mode, --dry-run, --verbose
+  - Reduced from 323 lines to ~100 lines (modular architecture)
+
 ### Fixed
 - **CRITICAL**: Added `lib/` to package.json files array
   - Core YANSTALLER modules now included in npm package
   - Previous versions were missing all yanstaller/*.js files
+  
+- **CRITICAL**: Entry point now uses YANSTALLER modules correctly
+  - Replaced monolithic code with modular orchestration
+  - Interview now uses interviewer.js (7 questions instead of 2)
+  - Recommendations based on project analysis
+  - Wizard provides post-install actions
   
 - **NPM Package Configuration**
   - Updated .npmignore to exclude tests and dev files
@@ -52,6 +71,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - From BYAN agent documentation to YANSTALLER installer documentation
   - Added detailed module descriptions with code examples
   - Added usage guide (Interview mode + Programmatic API)
+
+- **Version** - Bumped to 1.2.0 (minor) to reflect new YANSTALLER features
+  - Major new functionality: complete intelligent installer
+  - Not just a BYAN agent installer anymore
 
 ## [1.1.3] - 2026-02-03
 
