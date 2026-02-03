@@ -7,7 +7,9 @@
   },
   "scripts": {
     "start": "node bin/create-byan-agent.js",
-    "test": "node bin/create-byan-agent.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "byan",
@@ -37,8 +39,8 @@
   "dependencies": {
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
-    "inquirer": "^8.2.5",
     "fs-extra": "^11.2.0",
+    "inquirer": "^8.2.5",
     "js-yaml": "^4.1.0",
     "ora": "^5.4.1"
   },
@@ -51,5 +53,8 @@
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
-  ]
+  ],
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }
