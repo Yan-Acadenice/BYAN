@@ -1,8 +1,23 @@
 # BYAN - Builder of YAN
 
-**Version:** 1.1.0  
+**Version:** 1.1.1  
 **Methodology:** Merise Agile + TDD + 64 Mantras  
 **Agents Included:** BYAN, BYAN-Test, RACHID, MARC, PATNOTE, CARMACK
+
+---
+
+## 📚 Documentation
+
+### 🆕 **[Installation Guide for Beginners](GUIDE-INSTALLATION-BYAN-SIMPLE.md)** ⭐ NEW!
+Complete step-by-step installation guide for Windows + Linux users:
+- ✅ GitHub Copilot CLI installation (detailed)
+- ✅ Claude Code installation (with MCP)
+- ✅ 10 troubleshooting scenarios
+- ✅ 8 FAQ with solutions
+- ✅ Beginner-friendly explanations
+- ✅ Copy-paste ready commands
+
+**Perfect for:** First-time users, Windows users, troubleshooting installation issues
 
 ---
 
