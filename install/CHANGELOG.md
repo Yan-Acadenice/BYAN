@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-03
+
+### Added
+- **YANSTALLER Complete Implementation** - Intelligent BYAN installer with 8 core modules
+  - **Detector** - Platform & project detection (Copilot CLI, VSCode, Claude Code, Codex)
+  - **Recommender** - AI-powered agent recommendations (20+ frameworks recognized)
+  - **Installer** - Full BMAD structure creation (19 directories, multi-platform stubs)
+  - **Validator** - 10 automated checks for installation integrity
+  - **Troubleshooter** - 8 error patterns with auto-fix capabilities
+  - **Backuper** - Backup & restore with metadata tracking
+  - **Interviewer** - 7-question interactive installation flow
+  - **Wizard** - Post-install wizard with 4 options (create agent, test, docs, exit)
+
+- **Comprehensive Documentation** - Bilingual README (FR/EN, 1200+ lines)
+  - Complete API reference for all 8 modules
+  - 168 tests documented with breakdown
+  - Architecture diagrams (ASCII flow charts)
+  - Installation guide (NPX/NPM/Manual)
+  - Contributing guidelines + PR checklist
+  - Performance benchmarks
+
+- **Test Suite** - 168 comprehensive tests
+  - 18 tests: recommender.test.js
+  - 13 tests: installer.test.js
+  - 20 tests: platforms.test.js
+  - 24 tests: validator.test.js
+  - 27 tests: integration.test.js
+  - 16 tests: e2e.test.js
+  - 20 tests: troubleshooter.test.js
+  - 20 tests: backuper.test.js
+  - 10 tests: interviewer-wizard.test.js
+
+### Fixed
+- **CRITICAL**: Added `lib/` to package.json files array
+  - Core YANSTALLER modules now included in npm package
+  - Previous versions were missing all yanstaller/*.js files
+  
+- **NPM Package Configuration**
+  - Updated .npmignore to exclude tests and dev files
+  - Package now includes: bin/, lib/, templates/, README.md, CHANGELOG.md, LICENSE
+  - Reduced package size by excluding __tests__/, development scripts
+
+### Changed
+- **README.md** - Complete rewrite focusing on YANSTALLER
+  - From BYAN agent documentation to YANSTALLER installer documentation
+  - Added detailed module descriptions with code examples
+  - Added usage guide (Interview mode + Programmatic API)
+
 ## [1.1.3] - 2026-02-03
 
 ### Fixed

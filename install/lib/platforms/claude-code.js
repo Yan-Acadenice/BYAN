@@ -60,8 +60,35 @@ async function install(projectRoot, agents, config) {
     throw new Error(`Unsupported platform: ${os.platform()}`);
   }
   
-  // TODO: Update claude_desktop_config.json to add MCP server
-  // MCP server will expose BYAN agents
+  // Read existing config or create new
+  let desktopConfig = {};
+  if (await fileUtils.exists(configPath)) {
+    const content = await fileUtils.readFile(configPath, 'utf8');
+    desktopConfig = JSON.parse(content);
+  }
+  
+  // Ensure mcpServers exists
+  if (!desktopConfig.mcpServers) {
+    desktopConfig.mcpServers = {};
+  }
+  
+  // Add BYAN MCP server if not exists
+  if (!desktopConfig.mcpServers.byan) {
+    desktopConfig.mcpServers.byan = {
+      command: 'npx',
+      args: ['-y', '@byan/mcp-server'],
+      env: {
+        BYAN_PROJECT_ROOT: projectRoot
+      }
+    };
+  }
+  
+  // Write updated config
+  await fileUtils.ensureDir(path.dirname(configPath));
+  await fileUtils.writeFile(
+    configPath,
+    JSON.stringify(desktopConfig, null, 2)
+  );
   
   return {
     success: true,

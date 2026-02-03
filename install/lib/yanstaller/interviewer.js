@@ -3,12 +3,14 @@
  * 
  * Conducts quick interview (5-7 questions, <5 min) to personalize installation.
  * 
- * Phase 6 (part of 7): 16h development
+ * Phase 7: 16h development
  * 
  * @module yanstaller/interviewer
  */
 
 const inquirer = require('inquirer');
+const chalk = require('chalk');
+const logger = require('../utils/logger');
 
 /**
  * @typedef {Object} InterviewResult
@@ -27,21 +29,137 @@ const inquirer = require('inquirer');
  * @returns {Promise<InterviewResult>}
  */
 async function ask(recommendation) {
-  // TODO: Implement inquirer prompts
-  // Q1: Your name?
-  // Q2: Preferred language?
-  // Q3: Installation mode? (with recommendation)
-  // Q4: (if custom) Which agents?
-  // Q5: Which platforms to install on?
-  // Q6: Create sample agent after install?
+  logger.info(chalk.bold('\n🎙️  YANSTALLER Quick Interview\n'));
+  logger.info('Just 5-7 questions to personalize your BYAN installation (<5 min)\n');
+  
+  // Q1: Your name
+  const nameAnswer = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'userName',
+      message: 'What\'s your name?',
+      default: 'Developer',
+      validate: (input) => input.trim().length > 0 || 'Name cannot be empty'
+    }
+  ]);
+  
+  // Q2: Preferred language
+  const langAnswer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'language',
+      message: 'Preferred communication language?',
+      choices: [
+        { name: 'English', value: 'English' },
+        { name: 'Français', value: 'Francais' }
+      ],
+      default: 'English'
+    }
+  ]);
+  
+  // Q3: Installation mode (with recommendation)
+  const recommendedMode = recommendation ? recommendation.mode : 'recommended';
+  const modeChoices = [
+    {
+      name: `Recommended - Based on your project (${recommendation ? recommendation.agents.length : 7} agents)`,
+      value: 'recommended',
+      description: 'Best for most users'
+    },
+    {
+      name: 'Minimal - Essential agents only (4 agents)',
+      value: 'minimal',
+      description: 'Fastest installation'
+    },
+    {
+      name: 'Full - All 29 agents',
+      value: 'full',
+      description: 'Complete BMAD platform'
+    },
+    {
+      name: 'Custom - Choose specific agents',
+      value: 'custom',
+      description: 'Advanced users'
+    }
+  ];
+  
+  const modeAnswer = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'mode',
+      message: 'Installation mode?',
+      choices: modeChoices,
+      default: recommendedMode
+    }
+  ]);
+  
+  // Q4: Agent selection (if custom mode)
+  let selectedAgents = [];
+  if (modeAnswer.mode === 'custom') {
+    const agentAnswer = await inquirer.prompt([
+      {
+        type: 'checkbox',
+        name: 'agents',
+        message: 'Select agents to install:',
+        choices: getAgentChoices(),
+        pageSize: 15,
+        validate: (input) => input.length > 0 || 'Select at least one agent'
+      }
+    ]);
+    selectedAgents = agentAnswer.agents;
+  } else if (modeAnswer.mode === 'recommended' && recommendation) {
+    selectedAgents = recommendation.agents;
+  } else if (modeAnswer.mode === 'minimal') {
+    selectedAgents = ['byan', 'rachid', 'dev', 'tech-writer'];
+  } else if (modeAnswer.mode === 'full') {
+    selectedAgents = getAllAgents();
+  }
+  
+  // Q5: Target platforms
+  const platformAnswer = await inquirer.prompt([
+    {
+      type: 'checkbox',
+      name: 'platforms',
+      message: 'Which platforms to install on?',
+      choices: [
+        { name: 'GitHub Copilot CLI (.github/agents/)', value: 'copilot-cli', checked: true },
+        { name: 'VSCode Copilot Extension', value: 'vscode', checked: true },
+        { name: 'Codex (.codex/prompts/)', value: 'codex', checked: false },
+        { name: 'Claude Code (MCP server)', value: 'claude-code', checked: false }
+      ],
+      validate: (input) => input.length > 0 || 'Select at least one platform'
+    }
+  ]);
+  
+  // Q6: Create sample agent
+  const sampleAnswer = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'createSample',
+      message: 'Launch BYAN agent creator after installation?',
+      default: false
+    }
+  ]);
+  
+  // Q7: Create backup (optional)
+  const backupAnswer = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'createBackup',
+      message: 'Create backup of existing _bmad/ directory? (if exists)',
+      default: true
+    }
+  ]);
+  
+  logger.info('');
   
   return {
-    userName: 'User',
-    language: 'English',
-    mode: recommendation.mode,
-    agents: recommendation.agents,
-    targetPlatforms: ['copilot-cli'],
-    createSampleAgent: false
+    userName: nameAnswer.userName,
+    language: langAnswer.language,
+    mode: modeAnswer.mode,
+    agents: selectedAgents,
+    targetPlatforms: platformAnswer.platforms,
+    createSampleAgent: sampleAnswer.createSample,
+    createBackup: backupAnswer.createBackup
   };
 }
 
@@ -73,16 +191,60 @@ async function askQuestion(question, type, choices = []) {
  * @returns {Array<{name: string, value: string, checked: boolean}>}
  */
 function getAgentChoices() {
-  // TODO: Return all 29 agents with descriptions
   return [
-    { name: 'BYAN - Agent Creator', value: 'byan', checked: true },
-    { name: 'RACHID - NPM Deployment', value: 'rachid', checked: true },
-    // ... 27 more
+    // BMB Module - Builders
+    { name: '🏗️  BYAN - Agent Creator & Intelligent Interview', value: 'byan', checked: true },
+    { name: '📦 RACHID - NPM/NPX Deployment Specialist', value: 'rachid', checked: true },
+    { name: '🔧 Agent Builder - Direct agent creation', value: 'agent-builder', checked: false },
+    { name: '📋 Module Builder - Module scaffolding', value: 'module-builder', checked: false },
+    { name: '🔄 Workflow Builder - Workflow creation', value: 'workflow-builder', checked: false },
+    
+    // BMM Module - Development Team
+    { name: '🔍 MARY (Analyst) - Requirements & Domain Expert', value: 'analyst', checked: false },
+    { name: '📊 JOHN (PM) - Product Management', value: 'pm', checked: false },
+    { name: '🏛️  WINSTON (Architect) - System Architecture', value: 'architect', checked: false },
+    { name: '💻 AMELIA (Dev) - Implementation Specialist', value: 'dev', checked: true },
+    { name: '📋 BOB (SM) - Scrum Master', value: 'sm', checked: false },
+    { name: '🧪 QUINN (QA) - Quality Assurance', value: 'quinn', checked: false },
+    { name: '🎨 SALLY (UX) - UX/UI Design', value: 'ux-designer', checked: false },
+    { name: '📝 PAIGE (Tech Writer) - Documentation', value: 'tech-writer', checked: true },
+    
+    // TEA Module - Testing
+    { name: '🧬 MURAT (TEA) - Test Architecture Expert', value: 'tea', checked: false },
+    
+    // CIS Module - Innovation
+    { name: '💡 CARSON - Brainstorming Coach', value: 'brainstorming-coach', checked: false },
+    { name: '🎯 DR. QUINN - Design Thinking Coach', value: 'design-thinking-coach', checked: false },
+    { name: '🧩 MAYA - Creative Problem Solver', value: 'creative-problem-solver', checked: false },
+    { name: '🚀 VICTOR - Innovation Strategist', value: 'innovation-strategist', checked: false },
+    { name: '📽️  Presentation Master', value: 'presentation-master', checked: false },
+    { name: '📖 Storyteller', value: 'storyteller', checked: false },
+    
+    // Core Module
+    { name: '🎭 Party Mode - Multi-agent orchestration', value: 'party-mode', checked: false },
+    { name: '🧠 BMAD Master - Platform orchestrator', value: 'bmad-master', checked: false },
+    
+    // Specialized
+    { name: '🔌 MARC - GitHub Copilot CLI Integration', value: 'marc', checked: false },
+    { name: '📌 PATNOTE - Update Manager', value: 'patnote', checked: false },
+    
+    // Quick Flow Variants
+    { name: '⚡ Quick Flow Solo Dev', value: 'quick-flow-solo-dev', checked: false }
   ];
+}
+
+/**
+ * Get all agent names
+ * 
+ * @returns {string[]}
+ */
+function getAllAgents() {
+  return getAgentChoices().map(choice => choice.value);
 }
 
 module.exports = {
   ask,
   askQuestion,
-  getAgentChoices
+  getAgentChoices,
+  getAllAgents
 };
