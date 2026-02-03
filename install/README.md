@@ -8,7 +8,7 @@
 
 ## 📚 Documentation
 
-### 🆕 **[Installation Guide for Beginners](GUIDE-INSTALLATION-BYAN-SIMPLE.md)** ⭐ NEW!
+### 🆕 **[Installation Guide for Beginners](https://github.com/Yan-Acadenice/BYAN/blob/main/install/GUIDE-INSTALLATION-BYAN-SIMPLE.md)** ⭐ NEW!
 Complete step-by-step installation guide for Windows + Linux users:
 - ✅ GitHub Copilot CLI installation (detailed)
 - ✅ Claude Code installation (with MCP)
@@ -19,7 +19,7 @@ Complete step-by-step installation guide for Windows + Linux users:
 
 **Perfect for:** First-time users, Windows users, troubleshooting installation issues
 
-### ⚡ **[Quickstart Guide - 5 Minutes](QUICKSTART.md)** 🚀 NEW!
+### ⚡ **[Quickstart Guide - 5 Minutes](https://github.com/Yan-Acadenice/BYAN/blob/main/install/QUICKSTART.md)** 🚀 NEW!
 Ultra-condensed installation for experienced developers:
 - ⚡ Zero explanations, only commands
 - ⚡ 5-minute install promise

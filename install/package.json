@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "NPX installer for BYAN ecosystem - Agent creators (BYAN, BYAN-Test) with deployment (RACHID), integration (MARC), updates (PATNOTE), and optimization (CARMACK)",
   "bin": {
     "create-byan-agent": "bin/create-byan-agent.js"
