@@ -12,6 +12,30 @@ const inquirer = require('inquirer');
 const chalk = require('chalk');
 const logger = require('../utils/logger');
 
+function normalizePlatformName(name) {
+  if (!name) return name;
+  const lower = String(name).toLowerCase();
+  if (lower === 'claude') return 'claude-code';
+  return lower;
+}
+
+function buildDefaultPlatforms(options = {}) {
+  const preferred = Array.isArray(options.preferredPlatforms)
+    ? options.preferredPlatforms.map(normalizePlatformName).filter(Boolean)
+    : [];
+  
+  if (preferred.length > 0) return preferred;
+  
+  const detected = (options.detection && Array.isArray(options.detection.platforms))
+    ? options.detection.platforms
+        .filter(p => p.detected)
+        .map(p => normalizePlatformName(p.name))
+        .filter(Boolean)
+    : [];
+  
+  return detected;
+}
+
 /**
  * @typedef {Object} InterviewResult
  * @property {string} userName
@@ -28,7 +52,7 @@ const logger = require('../utils/logger');
  * @param {import('./recommender').Recommendation} recommendation - Recommended config
  * @returns {Promise<InterviewResult>}
  */
-async function ask(recommendation) {
+async function ask(recommendation, options = {}) {
   logger.info(chalk.bold('\n🎙️  YANSTALLER Quick Interview\n'));
   logger.info('Just 5-7 questions to personalize your BYAN installation (<5 min)\n');
   
@@ -115,16 +139,20 @@ async function ask(recommendation) {
   }
   
   // Q5: Target platforms
+  const defaultPlatforms = buildDefaultPlatforms(options);
+  const useDefaultPlatforms = defaultPlatforms.length > 0;
+  const isDefault = (value, fallback) => useDefaultPlatforms ? defaultPlatforms.includes(value) : fallback;
+  
   const platformAnswer = await inquirer.prompt([
     {
       type: 'checkbox',
       name: 'platforms',
       message: 'Which platforms to install on?',
       choices: [
-        { name: 'GitHub Copilot CLI (.github/agents/)', value: 'copilot-cli', checked: true },
-        { name: 'VSCode Copilot Extension', value: 'vscode', checked: true },
-        { name: 'Codex (.codex/prompts/)', value: 'codex', checked: false },
-        { name: 'Claude Code (MCP server)', value: 'claude-code', checked: false }
+        { name: 'GitHub Copilot CLI (.github/agents/)', value: 'copilot-cli', checked: isDefault('copilot-cli', true) },
+        { name: 'VSCode Copilot Extension', value: 'vscode', checked: isDefault('vscode', true) },
+        { name: 'Codex (.codex/prompts/)', value: 'codex', checked: isDefault('codex', false) },
+        { name: 'Claude Code (MCP server)', value: 'claude-code', checked: isDefault('claude-code', false) }
       ],
       validate: (input) => input.length > 0 || 'Select at least one platform'
     }

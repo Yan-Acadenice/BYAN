@@ -16,6 +16,26 @@ const logger = require('../lib/utils/logger');
 
 const YANSTALLER_VERSION = '1.2.3';
 
+function parseList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
+  return String(value)
+    .split(',')
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+function normalizePlatformName(name) {
+  if (!name) return name;
+  const lower = String(name).toLowerCase();
+  if (lower === 'claude') return 'claude-code';
+  return lower;
+}
+
+function normalizePlatforms(list) {
+  return list.map(normalizePlatformName).filter(Boolean);
+}
+
 // ASCII Art Banner
 const banner = `
 ${chalk.blue('╔════════════════════════════════════════════════════════════╗')}
@@ -41,7 +61,7 @@ ${chalk.blue('╚═════════════════════
  * 6. VALIDATE - 10 automated checks
  * 7. WIZARD - Post-install actions
  */
-async function main() {
+async function main(options = {}) {
   try {
     console.clear();
     console.log(banner);
@@ -73,8 +93,72 @@ async function main() {
     }
     
     // STEP 3: INTERVIEW - 7-Question Personalization
-    logger.info(chalk.bold('\n🎙️  STEP 3/7: Interview\n'));
-    const answers = await interviewer.ask(recommendations);
+    const isSilent = !!options.silent;
+    const forceInteractive = !!options.interactive;
+    const hasTty = !!process.stdin.isTTY;
+    const forceSilent = !hasTty && !isSilent && !forceInteractive;
+    
+    if (forceSilent) {
+      logger.warn('No interactive TTY detected. Falling back to silent mode.');
+    }
+    if (!hasTty && forceInteractive) {
+      logger.warn('Interactive mode forced without TTY. Prompts may not render correctly.');
+    }
+    
+    let answers;
+    
+    if (isSilent || forceSilent) {
+      logger.info(chalk.bold('\nSTEP 3/7: Interview (skipped - silent)\n'));
+      
+      const parsedAgents = parseList(options.agents);
+      const parsedPlatforms = normalizePlatforms(parseList(options.platforms));
+      
+      let mode = options.mode || (parsedAgents.length > 0 ? 'custom' : (recommendations.mode || 'minimal'));
+      let agents = parsedAgents;
+      
+      if (agents.length === 0) {
+        if (mode === 'recommended' && recommendations && recommendations.agents) {
+          agents = recommendations.agents;
+        } else if (mode === 'minimal' || mode === 'full') {
+          agents = recommender.getAgentList(mode);
+        } else if (mode === 'custom') {
+          logger.warn('Custom mode selected without agents. Falling back to recommendations.');
+          agents = recommendations.agents || ['byan'];
+          mode = 'recommended';
+        } else {
+          agents = recommendations.agents || ['byan'];
+          mode = recommendations.mode || 'minimal';
+        }
+      }
+      
+      let targetPlatforms = parsedPlatforms;
+      if (targetPlatforms.length === 0) {
+        targetPlatforms = (detection.platforms || [])
+          .filter(p => p.detected)
+          .map(p => normalizePlatformName(p.name));
+      }
+      
+      answers = {
+        userName: 'Developer',
+        language: 'English',
+        mode,
+        agents,
+        targetPlatforms,
+        createSampleAgent: false,
+        createBackup: options.backup !== false
+      };
+    } else {
+      logger.info(chalk.bold('\nSTEP 3/7: Interview\n'));
+      const preferredPlatforms = normalizePlatforms(parseList(options.platforms));
+      answers = await interviewer.ask(recommendations, {
+        detection,
+        preferredPlatforms
+      });
+      
+      if (options.backup === false) {
+        answers.createBackup = false;
+      }
+    }
     
     // STEP 4: BACKUP (optional)
     if (answers.createBackup) {
@@ -123,15 +207,19 @@ async function main() {
     }
     
     // STEP 7: WIZARD - Post-Install Actions
-    logger.info(chalk.bold('\n🧙 STEP 7/7: Post-Install Wizard\n'));
-    await wizard.show({
-      agents: answers.agents,
-      targetPlatforms: answers.targetPlatforms,
-      mode: answers.mode,
-      projectRoot,
-      userName: answers.userName,
-      language: answers.language
-    });
+    if (isSilent || forceSilent) {
+      logger.info(chalk.bold('\nSTEP 7/7: Post-Install Wizard (skipped - silent)\n'));
+    } else {
+      logger.info(chalk.bold('\nSTEP 7/7: Post-Install Wizard\n'));
+      await wizard.show({
+        agents: answers.agents,
+        targetPlatforms: answers.targetPlatforms,
+        mode: answers.mode,
+        projectRoot,
+        userName: answers.userName,
+        language: answers.language
+      });
+    }
     
   } catch (error) {
     logger.error(chalk.red('\n❌ Installation failed:\n'));
@@ -149,12 +237,13 @@ program
   .description('YANSTALLER - Intelligent installer for BYAN ecosystem (29 agents, multi-platform)')
   .version(YANSTALLER_VERSION)
   .option('--silent', 'Silent installation (no prompts)')
+  .option('--interactive', 'Force interactive prompts even without TTY')
   .option('--agents <agents>', 'Comma-separated list of agents to install')
   .option('--platforms <platforms>', 'Comma-separated list of platforms (copilot-cli,vscode,claude-code,codex)')
   .option('--mode <mode>', 'Installation mode: recommended, custom, minimal, full')
   .option('--no-backup', 'Skip pre-install backup')
   .option('--dry-run', 'Simulate installation without making changes')
   .option('--verbose', 'Verbose logging')
-  .action(main);
+  .action((opts) => main(opts));
 
 program.parse(process.argv);

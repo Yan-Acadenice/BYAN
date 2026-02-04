@@ -166,12 +166,13 @@ async function copyAgentFile(agentName, projectRoot) {
 /**
  * Generate platform stubs for all agents
  * 
- * @param {string} platform - Platform name ('copilot-cli' | 'vscode' | 'claude' | 'codex')
+ * @param {string} platform - Platform name ('copilot-cli' | 'vscode' | 'claude-code' | 'codex')
  * @param {InstallConfig} config - Installation config
  * @returns {Promise<void>}
  */
 async function generatePlatformStubs(platform, config) {
-  const platformModule = require(`../platforms/${platform}`);
+  const normalized = platform === 'claude' ? 'claude-code' : platform;
+  const platformModule = require(`../platforms/${normalized}`);
   
   if (!platformModule || typeof platformModule.install !== 'function') {
     throw new Error(`Platform module not found or invalid: ${platform}`);

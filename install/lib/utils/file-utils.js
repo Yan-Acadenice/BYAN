@@ -103,6 +103,7 @@ async function readDir(dirPath) {
 }
 
 module.exports = {
+  constants: fs.constants,
   copy,
   exists,
   ensureDir,
@@ -111,5 +112,6 @@ module.exports = {
   writeJSON,
   readFile,
   writeFile,
-  readDir
+  readDir,
+  access: fs.access
 };

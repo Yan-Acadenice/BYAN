@@ -1020,6 +1020,9 @@ console.log(validation.errors); // []
 # Silent installation with specific agents
 create-byan-agent --silent --agents=byan,dev,quinn
 
+# Force interactive prompts (useful inside npm scripts or CI shells without TTY)
+create-byan-agent --interactive
+
 # Custom mode with specific platform
 create-byan-agent --mode=custom --platforms=copilot-cli
 

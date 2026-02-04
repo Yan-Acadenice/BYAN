@@ -1,0 +1,272 @@
+---
+# 64 Mantras - Merise Agile + TDD
+# Version: 1.0.0
+# Source: Brainstorming Yan + Carson 2026-02-02
+
+conception:
+  philosophie:
+    - id: 1
+      name: "Le Modèle Sert le Métier, Pas l'Inverse"
+      category: "philosophie"
+      description: "Le modèle doit toujours servir les besoins métier, jamais l'inverse"
+      priority: "critique"
+      
+    - id: 2
+      name: "User Story → Entité (Bottom-Up)"
+      category: "philosophie"
+      description: "Les user stories génèrent les entités, pas l'inverse"
+      priority: "haute"
+      
+    - id: 3
+      name: "Itératif et Incrémental"
+      category: "philosophie"
+      description: "MCD évolue sprint par sprint, pas big bang"
+      priority: "haute"
+
+  collaboration:
+    - id: 4
+      name: "Fail Fast, Fail Visible"
+      category: "collaboration"
+      description: "Détecter et signaler les problèmes rapidement"
+      priority: "critique"
+      
+    - id: 5
+      name: "Communication Transparente"
+      category: "collaboration"
+      description: "Pas de silos, partage d'information systématique"
+      priority: "haute"
+      
+    - id: 6
+      name: "Feedback Loops Courts"
+      category: "collaboration"
+      description: "Validation fréquente avec les parties prenantes"
+      priority: "haute"
+
+  qualite:
+    - id: 7
+      name: "Keep It Simple, Stupid (KISS)"
+      category: "qualite"
+      description: "Simplicité avant tout, éviter la sur-ingénierie"
+      priority: "critique"
+      
+    - id: 8
+      name: "Don't Repeat Yourself (DRY)"
+      category: "qualite"
+      description: "Éliminer la duplication de code et logique"
+      priority: "haute"
+      
+    - id: 9
+      name: "You Aren't Gonna Need It (YAGNI)"
+      category: "qualite"
+      description: "Ne pas développer des fonctionnalités non nécessaires"
+      priority: "haute"
+
+  agilite:
+    - id: 10
+      name: "Sprint 0 = Squelette MCD"
+      category: "agilite"
+      description: "Commencer avec un MCD minimal viable"
+      priority: "haute"
+      
+    - id: 11
+      name: "Story Mapping Driven Design"
+      category: "agilite"
+      description: "Story mapping guide la conception du MCD"
+      priority: "haute"
+      
+    - id: 12
+      name: "UX is Priority #1"
+      category: "agilite"
+      description: "L'expérience utilisateur prime sur la perfection technique"
+      priority: "critique"
+
+  technique:
+    - id: 13
+      name: "MCD Versionné (Git)"
+      category: "technique"
+      description: "MCD sous contrôle de version en texte"
+      priority: "haute"
+      
+    - id: 14
+      name: "Architecture Hexagonale"
+      category: "technique"
+      description: "Séparer domaine, application et infrastructure"
+      priority: "moyenne"
+      
+    - id: 15
+      name: "API First"
+      category: "technique"
+      description: "Définir l'API avant l'implémentation"
+      priority: "haute"
+
+  tests:
+    - id: 18
+      name: "TDD is Not Optional"
+      category: "tests"
+      description: "Tests écrits avant le code"
+      priority: "critique"
+      
+    - id: 19
+      name: "Test the Behavior, Not Implementation"
+      category: "tests"
+      description: "Tester le comportement métier, pas les détails techniques"
+      priority: "haute"
+
+  performance:
+    - id: 20
+      name: "Performance is a Feature (from Sprint 0)"
+      category: "performance"
+      description: "La performance se conçoit dès le début"
+      priority: "haute"
+      
+    - id: 21
+      name: "Security by Design"
+      category: "performance"
+      description: "La sécurité fait partie de la conception"
+      priority: "critique"
+
+  merise_rigueur:
+    - id: 33
+      name: "Data Dictionary First"
+      category: "merise_rigueur"
+      description: "Dictionnaire de données créé avant le MCD"
+      priority: "critique"
+      
+    - id: 34
+      name: "MCD ⇄ MCT Cross-Validation"
+      category: "merise_rigueur"
+      description: "Validation croisée données-traitements obligatoire"
+      priority: "critique"
+      
+    - id: 35
+      name: "MOD ⇄ MOT Validation"
+      category: "merise_rigueur"
+      description: "Validation organisationnelle (géo, temps, volume, sécu, tech)"
+      priority: "haute"
+      
+    - id: 36
+      name: "Three Levels Are Complementary"
+      category: "merise_rigueur"
+      description: "Conceptuel, Organisationnel, Physique sont complémentaires"
+      priority: "haute"
+
+  resolution_problemes:
+    - id: 37
+      name: "Rasoir d'Ockham (Ockham's Razor)"
+      category: "resolution_problemes"
+      description: "La solution la plus simple est souvent la meilleure"
+      priority: "critique"
+      
+    - id: 38
+      name: "Inversion - Si Bloqué, Retourne le Problème"
+      category: "resolution_problemes"
+      description: "6 techniques d'inversion pour débloquer"
+      priority: "haute"
+      techniques:
+        - "Inverser le problème (chercher le pire)"
+        - "Inverser les acteurs (qui d'autre?)"
+        - "Inverser le temps (et si on avait fait ça avant?)"
+        - "Inverser la contrainte (et si on l'enlevait?)"
+        - "Inverser le scope (plus petit/plus grand?)"
+        - "Inverser la solution (faire l'opposé)"
+      
+    - id: 39
+      name: "Chaque Action a des Conséquences"
+      category: "resolution_problemes"
+      description: "Évaluer 10 dimensions avant toute action importante"
+      priority: "critique"
+      dimensions:
+        - "Scope (périmètre impacté)"
+        - "Data (bases de données)"
+        - "Code (fichiers modifiés)"
+        - "Team (équipe affectée)"
+        - "Clients (utilisateurs impactés)"
+        - "Legal (conformité)"
+        - "Operations (déploiement)"
+        - "Dependencies (dépendances)"
+        - "Time (temps nécessaire)"
+        - "Alternatives (autres options)"
+
+agents_ia:
+  intelligence:
+    - id: "IA-1"
+      name: "Trust But Verify"
+      category: "intelligence"
+      description: "Toujours valider les demandes utilisateur"
+      priority: "critique"
+      
+    - id: "IA-2"
+      name: "Context is King"
+      category: "intelligence"
+      description: "Comprendre le contexte avant d'agir"
+      priority: "critique"
+      
+    - id: "IA-3"
+      name: "Explain Your Reasoning"
+      category: "intelligence"
+      description: "Toujours expliquer le raisonnement derrière les décisions"
+      priority: "haute"
+
+  validation:
+    - id: "IA-16"
+      name: "Challenge Before Confirm"
+      category: "validation"
+      description: "Jouer l'avocat du diable avant d'exécuter"
+      priority: "critique"
+      
+    - id: "IA-17"
+      name: "Detect Bullshit, Signal Bullshit"
+      category: "validation"
+      description: "Détecter les incohérences et les signaler"
+      priority: "critique"
+      
+    - id: "IA-18"
+      name: "Question Assumptions"
+      category: "validation"
+      description: "Remettre en question les hypothèses implicites"
+      priority: "haute"
+
+  autonomie:
+    - id: "IA-21"
+      name: "Self-Aware Agent"
+      category: "autonomie"
+      description: "Connaître ses limites et les communiquer"
+      priority: "critique"
+      
+    - id: "IA-22"
+      name: "Proactive Problem Detection"
+      category: "autonomie"
+      description: "Anticiper et signaler les problèmes potentiels"
+      priority: "haute"
+
+  code_quality:
+    - id: "IA-23"
+      name: "No Emoji Pollution"
+      category: "code_quality"
+      description: "Aucun emoji dans le code, commits Git, ou production"
+      priority: "critique"
+      forbidden:
+        - "Code source"
+        - "Git commits"
+        - "Interfaces production"
+        - "Documentation technique"
+      
+    - id: "IA-24"
+      name: "Clean Code = No Useless Comments"
+      category: "code_quality"
+      description: "Code auto-documenté, commentaires uniquement pour WHY"
+      priority: "critique"
+      allowed_comments:
+        - "WHY (pas WHAT)"
+        - "Workarounds temporaires"
+        - "Contraintes légales/business"
+        - "TODOs avec ticket"
+
+metadata:
+  total_mantras: 64
+  conception_count: 39
+  agents_ia_count: 25
+  version: "1.0.0"
+  last_updated: "2026-02-02"
+  authors: ["Yan", "Carson"]
+  methodology: "Merise Agile + TDD"

@@ -123,7 +123,8 @@ async function runE2ETest() {
         binPath,
         '--silent',
         '--mode=minimal',
-        '--agents=byan,rachid,patnote'
+        '--agents=byan,rachid,patnote',
+        '--platforms=copilot-cli,codex'
       ], { 
         cwd: tempDir,
         silent: false // Show output for debugging

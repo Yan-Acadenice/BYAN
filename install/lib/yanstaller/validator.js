@@ -12,6 +12,7 @@ const path = require('path');
 const fileUtils = require('../utils/file-utils');
 const yamlUtils = require('../utils/yaml-utils');
 const { execSync } = require('child_process');
+const fs = require('fs-extra');
 
 /**
  * @typedef {Object} ValidationResult
@@ -252,7 +253,7 @@ async function checkConfigFiles(config) {
     if (await fileUtils.exists(configPath)) {
       try {
         const configContent = await fileUtils.readFile(configPath, 'utf8');
-        const parsedConfig = yamlUtils.load(configContent);
+        const parsedConfig = yamlUtils.parse(configContent);
         
         // Validate required fields
         if (!parsedConfig.user_name) {
@@ -497,7 +498,30 @@ async function checkTemplates(config) {
     };
   }
   
-  const modules = ['core', 'bmm', 'bmb', 'tea', 'cis'];
+  const entries = await fileUtils.readDir(templatesDir);
+  const modules = [];
+  for (const entry of entries) {
+    const entryPath = path.join(templatesDir, entry);
+    try {
+      const stat = await fs.stat(entryPath);
+      if (stat.isDirectory()) {
+        modules.push(entry);
+      }
+    } catch {
+      // Ignore unreadable entries
+    }
+  }
+  
+  if (modules.length === 0) {
+    return {
+      id: 'templates',
+      name: 'Template files',
+      passed: false,
+      message: 'No template modules found',
+      severity: 'warning'
+    };
+  }
+  
   const issues = [];
   
   for (const module of modules) {
