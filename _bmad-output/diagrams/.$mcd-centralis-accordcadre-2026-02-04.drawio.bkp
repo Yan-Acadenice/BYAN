@@ -1,0 +1,238 @@
+<mxfile host="app.diagrams.net" modified="2026-02-04T12:54:00.000Z" agent="Draw.io MCP Server" version="24.0.0">
+  <diagram name="MCD Centralis - Accord Cadre 2027" id="mcd-centralis">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- ENTITE: Prestataire -->
+        <mxCell id="prestataire-entity" value="PRESTATAIRE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="80" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="prestataire-attrs" value="#id_prestataire&#xa;nom_entreprise&#xa;siret&#xa;email&#xa;statut (libre|accord-cadre)&#xa;date_inscription" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="130" y="110" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- ENTITE: AccordCadre -->
+        <mxCell id="accordcadre-entity" value="ACCORD-CADRE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="accordcadre-attrs" value="#id_accord_cadre&#xa;nom&#xa;annee (2027)&#xa;duree (2 ans)&#xa;date_debut&#xa;date_fin" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="610" y="110" width="180" height="90" as="geometry" />
+        </mxCell>
+        
+        <!-- ENTITE: Lot -->
+        <mxCell id="lot-entity" value="LOT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="80" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="lot-attrs" value="#id_lot&#xa;numero_lot&#xa;libelle&#xa;type (1XX regional|2XX dept)&#xa;zone_geographique&#xa;max_prestataires (3)&#xa;montant_estime" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="110" width="180" height="110" as="geometry" />
+        </mxCell>
+        
+        <!-- ENTITE: Candidature -->
+        <mxCell id="candidature-entity" value="CANDIDATURE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="120" y="380" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="candidature-attrs" value="#id_candidature&#xa;date_soumission&#xa;statut (brouillon|soumise|&#xa;  evaluee|attribuee|rejetee)&#xa;modifiable (bool)&#xa;deadline_fin_mois" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="130" y="410" width="180" height="110" as="geometry" />
+        </mxCell>
+        
+        <!-- ENTITE: Notation -->
+        <mxCell id="notation-entity" value="NOTATION" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="600" y="380" width="200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="notation-attrs" value="#id_notation&#xa;note_technique (0-100)&#xa;note_ecologique (0-100)&#xa;note_financiere (0-100)&#xa;note_totale&#xa;commentaires_ia&#xa;validee_admin (bool)&#xa;date_evaluation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="610" y="410" width="180" height="125" as="geometry" />
+        </mxCell>
+        
+        <!-- ENTITE: Attribution -->
+        <mxCell id="attribution-entity" value="ATTRIBUTION" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="380" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="attribution-attrs" value="#id_attribution&#xa;rang (1|2|3)&#xa;date_attribution&#xa;statut (active|suspendue)&#xa;motif_attribution" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="410" width="180" height="90" as="geometry" />
+        </mxCell>
+        
+        <!-- ENTITE: Notification -->
+        <mxCell id="notification-entity" value="NOTIFICATION" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;align=center;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="600" y="650" width="200" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="notification-attrs" value="#id_notification&#xa;date_envoi&#xa;type (attribution|rejet)&#xa;notes_communiquees&#xa;commentaires_publics" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="610" y="680" width="180" height="85" as="geometry" />
+        </mxCell>
+        
+        <!-- RELATION: Prestataire SOUMET Candidature -->
+        <mxCell id="rel-soumet" value="SOUMET" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="165" y="265" width="110" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-soumet-line1" value="" style="endArrow=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="prestataire-entity" target="rel-soumet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-soumet-card1" value="1,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-soumet-line1">
+          <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="-15" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-soumet-line2" value="" style="endArrow=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-soumet" target="candidature-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-soumet-card2" value="0,N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-soumet-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="-15" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- RELATION: Candidature CONCERNE Lot (N-N) -->
+        <mxCell id="rel-concerne" value="CONCERNE" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="600" y="260" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-concerne-line1" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="candidature-entity" target="rel-concerne">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-concerne-card1" value="1,N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-concerne-line1">
+          <mxGeometry x="-0.3" y="2" relative="1" as="geometry">
+            <mxPoint x="10" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-concerne-line2" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-concerne" target="lot-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-concerne-card2" value="1,N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-concerne-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="10" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- RELATION: Candidature EVALUE PAR Notation (1-1) -->
+        <mxCell id="rel-evalue" value="EVALUE_PAR" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="395" y="420" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-evalue-line1" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="candidature-entity" target="rel-evalue">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-evalue-card1" value="1,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-evalue-line1">
+          <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-evalue-line2" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-evalue" target="notation-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-evalue-card2" value="0,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-evalue-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="-5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- RELATION: Candidature GENERE Attribution -->
+        <mxCell id="rel-genere" value="GENERE" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="410" width="110" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-genere-line1" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="notation-entity" target="rel-genere">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-genere-card1" value="1,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-genere-line1">
+          <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-genere-line2" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-genere" target="attribution-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-genere-card2" value="0,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-genere-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="-5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- RELATION: Attribution ASSOCIE A Lot -->
+        <mxCell id="rel-associe" value="ASSOCIE_A" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1085" y="265" width="110" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-associe-line1" value="" style="endArrow=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="lot-entity" target="rel-associe">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-associe-card1" value="1,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-associe-line1">
+          <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="15" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-associe-line2" value="" style="endArrow=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-associe" target="attribution-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-associe-card2" value="0,3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;fillColor=#ffcccc;" vertex="1" connectable="0" parent="rel-associe-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="20" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- RELATION: AccordCadre COMPOSE DE Lot -->
+        <mxCell id="rel-compose" value="COMPOSE_DE" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="860" y="110" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-compose-line1" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="accordcadre-entity" target="rel-compose">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-compose-card1" value="1,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-compose-line1">
+          <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-compose-line2" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-compose" target="lot-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-compose-card2" value="1,N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-compose-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="-5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- RELATION: Candidature NOTIFIE PAR Notification -->
+        <mxCell id="rel-notifie" value="NOTIFIE_PAR" style="shape=rhombus;perimeter=rhombusPerimeter;whiteSpace=wrap;html=1;align=center;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="395" y="680" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-notifie-line1" value="" style="endArrow=none;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="candidature-entity" target="rel-notifie">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-notifie-card1" value="1,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-notifie-line1">
+          <mxGeometry x="-0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="5" y="-5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-notifie-line2" value="" style="endArrow=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="rel-notifie" target="notification-entity">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-notifie-card2" value="0,1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontStyle=1;" vertex="1" connectable="0" parent="rel-notifie-line2">
+          <mxGeometry x="0.3" y="1" relative="1" as="geometry">
+            <mxPoint x="-5" y="-10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- LEGENDE -->
+        <mxCell id="legend-box" value="LEGENDE MCD - Centralis Accord Cadre 2027" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;align=left;verticalAlign=top;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="650" width="460" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-content" value="Notation Merise:&#xa;- # = Identifiant (cle primaire)&#xa;- Cardinalites: 0,1 / 1,1 / 0,N / 1,N&#xa;&#xa;Regles Gestion Critiques:&#xa;- RG-AC-001: Max 3 prestataires/lot (card. 0,3)&#xa;- RG-AC-002: Deadline candidature fin mois&#xa;- RG-AC-007: Transparence notes post-attribution&#xa;&#xa;Couleurs:&#xa;Bleu=Entites principales | Vert=Transactionnel&#xa;Jaune=Notation IA | Violet=Attribution | Rouge=Notification&#xa;&#xa;Processus: P1 Candidature → P2 Evaluation IA → &#xa;P5 Validation Admin → P3 Attribution → P4 Notification" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;whiteSpace=wrap;rounded=0;fontSize=10;fontFamily=Arial;" vertex="1" parent="1">
+          <mxGeometry x="50" y="680" width="440" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- ANNOTATION RG-AC-001 -->
+        <mxCell id="annotation-rg001" value="RG-AC-001&#xa;MAX 3&#xa;prestataires" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#ffcccc;strokeColor=#b85450;fontStyle=1;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="390" width="100" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="annotation-rg001-line" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="attribution-entity" target="annotation-rg001">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1240" y="440" as="sourcePoint" />
+            <mxPoint x="1290" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- TITRE PRINCIPAL -->
+        <mxCell id="title-main" value="MCD MERISE - Centralis Accord Cadre 2027" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="440" y="20" width="520" height="40" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
