@@ -5,13 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.6] - 2026-02-04
+## [1.2.5] - 2026-02-04
 
 ### Added
 - **Interactive override**: `--interactive` flag to force prompts even without TTY (useful in npm scripts).
 - **Agent-assisted interview**: Copilot CLI can answer installer questions automatically (fallback to classic prompts).
-- **Provider fallback**: If Copilot CLI is unavailable, use Codex CLI, then Claude CLI when available.
-- **Agent provider override**: `--agent-provider=codex|copilot|claude` to force the interview source.
 
 ### Changed
 - **Interview defaults**: Preselect detected or provided platforms during the interview.

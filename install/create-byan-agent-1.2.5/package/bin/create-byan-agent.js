@@ -3,8 +3,6 @@
 const path = require('path');
 const { program } = require('commander');
 const { spawnSync, execSync } = require('child_process');
-const fs = require('fs');
-const os = require('os');
 const chalk = require('chalk');
 
 // YANSTALLER Modules
@@ -17,7 +15,7 @@ const wizard = require('../lib/yanstaller/wizard');
 const backuper = require('../lib/yanstaller/backuper');
 const logger = require('../lib/utils/logger');
 
-const YANSTALLER_VERSION = '1.2.6';
+const YANSTALLER_VERSION = '1.2.5';
 
 function parseList(value) {
   if (!value) return [];
@@ -55,40 +53,6 @@ function getCopilotCommand() {
   try {
     const isWin = process.platform === 'win32';
     const probe = isWin ? 'where copilot' : 'which copilot';
-    const out = execSync(probe, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-    const first = String(out).split(/\r?\n/).find(Boolean);
-    return first || null;
-  } catch {
-    return null;
-  }
-}
-
-function getCodexCommand() {
-  try {
-    execSync('codex --version', { stdio: 'ignore' });
-    return 'codex';
-  } catch {}
-  
-  try {
-    const isWin = process.platform === 'win32';
-    const probe = isWin ? 'where codex' : 'which codex';
-    const out = execSync(probe, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-    const first = String(out).split(/\r?\n/).find(Boolean);
-    return first || null;
-  } catch {
-    return null;
-  }
-}
-
-function getClaudeCommand() {
-  try {
-    execSync('claude --version', { stdio: 'ignore' });
-    return 'claude';
-  } catch {}
-  
-  try {
-    const isWin = process.platform === 'win32';
-    const probe = isWin ? 'where claude' : 'which claude';
     const out = execSync(probe, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
     const first = String(out).split(/\r?\n/).find(Boolean);
     return first || null;
@@ -156,23 +120,9 @@ function runCopilotInterview({ recommendation, detection, projectRoot }) {
     'JSON only.'
   ].join('\n');
   
-  const spawnOptions = { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 };
-  let result;
-  
-  if (process.platform === 'win32') {
-    const tmpFile = path.join(os.tmpdir(), `byan-copilot-prompt-${Date.now()}.txt`);
-    fs.writeFileSync(tmpFile, prompt, 'utf8');
-    const psFile = path.join(os.tmpdir(), `byan-copilot-run-${Date.now()}.ps1`);
-    const psContent = [
-      `$p = Get-Content -Raw '${tmpFile}'`,
-      'copilot -p $p'
-    ].join('\n');
-    fs.writeFileSync(psFile, psContent, 'utf8');
-    result = spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', psFile], spawnOptions);
-    try { fs.unlinkSync(tmpFile); } catch {}
-    try { fs.unlinkSync(psFile); } catch {}
-  } else {
-    result = spawnSync(copilotCmd, ['-p', prompt], spawnOptions);
+  let result = spawnSync(copilotCmd, ['--agent', 'bmad-agent-byan', '--prompt', prompt], { encoding: 'utf8' });
+  if (result.status !== 0 && result.stderr && /No such agent/i.test(result.stderr)) {
+    result = spawnSync(copilotCmd, ['--prompt', prompt], { encoding: 'utf8' });
   }
   if (result.error) {
     return { error: result.error.message };
@@ -187,96 +137,11 @@ function runCopilotInterview({ recommendation, detection, projectRoot }) {
   return { data: parsed };
 }
 
-function runCodexInterview({ recommendation, detection, projectRoot }) {
-  const codexCmd = getCodexCommand();
-  if (!codexCmd) {
-    return { error: 'Codex CLI not found in PATH' };
-  }
-  const platforms = (detection && Array.isArray(detection.platforms)) ? detection.platforms : [];
-  const detectedNames = platforms.filter(p => p.detected).map(p => p.name);
-  const recommendedAgents = (recommendation && recommendation.agents) ? recommendation.agents : [];
-  const recommendedMode = (recommendation && recommendation.mode) ? recommendation.mode : 'recommended';
-  
-  const prompt = [
-    'You are BYAN installer assistant.',
-    'Based on the project context, provide installation preferences as STRICT JSON only.',
-    'Do not include any extra text, markdown, or code fences.',
-    'If you must include extra text, wrap JSON between <json> and </json>.',
-    '',
-    `Project root: ${projectRoot}`,
-    `Detected platforms: ${detectedNames.join(', ') || 'none'}`,
-    `Recommended agents: ${recommendedAgents.join(', ') || 'none'}`,
-    `Recommended mode: ${recommendedMode}`,
-    '',
-    'Return JSON with keys:',
-    'userName (string), language (English|Francais), mode (recommended|minimal|full|custom),',
-    'agents (array of strings; required if mode=custom),',
-    'platforms (array from: copilot-cli,vscode,codex,claude-code),',
-    'createSampleAgent (boolean), createBackup (boolean).',
-    '',
-    'If unsure, choose recommended mode, recommended agents, and detected platforms.',
-    'JSON only.'
-  ].join('\n');
-  
-  const spawnOptions = { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024, shell: process.platform === 'win32' };
-  const result = spawnSync(codexCmd, ['exec', prompt], spawnOptions);
-  if (result.error) {
-    return { error: result.error.message };
-  }
-  if (result.status !== 0) {
-    return { error: result.stderr || 'codex returned non-zero status' };
-  }
-  const parsed = extractJson(result.stdout || '');
-  if (!parsed) {
-    return { error: 'Failed to parse JSON from codex output' };
-  }
-  return { data: parsed };
-}
-
-function runClaudeInterview({ recommendation, detection, projectRoot }) {
-  const claudeCmd = getClaudeCommand();
-  if (!claudeCmd) {
-    return { error: 'Claude CLI not found in PATH' };
-  }
-  const platforms = (detection && Array.isArray(detection.platforms)) ? detection.platforms : [];
-  const detectedNames = platforms.filter(p => p.detected).map(p => p.name);
-  const recommendedAgents = (recommendation && recommendation.agents) ? recommendation.agents : [];
-  const recommendedMode = (recommendation && recommendation.mode) ? recommendation.mode : 'recommended';
-  
-  const prompt = [
-    'You are BYAN installer assistant.',
-    'Based on the project context, provide installation preferences as STRICT JSON only.',
-    'Do not include any extra text, markdown, or code fences.',
-    'If you must include extra text, wrap JSON between <json> and </json>.',
-    '',
-    `Project root: ${projectRoot}`,
-    `Detected platforms: ${detectedNames.join(', ') || 'none'}`,
-    `Recommended agents: ${recommendedAgents.join(', ') || 'none'}`,
-    `Recommended mode: ${recommendedMode}`,
-    '',
-    'Return JSON with keys:',
-    'userName (string), language (English|Francais), mode (recommended|minimal|full|custom),',
-    'agents (array of strings; required if mode=custom),',
-    'platforms (array from: copilot-cli,vscode,codex,claude-code),',
-    'createSampleAgent (boolean), createBackup (boolean).',
-    '',
-    'If unsure, choose recommended mode, recommended agents, and detected platforms.',
-    'JSON only.'
-  ].join('\n');
-  
-  const spawnOptions = { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 };
-  const result = spawnSync(claudeCmd, ['-p', prompt], spawnOptions);
-  if (result.error) {
-    return { error: result.error.message };
-  }
-  if (result.status !== 0) {
-    return { error: result.stderr || 'claude returned non-zero status' };
-  }
-  const parsed = extractJson(result.stdout || '');
-  if (!parsed) {
-    return { error: 'Failed to parse JSON from claude output' };
-  }
-  return { data: parsed };
+function canUseCopilotInShell() {
+  const copilotCmd = getCopilotCommand();
+  if (!copilotCmd) return false;
+  const probe = spawnSync(copilotCmd, ['--version'], { encoding: 'utf8' });
+  return probe.status === 0;
 }
 
 // ASCII Art Banner
@@ -392,51 +257,21 @@ async function main(options = {}) {
       };
     } else {
       const wantsAgentInterview = options.agentInterview !== false;
-      const useAgentInterview = wantsAgentInterview;
+      const canUseCopilot = canUseCopilotInShell();
+      const useAgentInterview = wantsAgentInterview && canUseCopilot;
       
       let agentDefaults = null;
       
       if (useAgentInterview) {
-        let provider = null;
-        const requestedProvider = options.agentProvider ? String(options.agentProvider).toLowerCase() : 'auto';
-        const hasCopilot = !!getCopilotCommand();
-        const hasCodex = !!getCodexCommand();
-        const hasClaude = !!getClaudeCommand();
+        logger.info(chalk.bold('\nSTEP 3/7: Interview (agent-assisted)\n'));
+        const agentResult = runCopilotInterview({
+          recommendation: recommendations,
+          detection,
+          projectRoot
+        });
         
-        if (requestedProvider !== 'auto') {
-          if (requestedProvider === 'copilot' && hasCopilot) provider = 'copilot';
-          if (requestedProvider === 'codex' && hasCodex) provider = 'codex';
-          if (requestedProvider === 'claude' && hasClaude) provider = 'claude';
-          
-          if (!provider) {
-            logger.info(`Requested agent provider "${requestedProvider}" is not available. Falling back to auto selection.`);
-          }
-        }
-        
-        if (!provider) {
-          if (hasCopilot) {
-            provider = 'copilot';
-          } else if (hasCodex) {
-            provider = 'codex';
-          } else if (hasClaude) {
-            provider = 'claude';
-          }
-        }
-        
-        if (provider) {
-          const label = provider === 'copilot' ? 'Copilot CLI' : provider === 'codex' ? 'Codex CLI' : 'Claude CLI';
-          logger.info(chalk.bold('\nSTEP 3/7: Interview (agent-assisted)\n'));
-          logger.info(`Launching agent-assisted interview via ${label}...`);
-          
-          const agentResult = provider === 'copilot'
-            ? runCopilotInterview({ recommendation: recommendations, detection, projectRoot })
-            : provider === 'codex'
-              ? runCodexInterview({ recommendation: recommendations, detection, projectRoot })
-              : runClaudeInterview({ recommendation: recommendations, detection, projectRoot });
-        
-          if (agentResult && agentResult.data) {
-            logger.info(`${label} returned JSON defaults.`);
-            const data = agentResult.data;
+        if (agentResult && agentResult.data) {
+          const data = agentResult.data;
           const agentMode = data.mode || 'recommended';
           
           let agentPlatforms = Array.isArray(data.platforms) ? data.platforms : [];
@@ -472,14 +307,12 @@ async function main(options = {}) {
             createBackup: data.createBackup !== false
           };
           
-            logger.info('Agent provided recommended defaults. You can edit them below.');
-          } else {
-            const errMsg = agentResult && agentResult.error ? agentResult.error : 'unknown error';
-            logger.info(`Agent interview unavailable: ${errMsg}`);
-            logger.info('Continuing with standard interactive interview.');
-          }
+          logger.info('Agent provided recommended defaults. You can edit them below.');
         } else {
-          logger.info('No agent CLI detected (Copilot/Codex/Claude). Continuing with standard interactive interview.');
+          const probeCmd = process.platform === 'win32' ? 'where copilot' : 'which copilot';
+          logger.warn(`Agent interview failed: ${agentResult && agentResult.error ? agentResult.error : 'unknown error'}`);
+          logger.info(`Copilot CLI not found. Ensure 'copilot' is in PATH. Try: ${probeCmd}`);
+          logger.info('Falling back to standard interview.');
         }
       }
       
@@ -575,7 +408,6 @@ program
   .option('--silent', 'Silent installation (no prompts)')
   .option('--interactive', 'Force interactive prompts even without TTY')
   .option('--no-agent-interview', 'Disable agent-assisted interview (Copilot CLI)')
-  .option('--agent-provider <provider>', 'Agent interview provider: auto|copilot|codex|claude')
   .option('--agents <agents>', 'Comma-separated list of agents to install')
   .option('--platforms <platforms>', 'Comma-separated list of platforms (copilot-cli,vscode,claude-code,codex)')
   .option('--mode <mode>', 'Installation mode: recommended, custom, minimal, full')

@@ -1029,6 +1029,14 @@ create-byan-agent --mode=custom --platforms=copilot-cli
 # Install on all supported platforms
 create-byan-agent --platforms=all
 
+# Disable agent-assisted interview (fallback to classic prompts)
+create-byan-agent --no-agent-interview
+
+# Agent-assisted interview provider (auto selection)
+# Priority: Copilot CLI → Codex CLI → Claude CLI (if available)
+# Override provider explicitly (if installed):
+# create-byan-agent --agent-provider=codex
+
 # Full installation without backup
 create-byan-agent --mode=full --no-backup
 

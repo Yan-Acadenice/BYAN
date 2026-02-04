@@ -1,0 +1,14 @@
+user_name: ian
+communication_language: Francais
+document_output_language: Francais
+output_folder: '{project-root}/_bmad-output'
+installed_by: yanstaller
+installed_at: '2026-02-04T01:05:05.408Z'
+version: 1.2.0
+mode: recommended
+agents_installed:
+  - byan
+  - rachid
+  - patnote
+  - marc
+bmb_creations_output_folder: '{project-root}/_bmad-output/bmb-creations'
