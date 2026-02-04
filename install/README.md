@@ -1026,6 +1026,9 @@ create-byan-agent --interactive
 # Custom mode with specific platform
 create-byan-agent --mode=custom --platforms=copilot-cli
 
+# Install on all supported platforms
+create-byan-agent --platforms=all
+
 # Full installation without backup
 create-byan-agent --mode=full --no-backup
 

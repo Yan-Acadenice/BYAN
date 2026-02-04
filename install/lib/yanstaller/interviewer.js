@@ -149,6 +149,7 @@ async function ask(recommendation, options = {}) {
       name: 'platforms',
       message: 'Which platforms to install on?',
       choices: [
+        { name: 'All detected platforms', value: '__all_detected__', checked: false },
         { name: 'GitHub Copilot CLI (.github/agents/)', value: 'copilot-cli', checked: isDefault('copilot-cli', true) },
         { name: 'VSCode Copilot Extension', value: 'vscode', checked: isDefault('vscode', true) },
         { name: 'Codex (.codex/prompts/)', value: 'codex', checked: isDefault('codex', false) },
@@ -157,6 +158,22 @@ async function ask(recommendation, options = {}) {
       validate: (input) => input.length > 0 || 'Select at least one platform'
     }
   ]);
+
+  let selectedPlatforms = platformAnswer.platforms;
+  if (selectedPlatforms.includes('__all_detected__')) {
+    const detected = buildDefaultPlatforms(options);
+    selectedPlatforms = detected.length > 0
+      ? detected
+      : ['copilot-cli', 'vscode', 'codex', 'claude-code'];
+  }
+  
+  const isFrench = langAnswer.language === 'Francais';
+  const platformSummary = selectedPlatforms.join(', ');
+  if (isFrench) {
+    logger.info(`Plateformes retenues: ${platformSummary}`);
+  } else {
+    logger.info(`Selected platforms: ${platformSummary}`);
+  }
   
   // Q6: Create sample agent
   const sampleAnswer = await inquirer.prompt([
@@ -185,7 +202,7 @@ async function ask(recommendation, options = {}) {
     language: langAnswer.language,
     mode: modeAnswer.mode,
     agents: selectedAgents,
-    targetPlatforms: platformAnswer.platforms,
+    targetPlatforms: selectedPlatforms,
     createSampleAgent: sampleAnswer.createSample,
     createBackup: backupAnswer.createBackup
   };

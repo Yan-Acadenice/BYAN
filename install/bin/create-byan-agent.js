@@ -36,6 +36,13 @@ function normalizePlatforms(list) {
   return list.map(normalizePlatformName).filter(Boolean);
 }
 
+function expandAllPlatforms(list) {
+  if (list.includes('all')) {
+    return ['copilot-cli', 'vscode', 'codex', 'claude-code'];
+  }
+  return list;
+}
+
 // ASCII Art Banner
 const banner = `
 ${chalk.blue('╔════════════════════════════════════════════════════════════╗')}
@@ -111,7 +118,7 @@ async function main(options = {}) {
       logger.info(chalk.bold('\nSTEP 3/7: Interview (skipped - silent)\n'));
       
       const parsedAgents = parseList(options.agents);
-      const parsedPlatforms = normalizePlatforms(parseList(options.platforms));
+      const parsedPlatforms = expandAllPlatforms(normalizePlatforms(parseList(options.platforms)));
       
       let mode = options.mode || (parsedAgents.length > 0 ? 'custom' : (recommendations.mode || 'minimal'));
       let agents = parsedAgents;
@@ -149,7 +156,7 @@ async function main(options = {}) {
       };
     } else {
       logger.info(chalk.bold('\nSTEP 3/7: Interview\n'));
-      const preferredPlatforms = normalizePlatforms(parseList(options.platforms));
+      const preferredPlatforms = expandAllPlatforms(normalizePlatforms(parseList(options.platforms)));
       answers = await interviewer.ask(recommendations, {
         detection,
         preferredPlatforms
