@@ -1,6 +1,6 @@
 {
   "name": "@yan/create-byan-agent",
-  "version": "1.0.0",
+  "version": "1.2.4",
   "description": "NPX installer for BYAN - Builder of YAN agent creator. Generates specialized AI agents using Merise Agile + TDD methodology with 64 mantras.",
   "main": "bin/create-byan-agent.js",
   "bin": {

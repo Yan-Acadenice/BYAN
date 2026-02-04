@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-02-04
+
+### Added
+- **Interactive override**: `--interactive` flag to force prompts even without TTY (useful in npm scripts).
+
+### Changed
+- **Interview defaults**: Preselect detected or provided platforms during the interview.
+- **E2E**: Run with explicit platforms to validate stub generation.
+
+### Fixed
+- **Silent mode**: Skip interview and wizard with safe defaults to prevent hangs in non-interactive runs.
+- **Platform normalization**: Map `claude` to `claude-code` for installer/platform parity.
+- **Validator**: Use YAML parser correctly and remove false warnings (permissions/templates).
+
 ## [1.2.3] - 2026-02-03
 
 ### Added
