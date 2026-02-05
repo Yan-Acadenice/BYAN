@@ -3,6 +3,10 @@
   "version": "2.0.0-alpha.1",
   "description": "BYAN v2.0 - Build Your AI Network - Hyper-MVP",
   "main": "src/index.js",
+  "bin": {
+    "create-byan-agent": "./install/bin/create-byan-agent-v2.js",
+    "byan-v2": "./install/bin/create-byan-agent-v2.js"
+  },
   "scripts": {
     "test": "jest",
     "test:coverage": "jest --coverage",
@@ -12,10 +16,43 @@
     "byan",
     "ai",
     "multi-agent",
-    "workflow"
+    "workflow",
+    "github-copilot",
+    "agent-builder",
+    "bmad",
+    "merise-agile",
+    "tdd"
   ],
   "author": "Yan",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yannsix/byan-v2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yannsix/byan-v2/issues"
+  },
+  "homepage": "https://github.com/yannsix/byan-v2#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "src/",
+    "__tests__/",
+    "_bmad/",
+    ".github/agents/",
+    "install/",
+    "README.md",
+    "package.json"
+  ],
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^8.2.5",
+    "js-yaml": "^4.1.0",
+    "ora": "^5.4.1"
+  },
   "devDependencies": {
     "jest": "^29.7.0"
   },
