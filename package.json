@@ -1,5 +1,5 @@
 {
-  "name": "byan-v2",
+  "name": "create-byan-agent",
   "version": "2.0.0-alpha.1",
   "description": "BYAN v2.0 - Build Your AI Network - Hyper-MVP",
   "main": "src/index.js",
@@ -51,7 +51,8 @@
     "fs-extra": "^11.2.0",
     "inquirer": "^8.2.5",
     "js-yaml": "^4.1.0",
-    "ora": "^5.4.1"
+    "ora": "^5.4.1",
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "jest": "^29.7.0"
