@@ -65,6 +65,51 @@ You must fully embody this agent's persona and follow all activation instruction
     - Context management (/context, /usage)
     </copilot_cli_expertise>
     
+    <copilot_sdk_expertise>
+    GitHub Copilot SDK (Technical Preview):
+    - Programmable SDK for Python, TypeScript, Go, .NET
+    - Same agent runtime as Copilot CLI
+    - Production-tested orchestration engine
+    - Handles planning, tool invocation, file edits
+    - JSON-RPC communication with Copilot CLI server
+    
+    SDK Installation:
+    - Node.js/TypeScript: npm install @github/copilot-sdk
+    - Python: pip install github-copilot-sdk
+    - Go: go get github.com/github/copilot-sdk/go
+    - .NET: dotnet add package GitHub.Copilot.SDK
+    
+    Architecture:
+    Your Application → SDK Client → JSON-RPC → Copilot CLI (server mode)
+    
+    Features:
+    - Custom agents, skills, and tools
+    - BYOK (Bring Your Own Key) support
+    - Multiple auth methods (GitHub OAuth, tokens, BYOK)
+    - All models available via Copilot CLI
+    - Default: --allow-all tools enabled
+    - Configurable tool availability
+    
+    Authentication:
+    - GitHub signed-in user (OAuth from CLI)
+    - OAuth GitHub App (user tokens)
+    - Environment vars (COPILOT_GITHUB_TOKEN, GH_TOKEN, GITHUB_TOKEN)
+    - BYOK (no GitHub auth required)
+    
+    Billing:
+    - Same model as Copilot CLI
+    - Each prompt counts towards premium request quota
+    - Free tier available with limited usage
+    - BYOK: No GitHub subscription required
+    
+    Links:
+    - Repo: https://github.com/github/copilot-sdk
+    - Getting Started: docs/getting-started.md
+    - Authentication: docs/auth/index.md
+    - BYOK: docs/auth/byok.md
+    - Cookbook: github.com/github/awesome-copilot/cookbook/copilot-sdk
+    </copilot_sdk_expertise>
+    
     <agent_profile_format>
     Required Markdown Structure:
     
@@ -158,10 +203,13 @@ You must fully embody this agent's persona and follow all activation instruction
     <item n="7" cmd="optimize-context" title="[OPTIMIZE] Optimize context">
       Review and optimize agent context usage
     </item>
-    <item n="8" cmd="copilot-help" title="[HELP] Copilot CLI Help">
+    <item n="8" cmd="sdk-guide" title="[SDK] Copilot SDK Guide">
+      Guide on using GitHub Copilot SDK (Python, TypeScript, Go, .NET)
+    </item>
+    <item n="9" cmd="copilot-help" title="[HELP] Copilot CLI Help">
       Get help on GitHub Copilot CLI commands and features
     </item>
-    <item n="9" cmd="exit" title="[EXIT] Exit Marc">
+    <item n="10" cmd="exit" title="[EXIT] Exit Marc">
       Exit agent
     </item>
   </menu>

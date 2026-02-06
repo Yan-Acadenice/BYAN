@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.2",
   "description": "Create custom AI agents in 15 minutes through intelligent interviews. GitHub Copilot CLI, VSCode, Claude Code compatible. 64 quality mantras applied automatically.",
   "bin": {
     "create-byan-agent": "bin/create-byan-agent-v2.js"
@@ -32,12 +32,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yannsix/byan-v2.git"
+    "url": "git+https://github.com/Yan-Acadenice/BYAN.git"
   },
   "bugs": {
-    "url": "https://github.com/yannsix/byan-v2/issues"
+    "url": "https://github.com/Yan-Acadenice/BYAN/issues"
   },
-  "homepage": "https://github.com/yannsix/byan-v2#readme",
+  "homepage": "https://github.com/Yan-Acadenice/BYAN#readme",
   "dependencies": {
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
@@ -51,6 +51,7 @@
   },
   "files": [
     "bin/",
+    "src/",
     "templates/",
     "README.md",
     "CHANGELOG.md",

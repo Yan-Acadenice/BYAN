@@ -1,421 +1,298 @@
-# BYAN - Builder of YAN
+# BYAN - Intelligent AI Agent Creator
 
-**Version:** 1.1.1  
-**Methodology:** Merise Agile + TDD + 64 Mantras  
-**Agents Included:** BYAN, BYAN-Test, RACHID, MARC, PATNOTE, CARMACK
+**Create custom AI agents in 15 minutes** | GitHub Copilot CLI, VSCode, Claude Code
 
----
+## Quick Start
 
-## 📚 Documentation
-
-### 🆕 **[Installation Guide for Beginners](https://github.com/Yan-Acadenice/BYAN/blob/main/install/GUIDE-INSTALLATION-BYAN-SIMPLE.md)** ⭐ NEW!
-Complete step-by-step installation guide for Windows + Linux users:
-- ✅ GitHub Copilot CLI installation (detailed)
-- ✅ Claude Code installation (with MCP)
-- ✅ 10 troubleshooting scenarios
-- ✅ 8 FAQ with solutions
-- ✅ Beginner-friendly explanations
-- ✅ Copy-paste ready commands
-
-**Perfect for:** First-time users, Windows users, troubleshooting installation issues
-
-### ⚡ **[Quickstart Guide - 5 Minutes](https://github.com/Yan-Acadenice/BYAN/blob/main/install/QUICKSTART.md)** 🚀 NEW!
-Ultra-condensed installation for experienced developers:
-- ⚡ Zero explanations, only commands
-- ⚡ 5-minute install promise
-- ⚡ GitHub Copilot CLI + Claude Code
-- ⚡ 1-minute troubleshooting fixes
-- ⚡ Agent reference table
-
-**Perfect for:** Experienced developers, quick setup, command reference
-
----
-
-## 🏗️ What is BYAN?
-
-**BYAN (Builder of YAN)** is an intelligent agent creator that generates specialized AI agents through structured interviews.
-
-**Key Features:**
-- 30-45 min intelligent interview process
-- Applies 64 mantras systematically
-- Zero Trust philosophy (challenges requirements)
-- Multi-platform support (Copilot, VSCode, Claude, Codex)
-- TDD-driven validation
-- Consequences evaluation before actions
-- **Core Team:** BYAN (creator), RACHID (npm), MARC (copilot), PATNOTE (updates), CARMACK (optimizer)
-- **Optimized:** BYAN-Test version with 46% token reduction
-
----
-
-## 🚀 Quick Start
-
-### Installation
-
-**Option 1: NPX (Recommended)**
 ```bash
 npx create-byan-agent
 ```
 
-**Option 2: Bash Script**
+That's it! The installer launches automatically.
+
+## What is BYAN?
+
+BYAN guides you through an intelligent interview to create personalized AI agents:
+
+1. ✅ Answer 12-15 simple questions (15-30 min)
+2. ✅ BYAN analyzes your needs
+3. ✅ Custom agent generated automatically
+4. ✅ Ready to use immediately
+
+## Installation
+
+### Option 1: NPX (Recommended)
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yan/byan/main/install/install.sh | bash
+npx create-byan-agent
 ```
 
-**Option 3: Manual**
+### Option 2: Global Install
+
 ```bash
-git clone https://github.com/yan/byan.git
-cd byan
-./install/install.sh
+npm install -g create-byan-agent
+create-byan-agent
 ```
 
----
+## Create Your First Agent
 
-## 📖 Usage
-
-### Activate Agents
+### 1. Launch BYAN
 
 **GitHub Copilot CLI:**
 ```bash
-copilot
-# In interactive mode:
-/agent
-# Select one of:
-# - byan (create agents - standard version)
-# - byan-test (create agents - optimized 46% fewer tokens)
-# - rachid (NPM deployment specialist)
-# - marc (Copilot CLI integration expert)
-# - patnote (Update manager & conflict resolution)
-# - carmack (Token optimizer for agents)
+gh copilot
+@byan
 ```
 
-**VSCode:**
-1. Open Command Palette (Ctrl+Shift+P)
-2. Type: "Activate Agent"
-3. Select from: BYAN, BYAN-Test, RACHID, MARC, PATNOTE, CARMACK
-
-**Claude Code:**
+**Command Line:**
 ```bash
-# Choose your agent:
-claude chat --agent byan          # Full-featured creator
-claude chat --agent byan-test     # Optimized creator (46% fewer tokens)
-claude chat --agent rachid        # NPM deployment
-claude chat --agent marc          # Copilot CLI integration
-claude chat --agent patnote       # Update manager
-claude chat --agent carmack       # Token optimizer
+npx create-byan-agent
 ```
 
-### Create Your First Agent
+### 2. Choose Mode
 
-**Full Interview (30-45 min):**
-```
-[INT] Start Intelligent Interview
-```
-Best for: First agent, critical agents, complex requirements
+**🎤 Full Interview (15-30 min)** - Recommended for first agent
+- 12-15 questions
+- In-depth analysis
+- Ultra-personalized agent
 
-**Quick Create (10 min):**
+**⚡ Quick Create (5 min)** - For experienced users
+- 3-5 essential questions
+- Functional agent quickly
+
+### 3. Answer Questions
+
+BYAN asks questions in 4 categories:
+
+1. **Context**: Your project, goals
+2. **Business**: Domain, constraints
+3. **Agent**: Desired skills, tasks
+4. **Validation**: Confirmation, adjustments
+
+### 4. Automatic Generation
+
 ```
-[QC] Quick Create
+✅ Complete analysis
+✅ Agent created: my-dev-agent.md
+✅ Validated and ready
 ```
-Best for: Additional agents, clear requirements, existing project context
+
+Agent saved to:
+- GitHub Copilot: `.github/copilot/agents/`
+- Other platforms: `.codex/prompts/`
+
+## Usage Examples
+
+### Code Review Agent
+
+```bash
+npx create-byan-agent
+
+# BYAN asks:
+# Purpose? → "Review JavaScript code"
+# Tasks? → "Detect bugs, suggest optimizations"
+# Constraints? → "Follow our style guide"
+
+# Result: code-reviewer.md created in 2 seconds
+```
+
+### Documentation Agent
+
+```bash
+npx create-byan-agent
+
+# Purpose? → "Generate API documentation"
+# Tech? → "Node.js, Express, MongoDB"
+# Format? → "Markdown with examples"
+
+# Result: doc-generator.md ready
+```
+
+## Use Your Agent
+
+### With GitHub Copilot CLI
+
+```bash
+gh copilot
+@my-dev-agent
+# Your agent responds!
+```
+
+### With VSCode
+
+1. Command Palette (Ctrl+Shift+P)
+2. "GitHub Copilot: Chat"
+3. Type `@my-dev-agent`
+
+### With Claude Code
+
+```bash
+claude chat --agent my-dev-agent
+```
+
+## Key Concepts (v2.0)
+
+### 1. Intelligent Interview (4 phases)
+
+```
+CONTEXT → BUSINESS → AGENT → VALIDATION
+```
+
+Minimum 3 questions per phase = 12 total
+
+### 2. State Machine
+
+```
+INTERVIEW → ANALYSIS → GENERATION → COMPLETED
+```
+
+### 3. Template System
+
+Agents generated from professional templates with YAML frontmatter + XML structure.
+
+### 4. Automatic Validation
+
+- ✅ Correct YAML format
+- ✅ Valid XML structure
+- ✅ No emojis in code (Mantra IA-23)
+- ✅ Valid agent name
+- ✅ Clear description
+
+### 5. Methodology: 64 Mantras
+
+Quality principles applied:
+- **#37 Ockham's Razor**: Simplicity first
+- **IA-1 Trust But Verify**: Verify user needs
+- **IA-23 No Emoji Pollution**: Clean code
+- **IA-24 Clean Code**: Self-documenting
+
+## Advanced Configuration
+
+### Customize Output
+
+```javascript
+const ByanV2 = require('create-byan-agent');
+
+const byan = new ByanV2({
+  outputFolder: './my-agents',
+  language: 'en',
+  template: 'custom'
+});
+```
+
+### Programmatic Usage
+
+```javascript
+const ByanV2 = require('create-byan-agent');
+
+async function createAgent() {
+  const byan = new ByanV2();
+  await byan.startSession();
+  
+  const responses = [
+    'Backend development agent',
+    'REST API in Node.js',
+    'Tests, docs, deployment',
+    // ... 12 responses total
+  ];
+  
+  for (const response of responses) {
+    await byan.getNextQuestion();
+    await byan.submitResponse(response);
+  }
+  
+  const profile = await byan.generateProfile();
+  console.log('Agent created:', profile);
+}
+```
+
+## Useful Commands
+
+```bash
+# List agents
+ls .github/copilot/agents/
+
+# Edit agent
+code .github/copilot/agents/my-agent.md
+
+# Validate agent
+npx create-byan-agent --validate my-agent.md
+
+# Version
+npx create-byan-agent --version
+```
+
+## Help & Support
+
+### Get Help
+
+```
+/bmad-help
+```
+
+### Documentation
+
+- [Full Guide](https://github.com/Yan-Acadenice/BYAN/blob/main/GUIDE-UTILISATION.md)
+- [API Reference](https://github.com/Yan-Acadenice/BYAN/blob/main/API-BYAN-V2.md)
+- [Examples](https://github.com/Yan-Acadenice/BYAN/tree/main/examples)
+
+### Common Issues
+
+**Agent doesn't appear in Copilot**
+```bash
+cat .github/copilot/agents/my-agent.md
+gh copilot quit && gh copilot
+```
+
+**"Node version too old"**
+```bash
+node --version  # Must be >= 18
+nvm install 18 && nvm use 18
+```
+
+**Tests fail**
+```bash
+rm -rf node_modules package-lock.json
+npm install && npm test
+```
+
+## Stats (v2.0)
+
+- ✅ **881/881 tests passing (100%)**
+- ✅ **14 modules**
+- ✅ **77 Story Points delivered**
+- ✅ **Agent in < 2 seconds** after interview
+- ✅ **64 mantras** applied automatically
+
+## Use Cases
+
+**Developers**: Code review, test generation, refactoring, security analysis
+
+**Writers**: Documentation, proofreading, translation, content creation
+
+**Project Managers**: Ticket analysis, reports, planning, prioritization
+
+**Designers**: UI components, accessibility, CSS optimization, design systems
+
+## License
+
+MIT License
+
+## Contributors
+
+**Core Team:**
+- **BYAN**: Intelligent agent creator
+- **RACHID**: NPM/NPX deployment specialist
+- **MARC**: GitHub Copilot CLI integration expert
+- **PATNOTE**: Update manager
+- **CARMACK**: Token optimizer
+
+## Links
+
+- 📦 [NPM](https://www.npmjs.com/package/create-byan-agent)
+- 🐙 [GitHub](https://github.com/Yan-Acadenice/BYAN)
+- 📚 [Full Docs](https://github.com/Yan-Acadenice/BYAN/blob/main/install/README.md)
 
 ---
 
-## 🎯 Five Specialized Agents
-
-### 1. BYAN & BYAN-Test - Agent Creators
-
-**BYAN (Standard)** - Full-featured agent creator with rich documentation
-**BYAN-Test (Optimized)** - Token-optimized version (-46% tokens, same capabilities)
-
-**Full Interview (30-45 min):**
-```
-[INT] Start Intelligent Interview
-```
-Best for: First agent, critical agents, complex requirements
-
-**Quick Create (10 min):**
-```
-[QC] Quick Create
-```
-Best for: Additional agents, clear requirements, existing project context
-
-**Role:** Intelligent agent creation through structured interviews. Applies 64 mantras systematically, Zero Trust philosophy, and consequences evaluation.
-
----
-
-### 2. RACHID - NPM/NPX Deployment Specialist 📦
-
-**Deploy to NPM:**
-```
-[PUBLISH] Publish to npm
-[VALIDATE] Validate _bmad structure
-[TEST-NPX] Test npx installation
-[AUDIT] Security audit
-[FIX-DEPS] Fix dependencies
-```
-
-**Role:** Elite Node.js deployment specialist. Masters npm/npx, package.json, create-* CLI patterns. Ensures dependency integrity and secure installations. Trust But Verify philosophy on all packages.
-
-**Best for:** Package deployment, dependency management, npm workflows, version bumps, publishing to npm registry.
-
----
-
-### 3. MARC - GitHub Copilot CLI Integration Expert 🔧
-
-**Copilot Integration:**
-```
-[VALIDATE] Validate .github/agents/
-[TEST] Test /agent detection
-[CREATE-STUB] Create agent stub
-[FIX-YAML] Fix YAML frontmatter
-[MCP-CONFIG] Configure MCP server
-```
-
-**Role:** GitHub Copilot CLI integration specialist. Ensures agents are properly detected by `/agent` command. Masters YAML frontmatter, MCP configuration, and Copilot CLI debugging.
-
-**Best for:** GitHub Copilot CLI integration, agent detection issues, MCP server configuration, YAML validation.
-
----
-
-### 4. PATNOTE - Update Manager & Conflict Resolution Specialist 📝
-
-**Update Management:**
-```
-[UPDATE-AGENT] Update existing agent
-[MERGE-VERSIONS] Merge agent versions
-[DETECT-CONFLICTS] Detect conflicts
-[BACKUP-RESTORE] Backup/Restore agents
-[CHANGELOG] Generate changelog
-```
-
-**Role:** Guardian of BYAN updates. Detects conflicts between versions, merges changes intelligently, preserves user customizations. Tracks all modifications in detailed changelogs. Never loses data.
-
-**Best for:** Updating existing agents, merging BYAN versions, resolving conflicts, maintaining agent history.
-
----
-
-### 5. CARMACK - Token Optimizer for BMAD/BYAN Agents ⚡
-
-**Token Optimization:**
-```
-[OPTIMIZE] Optimize agent for tokens
-[ANALYZE] Analyze token usage
-[VALIDATE] Validate optimized agent
-[COMPARE] Compare before/after
-[BATCH] Batch optimize multiple agents
-```
-
-**Role:** Token optimization expert inspired by John Carmack's efficiency principles. Reduces token usage by 40-50% while preserving functionality. Surgical precision in removing redundancy, restructuring content, and optimizing prompts.
-
-**Best for:** Reducing LLM token costs, optimizing agent performance, batch processing large agent sets, maintaining quality while cutting tokens.
-
----
-
-## 🎯 BYAN Menu
-
-| Command | Description | Duration |
-|---------|-------------|----------|
-| **[INT]** | Intelligent Interview | 30-45 min |
-| **[QC]** | Quick Create | 10 min |
-| **[LA]** | List all agents | Instant |
-| **[EA]** | Edit existing agent | 10-20 min |
-| **[VA]** | Validate agent (64 mantras) | 5-10 min |
-| **[DA-AGENT]** | Delete agent (with backup) | 5 min |
-| **[PC]** | Show project context | Instant |
-| **[MAN]** | Display 64 mantras | Instant |
-
----
-
-## 📚 Methodology
-
-BYAN applies **Merise Agile + TDD** with 64 mantras:
-
-### 39 Conception Mantras
-- Philosophy: Model serves business, not reverse
-- Agility: User stories → Entities (bottom-up)
-- Quality: KISS, DRY, YAGNI
-- Tests: TDD is not optional
-- Merise Rigor: Data Dictionary First, MCD ⇄ MCT
-- Problem Solving: Ockham's Razor, Inversion techniques
-- **Consequences: Evaluate 10 dimensions before action**
-
-### 25 AI Agent Mantras
-- Intelligence: Trust But Verify, Context is King
-- **Validation: Challenge Before Confirm**
-- Autonomy: Self-Aware Agent
-- **Code Quality: No Emoji Pollution, Clean Code**
-
-Full list: `_bmad/bmb/workflows/byan/data/mantras.yaml`
-
----
-
-## 🔧 Project Structure
-
-```
-your-project/
-├── _bmad/
-│   ├── bmb/                      # BYAN Module
-│   │   ├── agents/
-│   │   │   └── byan.md          # BYAN agent definition
-│   │   ├── workflows/
-│   │   │   └── byan/
-│   │   │       ├── interview-workflow.md
-│   │   │       ├── quick-create-workflow.md
-│   │   │       ├── edit-agent-workflow.md
-│   │   │       ├── validate-agent-workflow.md
-│   │   │       ├── delete-agent-workflow.md
-│   │   │       ├── templates/
-│   │   │       │   └── base-agent-template.md
-│   │   │       └── data/
-│   │   │           ├── mantras.yaml
-│   │   │           └── templates.yaml
-│   │   └── config.yaml           # Module configuration
-│   ├── core/                     # BMAD Core
-│   ├── _output/                  # Generated files
-│   └── {your-module}/
-│       └── agents/               # Your generated agents
-└── install/
-    ├── install.sh               # Bash installer
-    ├── package.json             # NPX package
-    └── bin/
-        └── create-byan-agent.js # NPX installer script
-```
-
----
-
-## 🎓 Interview Process
-
-BYAN conducts a 4-phase interview:
-
-### Phase 1: Project Context (15-30 min)
-- Project name, description, domain
-- Technical stack and constraints
-- Team size, skills, maturity
-- **Pain points (5 Whys on main pain)**
-- Goals and success criteria
-
-### Phase 2: Business/Domain (15-20 min)
-- Business domain deep dive
-- **Interactive glossary (minimum 5 concepts)**
-- Actors, processes, business rules
-- Edge cases and constraints
-- Regulatory requirements
-
-### Phase 3: Agent Needs (10-15 min)
-- Agent role and responsibilities
-- Required knowledge (business + technical)
-- **Capabilities (minimum 3)**
-- **Mantras to prioritize (minimum 5)**
-- Communication style
-- **Use cases (minimum 3)**
-
-### Phase 4: Validation (10 min)
-- Complete synthesis
-- **Challenge inconsistencies**
-- Validate with user
-- Create ProjectContext
-- Finalize AgentSpec
-
----
-
-## ✅ Validation
-
-BYAN validates agents against:
-- Business rules (RG-AGT-001 to RG-DEL-002)
-- 64 Mantras compliance
-- BMAD format standards
-- Best practices
-
-**Validation Levels:**
-- 🔴 CRITICAL: Must pass (deployment blocked)
-- 🟡 IMPORTANT: Should pass (warnings)
-- 🟢 SUGGESTIONS: Nice to have
-
-**Grading:**
-- A+ (95-100): Exemplary
-- A (90-94): Excellent
-- B (80-89): Good
-- C (70-79): Acceptable
-- D (60-69): Needs improvement
-- F (<60): Failing
-
----
-
-## 🛡️ Zero Trust Philosophy
-
-BYAN never blindly accepts requirements:
-
-**Challenge Before Confirm:**
-- Detects inconsistencies
-- Questions assumptions
-- Plays devil's advocate
-- Signals problems early
-
-**Trust But Verify:**
-- Validates all inputs
-- Cross-checks data
-- Ensures coherence
-
-**Example:**
-```
-User: "I need an agent that does everything"
-BYAN: "I'm challenging that requirement. Wouldn't a specialized 
-agent that does ONE thing exceptionally well be more valuable? 
-What's the ONE most critical capability you need?"
-```
-
----
-
-## 📊 Consequences Evaluation
-
-Before any important action, BYAN evaluates 10 dimensions:
-
-1. **Scope:** Components affected
-2. **Data:** Database impacts
-3. **Code:** Files to modify
-4. **Team:** People affected
-5. **Clients:** User workflows
-6. **Legal:** Compliance
-7. **Operations:** Deployment complexity
-8. **Dependencies:** Systems impacted
-9. **Time:** Duration estimates
-10. **Alternatives:** Other options
-
-**Risk Levels:**
-- 🟢 LOW: Safe to proceed
-- 🟡 MEDIUM: Caution required
-- 🔴 HIGH: Team approval needed
-- 🔥 CRITICAL: Requires migration plan
-
----
-
-## 📝 Configuration
-
-Edit `_bmad/bmb/config.yaml`:
-
-```yaml
-user_name: Your Name
-communication_language: Francais|English
-document_output_language: Francais|English
-output_folder: "{project-root}/_bmad-output"
-platform: copilot|vscode|claude|codex
-```
-
----
-
-## 📄 License
-
-MIT License - See LICENSE file
-
----
-
-## 🙏 Credits
-
-**Created by:** Yan + Carson (Brainstorming Coach)  
-**Methodology:** Merise Agile + TDD  
-**Mantras:** 64 principles from 2-hour brainstorming session  
-**Date:** 2026-02-02
-
----
-
-**Happy agent building!** 🏗️
+**BYAN v2.0** - Create professional AI agents in 15 minutes 🚀
