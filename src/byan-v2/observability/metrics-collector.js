@@ -26,8 +26,55 @@ class MetricsCollector {
       failedTasks: 0
     };
 
+    this.counters = {
+      sessionsStarted: 0,
+      questionsAsked: 0,
+      analysesCompleted: 0,
+      profilesGenerated: 0,
+      errors: 0
+    };
+
     this.taskHistory = [];
   }
+
+  /**
+   * Increment a counter by name
+   * @param {string} counterName - Name of counter to increment
+   * @param {number} amount - Amount to increment by (default 1)
+   */
+  increment(counterName, amount = 1) {
+    if (this.counters.hasOwnProperty(counterName)) {
+      this.counters[counterName] += amount;
+    } else if (this.metrics.hasOwnProperty(counterName)) {
+      this.metrics[counterName] += amount;
+    } else {
+      this.counters[counterName] = amount;
+    }
+  }
+
+  /**
+   * Get summary of all metrics
+   * @returns {Object} Metrics summary
+   */
+  getSummary() {
+    const totalTasks = this.metrics.successfulTasks + this.metrics.failedTasks;
+    
+    return {
+      totalSessions: this.counters.sessionsStarted,
+      avgQuestionsPerSession: this.counters.sessionsStarted > 0
+        ? Math.round(this.counters.questionsAsked / this.counters.sessionsStarted)
+        : 0,
+      successRate: totalTasks > 0
+        ? Math.round((this.metrics.successfulTasks / totalTasks) * 100)
+        : 0,
+      delegationRate: this.metrics.tasksRouted > 0
+        ? Math.round((this.metrics.taskToolCalls / this.metrics.tasksRouted) * 100)
+        : 0,
+      ...this.counters,
+      ...this.metrics
+    };
+  }
+
 
   /**
    * Record task routing decision
@@ -130,6 +177,14 @@ class MetricsCollector {
       totalDuration: 0,
       successfulTasks: 0,
       failedTasks: 0
+    };
+
+    this.counters = {
+      sessionsStarted: 0,
+      questionsAsked: 0,
+      analysesCompleted: 0,
+      profilesGenerated: 0,
+      errors: 0
     };
 
     this.taskHistory = [];

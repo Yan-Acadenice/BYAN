@@ -117,6 +117,33 @@ class Logger {
   }
 
   /**
+   * Generic info log
+   * @param {string} message - Log message
+   * @param {Object} data - Additional data
+   */
+  info(message, data = {}) {
+    this.logger.info(message, data);
+  }
+
+  /**
+   * Generic warn log
+   * @param {string} message - Log message
+   * @param {Object} data - Additional data
+   */
+  warn(message, data = {}) {
+    this.logger.warn(message, data);
+  }
+
+  /**
+   * Generic error log
+   * @param {string} message - Log message
+   * @param {Object} data - Additional data
+   */
+  error(message, data = {}) {
+    this.logger.error(message, data);
+  }
+
+  /**
    * Close logger and flush transports
    */
   close() {

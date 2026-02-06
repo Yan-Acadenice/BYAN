@@ -9,9 +9,9 @@ const Logger = require('../observability/logger');
 const ErrorTracker = require('../observability/error-tracker');
 
 class StateMachine {
-  constructor() {
-    this.logger = new Logger();
-    this.errorTracker = new ErrorTracker();
+  constructor(options = {}) {
+    this.logger = options.logger || new Logger();
+    this.errorTracker = options.errorTracker || new ErrorTracker();
 
     // AC1: Define five states
     this.STATES = {
@@ -55,7 +55,7 @@ class StateMachine {
     // Validate newState exists
     if (!newState || !this.STATES[newState]) {
       const error = new Error(`Unknown state: ${newState}`);
-      this.errorTracker.track({
+      this.errorTracker.trackError({
         error,
         component: 'StateMachine',
         operation: 'transition',
@@ -73,7 +73,7 @@ class StateMachine {
       const error = new Error(
         `Invalid transition from ${this.currentState} to ${newState}`
       );
-      this.errorTracker.track({
+      this.errorTracker.trackError({
         error,
         component: 'StateMachine',
         operation: 'transition',
@@ -122,7 +122,7 @@ class StateMachine {
       };
     } catch (error) {
       // If hooks fail, track but complete transition
-      this.errorTracker.track({
+      this.errorTracker.trackError({
         error,
         component: 'StateMachine',
         operation: 'transition-hooks',
@@ -189,7 +189,7 @@ class StateMachine {
         hook(context);
       } catch (error) {
         // Track hook error but don't block transition
-        this.errorTracker.track({
+        this.errorTracker.trackError({
           error,
           component: 'StateMachine',
           operation: 'hook-execution',

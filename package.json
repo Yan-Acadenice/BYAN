@@ -52,6 +52,7 @@
     "inquirer": "^8.2.5",
     "js-yaml": "^4.1.0",
     "ora": "^5.4.1",
+    "uuid": "^13.0.0",
     "winston": "^3.19.0"
   },
   "devDependencies": {
