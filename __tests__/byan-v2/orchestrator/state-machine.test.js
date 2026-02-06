@@ -23,7 +23,7 @@ describe('StateMachine Core', () => {
     };
     
     mockErrorTracker = {
-      track: jest.fn(),
+      trackError: jest.fn(),
       getErrors: jest.fn().mockReturnValue([])
     };
     
@@ -161,7 +161,7 @@ describe('StateMachine Core', () => {
 
     test('should track failed transition error', () => {
       stateMachine.transition('INVALID_STATE');
-      expect(mockErrorTracker.track).toHaveBeenCalledWith(
+      expect(mockErrorTracker.trackError).toHaveBeenCalledWith(
         expect.objectContaining({
           component: 'StateMachine',
           operation: 'transition'
@@ -286,7 +286,7 @@ describe('StateMachine Core', () => {
       // Should still complete transition despite hook error
       const result = stateMachine.transition('ANALYSIS');
       expect(result.success).toBe(true);
-      expect(mockErrorTracker.track).toHaveBeenCalled();
+      expect(mockErrorTracker.trackError).toHaveBeenCalled();
     });
   });
 
@@ -355,13 +355,13 @@ describe('StateMachine Core', () => {
       stateMachine.transition('INVALID_STATE');
       stateMachine.transition('COMPLETED');
       
-      expect(mockErrorTracker.track).toHaveBeenCalledTimes(2);
+      expect(mockErrorTracker.trackError).toHaveBeenCalledTimes(2);
     });
 
     test('should include context in error tracking', () => {
       stateMachine.transition('COMPLETED');
       
-      expect(mockErrorTracker.track).toHaveBeenCalledWith(
+      expect(mockErrorTracker.trackError).toHaveBeenCalledWith(
         expect.objectContaining({
           component: 'StateMachine',
           currentState: 'INTERVIEW',

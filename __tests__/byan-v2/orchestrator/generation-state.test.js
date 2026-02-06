@@ -321,7 +321,10 @@ description: Testing agent 🚀
     test('should handle missing analysis results', async () => {
       sessionState.analysisResults = null;
       
-      await expect(generationState.generateProfile()).rejects.toThrow();
+      // Should use fallback to userResponses
+      const profile = await generationState.generateProfile();
+      expect(profile).toBeDefined();
+      expect(profile).toContain('name:');
     });
 
     test('should handle incomplete requirements', async () => {
