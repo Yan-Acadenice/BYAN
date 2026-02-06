@@ -8,6 +8,7 @@ class SessionState {
     this.userResponses = [];
     this.analysisResults = {};
     this.agentProfileDraft = {};
+    this.context = {};
   }
 
   addQuestion(question) {
@@ -31,6 +32,10 @@ class SessionState {
 
   getCurrentState() {
     return this.currentState;
+  }
+
+  mergeContext(copilotContext) {
+    this.context = copilotContext;
   }
 
   transitionTo(newState) {
@@ -72,7 +77,8 @@ class SessionState {
       questionHistory: this.questionHistory,
       userResponses: this.userResponses,
       analysisResults: this.analysisResults,
-      agentProfileDraft: this.agentProfileDraft
+      agentProfileDraft: this.agentProfileDraft,
+      context: this.context
     };
   }
 
@@ -84,6 +90,7 @@ class SessionState {
     state.userResponses = data.userResponses || [];
     state.analysisResults = data.analysisResults || {};
     state.agentProfileDraft = data.agentProfileDraft || {};
+    state.context = data.context || {};
     return state;
   }
 }
