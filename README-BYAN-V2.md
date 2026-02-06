@@ -37,6 +37,18 @@ npm install
 npm test
 ```
 
+## 🎬 Quick Demo
+
+Run the demo to see BYAN v2 in action:
+
+```bash
+node demo-byan-v2-simple.js
+```
+
+This creates a complete `code-review-assistant` agent in under 2 seconds!
+
+Output: `.github/copilot/agents/code-review-assistant.md`
+
 ## 🚀 Quick Start (5 minutes)
 
 ### 1. Import BYAN in your code
