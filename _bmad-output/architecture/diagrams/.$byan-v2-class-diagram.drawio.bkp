@@ -1,0 +1,132 @@
+<mxfile host="Electron" modified="2026-02-04T10:00:00.000Z" agent="5.0" version="24.0.0">
+  <diagram name="BYAN-v2-Classes" id="c4acf3e9-155e-7222-9cf6-157b1a14988f">
+    <mxGraphModel dx="1434" dy="836" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="BYAN v2.0 - Architecture de Classes&lt;br&gt;Plateforme d&#39;Orchestration d&#39;Agents IA" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="320" y="20" width="530" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ContextLayer Class -->
+        <mxCell id="ContextLayer" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;ContextLayer&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- hierarchy: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- platform_context: dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- project_context: dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- story_context: dict&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ load_context(): void&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ get_variable(key): any&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ set_variable(key, val): void&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ resolve_placeholders(txt): str&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=0" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="260" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- EconomicDispatcher Class -->
+        <mxCell id="EconomicDispatcher" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;EconomicDispatcher&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- context_layer: ContextLayer&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- thresholds: dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- complexity_weights: dict&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ calculate_complexity(task): int&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ route_task(task): Executor&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ calculate_roi(task, result): float&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;# _analyze_input(input): dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;# _analyze_context(ctx): dict&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="380" y="100" width="280" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- WorkflowExecutor Class -->
+        <mxCell id="WorkflowExecutor" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;WorkflowExecutor&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- dispatcher: EconomicDispatcher&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- context_layer: ContextLayer&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- workflow_yaml: str&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ execute(workflow_path): Result&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ execute_with_retry(task, max): Result&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ resolve_placeholders(yaml): str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;# _parse_yaml(path): dict&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="100" width="300" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- WorkerPool Class -->
+        <mxCell id="WorkerPool" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;WorkerPool&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- workers: Worker[]&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- max_workers: int = 2&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ get_available_worker(): Worker&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ execute_task(task): Result&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;# _initialize_workers(): void&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="260" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Worker Class -->
+        <mxCell id="Worker" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Worker&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- id: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- status: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- current_task: Task&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- fallback_to_agent: bool&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- llm_model: str = &quot;haiku&quot;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ execute(task): Result&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ is_available(): bool&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;# _call_llm(prompt): str&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="60" y="570" width="260" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Agent Class -->
+        <mxCell id="Agent" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Agent&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- agent_name: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- capabilities: list&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;- llm_model: str = &quot;sonnet&quot;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ execute(task): Result&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;# _call_llm(prompt): str&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="380" y="360" width="260" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Task Class -->
+        <mxCell id="Task" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Task&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ id: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ type: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ input: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ context: dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ complexity_score: int&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ agent_name: str&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ to_dict(): dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ from_dict(data): Task&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="720" y="360" width="260" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Result Class -->
+        <mxCell id="Result" value="&lt;p style=&quot;margin:0px;margin-top:4px;text-align:center;&quot;&gt;&lt;b&gt;Result&lt;/b&gt;&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ output: str&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ tokens_input: int&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ tokens_output: int&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ duration: float&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ success: bool&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ cost_estimated: float&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ error: str&lt;/p&gt;&lt;hr size=&quot;1&quot;&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ to_dict(): dict&lt;/p&gt;&lt;p style=&quot;margin:0px;margin-left:4px;&quot;&gt;+ calculate_cost(): float&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=12;fontFamily=Helvetica;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="720" y="590" width="260" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Relations -->
+        <!-- Dispatcher uses ContextLayer -->
+        <mxCell id="rel-dispatcher-context" style="endArrow=open;endFill=0;dashed=1;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="EconomicDispatcher" target="ContextLayer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-dispatcher-context-label" value="&amp;lt;&amp;lt;uses&amp;gt;&amp;gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="rel-dispatcher-context">
+          <mxGeometry x="-0.05" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- WorkflowExecutor uses EconomicDispatcher -->
+        <mxCell id="rel-workflow-dispatcher" style="endArrow=open;endFill=0;dashed=1;html=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="WorkflowExecutor" target="EconomicDispatcher">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-workflow-dispatcher-label" value="&amp;lt;&amp;lt;uses&amp;gt;&amp;gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="rel-workflow-dispatcher">
+          <mxGeometry x="-0.05" y="2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- WorkflowExecutor uses ContextLayer -->
+        <mxCell id="rel-workflow-context" style="endArrow=open;endFill=0;dashed=1;html=1;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="WorkflowExecutor" target="ContextLayer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="795" y="80" />
+              <mxPoint x="255" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-workflow-context-label" value="&amp;lt;&amp;lt;uses&amp;gt;&amp;gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="rel-workflow-context">
+          <mxGeometry x="-0.05" y="2" relative="1" as="geometry">
+            <mxPoint x="40" y="-8" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- WorkerPool contains Worker -->
+        <mxCell id="rel-workerpool-worker" style="endArrow=diamond;endFill=1;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="WorkerPool" target="Worker">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-workerpool-worker-label" value="contains 2" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="rel-workerpool-worker">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint x="35" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Task creates Result -->
+        <mxCell id="rel-task-result" style="endArrow=open;endFill=0;dashed=1;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="Task" target="Result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel-task-result-label" value="&amp;lt;&amp;lt;creates&amp;gt;&amp;gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="rel-task-result">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint x="35" as="offset" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-box" value="Legende" style="swimlane;fontStyle=1;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#f5f5f5;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="380" y="570" width="260" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" value="Bleu: Gestion Contexte" style="text;strokeColor=#6c8ebf;fillColor=#dae8fc;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=0" vertex="1" parent="legend-box">
+          <mxGeometry y="26" width="260" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" value="Jaune: Dispatcher/Routing" style="text;strokeColor=#d6b656;fillColor=#fff2cc;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=0" vertex="1" parent="legend-box">
+          <mxGeometry y="52" width="260" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" value="Vert: Workers (Haiku)" style="text;strokeColor=#82b366;fillColor=#d5e8d4;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=0" vertex="1" parent="legend-box">
+          <mxGeometry y="78" width="260" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" value="Rouge: Agents (Sonnet)" style="text;strokeColor=#b85450;fillColor=#f8cecc;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=0" vertex="1" parent="legend-box">
+          <mxGeometry y="104" width="260" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5" value="Violet: Orchestration" style="text;strokeColor=#9673a6;fillColor=#e1d5e7;align=left;verticalAlign=middle;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontStyle=0" vertex="1" parent="legend-box">
+          <mxGeometry y="130" width="260" height="26" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

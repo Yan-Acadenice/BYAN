@@ -1,0 +1,197 @@
+<mxfile host="Electron" modified="2026-02-04T10:05:00.000Z" agent="5.0" version="24.0.0">
+  <diagram name="BYAN-v2-Sequence-Worker" id="sequence-worker">
+    <mxGraphModel dx="1434" dy="836" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="BYAN v2.0 - Sequence Tache Simple (Worker)&lt;br&gt;Complexity Score &amp;lt; 30 → Routing vers Worker Haiku" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="700" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Actors/Lifelines -->
+        <mxCell id="user-lifeline" value="User" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="100" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="user-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="user-lifeline">
+          <mxGeometry x="45" y="80" width="10" height="580" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workflow-lifeline" value="WorkflowExecutor" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="220" y="120" width="120" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="workflow-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="workflow-lifeline">
+          <mxGeometry x="55" y="100" width="10" height="540" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dispatcher-lifeline" value="EconomicDispatcher" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="140" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="dispatcher-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="dispatcher-lifeline">
+          <mxGeometry x="65" y="140" width="10" height="460" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workerpool-lifeline" value="WorkerPool" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="600" y="120" width="110" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="workerpool-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="workerpool-lifeline">
+          <mxGeometry x="50" y="260" width="10" height="300" as="geometry" />
+        </mxCell>
+
+        <mxCell id="worker-lifeline" value="Worker" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="770" y="120" width="100" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="worker-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="worker-lifeline">
+          <mxGeometry x="45" y="320" width="10" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="llm-lifeline" value="LLM (Haiku)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="930" y="120" width="110" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="llm-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="llm-lifeline">
+          <mxGeometry x="50" y="380" width="10" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="logger-lifeline" value="StructuredLogger" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontFamily=Helvetica;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1100" y="120" width="120" height="700" as="geometry" />
+        </mxCell>
+        <mxCell id="logger-exec" value="" style="html=1;points=[];perimeter=orthogonalPerimeter;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="logger-lifeline">
+          <mxGeometry x="55" y="480" width="10" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Messages -->
+        <!-- 1. User -> WorkflowExecutor -->
+        <mxCell id="msg1" value="1: execute(task)" style="html=1;verticalAlign=bottom;endArrow=block;entryX=0;entryY=0;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.137931;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.185185;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="user-exec" target="workflow-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="135" y="220" as="sourcePoint" />
+            <mxPoint x="275" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 2. WorkflowExecutor -> Dispatcher -->
+        <mxCell id="msg2" value="2: calculate_complexity(task)" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.259259;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.043478;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="workflow-exec" target="dispatcher-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="285" y="260" as="sourcePoint" />
+            <mxPoint x="465" y="260" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Note complexity -->
+        <mxCell id="note-complexity" value="Analyse:&lt;br&gt;- input_length: 150&lt;br&gt;- context_vars: 2&lt;br&gt;- reasoning: simple&lt;br&gt;&lt;b&gt;Score: 18 &amp;lt; 30&lt;/b&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingTop=0;fillColor=#fff2cc;strokeColor=#d6b656;fontFamily=Helvetica;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="540" y="240" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- 3. Dispatcher returns complexity -->
+        <mxCell id="msg3" value="3: complexity=18" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=0.108696;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.314815;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="dispatcher-exec" target="workflow-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="465" y="310" as="sourcePoint" />
+            <mxPoint x="285" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 4. WorkflowExecutor -> Dispatcher route -->
+        <mxCell id="msg4" value="4: route_task(task)" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.37037;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.195652;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="workflow-exec" target="dispatcher-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="285" y="340" as="sourcePoint" />
+            <mxPoint x="465" y="340" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 5. Dispatcher -> WorkerPool -->
+        <mxCell id="msg5" value="5: get_available_worker()" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.26087;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="dispatcher-exec" target="workerpool-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="475" y="380" as="sourcePoint" />
+            <mxPoint x="650" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 6. WorkerPool returns worker -->
+        <mxCell id="msg6" value="6: worker_instance" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=0.1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.326087;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="workerpool-exec" target="dispatcher-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="650" y="410" as="sourcePoint" />
+            <mxPoint x="475" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 7. Dispatcher -> WorkerPool execute -->
+        <mxCell id="msg7" value="7: execute_task(task)" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.391304;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.2;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="dispatcher-exec" target="workerpool-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="475" y="440" as="sourcePoint" />
+            <mxPoint x="650" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 8. WorkerPool -> Worker -->
+        <mxCell id="msg8" value="8: execute(task)" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.266667;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="workerpool-exec" target="worker-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="660" y="460" as="sourcePoint" />
+            <mxPoint x="815" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 9. Worker -> LLM -->
+        <mxCell id="msg9" value="9: call_llm(prompt, model=haiku)" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.3;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="worker-exec" target="llm-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="825" y="500" as="sourcePoint" />
+            <mxPoint x="980" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 10. LLM returns response -->
+        <mxCell id="msg10" value="10: response" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.55;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="llm-exec" target="worker-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="550" as="sourcePoint" />
+            <mxPoint x="825" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 11. Worker -> Logger -->
+        <mxCell id="msg11" value="11: log(task, result, metrics)" style="html=1;verticalAlign=bottom;endArrow=block;fontFamily=Helvetica;fontSize=11;exitX=1;exitY=0.7;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="worker-exec" target="logger-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="825" y="580" as="sourcePoint" />
+            <mxPoint x="1155" y="580" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 12. Worker returns Result -->
+        <mxCell id="msg12" value="12: Result" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.633333;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="worker-exec" target="workerpool-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="815" y="630" as="sourcePoint" />
+            <mxPoint x="660" y="630" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 13. WorkerPool returns Result -->
+        <mxCell id="msg13" value="13: Result" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.847826;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="workerpool-exec" target="dispatcher-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="650" y="650" as="sourcePoint" />
+            <mxPoint x="475" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 14. Dispatcher returns Result -->
+        <mxCell id="msg14" value="14: Result" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.907407;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="dispatcher-exec" target="workflow-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="465" y="710" as="sourcePoint" />
+            <mxPoint x="285" y="710" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- 15. WorkflowExecutor returns to User -->
+        <mxCell id="msg15" value="15: Result" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontFamily=Helvetica;fontSize=11;exitX=0;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=1;entryY=0.948276;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="workflow-exec" target="user-exec">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="275" y="750" as="sourcePoint" />
+            <mxPoint x="135" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Result note -->
+        <mxCell id="result-note" value="Result:&lt;br&gt;tokens_input: 250&lt;br&gt;tokens_output: 150&lt;br&gt;duration: 1.2s&lt;br&gt;cost: $0.002&lt;br&gt;&lt;b&gt;success: true&lt;/b&gt;" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;spacingTop=0;fillColor=#d5e8d4;strokeColor=#82b366;fontFamily=Helvetica;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="140" height="90" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
