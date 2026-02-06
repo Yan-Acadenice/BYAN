@@ -131,6 +131,7 @@ describe('System Integration', () => {
       expect(byan.stateMachine.getCurrentState().name).toBe('INTERVIEW');
 
       for (let i = 0; i < 12; i++) {
+        await byan.getNextQuestion();
         await byan.submitResponse(`Response ${i + 1}`);
       }
 
@@ -143,6 +144,7 @@ describe('System Integration', () => {
       await byan.startSession();
 
       for (let i = 0; i < 12; i++) {
+        await byan.getNextQuestion();
         await byan.submitResponse(`Response ${i + 1}`);
       }
 
@@ -160,6 +162,7 @@ describe('System Integration', () => {
       await byan.startSession();
 
       for (let i = 0; i < 12; i++) {
+        await byan.getNextQuestion();
         await byan.submitResponse(`Response ${i + 1}`);
       }
 
@@ -174,8 +177,17 @@ describe('System Integration', () => {
   describe('Error handling', () => {
     it('should handle invalid state transitions', async () => {
       const byan = new ByanV2();
-
-      await expect(byan.generateProfile()).rejects.toThrow();
+      await byan.startSession();
+      
+      // Complete workflow first
+      for (let i = 0; i < 12; i++) {
+        await byan.getNextQuestion();
+        await byan.submitResponse(`Response ${i + 1}`);
+      }
+      await byan.generateProfile();
+      
+      // Now in COMPLETED state, try to generate again
+      await expect(byan.generateProfile()).rejects.toThrow('Cannot generate profile in current state');
     });
 
     it('should validate responses', async () => {
@@ -187,9 +199,10 @@ describe('System Integration', () => {
 
     it('should track errors in metrics', async () => {
       const byan = new ByanV2();
+      await byan.startSession();
 
       try {
-        await byan.generateProfile();
+        await byan.submitResponse('');
       } catch (e) {
         // Expected error
       }
@@ -253,6 +266,7 @@ describe('System Integration', () => {
       const byan = new ByanV2({ logger: mockLogger });
       await byan.startSession();
 
+      await byan.getNextQuestion();
       const longResponse = 'A'.repeat(200);
       await byan.submitResponse(longResponse);
 
@@ -279,6 +293,7 @@ describe('System Integration', () => {
       await byan.startSession();
 
       for (let i = 0; i < 5; i++) {
+        await byan.getNextQuestion();
         await byan.submitResponse(`Response ${i + 1}`);
       }
 

@@ -139,7 +139,7 @@ class InterviewState {
   processResponse(response) {
     if (!this.awaitingResponse) {
       this.logger.warn('No question pending - ignoring response');
-      return;
+      return false;
     }
 
     // Store response in current phase
@@ -165,6 +165,16 @@ class InterviewState {
       responseCount: this.phaseResponses[this.currentPhase].length,
       phaseComplete: this.isPhaseComplete(this.currentPhase)
     });
+
+    // Transition to next phase if current phase is complete
+    if (this.isPhaseComplete(this.currentPhase)) {
+      const currentPhaseIndex = this.phaseOrder.indexOf(this.currentPhase);
+      if (currentPhaseIndex < this.phaseOrder.length - 1) {
+        this._transitionToNextPhase();
+      }
+    }
+
+    return this.isInterviewComplete();
   }
 
   /**

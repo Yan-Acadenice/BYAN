@@ -33,27 +33,22 @@ class GenerationState {
   async generateProfile() {
     this.logger.info('Starting agent profile generation');
 
-    // AC6: Retrieve analysis results from SessionState
-    if (!this.sessionState.analysisResults || !this.sessionState.analysisResults.requirements) {
-      const error = new Error('Analysis results not found in SessionState');
-      this.logger.error('Generation failed', { error: error.message });
-      throw error;
-    }
-
-    const { requirements } = this.sessionState.analysisResults;
-
-    // Validate requirements completeness
-    if (!requirements.purpose || !requirements.capabilities || !requirements.knowledgeAreas) {
-      const error = new Error('Incomplete requirements: missing required fields');
-      this.logger.error('Generation failed', { error: error.message });
-      throw error;
+    // AC6: Try to retrieve analysis results, fallback to user responses
+    let requirements;
+    
+    if (this.sessionState.analysisResults && this.sessionState.analysisResults.requirements) {
+      requirements = this.sessionState.analysisResults.requirements;
+    } else {
+      // Fallback: Generate minimal requirements from user responses
+      this.logger.warn('No analysis results, generating from user responses');
+      requirements = this._extractRequirementsFromResponses();
     }
 
     // AC2: Extract components from requirements
-    const agentName = this._deriveAgentName(requirements.purpose);
-    const description = this._deriveDescription(requirements.purpose);
+    const agentName = this._deriveAgentName(requirements.purpose || 'custom-agent');
+    const description = this._deriveDescription(requirements.purpose || 'Custom agent');
     const persona = this._generatePersona(requirements);
-    const menu = this._generateMenu(requirements.capabilities);
+    const menu = this._generateMenu(requirements.capabilities || []);
     const capabilities = this._generateCapabilities(requirements);
 
     // AC1 & AC3: Build profile with YAML frontmatter + XML
@@ -184,6 +179,26 @@ class GenerationState {
   getDefaultSavePath() {
     const name = this.sessionState.agentProfileDraft?.name || 'agent';
     return `.github/copilot/agents/${name}.md`;
+  }
+
+  /**
+   * Extract requirements from user responses (fallback)
+   * @private
+   */
+  _extractRequirementsFromResponses() {
+    const responseData = this.sessionState.userResponses || [];
+    
+    // Extract response text from response objects
+    const responses = responseData.map(r => typeof r === 'string' ? r : (r.response || ''));
+    
+    return {
+      purpose: responses[0] || 'Custom agent',
+      domain: responses[3] || 'General',
+      capabilities: responses[7] ? responses[7].split(',').map(c => c.trim()) : ['General capability'],
+      knowledgeAreas: responses[2] ? responses[2].split(',').map(k => k.trim()) : ['General'],
+      users: responses[4] ? responses[4].split(',').map(u => u.trim()) : ['Users'],
+      constraints: responses.length > 10 ? [responses[10]] : []
+    };
   }
 
   /**

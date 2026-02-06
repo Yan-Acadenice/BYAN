@@ -89,11 +89,11 @@ class ByanV2 {
       throw new Error('Not in INTERVIEW state');
     }
 
-    const question = await this.interviewState.getNextQuestion();
+    const question = this.interviewState.askNextQuestion();
     
     this.metrics.increment('questionsAsked');
 
-    return question;
+    return typeof question === 'string' ? question : question?.text || question;
   }
 
   async submitResponse(response) {
@@ -108,12 +108,10 @@ class ByanV2 {
       response: sanitized
     });
 
-    this.sessionState.addResponse(response);
-
     const currentState = this.stateMachine.getCurrentState();
     
     if (currentState.name === 'INTERVIEW') {
-      const isComplete = await this.interviewState.processResponse(response);
+      const isComplete = this.interviewState.processResponse(response);
       
       if (isComplete) {
         await this.stateMachine.transition('ANALYSIS');
@@ -162,8 +160,18 @@ class ByanV2 {
   async endSession() {
     const currentState = this.stateMachine.getCurrentState();
     
-    if (currentState.name !== 'COMPLETED') {
-      await this.stateMachine.transition('COMPLETED');
+    if (currentState.name !== 'COMPLETED' && currentState.name !== 'ERROR') {
+      // Force transition through states if needed
+      if (currentState.name === 'INTERVIEW') {
+        await this.stateMachine.transition('ANALYSIS');
+        await this.stateMachine.transition('GENERATION');
+      } else if (currentState.name === 'ANALYSIS') {
+        await this.stateMachine.transition('GENERATION');
+      }
+      
+      if (this.stateMachine.getCurrentState().name === 'GENERATION') {
+        await this.stateMachine.transition('COMPLETED');
+      }
     }
 
     this.logger.info('Session ended', {
