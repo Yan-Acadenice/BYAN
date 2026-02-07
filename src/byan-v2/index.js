@@ -12,6 +12,7 @@ const GlossaryBuilder = require('./orchestrator/glossary-builder');
 const FiveWhysAnalyzer = require('./dispatcher/five-whys-analyzer');
 const ActiveListener = require('./orchestrator/active-listener');
 const MantraValidator = require('./generation/mantra-validator');
+const VoiceIntegration = require('./integration/voice-integration');
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -118,11 +119,28 @@ class ByanV2 {
       }
     }
 
+    // VoiceIntegration
+    if (bmadConfig.voice_integration?.enabled !== false) {
+      this.voiceIntegration = new VoiceIntegration(this.sessionState, this.logger);
+      
+      // Initialize asynchronously (non-blocking)
+      this.voiceIntegration.initialize().then(success => {
+        if (success) {
+          this.logger.info('[ByanV2] Voice integration enabled');
+        } else {
+          this.logger.debug('[ByanV2] Voice integration not available');
+        }
+      }).catch(error => {
+        this.logger.warn('[ByanV2] Voice integration init failed', { error: error.message });
+      });
+    }
+
     this.logger.info('BMAD modules initialized', {
       glossary: !!this.glossaryBuilder,
       fiveWhys: !!this.fiveWhysAnalyzer,
       activeListener: !!this.activeListener,
-      mantraValidator: !!this.mantraValidator
+      mantraValidator: !!this.mantraValidator,
+      voiceIntegration: !!this.voiceIntegration
     });
   }
 

@@ -68,3 +68,13 @@ bmad_features:
       - merise-agile
       - ia
 
+  # VoiceIntegration: Turbo Whisper voice input for hands-free interaction
+  voice_integration:
+    enabled: true
+    auto_detect: true  # Auto-detect Turbo Whisper installation
+    suggest_on_long_form: true  # Suggest voice input for long responses
+    platforms:
+      - github-copilot-cli
+      - claude-code
+      - codex
+
