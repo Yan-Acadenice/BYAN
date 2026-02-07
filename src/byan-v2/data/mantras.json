@@ -1,0 +1,852 @@
+{
+  "mantras": [
+    {
+      "id": "M1",
+      "number": 1,
+      "category": "merise-agile",
+      "title": "Un seul responsable",
+      "description": "Chaque user story a un seul responsable clairement identifie",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["responsable", "owner", "assignee", "responsible"],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M2",
+      "number": 2,
+      "category": "merise-agile",
+      "title": "Chaque User Story = 1 acteur",
+      "description": "Une user story concerne un seul acteur principal",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["acteur", "actor", "user", "role"],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M3",
+      "number": 3,
+      "category": "merise-agile",
+      "title": "1 US = 1 resultat mesurable",
+      "description": "Chaque user story produit un resultat mesurable et verifiable",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["mesurable", "measurable", "verifiable", "metric"],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M4",
+      "number": 4,
+      "category": "merise-agile",
+      "title": "Tracabilite Epic → Story → Task",
+      "description": "Hierarchie claire et tracable depuis l'epic jusqu'aux tasks",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["epic", "story", "task", "tracabilite", "traceability"],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M5",
+      "number": 5,
+      "category": "merise-agile",
+      "title": "Priorite = (Value × Urgence) / Effort",
+      "description": "Formule de priorisation basee sur valeur, urgence et effort",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["priorite", "priority", "value", "urgence", "urgency", "effort"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M6",
+      "number": 6,
+      "category": "merise-agile",
+      "title": "Story complete = INVEST",
+      "description": "Les user stories suivent les criteres INVEST (Independent, Negotiable, Valuable, Estimable, Small, Testable)",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["INVEST", "independent", "negotiable", "valuable", "estimable", "testable"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M7",
+      "number": 7,
+      "category": "merise-agile",
+      "title": "Acceptance Criteria = tests automatises",
+      "description": "Chaque critere d'acceptation se traduit en test automatise",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["acceptance", "criteria", "test", "automatise", "automated"],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "M8",
+      "number": 8,
+      "category": "merise-agile",
+      "title": "Code freeze avant release",
+      "description": "Gel du code avant chaque release pour stabilisation",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["freeze", "release", "stabilisation"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M9",
+      "number": 9,
+      "category": "merise-agile",
+      "title": "One feature = One branch",
+      "description": "Chaque fonctionnalite est developpee dans sa propre branche",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["branch", "feature", "git"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M10",
+      "number": 10,
+      "category": "merise-agile",
+      "title": "Commit message = type: description",
+      "description": "Format standardise des messages de commit",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["commit", "message", "conventional"],
+        "required": false
+      },
+      "priority": "low"
+    },
+    {
+      "id": "M11",
+      "number": 11,
+      "category": "merise-agile",
+      "title": "Tests avant merge",
+      "description": "Tous les tests doivent passer avant fusion",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["test", "merge", "passing"],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "M12",
+      "number": 12,
+      "category": "merise-agile",
+      "title": "Revue systematique",
+      "description": "Code review obligatoire avant merge",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["review", "revue", "peer"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M13",
+      "number": 13,
+      "category": "merise-agile",
+      "title": "Documentation dans le code",
+      "description": "Documentation integree au code source",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["documentation", "comment", "jsdoc"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M14",
+      "number": 14,
+      "category": "merise-agile",
+      "title": "README = point d'entree",
+      "description": "Le README est le point d'entree de la documentation",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["README", "documentation", "getting started"],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M15",
+      "number": 15,
+      "category": "merise-agile",
+      "title": "API-first design",
+      "description": "Conception API avant implementation",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["API", "interface", "contract"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M16",
+      "number": 16,
+      "category": "merise-agile",
+      "title": "Versioning semantique",
+      "description": "Utilisation du versioning semantique (semver)",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["version", "semver", "semantic"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M17",
+      "number": 17,
+      "category": "merise-agile",
+      "title": "Changelog a jour",
+      "description": "Changelog maintenu a jour pour chaque version",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["changelog", "release notes", "history"],
+        "required": false
+      },
+      "priority": "low"
+    },
+    {
+      "id": "M18",
+      "number": 18,
+      "category": "merise-agile",
+      "title": "Environnements identiques",
+      "description": "Dev, staging et production sont identiques",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["environment", "staging", "production", "dev"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M19",
+      "number": 19,
+      "category": "merise-agile",
+      "title": "CI/CD = production continue",
+      "description": "Integration et deploiement continus automatises",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["CI", "CD", "pipeline", "continuous"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M20",
+      "number": 20,
+      "category": "merise-agile",
+      "title": "Rollback en 1 clic",
+      "description": "Capacite de rollback rapide et simple",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["rollback", "revert", "recovery"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M21",
+      "number": 21,
+      "category": "merise-agile",
+      "title": "Tests unitaires obligatoires",
+      "description": "Tous les modules ont des tests unitaires",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["test", "unit", "spec"],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "M22",
+      "number": 22,
+      "category": "merise-agile",
+      "title": "80% couverture minimum",
+      "description": "Couverture de tests d'au moins 80%",
+      "validation": {
+        "type": "coverage",
+        "threshold": 80,
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "M23",
+      "number": 23,
+      "category": "merise-agile",
+      "title": "TDD quand possible",
+      "description": "Test-Driven Development comme pratique privilegiee",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["TDD", "test-driven", "red-green-refactor"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M24",
+      "number": 24,
+      "category": "merise-agile",
+      "title": "Tests E2E critiques",
+      "description": "Tests end-to-end pour les parcours critiques",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["E2E", "end-to-end", "integration"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M25",
+      "number": 25,
+      "category": "merise-agile",
+      "title": "User Story = contrat",
+      "description": "La user story est un contrat entre equipe et client",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["story", "contract", "agreement"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M26",
+      "number": 26,
+      "category": "merise-agile",
+      "title": "Retrospectives regulieres",
+      "description": "Retrospectives a chaque fin de sprint",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["retrospective", "retro", "review"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M27",
+      "number": 27,
+      "category": "merise-agile",
+      "title": "Daily = max 15 min",
+      "description": "Daily standup limite a 15 minutes",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["daily", "standup", "scrum"],
+        "required": false
+      },
+      "priority": "low"
+    },
+    {
+      "id": "M28",
+      "number": 28,
+      "category": "merise-agile",
+      "title": "Sprint review = demo",
+      "description": "Sprint review avec demonstration concrete",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["sprint review", "demo", "demonstration"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M29",
+      "number": 29,
+      "category": "merise-agile",
+      "title": "Definition of Done partagee",
+      "description": "Definition of Done commune et respectee",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["definition of done", "DoD", "acceptance"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M30",
+      "number": 30,
+      "category": "merise-agile",
+      "title": "Velocite = capacite reelle",
+      "description": "La velocite reflete la capacite reelle de l'equipe",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["velocity", "velocite", "capacity"],
+        "required": false
+      },
+      "priority": "low"
+    },
+    {
+      "id": "M31",
+      "number": 31,
+      "category": "merise-agile",
+      "title": "MCD avant code",
+      "description": "Modele conceptuel de donnees avant implementation",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["MCD", "model", "conceptual"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M32",
+      "number": 32,
+      "category": "merise-agile",
+      "title": "MCD ⇄ MCT validation",
+      "description": "Validation croisee entre modele de donnees et modele de traitements",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["MCD", "MCT", "validation"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M33",
+      "number": 33,
+      "category": "merise-agile",
+      "title": "Data Dictionary First",
+      "description": "Dictionnaire de donnees comme premier artefact",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["data dictionary", "dictionnaire", "schema"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M34",
+      "number": 34,
+      "category": "merise-agile",
+      "title": "Bottom-up from User Stories",
+      "description": "Construction bottom-up depuis les user stories",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["bottom-up", "user story", "incremental"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M35",
+      "number": 35,
+      "category": "merise-agile",
+      "title": "Incremental design",
+      "description": "Design incrementale et evolutive",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["incremental", "iterative", "evolution"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M36",
+      "number": 36,
+      "category": "merise-agile",
+      "title": "Test-Driven at all levels",
+      "description": "Approche test-driven a tous les niveaux",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["test-driven", "TDD", "test-first"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M37",
+      "number": 37,
+      "category": "merise-agile",
+      "title": "Ockham's Razor (simplicite)",
+      "description": "Principe de simplicite: la solution la plus simple est souvent la meilleure",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["simple", "simplicite", "KISS", "minimal"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "M38",
+      "number": 38,
+      "category": "merise-agile",
+      "title": "Pareto 80/20",
+      "description": "80% des resultats avec 20% des efforts",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["pareto", "80/20", "priority"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "M39",
+      "number": 39,
+      "category": "merise-agile",
+      "title": "Every action has consequences",
+      "description": "Chaque action a des consequences a anticiper",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["consequence", "impact", "effect"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-1",
+      "number": 1,
+      "category": "ia",
+      "title": "Trust But Verify",
+      "description": "Faire confiance aux IA mais toujours verifier les resultats",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["verify", "validation", "check", "test"],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "IA-2",
+      "number": 2,
+      "category": "ia",
+      "title": "Explain Your Reasoning",
+      "description": "L'IA doit expliquer son raisonnement",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["explain", "reasoning", "rationale", "why"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-3",
+      "number": 3,
+      "category": "ia",
+      "title": "Break Down Complex Tasks",
+      "description": "Decomposer les taches complexes en sous-taches simples",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["break down", "decompose", "subtask", "step"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-4",
+      "number": 4,
+      "category": "ia",
+      "title": "Use Examples",
+      "description": "Utiliser des exemples concrets pour illustrer",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["example", "sample", "demo", "illustration"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-5",
+      "number": 5,
+      "category": "ia",
+      "title": "Request Clarification",
+      "description": "Demander des clarifications quand necessaire",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["clarification", "question", "unclear"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-6",
+      "number": 6,
+      "category": "ia",
+      "title": "Iterate and Refine",
+      "description": "Iterer et raffiner les solutions progressivement",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["iterate", "refine", "improve", "evolve"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-7",
+      "number": 7,
+      "category": "ia",
+      "title": "Leverage Context",
+      "description": "Exploiter le contexte disponible intelligemment",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["context", "history", "background"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-8",
+      "number": 8,
+      "category": "ia",
+      "title": "Be Explicit About Constraints",
+      "description": "Etre explicite sur les contraintes et limitations",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["constraint", "limitation", "boundary"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-9",
+      "number": 9,
+      "category": "ia",
+      "title": "Validate Outputs",
+      "description": "Valider les sorties avant de les livrer",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["validate", "verify", "check", "test"],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "IA-10",
+      "number": 10,
+      "category": "ia",
+      "title": "Maintain Consistency",
+      "description": "Maintenir la coherence dans le style et les decisions",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["consistent", "coherent", "uniform"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-11",
+      "number": 11,
+      "category": "ia",
+      "title": "Document Decisions",
+      "description": "Documenter les decisions importantes",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["document", "decision", "ADR", "rationale"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-12",
+      "number": 12,
+      "category": "ia",
+      "title": "Learn from Feedback",
+      "description": "Apprendre et s'adapter a partir du feedback",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["feedback", "learn", "adapt", "improve"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-13",
+      "number": 13,
+      "category": "ia",
+      "title": "Adapt to User Style",
+      "description": "S'adapter au style et preferences de l'utilisateur",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["adapt", "style", "preference"],
+        "required": false
+      },
+      "priority": "low"
+    },
+    {
+      "id": "IA-14",
+      "number": 14,
+      "category": "ia",
+      "title": "Balance Automation and Control",
+      "description": "Equilibrer automatisation et controle utilisateur",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["automation", "control", "balance"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-15",
+      "number": 15,
+      "category": "ia",
+      "title": "Preserve Intent",
+      "description": "Preserver l'intention de l'utilisateur",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["intent", "purpose", "goal"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-16",
+      "number": 16,
+      "category": "ia",
+      "title": "Challenge Before Confirm",
+      "description": "Challenger avant de confirmer les decisions risquees",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["challenge", "confirm", "validate", "question"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-17",
+      "number": 17,
+      "category": "ia",
+      "title": "Show, Don't Just Tell",
+      "description": "Montrer par l'exemple plutot que juste expliquer",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["show", "example", "demonstrate"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-18",
+      "number": 18,
+      "category": "ia",
+      "title": "Progressive Disclosure",
+      "description": "Reveler l'information progressivement selon le besoin",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["progressive", "incremental", "step-by-step"],
+        "required": false
+      },
+      "priority": "low"
+    },
+    {
+      "id": "IA-19",
+      "number": 19,
+      "category": "ia",
+      "title": "Graceful Degradation",
+      "description": "Degrader elegamment en cas de probleme",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["graceful", "error handling", "fallback"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-20",
+      "number": 20,
+      "category": "ia",
+      "title": "Fail Fast, Fail Safe",
+      "description": "Echouer rapidement et en securite",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["fail fast", "error", "safety"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-21",
+      "number": 21,
+      "category": "ia",
+      "title": "No Hallucinations",
+      "description": "Pas d'hallucinations: toujours base sur des faits",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["fact", "evidence", "source", "verified"],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "IA-22",
+      "number": 22,
+      "category": "ia",
+      "title": "Cite Sources",
+      "description": "Citer les sources d'information",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["source", "reference", "citation"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "IA-23",
+      "number": 23,
+      "category": "ia",
+      "title": "No Emoji Pollution",
+      "description": "Zero emojis dans le code, commits et specifications techniques",
+      "validation": {
+        "type": "pattern",
+        "pattern": "[\\u{1F300}-\\u{1F9FF}\\u{2600}-\\u{26FF}\\u{2700}-\\u{27BF}]",
+        "flags": "u",
+        "mustNotMatch": true,
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "IA-24",
+      "number": 24,
+      "category": "ia",
+      "title": "Clean Code",
+      "description": "Code auto-documente avec commentaires minimaux",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["clean", "self-documenting", "readable"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "IA-25",
+      "number": 25,
+      "category": "ia",
+      "title": "Performance Matters",
+      "description": "La performance est importante",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["performance", "optimization", "efficient"],
+        "required": false
+      },
+      "priority": "high"
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "totalMantras": 64,
+    "categories": {
+      "merise-agile": 39,
+      "ia": 25
+    },
+    "priorityLevels": {
+      "critical": 8,
+      "high": 20,
+      "medium": 28,
+      "low": 8
+    }
+  }
+}
