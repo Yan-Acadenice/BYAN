@@ -1,0 +1,7 @@
+# BYAN Configuration
+user_name: Yan
+communication_language: Francais
+document_output_language: Francais
+output_folder: "{project-root}/_byan-output"
+agents_folder: "{project-root}/_byan/agents"
+byan_version: "2.0.0"

@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "agents": [
+    {
+      "id": "byan-v2",
+      "name": "BYAN v2",
+      "file": "byan.md"
+    }
+  ]
+}
