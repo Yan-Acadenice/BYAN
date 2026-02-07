@@ -5,6 +5,11 @@
       "id": "byan-v2",
       "name": "BYAN v2",
       "file": "byan.md"
+    },
+    {
+      "id": "turbo-whisper",
+      "name": "Turbo Whisper Voice Integration",
+      "file": "turbo-whisper.md"
     }
   ]
 }
