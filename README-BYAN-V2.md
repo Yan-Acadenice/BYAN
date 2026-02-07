@@ -8,12 +8,52 @@ BYAN guides you through a conversational interview to understand your needs, the
 
 ### Key Features
 
+#### Core Capabilities
 - **Intelligent Interview System**: 4-phase structured interview (Context → Business → Agent Needs → Validation)
 - **Automatic Profile Generation**: Creates `.md` agent files with YAML frontmatter + agent specifications
 - **Built-in Validation**: Validates agent profiles against GitHub Copilot CLI requirements
 - **Template System**: Flexible templates with placeholder resolution
 - **Quality Enforcement**: Mantra IA-23 (Zero Emoji Pollution), clean code principles
 - **State Machine Workflow**: INTERVIEW → ANALYSIS → GENERATION → COMPLETED
+
+#### 🆕 BMAD Features (v2.1.0)
+
+**NEW: 4 Advanced Modules for Enhanced Agent Creation**
+
+1. **📚 Glossary Builder**
+   - Auto-builds domain-specific glossaries during interviews
+   - Validates definition clarity (min score: 0.7)
+   - Auto-triggers for complex domains (ecommerce, finance, healthcare)
+   - Suggests related concepts based on context
+   - **Tests**: 86/86 passing
+
+2. **🔍 Five Whys Analyzer**
+   - Automated root cause analysis using "5 Whys" technique
+   - Detects pain points with 10+ keywords
+   - Asks up to 5 sequential WHY questions
+   - Early root cause detection at depth 3+
+   - Categorizes causes (technical/process/people/resource)
+   - **Tests**: 93/93 passing
+
+3. **👂 Active Listener**
+   - Intelligent response processing with reformulation
+   - Automatic reformulation every 3rd response
+   - Validates confirmations and detects ambiguity
+   - Analyzes session patterns
+   - Generates session summaries with insights
+   - **Tests**: 124/124 passing
+
+4. **✅ Mantras Validator**
+   - Validates agents against 64 BMAD/IA mantras
+   - Category-based validation (Philosophy, Process, Quality, AI-Specific)
+   - Compliance scoring (target: 80%+)
+   - Detailed violation reports
+   - Self-validating (meta!)
+   - **Tests**: 67/67 passing
+
+**Total BMAD Tests**: 417/417 passing (100%)
+
+See [BMAD-QUICK-REFERENCE.md](./BMAD-QUICK-REFERENCE.md) for usage examples.
 
 ## 📦 Installation
 
@@ -235,7 +275,11 @@ npm test -- __tests__/byan-v2/context
 npm test -- --coverage
 ```
 
-**Current Test Status**: 492/517 tests passing (95%)
+**Current Test Status**: 
+- **Total**: 1,308 tests passing (100%)
+- **Core v2.0**: 891/891 passing
+- **BMAD v2.1**: 417/417 passing
+- **Coverage**: 95%+
 
 ## 📖 API Reference
 

@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "BYAN v2.0 - Build Your AI Network - Hyper-MVP",
   "main": "src/index.js",
   "bin": {
