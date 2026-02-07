@@ -89,8 +89,7 @@ describe('Full BMAD Workflow Integration', () => {
 
     it('should initialize session state', () => {
       expect(byan.sessionState).toBeDefined();
-      expect(byan.sessionState.sessionId).toBeDefined();
-      expect(typeof byan.sessionState.sessionId).toBe('string');
+      expect(byan.sessionState.sessionId).toBe('test-full-bmad-workflow');
     });
 
     it('should verify all modules are enabled', () => {
@@ -104,8 +103,11 @@ describe('Full BMAD Workflow Integration', () => {
   });
 
   describe('Interview Phase with Active Listening', () => {
-    it('should start interview with initial question', async () => {
-      const question = await byan.getNextQuestion();
+    it('should start interview with initial question', () => {
+      byan.stateMachine.transition('START');
+      byan.stateMachine.transition('INTERVIEW');
+
+      const question = byan.interviewState.getNextQuestion();
       expect(question).toBeDefined();
     });
 
@@ -170,7 +172,8 @@ describe('Full BMAD Workflow Integration', () => {
 
   describe('5 Whys Phase: Root Cause Analysis', () => {
     beforeEach(() => {
-      // No state transitions needed - modules work independently
+      byan.stateMachine.transition('START');
+      byan.stateMachine.transition('INTERVIEW');
     });
 
     it('should detect slow checkout pain point', () => {
@@ -182,8 +185,7 @@ describe('Full BMAD Workflow Integration', () => {
     });
 
     it('should ask 5 sequential WHY questions', () => {
-      const startResult = byan.fiveWhysAnalyzer.start('Checkout is slow');
-      expect(startResult.firstQuestion).toBeDefined();
+      byan.fiveWhysAnalyzer.start('Checkout is slow');
 
       const whyAnswers = [
         'Because payment gateway takes too long to respond',
@@ -193,21 +195,16 @@ describe('Full BMAD Workflow Integration', () => {
         'Because we lacked infrastructure expertise'
       ];
 
-      // First answer is for the firstQuestion from start()
-      let result = byan.fiveWhysAnalyzer.processAnswer(whyAnswers[0]);
-      expect(result.valid).toBe(true);
-
-      // Then askNext() for remaining questions
-      for (let i = 1; i < whyAnswers.length && !result.rootCauseFound && !result.completed; i++) {
+      whyAnswers.forEach((answer, index) => {
         const question = byan.fiveWhysAnalyzer.askNext();
-        if (!question) break; // May stop early if root cause detected
-        
-        result = byan.fiveWhysAnalyzer.processAnswer(whyAnswers[i]);
-        expect(result.valid).toBe(true);
-      }
+        expect(question).toBeDefined();
+        expect(question.depth).toBe(index + 1);
 
-      const depth = byan.fiveWhysAnalyzer.getDepth();
-      expect(depth).toBeGreaterThanOrEqual(3); // May stop early if root cause detected
+        const result = byan.fiveWhysAnalyzer.processAnswer(answer);
+        expect(result.valid).toBe(true);
+      });
+
+      expect(byan.fiveWhysAnalyzer.depth).toBe(5);
     });
 
     it('should extract root cause: lack of caching infrastructure', () => {
@@ -221,21 +218,16 @@ describe('Full BMAD Workflow Integration', () => {
         'Lack of infrastructure expertise'
       ];
 
-      // Process first answer for firstQuestion
-      byan.fiveWhysAnalyzer.processAnswer(whyAnswers[0]);
+      whyAnswers.forEach(answer => {
+        byan.fiveWhysAnalyzer.askNext();
+        byan.fiveWhysAnalyzer.processAnswer(answer);
+      });
 
-      // Then askNext() and processAnswer() for remaining
-      for (let i = 1; i < whyAnswers.length; i++) {
-        const q = byan.fiveWhysAnalyzer.askNext();
-        if (!q) break;
-        byan.fiveWhysAnalyzer.processAnswer(whyAnswers[i]);
-      }
+      const rootCause = byan.fiveWhysAnalyzer.extractRootCause();
 
-      const exportData = byan.fiveWhysAnalyzer.export();
-
-      expect(exportData.rootCause).toBeDefined();
-      expect(exportData.rootCause.statement).toBeDefined();
-      expect(exportData.rootCause.depth).toBeGreaterThanOrEqual(3);
+      expect(rootCause).toBeDefined();
+      expect(rootCause.cause).toContain('infrastructure expertise');
+      expect(rootCause.depth).toBe(5);
     });
 
     it('should categorize root cause as technical', () => {
@@ -249,20 +241,13 @@ describe('Full BMAD Workflow Integration', () => {
         'Lack of technical expertise'
       ];
 
-      // Process first answer
-      byan.fiveWhysAnalyzer.processAnswer(answers[0]);
+      answers.forEach(answer => {
+        byan.fiveWhysAnalyzer.askNext();
+        byan.fiveWhysAnalyzer.processAnswer(answer);
+      });
 
-      // Then askNext() and processAnswer() for remaining
-      for (let i = 1; i < answers.length; i++) {
-        const q = byan.fiveWhysAnalyzer.askNext();
-        if (!q) break;
-        byan.fiveWhysAnalyzer.processAnswer(answers[i]);
-      }
-
-      const exportData = byan.fiveWhysAnalyzer.export();
-      expect(exportData.rootCause).toBeDefined();
-      expect(exportData.rootCause.category).toBeDefined();
-      expect(['technical', 'knowledge']).toContain(exportData.rootCause.category);
+      const category = byan.fiveWhysAnalyzer.categorizeRootCause();
+      expect(['technical', 'knowledge']).toContain(category);
     });
 
     it('should extract action items from 5 Whys analysis', () => {
@@ -276,21 +261,17 @@ describe('Full BMAD Workflow Integration', () => {
         'Team lacks expertise'
       ];
 
-      // Process first answer
-      byan.fiveWhysAnalyzer.processAnswer(answers[0]);
+      answers.forEach(answer => {
+        byan.fiveWhysAnalyzer.askNext();
+        byan.fiveWhysAnalyzer.processAnswer(answer);
+      });
 
-      // Then askNext() and processAnswer() for remaining
-      for (let i = 1; i < answers.length; i++) {
-        const q = byan.fiveWhysAnalyzer.askNext();
-        if (!q) break;
-        byan.fiveWhysAnalyzer.processAnswer(answers[i]);
-      }
+      const actions = byan.fiveWhysAnalyzer.extractActionItems();
 
-      const exportData = byan.fiveWhysAnalyzer.export();
-
-      expect(exportData.rootCause).toBeDefined();
-      expect(exportData.rootCause.actionItems).toBeDefined();
-      expect(Array.isArray(exportData.rootCause.actionItems)).toBe(true);
+      expect(actions).toBeDefined();
+      expect(actions.length).toBeGreaterThan(0);
+      expect(actions[0].description).toBeDefined();
+      expect(actions[0].priority).toBeDefined();
     });
   });
 
@@ -315,7 +296,7 @@ describe('Full BMAD Workflow Integration', () => {
     it('should define order concept with validation', () => {
       const result = byan.glossaryBuilder.addConcept(
         'order',
-        'A customer request that contains product selections and has payment details with delivery address information that is processed for fulfillment'
+        'A customer request to purchase one or more products with payment and delivery information'
       );
 
       expect(result.valid).toBe(true);
@@ -326,7 +307,7 @@ describe('Full BMAD Workflow Integration', () => {
     it('should define product concept with validation', () => {
       const result = byan.glossaryBuilder.addConcept(
         'product',
-        'An item that is available for sale in the catalog and has attributes such as name, price, description, and inventory count'
+        'An item available for sale with attributes like name, price, description, and inventory count'
       );
 
       expect(result.valid).toBe(true);
@@ -336,7 +317,7 @@ describe('Full BMAD Workflow Integration', () => {
     it('should define cart concept with validation', () => {
       const result = byan.glossaryBuilder.addConcept(
         'cart',
-        'A temporary collection that contains products selected by customer and is processed before checkout when payment is confirmed'
+        'A temporary collection of products selected by a customer before proceeding to checkout'
       );
 
       expect(result.valid).toBe(true);
@@ -346,7 +327,7 @@ describe('Full BMAD Workflow Integration', () => {
     it('should define payment concept with validation', () => {
       const result = byan.glossaryBuilder.addConcept(
         'payment',
-        'A financial transaction that processes and transfers money from customer account to merchant account when order is confirmed'
+        'A financial transaction that transfers money from customer to merchant for purchased items'
       );
 
       expect(result.valid).toBe(true);
@@ -356,7 +337,7 @@ describe('Full BMAD Workflow Integration', () => {
     it('should define inventory concept with validation', () => {
       const result = byan.glossaryBuilder.addConcept(
         'inventory',
-        'Stock tracking system that contains quantity information and has availability status of products stored in warehouse'
+        'The stock quantity and availability status of products in the warehouse or distribution center'
       );
 
       expect(result.valid).toBe(true);
@@ -374,21 +355,21 @@ describe('Full BMAD Workflow Integration', () => {
     });
 
     it('should suggest related concepts after defining core terms', () => {
-      byan.glossaryBuilder.addConcept('order', 'A customer request that contains product selections and has payment details with delivery address information');
+      byan.glossaryBuilder.addConcept('order', 'A customer request to purchase products with delivery details');
       
       const suggestions = byan.glossaryBuilder.suggestRelatedConcepts(byan.glossaryBuilder.concepts);
 
-      // Suggestions may be empty if domain not detected or concepts too few
-      expect(Array.isArray(suggestions)).toBe(true);
+      expect(suggestions.length).toBeGreaterThan(0);
+      expect(suggestions.some(s => s.name === 'customer' || s.name === 'product')).toBe(true);
     });
 
     it('should complete glossary with 5 valid concepts', () => {
       const concepts = [
-        { name: 'order', definition: 'A customer request that contains product selections and has payment details with delivery address information that is processed for fulfillment' },
-        { name: 'product', definition: 'An item that is available for sale and has attributes like name, price, description, and inventory count tracked' },
-        { name: 'cart', definition: 'A temporary collection that contains products selected by customer and is processed before checkout when payment is confirmed' },
-        { name: 'payment', definition: 'A financial transaction that processes and transfers money from customer account to merchant account when order is confirmed' },
-        { name: 'inventory', definition: 'A stock tracking system that contains quantity information and has availability status of products stored in warehouse' }
+        { name: 'order', definition: 'A customer request to purchase products with payment and delivery information' },
+        { name: 'product', definition: 'An item available for sale with attributes like name, price, and description' },
+        { name: 'cart', definition: 'A temporary collection of products selected by a customer before checkout' },
+        { name: 'payment', definition: 'A financial transaction transferring money from customer to merchant' },
+        { name: 'inventory', definition: 'The stock quantity and availability status of products in warehouse' }
       ];
 
       concepts.forEach(c => {
@@ -396,6 +377,7 @@ describe('Full BMAD Workflow Integration', () => {
         expect(result.valid).toBe(true);
       });
 
+      expect(byan.glossaryBuilder.isComplete()).toBe(true);
       expect(byan.glossaryBuilder.concepts.length).toBe(5);
     });
   });
@@ -423,23 +405,25 @@ describe('Full BMAD Workflow Integration', () => {
         'Not prioritized',
         'Lack of expertise'
       ];
-      whyAnswers.forEach((a, i) => {
-        if (i > 0) byan.fiveWhysAnalyzer.askNext();
+      whyAnswers.forEach(a => {
+        byan.fiveWhysAnalyzer.askNext();
         byan.fiveWhysAnalyzer.processAnswer(a);
       });
 
       // Setup glossary data
       const concepts = [
-        { name: 'order', definition: 'A customer request that contains product selections and has payment details with delivery address information that is processed for fulfillment' },
-        { name: 'product', definition: 'An item that is available for sale in the catalog and has attributes such as name, price, description, and inventory count' },
-        { name: 'cart', definition: 'A temporary collection that contains products selected by customer and is processed before checkout when payment is confirmed' },
-        { name: 'payment', definition: 'A financial transaction that processes and transfers money from customer account to merchant account when order is confirmed' },
-        { name: 'inventory', definition: 'Stock tracking system that contains quantity information and has availability status of products stored in warehouse' }
+        { name: 'order', definition: 'A customer request to purchase products with payment details' },
+        { name: 'product', definition: 'An item available for sale with price and description' },
+        { name: 'cart', definition: 'A temporary collection of products before checkout' },
+        { name: 'payment', definition: 'Financial transaction from customer to merchant' },
+        { name: 'inventory', definition: 'Stock quantity and availability of products' }
       ];
       concepts.forEach(c => byan.glossaryBuilder.addConcept(c.name, c.definition));
     });
 
     it('should transition to analysis state', () => {
+      byan.stateMachine.transition('START');
+      byan.stateMachine.transition('INTERVIEW');
       byan.stateMachine.transition('ANALYSIS');
 
       expect(byan.stateMachine.currentState).toBe('ANALYSIS');
@@ -456,16 +440,15 @@ describe('Full BMAD Workflow Integration', () => {
       const whysData = byan.fiveWhysAnalyzer.export();
 
       expect(whysData.rootCause).toBeDefined();
-      if (whysData.rootCause) {
-        expect(whysData.rootCause.category).toBeDefined();
-        expect(whysData.rootCause.actionItems).toBeDefined();
-      }
+      expect(whysData.category).toBeDefined();
+      expect(whysData.actions).toBeDefined();
     });
 
     it('should include glossary in analysis', () => {
       const glossaryData = byan.glossaryBuilder.export();
 
       expect(glossaryData.concepts.length).toBe(5);
+      expect(glossaryData.metadata.complete).toBe(true);
     });
 
     it('should create comprehensive analysis combining all data', () => {
@@ -476,7 +459,7 @@ describe('Full BMAD Workflow Integration', () => {
       };
 
       expect(analysisData.listening.history.length).toBeGreaterThan(0);
-      expect(analysisData.rootCause.responses.length).toBeGreaterThanOrEqual(3);
+      expect(analysisData.rootCause.responses.length).toBe(6);
       expect(analysisData.glossary.concepts.length).toBe(5);
     });
   });
@@ -495,21 +478,23 @@ describe('Full BMAD Workflow Integration', () => {
       responses.forEach(r => byan.activeListener.listen(r));
 
       byan.fiveWhysAnalyzer.start('Slow checkout');
-      ['Payment delays', 'API calls', 'No caching', 'Not prioritized', 'No expertise'].forEach((a, i) => {
-        if (i > 0) byan.fiveWhysAnalyzer.askNext();
+      ['Payment delays', 'API calls', 'No caching', 'Not prioritized', 'No expertise'].forEach(a => {
+        byan.fiveWhysAnalyzer.askNext();
         byan.fiveWhysAnalyzer.processAnswer(a);
       });
 
       [
-        { name: 'order', definition: 'Customer request that contains product selections and has payment details with delivery address information that is processed for fulfillment' },
-        { name: 'product', definition: 'Item that is available for sale and has attributes like name, price, description, and inventory count tracked in system' },
-        { name: 'cart', definition: 'Temporary collection that contains products selected before checkout and is processed when payment is confirmed' },
-        { name: 'payment', definition: 'Financial transaction that processes money transfer from customer account to merchant account when order is confirmed' },
-        { name: 'inventory', definition: 'Stock system that contains quantity information and has availability status of products stored in warehouse' }
+        { name: 'order', definition: 'Customer request to purchase products with payment and delivery' },
+        { name: 'product', definition: 'Item available for sale with price and description' },
+        { name: 'cart', definition: 'Temporary collection of products before checkout' },
+        { name: 'payment', definition: 'Financial transaction from customer to merchant' },
+        { name: 'inventory', definition: 'Stock quantity and availability of products' }
       ].forEach(c => byan.glossaryBuilder.addConcept(c.name, c.definition));
     });
 
     it('should transition to generation state', () => {
+      byan.stateMachine.transition('START');
+      byan.stateMachine.transition('INTERVIEW');
       byan.stateMachine.transition('ANALYSIS');
       byan.stateMachine.transition('GENERATION');
 
@@ -517,15 +502,13 @@ describe('Full BMAD Workflow Integration', () => {
     });
 
     it('should generate agent definition with all collected data', () => {
-      const exportData = byan.fiveWhysAnalyzer.export();
-      
       const agentDefinition = {
         name: 'EcommerceOrderAgent',
         description: 'Agent for ecommerce order management with inventory tracking',
         purpose: byan.activeListener.generateConsolidatedSummary(),
-        rootCause: exportData.rootCause,
+        rootCause: byan.fiveWhysAnalyzer.extractRootCause(),
         glossary: byan.glossaryBuilder.export(),
-        actionItems: exportData.actions
+        actionItems: byan.fiveWhysAnalyzer.extractActionItems()
       };
 
       expect(agentDefinition.name).toBeDefined();
@@ -535,10 +518,10 @@ describe('Full BMAD Workflow Integration', () => {
     });
 
     it('should include root cause insights in agent design', () => {
-      const exportData = byan.fiveWhysAnalyzer.export();
+      const rootCause = byan.fiveWhysAnalyzer.extractRootCause();
       
-      expect(exportData.rootCause.statement).toBeDefined();
-      expect(exportData.rootCause.depth).toBe(5);
+      expect(rootCause.cause).toBeDefined();
+      expect(rootCause.depth).toBe(5);
     });
 
     it('should incorporate glossary into agent documentation', () => {
@@ -576,61 +559,62 @@ describe('Full BMAD Workflow Integration', () => {
 
       expect(validation).toBeDefined();
       expect(validation.totalMantras).toBe(64);
-      expect(validation.compliant).toBeDefined();
-      expect(validation.nonCompliant).toBeDefined();
+      expect(validation.results).toBeDefined();
     });
 
     it('should achieve compliance score >= 80', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
 
-      // Note: This may not achieve 80% without full agent implementation
-      // But the validation should run and return a score
-      expect(validation.score).toBeDefined();
-      expect(validation.score).toBeGreaterThanOrEqual(0);
+      expect(validation.complianceScore).toBeGreaterThanOrEqual(80);
     });
 
     it('should validate mantra IA-23: Zero Emojis', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
-      const ia23 = validation.compliant.find(r => r.id === 'IA-23') 
-                || validation.nonCompliant.find(r => r.id === 'IA-23');
+      const ia23 = validation.results.find(r => r.mantraId === 'IA-23');
 
-      expect(ia23).toBeDefined();
+      if (ia23) {
+        expect(ia23.compliant).toBe(true);
+      }
     });
 
     it('should validate mantra #33: Data Dictionary First', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
-      const m33 = validation.compliant.find(r => r.id === 'M33')
-               || validation.nonCompliant.find(r => r.id === 'M33');
+      const dataDictionary = validation.results.find(r => r.mantraId === 'M33' || r.description?.includes('Data Dictionary'));
 
-      expect(m33).toBeDefined();
+      if (dataDictionary) {
+        expect(dataDictionary.compliant).toBe(true);
+      }
     });
 
     it('should generate compliance report', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
-      const report = byan.mantraValidator.generateReport();
+      const report = byan.mantraValidator.generateReport(validation);
 
       expect(report).toBeDefined();
-      expect(report).toContain('MANTRA VALIDATION REPORT');
-      expect(report).toContain('Score');
+      expect(report).toContain('Compliance Score');
+      expect(report).toContain('64');
     });
 
     it('should identify non-compliant mantras if any', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
-      const nonCompliant = validation.nonCompliant;
+      const nonCompliant = validation.results.filter(r => !r.compliant);
 
       nonCompliant.forEach(nc => {
         expect(nc.reason).toBeDefined();
-        expect(nc.id).toBeDefined();
+        expect(nc.suggestion).toBeDefined();
       });
     });
   });
 
   describe('Complete Workflow End-to-End', () => {
     it('should execute full workflow from start to validation', () => {
-      // 1. Start session (already at INTERVIEW state by default)
-      expect(byan.stateMachine.currentState).toBe('INTERVIEW');
+      // 1. Start session
+      byan.stateMachine.transition('START');
+      expect(byan.stateMachine.currentState).toBe('START');
 
       // 2. Interview phase with active listening
+      byan.stateMachine.transition('INTERVIEW');
+      
       const interviewResponses = [
         'I want an ecommerce agent for order management',
         'It should handle product recommendations',
@@ -671,25 +655,25 @@ describe('Full BMAD Workflow Integration', () => {
         'Because we lacked infrastructure expertise during planning'
       ];
 
-      whyAnswers.forEach((answer, i) => {
-        if (i > 0) byan.fiveWhysAnalyzer.askNext();
+      whyAnswers.forEach(answer => {
+        byan.fiveWhysAnalyzer.askNext();
         byan.fiveWhysAnalyzer.processAnswer(answer);
       });
 
-      const rootCauseData = byan.fiveWhysAnalyzer.export();
-      expect(rootCauseData.rootCause).toBeDefined();
-      expect(rootCauseData.rootCause.statement).toBeDefined();
+      const rootCause = byan.fiveWhysAnalyzer.extractRootCause();
+      expect(rootCause).toBeDefined();
+      expect(rootCause.cause).toContain('infrastructure expertise');
 
       // 4. Glossary phase
       const glossaryStart = byan.glossaryBuilder.start();
       expect(glossaryStart.instructions).toContain('5 core concepts');
 
       const concepts = [
-        { name: 'order', definition: 'A customer request that contains product selections and has payment details with delivery address information that is processed for fulfillment' },
-        { name: 'product', definition: 'An item that is available for sale and has attributes like name, price, description, and inventory count tracked' },
-        { name: 'cart', definition: 'A temporary collection that contains products selected by customer and is processed before checkout when payment is confirmed' },
-        { name: 'payment', definition: 'A financial transaction that processes and transfers money from customer account to merchant account when order is confirmed' },
-        { name: 'inventory', definition: 'A stock tracking system that contains quantity information and has availability status of products stored in warehouse' }
+        { name: 'order', definition: 'A customer request to purchase products with payment and delivery information' },
+        { name: 'product', definition: 'An item available for sale with attributes like name, price, and description' },
+        { name: 'cart', definition: 'A temporary collection of products selected by customer before checkout' },
+        { name: 'payment', definition: 'A financial transaction transferring money from customer to merchant' },
+        { name: 'inventory', definition: 'The stock quantity and availability status of products in warehouse' }
       ];
 
       concepts.forEach(concept => {
@@ -697,7 +681,7 @@ describe('Full BMAD Workflow Integration', () => {
         expect(result.valid).toBe(true);
       });
 
-      expect(byan.glossaryBuilder.concepts.length).toBe(5);
+      expect(byan.glossaryBuilder.isComplete()).toBe(true);
 
       // 5. Analysis phase
       byan.stateMachine.transition('ANALYSIS');
@@ -709,7 +693,7 @@ describe('Full BMAD Workflow Integration', () => {
       };
 
       expect(analysisData.listening.history.length).toBe(12);
-      expect(analysisData.rootCause.responses.length).toBeGreaterThanOrEqual(3); // May stop early
+      expect(analysisData.rootCause.responses.length).toBe(6);
       expect(analysisData.glossary.concepts.length).toBe(5);
 
       // 6. Generation phase
@@ -739,10 +723,10 @@ describe('Full BMAD Workflow Integration', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
 
       expect(validation.totalMantras).toBe(64);
-      expect(validation.score).toBeDefined();
+      expect(validation.complianceScore).toBeGreaterThanOrEqual(80);
 
-      const report = byan.mantraValidator.generateReport();
-      expect(report).toContain('Score');
+      const report = byan.mantraValidator.generateReport(validation);
+      expect(report).toContain('Compliance Score');
 
       // 8. Verify state machine progression
       expect(byan.stateMachine.currentState).toBe('GENERATION');
@@ -759,17 +743,17 @@ describe('Full BMAD Workflow Integration', () => {
       responses.forEach(r => byan.activeListener.listen(r));
       
       byan.fiveWhysAnalyzer.start('Slow checkout problem');
-      ['Payment delays', 'API calls', 'No caching', 'Not prioritized', 'No expertise'].forEach((a, i) => {
-        if (i > 0) byan.fiveWhysAnalyzer.askNext();
+      ['Payment delays', 'API calls', 'No caching', 'Not prioritized', 'No expertise'].forEach(a => {
+        byan.fiveWhysAnalyzer.askNext();
         byan.fiveWhysAnalyzer.processAnswer(a);
       });
 
       [
-        { name: 'order', definition: 'A customer request that contains product selections and has payment details with delivery address information that is processed for fulfillment' },
-        { name: 'product', definition: 'An item that is available for sale and has attributes like name, price, description, and inventory count tracked' },
-        { name: 'cart', definition: 'A temporary collection that contains products selected by customer and is processed before checkout when payment is confirmed' },
-        { name: 'payment', definition: 'A financial transaction that processes and transfers money from customer account to merchant account when order is confirmed' },
-        { name: 'inventory', definition: 'A stock tracking system that contains quantity information and has availability status of products stored in warehouse' }
+        { name: 'order', definition: 'Customer request to purchase products with delivery information' },
+        { name: 'product', definition: 'Item available for sale with price and description attributes' },
+        { name: 'cart', definition: 'Temporary collection of products selected before checkout' },
+        { name: 'payment', definition: 'Financial transaction from customer to merchant for items' },
+        { name: 'inventory', definition: 'Stock quantity and availability status of products' }
       ].forEach(c => byan.glossaryBuilder.addConcept(c.name, c.definition));
 
       // Verify data consistency
@@ -777,11 +761,11 @@ describe('Full BMAD Workflow Integration', () => {
       const whysData = byan.fiveWhysAnalyzer.export();
       const glossaryData = byan.glossaryBuilder.export();
 
-      // sessionId is auto-generated, just verify it exists in modules that export it
-      expect(listeningData.metadata.sessionId).toBeDefined();
+      expect(listeningData.metadata.sessionId).toBe('test-full-bmad-workflow');
+      expect(whysData.metadata.sessionId).toBe('test-full-bmad-workflow');
       
       expect(listeningData.history.length).toBe(3);
-      expect(whysData.responses.length).toBeGreaterThanOrEqual(3);
+      expect(whysData.responses.length).toBe(6);
       expect(glossaryData.concepts.length).toBe(5);
     });
 
@@ -808,26 +792,28 @@ describe('Full BMAD Workflow Integration', () => {
       const workflowStart = Date.now();
 
       // Execute abbreviated workflow
-      byan.stateMachine.transition('ANALYSIS');
+      byan.stateMachine.transition('START');
+      byan.stateMachine.transition('INTERVIEW');
 
       ['Response 1', 'Response 2', 'Slow checkout problem'].forEach(r => {
         byan.activeListener.listen(r);
       });
 
       byan.fiveWhysAnalyzer.start('Slow checkout');
-      ['Reason 1', 'Reason 2', 'Reason 3', 'Reason 4', 'Reason 5'].forEach((a, i) => {
-        if (i > 0) byan.fiveWhysAnalyzer.askNext();
+      ['Reason 1', 'Reason 2', 'Reason 3', 'Reason 4', 'Reason 5'].forEach(a => {
+        byan.fiveWhysAnalyzer.askNext();
         byan.fiveWhysAnalyzer.processAnswer(a);
       });
 
       [
-        { name: 'order', definition: 'Customer purchase request that contains payment details and has delivery address information that is processed' },
-        { name: 'product', definition: 'Item for sale that is available and has price, description details tracked in system catalog' },
-        { name: 'cart', definition: 'Temporary product collection that contains items selected and is processed before checkout confirmation' },
-        { name: 'payment', definition: 'Financial transaction that processes money transfer to merchant account when order is confirmed' },
-        { name: 'inventory', definition: 'Stock system that contains quantity of products and has availability status tracked in warehouse' }
+        { name: 'order', definition: 'Customer purchase request with payment details' },
+        { name: 'product', definition: 'Item for sale with price and description' },
+        { name: 'cart', definition: 'Temporary product collection before checkout' },
+        { name: 'payment', definition: 'Financial transaction to merchant' },
+        { name: 'inventory', definition: 'Stock quantity of products' }
       ].forEach(c => byan.glossaryBuilder.addConcept(c.name, c.definition));
 
+      byan.stateMachine.transition('ANALYSIS');
       byan.stateMachine.transition('GENERATION');
 
       const agentDef = {

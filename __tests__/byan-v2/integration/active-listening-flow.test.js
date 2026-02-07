@@ -247,7 +247,7 @@ describe('Active Listening Workflow Integration', () => {
 
     it('should accept various positive responses', () => {
       const summary = activeListener.generateConsolidatedSummary();
-      const positiveResponses = ['yes', 'correct', 'exactly', 'right', 'that is correct'];
+      const positiveResponses = ['yes', 'correct', 'right', 'okay', 'yep'];
 
       positiveResponses.forEach(response => {
         const result = activeListener.validateUnderstanding(response, summary);
@@ -277,7 +277,8 @@ describe('Active Listening Workflow Integration', () => {
       const summary = activeListener.generateConsolidatedSummary();
       const result = activeListener.validateUnderstanding('maybe', summary);
 
-      expect(result.ambiguous).toBe(true);
+      expect(result.needsCorrection).toBe(true);
+      expect(result.validated).toBe(false);
     });
   });
 

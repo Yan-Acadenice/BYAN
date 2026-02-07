@@ -127,10 +127,22 @@ class VoiceIntegration {
         const healthUrl = `http://localhost:${port}/health`;
         
         const { stdout } = await execAsync(`curl -s ${healthUrl}`);
-        const response = JSON.parse(stdout);
         
-        this.serverHealthy = response.status === 'ok';
-        return this.serverHealthy;
+        // fedirz/faster-whisper-server returns "OK" (string)
+        // Other servers may return {"status": "ok"} (object)
+        if (stdout.trim() === 'OK') {
+          this.serverHealthy = true;
+          return true;
+        }
+        
+        try {
+          const response = JSON.parse(stdout);
+          this.serverHealthy = response.status === 'ok';
+          return this.serverHealthy;
+        } catch {
+          // If not JSON and not "OK", server not ready
+          return false;
+        }
       }
 
       this.serverHealthy = true;
