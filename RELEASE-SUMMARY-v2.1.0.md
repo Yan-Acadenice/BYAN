@@ -80,7 +80,7 @@ Or update `package.json`:
 
 ### Option 1: No Changes (v2.0.0 Code Works)
 ```javascript
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 const byan = new ByanV2();
 await byan.startSession();
 // ... your existing workflow

@@ -16,7 +16,7 @@ Your existing code continues to work:
 
 ```javascript
 // v2.0.0 code - works identically in v2.1.0
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 const byan = new ByanV2();
 await byan.startSession();
@@ -39,7 +39,7 @@ const profile = await byan.generateProfile();
 Get the full v2.1.0 experience:
 
 ```javascript
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 const byan = new ByanV2({
   // Your existing config

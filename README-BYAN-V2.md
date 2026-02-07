@@ -57,67 +57,71 @@ See [BMAD-QUICK-REFERENCE.md](./BMAD-QUICK-REFERENCE.md) for usage examples.
 
 ## 📦 Installation
 
-### Prerequisites
-
-- Node.js >= 18.0.0
-- npm or yarn
-- GitHub Copilot CLI access
-
-### Install
+### Option 1: Via NPM (Recommandé)
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd conception
+# Installation globale
+npm install -g create-byan-agent
 
-# Install dependencies
+# OU utilisation directe avec npx
+npx create-byan-agent
+```
+
+### Option 2: Via Git (Pour Développement)
+
+```bash
+# Cloner le repository
+git clone <repository-url>
+cd <repository-directory>
+
+# Installer les dépendances
 npm install
 
-# Run tests to verify installation
+# Lancer les tests
 npm test
 ```
 
-## 🎬 Quick Demo
+## 🎬 Quick Start
 
-Run the demo to see BYAN v2 in action:
+### Utilisation via NPX
 
 ```bash
-node demo-byan-v2-simple.js
-```
+# Créer un agent interactivement
+npx create-byan-agent
 
-This creates a complete `code-review-assistant` agent in under 2 seconds!
-
-Output: `.github/copilot/agents/code-review-assistant.md`
-
-## 🚀 Quick Start (5 minutes)
-
-### 1. Import BYAN in your code
-
-```javascript
-const ByanV2 = require('./src/byan-v2');
-
-// Create BYAN instance
+# Ou utiliser l'API
+node -e "
+const ByanV2 = require('create-byan-agent');
 const byan = new ByanV2();
+byan.startSession().then(() => {
+  console.log('BYAN démarré!');
+});
+"
 ```
 
-### 2. Start an interview session
+### Utilisation Programmatique
 
 ```javascript
-// Start session
+const ByanV2 = require('create-byan-agent');
+
+// Créer une instance
+const byan = new ByanV2({
+  maxQuestions: 12,
+  outputDir: './_bmad-output/bmb-creations'
+});
+
+// Démarrer une session
 await byan.startSession();
 
-// Get first question
+// Obtenir une question
 const question = await byan.getNextQuestion();
-console.log(question);
+console.log(question.text);
+
+// Soumettre une réponse
+await byan.submitResponse('Ma réponse');
+
+// Continuer jusqu'à complétion...
 ```
-
-### 3. Submit responses
-
-```javascript
-// Submit response to current question
-await byan.submitResponse('Your answer here');
-
-// Continue interview (12 questions total)
 for (let i = 0; i < 11; i++) {
   const nextQuestion = await byan.getNextQuestion();
   console.log(nextQuestion);
@@ -141,7 +145,7 @@ console.log('Agent profile created!');
 ### Example 1: Create Code Review Agent
 
 ```javascript
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function createCodeReviewAgent() {
   const byan = new ByanV2();
@@ -153,7 +157,15 @@ async function createCodeReviewAgent() {
     'code-review-assistant',
     'An agent that reviews code for bugs and best practices',
     'Software Development',
-    // ... 9 more responses
+    'Small team (1-5)',
+    'Yes',
+    'Code analysis, bug detection, best practices',
+    'Professional and constructive',
+    'Static analysis, pattern detection',
+    'Markdown reports with examples',
+    'Medium complexity',
+    'Yes',
+    'Yes'
   ];
   
   for (const response of responses) {
@@ -161,31 +173,48 @@ async function createCodeReviewAgent() {
   }
   
   const profile = await byan.generateProfile();
-  console.log('Code review agent created:', profile);
+  console.log('✅ Agent created:', profile.filePath);
 }
 
 createCodeReviewAgent();
 ```
 
-### Example 2: Validate Existing Agent Profile
+### Example 2: With BMAD Features
 
 ```javascript
-const AgentProfileValidator = require('./src/byan-v2/generation/agent-profile-validator');
-const fs = require('fs');
+const ByanV2 = require('create-byan-agent');
 
-const validator = new AgentProfileValidator();
-const profileContent = fs.readFileSync('.github/copilot/agents/my-agent.md', 'utf-8');
-
-const result = validator.validate(profileContent);
-
-if (result.valid) {
-  console.log('✓ Profile is valid');
-  if (result.warnings.length > 0) {
-    console.log('Warnings:', result.warnings);
+async function createWithBMAD() {
+  const byan = new ByanV2({
+    bmad_features: {
+      glossary_builder: { enabled: true },
+      five_whys: { enabled: true },
+      active_listener: { enabled: true },
+      mantras_validator: { enabled: true }
+    }
+  });
+  
+  await byan.startSession();
+  
+  // Start glossary for ecommerce domain
+  const glossary = byan.startGlossary('ecommerce');
+  byan.addConcept('Order', 'A customer purchase request...');
+  
+  // Detect pain points
+  const detection = byan.detectPainPoints('Slow checkout process');
+  if (detection.needsWhys) {
+    const question = byan.askWhy();
+    // ... 5 Whys analysis
   }
-} else {
-  console.log('✗ Profile has errors:', result.errors);
+  
+  // Generate and validate
+  const profile = await byan.generateProfile();
+  const validation = byan.validateAgent(profile.content);
+  
+  console.log(`Score: ${validation.score * 100}%`);
 }
+
+createWithBMAD();
 ```
 
 ### Example 3: Custom Configuration

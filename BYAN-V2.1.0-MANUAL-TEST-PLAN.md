@@ -18,6 +18,24 @@ Vérifier que BYAN v2.1.0 fonctionne correctement du point de vue utilisateur, e
 
 ## 📋 Prérequis
 
+### Installation
+
+**Option 1: Via NPM (Recommandé)**
+```bash
+npm install -g create-byan-agent
+# ou
+npx create-byan-agent
+```
+
+**Option 2: Via Git (Développement)**
+```bash
+git clone <repository-url>
+cd <repository-directory>
+npm install
+```
+
+### Vérification
+
 Avant de commencer les tests:
 
 ```bash
@@ -30,7 +48,7 @@ npm test
 # Doit montrer 1,308/1,308 tests passing
 
 # Vérifier la version
-node -e "console.log(require('./package.json').version)"
+npm list create-byan-agent
 # Doit afficher: 2.1.0
 ```
 
@@ -46,21 +64,40 @@ node -e "console.log(require('./package.json').version)"
 
 **Étapes**:
 ```bash
-# 1. Aller dans le répertoire
-cd /home/yan/conception
+# 1. Vérifier l'installation
+npm list create-byan-agent
 
-# 2. Vérifier les dépendances
-npm list --depth=0
+# 2. Lancer le demo simple (si installé via Git)
+# OU créer un test minimal
+cat > test-demo.js << 'EOF'
+const ByanV2 = require('create-byan-agent');
 
-# 3. Lancer le demo simple
-node demo-byan-v2-simple.js
+async function demo() {
+  console.log('🧪 Test demo BYAN v2.1.0');
+  
+  const byan = new ByanV2({
+    sessionId: 'test-demo',
+    maxQuestions: 12
+  });
+  
+  await byan.startSession();
+  console.log('✅ BYAN démarré avec succès!');
+  
+  // Test basique
+  const question = byan.getNextQuestion();
+  console.log('✅ Première question:', question.text);
+}
+
+demo().catch(console.error);
+EOF
+
+node test-demo.js
 ```
 
 **Résultat attendu**:
 - ✅ Aucune erreur de dépendances
-- ✅ Le demo se lance sans erreur
-- ✅ Un fichier agent est créé dans `.github/copilot/agents/`
-- ✅ Le fichier contient du YAML frontmatter + agent XML
+- ✅ BYAN démarre sans erreur
+- ✅ Première question s'affiche correctement
 
 **Durée**: 2 minutes
 
@@ -74,7 +111,7 @@ node demo-byan-v2-simple.js
 ```bash
 # Créer un script de test
 cat > test-basic-interview.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testBasicInterview() {
   console.log('🧪 Test 1.2: Interview de base\n');
@@ -159,7 +196,7 @@ node test-basic-interview.js
 ```bash
 # Script de validation
 cat > test-profile-validation.js << 'EOF'
-const AgentProfileValidator = require('./src/byan-v2/generation/agent-profile-validator');
+const AgentProfileValidator = require('create-byan-agent/generation/agent-profile-validator');
 const fs = require('fs');
 
 async function testValidation() {
@@ -232,7 +269,7 @@ node test-profile-validation.js
 **Étapes**:
 ```bash
 cat > test-glossary.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testGlossary() {
   console.log('🧪 Test 2.1: Glossary Builder\n');
@@ -312,7 +349,7 @@ node test-glossary.js
 **Étapes**:
 ```bash
 cat > test-five-whys.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testFiveWhys() {
   console.log('🧪 Test 2.2: Five Whys Analyzer\n');
@@ -426,7 +463,7 @@ node test-five-whys.js
 **Étapes**:
 ```bash
 cat > test-active-listener.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testActiveListener() {
   console.log('🧪 Test 2.3: Active Listener\n');
@@ -527,7 +564,7 @@ node test-active-listener.js
 **Étapes**:
 ```bash
 cat > test-mantras.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 const fs = require('fs');
 
 async function testMantras() {
@@ -649,7 +686,7 @@ node test-mantras.js
 **Étapes**:
 ```bash
 cat > test-full-workflow.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testFullWorkflow() {
   console.log('🧪 Test 3.1: Workflow Complet avec BMAD\n');
@@ -827,7 +864,7 @@ node test-full-workflow.js
 **Étapes**:
 ```bash
 cat > test-backward-compat.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testBackwardCompatibility() {
   console.log('🧪 Test 4.1: Compatibilité v2.0.0\n');
@@ -895,7 +932,7 @@ node test-backward-compat.js
 **Étapes**:
 ```bash
 cat > test-bmad-disable.js << 'EOF'
-const ByanV2 = require('./src/byan-v2');
+const ByanV2 = require('create-byan-agent');
 
 async function testBMADDisable() {
   console.log('🧪 Test 4.2: Désactivation Features BMAD\n');
