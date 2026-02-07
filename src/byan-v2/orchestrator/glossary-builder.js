@@ -159,21 +159,37 @@ class GlossaryBuilder {
   }
 
   challengeDefinition(definition) {
+    const suggestions = [
+      'Specify what makes it unique',
+      'Add concrete examples',
+      'Describe the boundaries or constraints',
+      'Explain relationships to other concepts'
+    ];
+
     // Check length first (most specific)
     if (definition.length < 30) {
-      return 'This definition seems short. Could you expand on it?';
+      return {
+        reason: 'Definition is too vague and needs more detail',
+        suggestions: ['Expand on the definition with more context', ...suggestions]
+      };
     }
 
     // Then check for ambiguous terms
     const ambiguousTerms = ['maybe', 'could be', 'sometimes', 'might', 'possibly', 'perhaps'];
     const lowerDef = definition.toLowerCase();
     if (ambiguousTerms.some(term => lowerDef.includes(term))) {
-      return 'This definition contains ambiguous terms. Can you be more precise?';
+      return {
+        reason: 'Definition contains ambiguous terms',
+        suggestions: ['Remove uncertain language', 'Be more precise', ...suggestions]
+      };
     }
 
     // Then check for examples
     if (!this._hasExamples(definition)) {
-      return 'Can you provide a concrete example to clarify?';
+      return {
+        reason: 'Definition lacks concrete examples',
+        suggestions: ['Provide a concrete example', ...suggestions]
+      };
     }
 
     const challenges = [
@@ -183,7 +199,10 @@ class GlossaryBuilder {
       'When does something become this vs something else?'
     ];
 
-    return challenges[Math.floor(Math.random() * challenges.length)];
+    return {
+      reason: 'Definition could be clearer',
+      suggestions: [challenges[Math.floor(Math.random() * challenges.length)], ...suggestions]
+    };
   }
 
   suggestRelatedConcepts(existingConcepts) {
@@ -192,19 +211,43 @@ class GlossaryBuilder {
     const domainPatterns = {
       ecommerce: {
         triggers: ['order', 'product', 'cart', 'customer', 'payment'],
-        suggestions: ['inventory', 'shipping', 'discount', 'refund', 'checkout']
+        suggestions: [
+          { name: 'inventory', rationale: 'Track product availability and stock levels' },
+          { name: 'shipping', rationale: 'Manage delivery and logistics for orders' },
+          { name: 'discount', rationale: 'Apply promotional pricing to products' },
+          { name: 'refund', rationale: 'Process returns and money back to customers' },
+          { name: 'checkout', rationale: 'Complete the purchase transaction' }
+        ]
       },
       finance: {
         triggers: ['account', 'transaction', 'balance', 'transfer', 'payment'],
-        suggestions: ['reconciliation', 'statement', 'fee', 'interest', 'deposit']
+        suggestions: [
+          { name: 'reconciliation', rationale: 'Match transactions with bank records' },
+          { name: 'statement', rationale: 'Summarize account activity' },
+          { name: 'fee', rationale: 'Track service charges' },
+          { name: 'interest', rationale: 'Calculate earnings on balances' },
+          { name: 'deposit', rationale: 'Add funds to accounts' }
+        ]
       },
       healthcare: {
         triggers: ['patient', 'appointment', 'prescription', 'diagnosis', 'treatment'],
-        suggestions: ['medication', 'provider', 'insurance', 'record', 'visit']
+        suggestions: [
+          { name: 'medication', rationale: 'Prescribed drugs for treatment' },
+          { name: 'provider', rationale: 'Healthcare professional giving care' },
+          { name: 'insurance', rationale: 'Coverage for medical costs' },
+          { name: 'record', rationale: 'Patient medical history' },
+          { name: 'visit', rationale: 'Patient-provider encounter' }
+        ]
       },
       software: {
         triggers: ['user', 'session', 'authentication', 'authorization', 'role'],
-        suggestions: ['permission', 'token', 'profile', 'settings', 'notification']
+        suggestions: [
+          { name: 'permission', rationale: 'Access rights to features' },
+          { name: 'token', rationale: 'Credential for API access' },
+          { name: 'profile', rationale: 'User information and preferences' },
+          { name: 'settings', rationale: 'User configuration options' },
+          { name: 'notification', rationale: 'Alert user of events' }
+        ]
       }
     };
 
@@ -215,11 +258,11 @@ class GlossaryBuilder {
       
       if (matchCount >= 2) {
         const suggestions = pattern.suggestions
-          .filter(s => !existingNames.includes(s))
+          .filter(s => !existingNames.includes(s.name))
           .slice(0, 5);
         
         if (suggestions.length > 0) {
-          this.logger.info('Domain detected', { domain, suggestions });
+          this.logger.info('Domain detected', { domain, suggestions: suggestions.map(s => s.name) });
           return suggestions;
         }
       }
@@ -245,6 +288,35 @@ class GlossaryBuilder {
     return [...this.concepts];
   }
 
+  getCompletionStatus() {
+    return {
+      current: this.concepts.length,
+      required: this.minConcepts,
+      percentage: Math.round((this.concepts.length / this.minConcepts) * 100),
+      complete: this.isComplete()
+    };
+  }
+
+  _shouldTriggerForDomain(sessionData) {
+    if (!sessionData || !sessionData.domain) {
+      return false;
+    }
+    
+    const supportedDomains = ['ecommerce', 'finance', 'healthcare', 'software'];
+    return supportedDomains.includes(sessionData.domain.toLowerCase());
+  }
+
+  getDomainSuggestions(domain) {
+    const domainSuggestions = {
+      ecommerce: ['order', 'product', 'cart', 'customer', 'payment', 'inventory', 'shipping'],
+      finance: ['account', 'transaction', 'balance', 'transfer', 'payment', 'reconciliation'],
+      healthcare: ['patient', 'appointment', 'prescription', 'diagnosis', 'treatment', 'medication'],
+      software: ['user', 'session', 'authentication', 'authorization', 'role', 'permission']
+    };
+
+    return domainSuggestions[domain.toLowerCase()] || [];
+  }
+
   export() {
     const domain = this._detectDomain();
     
@@ -258,8 +330,42 @@ class GlossaryBuilder {
         definition: c.definition,
         clarityScore: c.clarityScore,
         addedAt: c.addedAt
-      }))
+      })),
+      metadata: {
+        totalConcepts: this.concepts.length,
+        complete: this.isComplete(),
+        minRequired: this.minConcepts
+      }
     };
+  }
+
+  exportAsMarkdown() {
+    const domain = this._detectDomain();
+    const lines = [
+      '# Business Glossary',
+      '',
+      `**Domain:** ${domain}`,
+      `**Concepts:** ${this.concepts.length}`,
+      `**Status:** ${this.isComplete() ? 'Complete' : 'In Progress'}`,
+      '',
+      '---',
+      ''
+    ];
+
+    this.concepts.forEach(concept => {
+      lines.push(`## ${concept.name}`);
+      lines.push('');
+      lines.push(concept.definition);
+      lines.push('');
+      lines.push(`*Clarity Score: ${concept.clarityScore.toFixed(2)}*`);
+      lines.push('');
+    });
+
+    return lines.join('\n');
+  }
+
+  exportAsJSON() {
+    return JSON.stringify(this.export(), null, 2);
   }
 
   _detectDomain() {
@@ -291,15 +397,27 @@ class GlossaryBuilder {
       return { valid: false, issues: ['Name is required'] };
     }
 
-    const normalized = name.toLowerCase().trim().replace(/\s+/g, '-');
+    const trimmed = name.trim();
+    if (trimmed.length === 0) {
+      return { valid: false, issues: ['Name is required'] };
+    }
+
+    const normalized = trimmed.toLowerCase().replace(/\s+/g, '-');
     
-    if (!/^[a-z][a-z0-9-]*[a-z0-9]$/.test(normalized) && normalized.length > 1) {
-      if (!/^[a-z]$/.test(normalized)) {
-        return { 
-          valid: false, 
-          issues: ['Name must be lowercase with hyphens (e.g., "purchase-order")'] 
-        };
-      }
+    // Allow alphanumeric and hyphens, must start with letter
+    if (!/^[a-z]/.test(normalized)) {
+      return { 
+        valid: false, 
+        issues: ['Name must start with a letter'] 
+      };
+    }
+
+    // Check for invalid characters (allow letters, numbers, hyphens)
+    if (!/^[a-z][a-z0-9-]*$/.test(normalized)) {
+      return { 
+        valid: false, 
+        issues: ['Name contains invalid characters. Use only letters, numbers, and hyphens'] 
+      };
     }
 
     if (this.concepts.some(c => c.name === normalized)) {

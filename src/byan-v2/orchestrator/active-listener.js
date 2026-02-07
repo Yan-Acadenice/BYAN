@@ -219,14 +219,20 @@ class ActiveListener {
   /**
    * Process user's validation response
    * @param {boolean|string} userConfirmation - User's yes/no response
+   * @param {string} summary - The summary being validated
    * @returns {Object} Validation result
    */
-  validateUnderstanding(userConfirmation) {
+  validateUnderstanding(userConfirmation, summary) {
     const confirmed = this._parseConfirmation(userConfirmation);
+    const needsCorrection = !confirmed && userConfirmation !== true && userConfirmation !== false;
     
     const result = {
-      confirmed: confirmed,
-      timestamp: Date.now()
+      validated: confirmed,
+      needsCorrection: needsCorrection && !confirmed,
+      ambiguous: !confirmed && !needsCorrection,
+      timestamp: Date.now(),
+      summary: summary,
+      clarificationPrompt: needsCorrection ? 'Please clarify what I misunderstood so I can correct my understanding.' : null
     };
 
     // Update last history entry with validation result
@@ -234,9 +240,77 @@ class ActiveListener {
       this.history[this.history.length - 1].validationResult = result;
     }
 
-    this.logger.info('Understanding validated', { confirmed: confirmed });
+    this.logger.info('Understanding validated', { validated: confirmed, needsCorrection: needsCorrection });
 
     return result;
+  }
+
+  /**
+   * Process correction from user when understanding was wrong
+   * @param {string} correction - User's correction text
+   * @returns {Object} Correction result with updated summary
+   */
+  processCorrection(correction) {
+    if (!correction || typeof correction !== 'string') {
+      return { updated: false, error: 'Invalid correction' };
+    }
+
+    const reformulated = this.reformulate(correction);
+    const keyPoints = this.extractKeyPoints(reformulated.text);
+    const newSummary = this.generateSummary(keyPoints);
+
+    this.history.push({
+      original: correction,
+      reformulated: reformulated.text,
+      clarityScore: reformulated.clarityScore,
+      keyPoints: keyPoints,
+      summary: newSummary,
+      timestamp: Date.now(),
+      isCorrection: true
+    });
+
+    this.logger.info('Correction processed', { correctionLength: correction.length });
+
+    return {
+      updated: true,
+      reformulated: reformulated.text,
+      newSummary: newSummary,
+      keyPoints: keyPoints
+    };
+  }
+
+  /**
+   * Get consolidated summary from all responses
+   * @returns {string} Comprehensive summary
+   */
+  generateConsolidatedSummary() {
+    if (this.history.length === 0) {
+      return 'No information collected yet.';
+    }
+
+    const allKeyPoints = [];
+    this.history.forEach(record => {
+      if (record.keyPoints && record.keyPoints.length > 0) {
+        allKeyPoints.push(...record.keyPoints);
+      }
+    });
+
+    // Remove duplicates and keep most relevant
+    const uniquePoints = [...new Set(allKeyPoints)].slice(0, 5);
+
+    return this.generateSummary(uniquePoints);
+  }
+
+  /**
+   * Get specific history record by index
+   * @param {number} index - Index of the record
+   * @returns {Object} History record
+   */
+  getHistoryRecord(index) {
+    if (index < 0 || index >= this.history.length) {
+      return null;
+    }
+    return this.history[index];
   }
 
   /**
@@ -247,10 +321,63 @@ class ActiveListener {
     return {
       totalResponses: this.responseCount,
       history: this.history,
+      summary: this.generateConsolidatedSummary(),
       averageClarityScore: this._calculateAverageClarityScore(),
       validationFrequency: this.validationFrequency,
-      exportTimestamp: Date.now()
+      exportTimestamp: Date.now(),
+      metadata: {
+        sessionId: this.sessionState?.sessionId || 'unknown',
+        totalResponses: this.responseCount,
+        validationFrequency: this.validationFrequency,
+        exportedAt: new Date().toISOString()
+      }
     };
+  }
+
+  /**
+   * Export as markdown format
+   * @returns {string} Markdown formatted export
+   */
+  exportAsMarkdown() {
+    const lines = [
+      '# Active Listening Session',
+      '',
+      `**Total Responses:** ${this.responseCount}`,
+      `**Average Clarity Score:** ${(this._calculateAverageClarityScore() * 100).toFixed(1)}%`,
+      '',
+      '## Summary',
+      '',
+      this.generateConsolidatedSummary(),
+      '',
+      '## Responses',
+      ''
+    ];
+
+    this.history.forEach((record, index) => {
+      lines.push(`### Response ${index + 1}`);
+      lines.push('');
+      lines.push(`**Original:** ${record.original}`);
+      lines.push('');
+      lines.push(`**Reformulated:** ${record.reformulated}`);
+      lines.push('');
+      lines.push(`**Clarity Score:** ${(record.clarityScore * 100).toFixed(1)}%`);
+      lines.push('');
+      if (record.keyPoints && record.keyPoints.length > 0) {
+        lines.push('**Key Points:**');
+        record.keyPoints.forEach(kp => lines.push(`- ${kp}`));
+        lines.push('');
+      }
+    });
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Export as JSON format
+   * @returns {string} JSON formatted export
+   */
+  exportAsJSON() {
+    return JSON.stringify(this.export(), null, 2);
   }
 
   // Private helper methods
