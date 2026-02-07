@@ -5,3 +5,66 @@ document_output_language: Francais
 output_folder: "{project-root}/_byan-output"
 agents_folder: "{project-root}/_byan/agents"
 byan_version: "2.0.0"
+
+# BMAD Features (v2.1.0)
+# Advanced features for enhanced agent creation workflow
+bmad_features:
+  enabled: true
+  
+  # GlossaryBuilder: Business glossary creation for domain clarity
+  glossary:
+    enabled: true
+    min_concepts: 5
+    auto_trigger_domains:
+      - ecommerce
+      - finance
+      - healthcare
+      - insurance
+      - banking
+    validation:
+      min_definition_length: 20
+      clarity_threshold: 0.7
+  
+  # FiveWhysAnalyzer: Root cause analysis through 5 WHYs
+  five_whys:
+    enabled: true
+    auto_trigger: true
+    trigger_questions: [4, 5]  # Question indices to check for pain points
+    max_depth: 5
+    pain_keywords:
+      - problem
+      - issue
+      - challenge
+      - difficult
+      - slow
+      - complex
+      - error
+      - fail
+      - break
+      - bug
+      - struggle
+      - hard
+      - confusing
+      - frustrating
+      - annoying
+      - painful
+      - blocking
+      - stuck
+  
+  # ActiveListener: Reformulates and validates understanding
+  active_listening:
+    enabled: true
+    reformulate_every: 3  # Ask for validation every N responses
+    validate_at_phase_end: true
+    auto_summarize: true
+  
+  # MantraValidator: Validate agents against 64 mantras
+  mantras:
+    validate: true
+    min_score: 80
+    enforce_on_generation: true
+    fail_on_low_score: false  # If true, fails generation on low score
+    categories:
+      - merise-agile
+      - ia
+

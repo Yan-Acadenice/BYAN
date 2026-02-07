@@ -34,14 +34,24 @@ describe('StateMachine Core', () => {
   });
 
   describe('AC1: StateMachine manages states', () => {
-    test('should manage five states: INTERVIEW, ANALYSIS, GENERATION, COMPLETED, ERROR', () => {
+    test('should manage core states plus optional v2.1.0 states', () => {
+      // v2.1.0: Now includes GLOSSARY and VALIDATION optional states
       expect(stateMachine.STATES).toEqual({
         INTERVIEW: 'INTERVIEW',
+        GLOSSARY: 'GLOSSARY',
         ANALYSIS: 'ANALYSIS',
         GENERATION: 'GENERATION',
+        VALIDATION: 'VALIDATION',
         COMPLETED: 'COMPLETED',
         ERROR: 'ERROR'
       });
+      
+      // Verify core states still exist for backwards compatibility
+      expect(stateMachine.STATES.INTERVIEW).toBe('INTERVIEW');
+      expect(stateMachine.STATES.ANALYSIS).toBe('ANALYSIS');
+      expect(stateMachine.STATES.GENERATION).toBe('GENERATION');
+      expect(stateMachine.STATES.COMPLETED).toBe('COMPLETED');
+      expect(stateMachine.STATES.ERROR).toBe('ERROR');
     });
 
     test('should start in INTERVIEW state', () => {
@@ -53,6 +63,10 @@ describe('StateMachine Core', () => {
       expect(state).toHaveProperty('name', 'INTERVIEW');
       expect(state).toHaveProperty('timestamp');
       expect(state).toHaveProperty('attempts', 0);
+      // v2.1.0: New metadata fields
+      expect(state).toHaveProperty('optional', false);
+      expect(state).toHaveProperty('skippable', false);
+      expect(state).toHaveProperty('description');
     });
   });
 
@@ -391,6 +405,91 @@ describe('StateMachine Core', () => {
       const result = stateMachine.transition('analysis'); // lowercase
       expect(result.success).toBe(false);
       expect(stateMachine.currentState).toBe('INTERVIEW');
+    });
+  });
+
+  describe('v2.1.0: Optional States (GLOSSARY, VALIDATION)', () => {
+    test('should allow INTERVIEW → GLOSSARY transition', () => {
+      const result = stateMachine.transition('GLOSSARY');
+      expect(result.success).toBe(true);
+      expect(stateMachine.currentState).toBe('GLOSSARY');
+    });
+
+    test('should allow GLOSSARY → ANALYSIS transition', () => {
+      stateMachine.transition('GLOSSARY');
+      const result = stateMachine.transition('ANALYSIS');
+      expect(result.success).toBe(true);
+      expect(stateMachine.currentState).toBe('ANALYSIS');
+    });
+
+    test('should allow GENERATION → VALIDATION transition', () => {
+      stateMachine.transition('ANALYSIS');
+      stateMachine.transition('GENERATION');
+      const result = stateMachine.transition('VALIDATION');
+      expect(result.success).toBe(true);
+      expect(stateMachine.currentState).toBe('VALIDATION');
+    });
+
+    test('should allow VALIDATION → COMPLETED transition', () => {
+      stateMachine.transition('ANALYSIS');
+      stateMachine.transition('GENERATION');
+      stateMachine.transition('VALIDATION');
+      const result = stateMachine.transition('COMPLETED');
+      expect(result.success).toBe(true);
+      expect(stateMachine.currentState).toBe('COMPLETED');
+    });
+
+    test('should allow bypassing GLOSSARY (backwards compatible)', () => {
+      const result = stateMachine.transition('ANALYSIS');
+      expect(result.success).toBe(true);
+      expect(stateMachine.currentState).toBe('ANALYSIS');
+    });
+
+    test('should allow bypassing VALIDATION (backwards compatible)', () => {
+      stateMachine.transition('ANALYSIS');
+      stateMachine.transition('GENERATION');
+      const result = stateMachine.transition('COMPLETED');
+      expect(result.success).toBe(true);
+      expect(stateMachine.currentState).toBe('COMPLETED');
+    });
+
+    test('should mark optional states correctly in metadata', () => {
+      stateMachine.transition('GLOSSARY');
+      const state = stateMachine.getCurrentState();
+      expect(state.optional).toBe(true);
+      expect(state.skippable).toBe(true);
+    });
+
+    test('should identify optional states', () => {
+      expect(stateMachine.isStateOptional('GLOSSARY')).toBe(true);
+      expect(stateMachine.isStateOptional('VALIDATION')).toBe(true);
+      expect(stateMachine.isStateOptional('INTERVIEW')).toBe(false);
+      expect(stateMachine.isStateOptional('ANALYSIS')).toBe(false);
+    });
+
+    test('should provide state descriptions', () => {
+      expect(stateMachine.getStateDescription('GLOSSARY')).toContain('glossary');
+      expect(stateMachine.getStateDescription('VALIDATION')).toContain('mantras');
+      expect(stateMachine.getStateDescription('INTERVIEW')).toContain('interview');
+    });
+
+    test('should validate full workflow with optional states', () => {
+      expect(stateMachine.currentState).toBe('INTERVIEW');
+      
+      stateMachine.transition('GLOSSARY');
+      expect(stateMachine.currentState).toBe('GLOSSARY');
+      
+      stateMachine.transition('ANALYSIS');
+      expect(stateMachine.currentState).toBe('ANALYSIS');
+      
+      stateMachine.transition('GENERATION');
+      expect(stateMachine.currentState).toBe('GENERATION');
+      
+      stateMachine.transition('VALIDATION');
+      expect(stateMachine.currentState).toBe('VALIDATION');
+      
+      stateMachine.transition('COMPLETED');
+      expect(stateMachine.currentState).toBe('COMPLETED');
     });
   });
 });

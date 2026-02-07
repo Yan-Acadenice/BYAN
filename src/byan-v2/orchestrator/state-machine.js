@@ -13,30 +13,50 @@ class StateMachine {
     this.logger = options.logger || new Logger();
     this.errorTracker = options.errorTracker || new ErrorTracker();
 
-    // AC1: Define five states
+    // AC1: Define states (v2.1.0: added GLOSSARY, VALIDATION)
     this.STATES = {
       INTERVIEW: 'INTERVIEW',
+      GLOSSARY: 'GLOSSARY',      // Optional: Business glossary creation (v2.1.0)
       ANALYSIS: 'ANALYSIS',
       GENERATION: 'GENERATION',
+      VALIDATION: 'VALIDATION',  // Optional: Agent validation (v2.1.0)
       COMPLETED: 'COMPLETED',
       ERROR: 'ERROR'
     };
 
-    // AC2: Valid state transitions
+    // AC2: Valid state transitions (v2.1.0: added optional states)
+    // Backwards compatible: INTERVIEW -> ANALYSIS still valid
     this.validTransitions = {
-      INTERVIEW: ['ANALYSIS', 'ERROR'],
+      INTERVIEW: ['GLOSSARY', 'ANALYSIS', 'ERROR'],
+      GLOSSARY: ['ANALYSIS', 'ERROR'],
       ANALYSIS: ['GENERATION', 'ERROR'],
-      GENERATION: ['COMPLETED', 'ERROR'],
+      GENERATION: ['VALIDATION', 'COMPLETED', 'ERROR'],
+      VALIDATION: ['COMPLETED', 'ERROR'],
       COMPLETED: [], // Terminal state
       ERROR: []      // Terminal state
     };
 
-    // State metadata
+    // State metadata (v2.1.0: enhanced with optional state info)
     this.currentState = this.STATES.INTERVIEW;
     this.stateMetadata = {
       name: this.STATES.INTERVIEW,
       timestamp: Date.now(),
-      attempts: 0
+      attempts: 0,
+      optional: false,  // Track if current state is optional
+      skippable: false,  // Track if state can be skipped
+      description: 'Collecting user requirements through structured interview'
+    };
+
+    // v2.1.0: Optional states configuration
+    this.optionalStates = ['GLOSSARY', 'VALIDATION'];
+    this.stateDescriptions = {
+      INTERVIEW: 'Collecting user requirements through structured interview',
+      GLOSSARY: 'Building business glossary for domain clarity (optional)',
+      ANALYSIS: 'Analyzing requirements and extracting insights',
+      GENERATION: 'Generating agent profile from analysis',
+      VALIDATION: 'Validating agent against mantras (optional)',
+      COMPLETED: 'Session completed successfully',
+      ERROR: 'Session terminated with error'
     };
 
     // AC5: Hooks for state enter/exit
@@ -94,12 +114,15 @@ class StateMachine {
         to: newState
       });
 
-      // Update state
+      // Update state (v2.1.0: enhanced metadata)
       this.currentState = newState;
       this.stateMetadata = {
         name: newState,
         timestamp: Date.now(),
-        attempts: 0
+        attempts: 0,
+        optional: this.optionalStates.includes(newState),
+        skippable: this.optionalStates.includes(newState),
+        description: this.stateDescriptions[newState] || ''
       };
 
       // AC5: Call enter hooks
@@ -140,10 +163,36 @@ class StateMachine {
 
   /**
    * AC4: Get current state with metadata
-   * @returns {Object} { name, timestamp, attempts }
+   * @returns {Object} { name, timestamp, attempts, optional, skippable, description }
    */
   getCurrentState() {
     return { ...this.stateMetadata };
+  }
+
+  /**
+   * v2.1.0: Check if current state is optional
+   * @returns {boolean} True if state is optional
+   */
+  isCurrentStateOptional() {
+    return this.optionalStates.includes(this.currentState);
+  }
+
+  /**
+   * v2.1.0: Check if a specific state is optional
+   * @param {string} stateName - State to check
+   * @returns {boolean} True if state is optional
+   */
+  isStateOptional(stateName) {
+    return this.optionalStates.includes(stateName);
+  }
+
+  /**
+   * v2.1.0: Get state description
+   * @param {string} stateName - State name
+   * @returns {string} State description
+   */
+  getStateDescription(stateName) {
+    return this.stateDescriptions[stateName] || 'Unknown state';
   }
 
   /**

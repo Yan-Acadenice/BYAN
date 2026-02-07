@@ -33,6 +33,12 @@ class InterviewState {
     this.awaitingResponse = false;
     this.lastAskedQuestion = null;
 
+    // v2.1.0: BMAD integration tracking
+    this.activeListeningCounter = 0;      // Track responses for active listening
+    this.painPointsDetected = false;      // Flag if pain points found
+    this.glossaryTriggered = false;       // Flag if glossary should trigger
+    this.reformulatedResponses = [];      // Store reformulated responses alongside originals
+
     // AC4: Track responses per phase
     this.phaseResponses = {
       CONTEXT: [],
@@ -135,8 +141,9 @@ class InterviewState {
   /**
    * AC3: Process user response and store
    * @param {string} response - User's response
+   * @param {Object} metadata - Optional metadata (v2.1.0: reformulated, painPoints)
    */
-  processResponse(response) {
+  processResponse(response, metadata = {}) {
     if (!this.awaitingResponse) {
       this.logger.warn('No question pending - ignoring response');
       return false;
@@ -147,10 +154,32 @@ class InterviewState {
       questionId: this.lastAskedQuestion.questionId,
       response: response || '',
       timestamp: Date.now(),
-      phase: this.currentPhase
+      phase: this.currentPhase,
+      // v2.1.0: BMAD metadata
+      reformulated: metadata.reformulated || null,
+      painPointsDetected: metadata.painPointsDetected || false,
+      clarityScore: metadata.clarityScore || null
     };
 
     this.phaseResponses[this.currentPhase].push(responseData);
+
+    // v2.1.0: Track reformulated responses
+    if (metadata.reformulated) {
+      this.reformulatedResponses.push({
+        original: response,
+        reformulated: metadata.reformulated,
+        questionId: this.lastAskedQuestion.questionId,
+        phase: this.currentPhase
+      });
+    }
+
+    // v2.1.0: Track pain points
+    if (metadata.painPointsDetected) {
+      this.painPointsDetected = true;
+    }
+
+    // v2.1.0: Increment active listening counter
+    this.activeListeningCounter++;
 
     // Store in SessionState
     this.sessionState.addResponse(this.lastAskedQuestion.questionId, response);
@@ -163,7 +192,8 @@ class InterviewState {
     this.logger.info('Response processed', {
       phase: this.currentPhase,
       responseCount: this.phaseResponses[this.currentPhase].length,
-      phaseComplete: this.isPhaseComplete(this.currentPhase)
+      phaseComplete: this.isPhaseComplete(this.currentPhase),
+      activeListeningCounter: this.activeListeningCounter
     });
 
     // Transition to next phase if current phase is complete
@@ -265,6 +295,58 @@ class InterviewState {
       to: nextPhase,
       previousPhaseResponses: this.phaseResponses[previousPhase].length
     });
+  }
+
+  // v2.1.0: BMAD integration methods
+
+  /**
+   * Get active listening counter
+   * @returns {number} Number of responses processed
+   */
+  getActiveListeningCounter() {
+    return this.activeListeningCounter;
+  }
+
+  /**
+   * Check if active listening validation needed
+   * @param {number} frequency - Validation frequency (default: 3)
+   * @returns {boolean} True if validation needed
+   */
+  shouldValidateUnderstanding(frequency = 3) {
+    return this.activeListeningCounter > 0 && 
+           this.activeListeningCounter % frequency === 0;
+  }
+
+  /**
+   * Check if pain points were detected
+   * @returns {boolean} True if pain points found
+   */
+  hasPainPointsDetected() {
+    return this.painPointsDetected;
+  }
+
+  /**
+   * Get all reformulated responses
+   * @returns {Array} Reformulated response objects
+   */
+  getReformulatedResponses() {
+    return [...this.reformulatedResponses];
+  }
+
+  /**
+   * Set glossary trigger flag
+   * @param {boolean} value - Flag value
+   */
+  setGlossaryTriggered(value) {
+    this.glossaryTriggered = value;
+  }
+
+  /**
+   * Check if glossary should be triggered
+   * @returns {boolean} Glossary trigger flag
+   */
+  shouldTriggerGlossary() {
+    return this.glossaryTriggered;
   }
 }
 
