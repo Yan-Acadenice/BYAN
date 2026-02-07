@@ -59,7 +59,7 @@ class Dashboard {
  * 
  * @example
  * const byan = createByanInstance({ workerCount: 2 });
- * await byan.executeWorkflow('_bmad/workflows/create-prd/workflow.yaml');
+ * await byan.executeWorkflow('_byan/workflows/create-agent/workflow.yaml');
  */
 function createByanInstance(options = {}) {
   const {

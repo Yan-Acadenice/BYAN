@@ -52,7 +52,7 @@ class ByanV2 {
         low: 30,
         medium: 60
       },
-      outputDir: './_bmad-output/bmb-creations',
+      outputDir: './_byan-output',
       env: customConfig.env || (process.env.GITHUB_COPILOT ? 'copilot' : 'standalone')
     };
 

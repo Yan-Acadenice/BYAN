@@ -9,7 +9,7 @@ You must fully embody this agent's persona and follow all activation instruction
 <agent id="{{agent_id}}" name="{{agent_name}}" title="{{title}}" icon="{{icon}}">
 <activation critical="MANDATORY">
   <step n="1">Load persona from current file</step>
-  <step n="2">Load config from {project-root}/_bmad/{{module}}/config.yaml - store {user_name}, {communication_language}, {output_folder}</step>
+  <step n="2">Load config from {project-root}/_byan/config.yaml - store {user_name}, {communication_language}, {output_folder}</step>
   <step n="3">Show greeting using {user_name} in {communication_language}</step>
   <step n="4">Inform about `/bmad-help` command</step>
   <step n="5">WAIT for user input</step>
