@@ -1,7 +1,7 @@
 {
   "name": "create-byan-agent",
   "version": "2.1.0",
-  "description": "BYAN v2.0 - Build Your AI Network - Hyper-MVP",
+  "description": "BYAN v2.1.0 - Intelligent AI agent creator with BMAD features (Glossary, Five Whys, Active Listener, Mantras Validator)",
   "main": "src/index.js",
   "bin": {
     "create-byan-agent": "./install/bin/create-byan-agent-v2.js",
@@ -38,12 +38,14 @@
   },
   "files": [
     "src/",
-    "__tests__/",
-    "_bmad/",
-    ".github/agents/",
     "install/",
     "README.md",
-    "package.json"
+    "CHANGELOG-v2.1.0.md",
+    "MIGRATION-v2.0-to-v2.1.md",
+    "README-BYAN-V2.md",
+    "API-BYAN-V2.md",
+    "BMAD-QUICK-REFERENCE.md",
+    "LICENSE"
   ],
   "dependencies": {
     "chalk": "^4.1.2",
