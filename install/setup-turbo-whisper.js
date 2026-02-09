@@ -22,6 +22,56 @@ class TurboWhisperInstaller {
     this.mode = mode; // 'local', 'docker', or 'skip'
     this.turboDir = path.join(projectRoot, '.turbo-whisper');
     this.scriptsDir = path.join(projectRoot, 'scripts');
+    this.gpuInfo = null; // Will be populated by detectGPU()
+  }
+
+  /**
+   * Detect GPU and determine optimal Whisper model
+   * @returns {Object} { hasGPU, vram, gpuName, model, modelSize }
+   */
+  detectGPU() {
+    try {
+      const result = execSync('nvidia-smi --query-gpu=name,memory.total --format=csv,noheader', { 
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'ignore']
+      }).trim();
+      
+      if (!result || result === 'NO_GPU') {
+        return { hasGPU: false, model: 'base', modelSize: '142 MB' };
+      }
+
+      const [gpuName, vramStr] = result.split(',').map(s => s.trim());
+      const vram = parseInt(vramStr);
+
+      // Map VRAM to optimal model
+      let model, modelSize;
+      if (vram < 4000) {
+        model = 'tiny';
+        modelSize = '74 MB';
+      } else if (vram < 6000) {
+        model = 'small';
+        modelSize = '461 MB';
+      } else if (vram < 8000) {
+        model = 'medium';
+        modelSize = '1.5 GB';
+      } else if (vram < 12000) {
+        model = 'large-v2';
+        modelSize = '2.9 GB';
+      } else {
+        model = 'large-v3';
+        modelSize = '2.9 GB';
+      }
+
+      return {
+        hasGPU: true,
+        vram,
+        gpuName,
+        model,
+        modelSize
+      };
+    } catch (error) {
+      return { hasGPU: false, model: 'base', modelSize: '142 MB' };
+    }
   }
 
   async install() {
@@ -34,6 +84,20 @@ class TurboWhisperInstaller {
     console.log(chalk.gray(`Mode: ${this.mode}\n`));
 
     try {
+      // Detect GPU first if Docker mode
+      if (this.mode === 'docker') {
+        this.gpuInfo = this.detectGPU();
+        
+        if (this.gpuInfo.hasGPU) {
+          console.log(chalk.green(`✓ GPU detected: ${this.gpuInfo.gpuName}`));
+          console.log(chalk.gray(`  VRAM: ${this.gpuInfo.vram} MB`));
+          console.log(chalk.cyan(`  Optimal model: ${this.gpuInfo.model} (${this.gpuInfo.modelSize})`));
+        } else {
+          console.log(chalk.yellow('⚠ No GPU detected, using base model (CPU)'));
+          console.log(chalk.gray('  Tip: Install nvidia drivers for GPU acceleration\n'));
+        }
+      }
+
       await this.checkDependencies();
       
       if (this.mode === 'local') {
@@ -270,28 +334,36 @@ os.environ.setdefault('LANG', 'fr_FR.UTF-8')
   }
 
   async createDockerCompose() {
+    // Use detected GPU info or fallback
+    const gpuInfo = this.gpuInfo || this.detectGPU();
+    const model = gpuInfo.model;
+    const device = gpuInfo.hasGPU ? 'cuda' : 'cpu';
+    
     const dockerCompose = `version: '3.8'
 
 services:
   whisper-server:
-    image: fedirz/faster-whisper-server:latest-cuda
+    image: fedirz/faster-whisper-server:latest-${device === 'cuda' ? 'cuda' : 'cpu'}
     ports:
       - "8000:8000"
     environment:
-      - MODEL_NAME=large-v3
-      - DEVICE=cuda
+      - MODEL_NAME=${model}
+      - DEVICE=${device}${device === 'cuda' ? `
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [gpu]` : ''}
     restart: unless-stopped
 `;
 
     const composePath = path.join(this.projectRoot, 'docker-compose.turbo-whisper.yml');
     await fs.writeFile(composePath, dockerCompose, 'utf-8');
+    
+    // Log configuration
+    console.log(chalk.gray(`\n  Docker config: ${device.toUpperCase()} with model ${model}`));
   }
 
   async createLaunchScript() {
@@ -345,9 +417,13 @@ source .venv/bin/activate
 python -m turbo_whisper.main
 `;
     } else if (this.mode === 'docker') {
+      // Get GPU info for display
+      const gpuInfo = this.gpuInfo || this.detectGPU();
+      
       // Mode Docker: Vérifie et lance le conteneur si nécessaire
       launchScript = `#!/bin/bash
 # Launch Turbo Whisper voice dictation with Docker server
+# Auto-detects GPU and validates configuration
 
 TURBO_DIR="$HOME/.local/share/turbo-whisper"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -355,8 +431,27 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.turbo-whisper.yml"
 SERVER_PORT=8000
 
+# Function to detect GPU
+detect_gpu() {
+    if command -v nvidia-smi &> /dev/null; then
+        GPU_INFO=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$GPU_INFO" ]; then
+            GPU_NAME=$(echo "$GPU_INFO" | cut -d',' -f1 | xargs)
+            VRAM=$(echo "$GPU_INFO" | cut -d',' -f2 | xargs)
+            echo "✓ GPU: $GPU_NAME ($VRAM)"
+            return 0
+        fi
+    fi
+    echo "⚠ No GPU detected (running in CPU mode)"
+    return 1
+}
+
 echo "🔍 Vérification serveur Whisper Docker..."
 echo "📂 Compose file: $COMPOSE_FILE"
+echo ""
+
+# Detect GPU
+detect_gpu
 
 # Vérifier que le fichier existe
 if [ ! -f "$COMPOSE_FILE" ]; then

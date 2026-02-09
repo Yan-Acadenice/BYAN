@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_NAME=large-v3
+      - MODEL_NAME=tiny
       - DEVICE=cuda
     deploy:
       resources:

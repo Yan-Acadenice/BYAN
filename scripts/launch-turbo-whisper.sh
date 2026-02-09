@@ -1,5 +1,6 @@
 #!/bin/bash
 # Launch Turbo Whisper voice dictation with Docker server
+# Auto-detects GPU and validates configuration
 
 TURBO_DIR="$HOME/.local/share/turbo-whisper"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -7,8 +8,27 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 COMPOSE_FILE="$PROJECT_DIR/docker-compose.turbo-whisper.yml"
 SERVER_PORT=8000
 
+# Function to detect GPU
+detect_gpu() {
+    if command -v nvidia-smi &> /dev/null; then
+        GPU_INFO=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$GPU_INFO" ]; then
+            GPU_NAME=$(echo "$GPU_INFO" | cut -d',' -f1 | xargs)
+            VRAM=$(echo "$GPU_INFO" | cut -d',' -f2 | xargs)
+            echo "✓ GPU: $GPU_NAME ($VRAM)"
+            return 0
+        fi
+    fi
+    echo "⚠ No GPU detected (running in CPU mode)"
+    return 1
+}
+
 echo "🔍 Vérification serveur Whisper Docker..."
 echo "📂 Compose file: $COMPOSE_FILE"
+echo ""
+
+# Detect GPU
+detect_gpu
 
 # Vérifier que le fichier existe
 if [ ! -f "$COMPOSE_FILE" ]; then
