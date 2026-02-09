@@ -1,7 +1,13 @@
 ---
 name: yanstaller-workflow
 description: Installation automatique BYAN multi-plateformes
-model: gpt-5-mini
+complexity:
+  task_type: install
+  context_size: small
+  reasoning_depth: shallow
+  quality_requirement: fast
+# → Auto-calculated score: 10 (simple)
+# → Recommended model: gpt-5-mini (FREE)
 ---
 
 # Yanstaller Installation Workflow
