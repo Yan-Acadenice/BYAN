@@ -1,0 +1,39 @@
+# Development & Testing
+__tests__/
+coverage/
+*.test.js
+.eslintrc.js
+.prettierrc
+jest.config.js
+
+# Backups & Debug
+*backup*
+*BUGFIX*
+*.log
+logs/
+
+# Build artifacts
+node_modules/
+.turbo-whisper/
+
+# Git & CI
+.git/
+.github/workflows/
+.gitignore
+
+# Documentation drafts
+*DRAFT*
+*TODO*
+*WIP*
+
+# Large unnecessary docs
+CHANGELOG.md
+install/CHANGELOG.md
+install/BUGFIX-*.md
+
+# Keep only essential docs
+!README.md
+!README-BYAN-V2.md
+!LICENSE
+!API-BYAN-V2.md
+!BMAD-QUICK-REFERENCE.md
