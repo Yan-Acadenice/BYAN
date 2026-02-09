@@ -10,7 +10,11 @@ const chalk = require('chalk');
 const ora = require('ora');
 const yaml = require('js-yaml');
 
-const BYAN_VERSION = '2.2.0';
+// Phase 2 modules
+const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questions');
+const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
+
+const BYAN_VERSION = '2.2.1';
 
 // ASCII Art Banner
 const banner = `
@@ -334,9 +338,10 @@ async function install() {
       default: 'auto'
     }
   ]);
-  
+
   let interviewResults = null;
-  
+  let interviewAnswers = null;
+
   // Step 2.9: Intelligent Interview (if CUSTOM mode) - Delegate to Yanstaller Agent
   if (installMode === 'custom') {
     console.log('');
@@ -349,7 +354,7 @@ async function install() {
     console.log('');
     
     // Gather user context via inquirer FIRST (fast, local, no tokens)
-    const interviewAnswers = await inquirer.prompt([
+    interviewAnswers = await inquirer.prompt([
       {
         type: 'list',
         name: 'projectType',
@@ -625,6 +630,114 @@ async function install() {
     }
     
     console.log('');
+    
+    // Phase 2: Domain-specific questions
+    const domainQuestions = getDomainQuestions(interviewAnswers.domain);
+    if (domainQuestions.length > 0) {
+      console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
+      console.log(chalk.blue('║') + '                                                            ' + chalk.blue('║'));
+      console.log(chalk.blue('║') + `   ${chalk.bold('🔍 PHASE 2 - Questions Spécifiques')}                         ` + chalk.blue('║'));
+      console.log(chalk.blue('║') + `   ${chalk.gray(`Domaine: ${interviewAnswers.domain}`)}                                        ` + chalk.blue('║'));
+      console.log(chalk.blue('║') + '                                                            ' + chalk.blue('║'));
+      console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
+      console.log('');
+      
+      const domainAnswers = await inquirer.prompt(domainQuestions);
+      
+      // Phase 2 Agent Call - Deep analysis
+      const phase2Spinner = ora('Generating agent configuration...').start();
+      
+      // Pre-copy phase2 agent stub
+      const phase2AgentSource = path.join(templateDir, '.github', 'agents', 'bmad-agent-yanstaller-phase2.md');
+      const earlyGithubDir = path.join(projectRoot, '.github', 'agents');
+      if (await fs.pathExists(phase2AgentSource)) {
+        await fs.ensureDir(earlyGithubDir);
+        await fs.copy(phase2AgentSource, path.join(earlyGithubDir, 'bmad-agent-yanstaller-phase2.md'), { overwrite: true });
+      }
+      
+      // Build Phase 2 prompt
+      const phase2Prompt = buildPhase2Prompt(interviewAnswers, domainAnswers, detectedPlatforms);
+      const phase2PromptFile = path.join(projectRoot, '.yanstaller-phase2-prompt.tmp');
+      await fs.writeFile(phase2PromptFile, phase2Prompt, 'utf8');
+      
+      // Use more capable model for complex analysis
+      const phase2Model = interviewAnswers.quality === 'critical' ? 'claude-sonnet-4' : 'gpt-5.1-codex-mini';
+      
+      let phase2Results = null;
+      let phase2Command = null;
+      
+      if (detectedPlatforms.copilot) {
+        phase2Command = `copilot --agent=bmad-agent-yanstaller-phase2 -p "$(cat '${phase2PromptFile}')" --model ${phase2Model} -s`;
+      } else if (detectedPlatforms.codex) {
+        phase2Command = `codex exec "$(cat '${phase2PromptFile}')"`;
+      }
+      
+      if (phase2Command) {
+        try {
+          const result = execSync(phase2Command, {
+            encoding: 'utf8',
+            cwd: projectRoot,
+            timeout: 180000,
+            stdio: ['pipe', 'pipe', 'pipe']
+          });
+          
+          // Parse JSON
+          const lines = result.split('\n');
+          let jsonStr = null;
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('{') && trimmed.includes('"coreAgents"')) {
+              try {
+                JSON.parse(trimmed);
+                jsonStr = trimmed;
+              } catch (e) { /* not valid */ }
+            }
+          }
+          if (!jsonStr) {
+            const jsonMatch = result.match(/\{[\s\S]*"coreAgents"[\s\S]*\}/);
+            if (jsonMatch) jsonStr = jsonMatch[0];
+          }
+          
+          if (jsonStr) {
+            phase2Results = JSON.parse(jsonStr);
+            phase2Spinner.succeed('Agent configuration generated');
+            
+            // Display Phase 2 results
+            console.log('');
+            console.log(chalk.cyan('📋 Configuration Agents:'));
+            if (phase2Results.coreAgents) {
+              console.log(chalk.green(`  Core: ${phase2Results.coreAgents.map(a => a.name).join(', ')}`));
+            }
+            if (phase2Results.agentRelationships?.length > 0) {
+              console.log(chalk.gray(`  Relations: ${phase2Results.agentRelationships.length} defined`));
+            }
+            if (phase2Results.customAgentsToCreate?.length > 0) {
+              console.log(chalk.yellow(`  À créer: ${phase2Results.customAgentsToCreate.map(a => a.name).join(', ')}`));
+            }
+            console.log('');
+          } else {
+            phase2Spinner.warn('Could not parse agent configuration');
+          }
+        } catch (error) {
+          phase2Spinner.warn('Phase 2 analysis unavailable');
+        }
+      }
+      
+      // Cleanup
+      await fs.remove(phase2PromptFile).catch(() => {});
+      
+      // Generate project-agents.md if we have results
+      if (phase2Results) {
+        try {
+          const outputDir = path.join(projectRoot, '_byan-output');
+          const docPath = await generateProjectAgentsDoc(phase2Results, interviewAnswers, domainAnswers, outputDir);
+          console.log(chalk.green(`  ✓ Généré: ${path.relative(projectRoot, docPath)}`));
+          console.log('');
+        } catch (error) {
+          // Silent fail - document generation is optional
+        }
+      }
+    }
     
     autoSelectPlatform = recommendedPlatforms[0] || 'copilot';
   }
