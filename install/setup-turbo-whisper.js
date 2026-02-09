@@ -350,10 +350,20 @@ python -m turbo_whisper.main
 # Launch Turbo Whisper voice dictation with Docker server
 
 TURBO_DIR="$HOME/.local/share/turbo-whisper"
-COMPOSE_FILE="$HOME/docker-compose.turbo-whisper.yml"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.turbo-whisper.yml"
 SERVER_PORT=8000
 
 echo "🔍 Vérification serveur Whisper Docker..."
+echo "📂 Compose file: $COMPOSE_FILE"
+
+# Vérifier que le fichier existe
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "❌ Erreur: $COMPOSE_FILE introuvable"
+    echo "💡 Le fichier devrait être dans le répertoire du projet"
+    exit 1
+fi
 
 # Vérifier si serveur déjà en cours
 if curl -s http://localhost:$SERVER_PORT/health > /dev/null 2>&1; then
@@ -405,7 +415,14 @@ exit 1
       const stopScript = `#!/bin/bash
 # Stop Turbo Whisper Docker server
 
-COMPOSE_FILE="$HOME/docker-compose.turbo-whisper.yml"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.turbo-whisper.yml"
+
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "❌ Erreur: $COMPOSE_FILE introuvable"
+    exit 1
+fi
 
 echo "🛑 Arrêt serveur Whisper Docker..."
 docker-compose -f "$COMPOSE_FILE" down
