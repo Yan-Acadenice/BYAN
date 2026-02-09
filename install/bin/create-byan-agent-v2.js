@@ -272,6 +272,39 @@ async function install() {
     }
   }
   
+  // Step 5.5: Turbo Whisper voice dictation (optional)
+  console.log(chalk.blue('\n🎤 Voice Dictation Setup'));
+  console.log(chalk.gray('Turbo Whisper enables voice-to-text with local Whisper AI server.\n'));
+  
+  const { turboWhisperMode } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'turboWhisperMode',
+      message: 'Install Turbo Whisper voice dictation?',
+      choices: [
+        { name: '🖥️  Local (CPU) - Run Whisper server locally', value: 'local' },
+        { name: '🚀 Docker (GPU) - Run Whisper in Docker with GPU', value: 'docker' },
+        { name: '⏭️  Skip - Install later manually', value: 'skip' }
+      ],
+      default: 'skip'
+    }
+  ]);
+  
+  let turboWhisperInstalled = false;
+  
+  if (turboWhisperMode !== 'skip') {
+    try {
+      const TurboWhisperInstaller = require(path.join(__dirname, '..', 'setup-turbo-whisper.js'));
+      const turboInstaller = new TurboWhisperInstaller(projectRoot, turboWhisperMode);
+      const result = await turboInstaller.install();
+      turboWhisperInstalled = result.success;
+    } catch (error) {
+      console.error(chalk.red('Turbo Whisper installation failed:'), error.message);
+      console.log(chalk.yellow('You can install it later with: node install/setup-turbo-whisper.js'));
+      turboWhisperInstalled = false;
+    }
+  }
+  
   // Step 6: Create directory structure (Platform - _bmad)
   const installSpinner = ora('Creating directory structure...').start();
   
@@ -431,6 +464,7 @@ async function install() {
   console.log(`  • Configuration: ${chalk.cyan(configPath)}`);
   console.log(`  • User: ${chalk.cyan(config.userName)}`);
   console.log(`  • Language: ${chalk.cyan(config.language)}`);
+  console.log(`  • Turbo Whisper: ${chalk.cyan(turboWhisperInstalled ? `Installed (${turboWhisperMode} mode)` : 'Not installed')}`);
   
   if (v2Installed) {
     console.log(chalk.cyan('\n  v2.0 Components Installed:'));
@@ -474,6 +508,29 @@ async function install() {
     console.log(`   ${chalk.blue('claude chat --agent byan')}`);
   } else {
     console.log('   Follow your platform\'s agent activation procedure');
+  }
+  
+  // Turbo Whisper instructions
+  if (turboWhisperInstalled) {
+    console.log('');
+    console.log(chalk.yellow('🎤 Turbo Whisper Voice Dictation:'));
+    console.log('');
+    
+    if (turboWhisperMode === 'local') {
+      console.log(chalk.gray('  Start Whisper server:'));
+      console.log(`   ${chalk.blue('./scripts/start-whisper-server.sh')}`);
+      console.log('');
+    } else if (turboWhisperMode === 'docker') {
+      console.log(chalk.gray('  Start Docker container:'));
+      console.log(`   ${chalk.blue('docker-compose -f docker-compose.turbo-whisper.yml up -d')}`);
+      console.log('');
+    }
+    
+    console.log(chalk.gray('  Launch voice dictation:'));
+    console.log(`   ${chalk.blue('./scripts/launch-turbo-whisper.sh')}`);
+    console.log('');
+    console.log(chalk.gray('  Hotkey: Ctrl+Alt+R (start/stop recording)'));
+    console.log(chalk.gray('  See: TURBO-WHISPER-SETUP.md for details'));
   }
   
   console.log('');

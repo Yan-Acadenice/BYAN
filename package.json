@@ -10,7 +10,8 @@
   "scripts": {
     "test": "jest",
     "test:coverage": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "setup-turbo-whisper": "node install/setup-turbo-whisper.js"
   },
   "keywords": [
     "byan",
@@ -21,7 +22,10 @@
     "agent-builder",
     "bmad",
     "merise-agile",
-    "tdd"
+    "tdd",
+    "voice-dictation",
+    "whisper",
+    "turbo-whisper"
   ],
   "author": "Yan",
   "license": "MIT",
