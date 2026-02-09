@@ -2,6 +2,8 @@
 
 const fs = require('fs-extra');
 const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
 const { program } = require('commander');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
@@ -91,7 +93,6 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
 // Detect installed platforms (Yanstaller logic)
 // Detects SYSTEM binaries, not project folders (.codex, .github/agents are created by yanstaller)
 async function detectPlatforms() {
-  const os = require('os');
   const platforms = {
     copilot: false,
     codex: false,
@@ -441,14 +442,33 @@ async function install() {
     // Calculate model for interview analysis based on complexity
     const interviewComplexity = interviewAnswers.quality === 'critical' ? 'claude-haiku-4.5' : 'gpt-5-mini';
     
-    // Detect which CLI to use
+    // Pre-copy interview-only agent stub for Copilot CLI (requires .github/agents/ in CWD)
+    // This stub is self-contained - no external workflow references
+    // Codex and Claude use direct prompt execution, no agent stub needed
+    if (detectedPlatforms.copilot) {
+      const earlyGithubDir = path.join(projectRoot, '.github', 'agents');
+      const interviewAgentSource = path.join(templateDir, '.github', 'agents', 'bmad-agent-yanstaller-interview.md');
+      if (await fs.pathExists(interviewAgentSource)) {
+        await fs.ensureDir(earlyGithubDir);
+        await fs.copy(interviewAgentSource, path.join(earlyGithubDir, 'bmad-agent-yanstaller-interview.md'), { overwrite: true });
+      }
+    }
+    
+    // Write prompt to temp file to avoid shell escaping issues
+    const promptFile = path.join(projectRoot, '.yanstaller-prompt.tmp');
+    await fs.writeFile(promptFile, interviewPrompt, 'utf8');
+    
+    // Detect which CLI to use (non-interactive mode)
+    // Copilot: --agent loads from .github/agents/, -p for non-interactive, -s for silent
+    // Codex: exec subcommand for non-interactive, -m for model
+    // Claude: -p for non-interactive prompt
     let agentCommand = null;
     if (detectedPlatforms.copilot) {
-      agentCommand = `copilot --agent=bmad-agent-yanstaller --prompt "${interviewPrompt.replace(/"/g, '\\"')}" --model ${interviewComplexity} --silent`;
+      agentCommand = `copilot --agent=bmad-agent-yanstaller-interview -p "$(cat '${promptFile}')" --model ${interviewComplexity} -s`;
     } else if (detectedPlatforms.codex) {
-      agentCommand = `codex --prompt "${interviewPrompt.replace(/"/g, '\\"')}" --model ${interviewComplexity}`;
+      agentCommand = `codex exec "$(cat '${promptFile}')"`;
     } else if (detectedPlatforms.claude) {
-      agentCommand = `claude --prompt "${interviewPrompt.replace(/"/g, '\\"')}"`;
+      agentCommand = `claude -p "$(cat '${promptFile}')"`;
     }
     
     if (agentCommand) {
@@ -464,11 +484,26 @@ async function install() {
         
         agentSpinner.succeed(`Analysis complete (model: ${interviewComplexity})`);
         
-        // Parse JSON from agent response
-        const jsonMatch = result.match(/\{[\s\S]*"platforms"[\s\S]*\}/);
-        if (jsonMatch) {
+        // Parse JSON from agent response - extract last valid JSON block
+        const lines = result.split('\n');
+        let jsonStr = null;
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('{') && trimmed.includes('"platforms"')) {
+            try {
+              JSON.parse(trimmed);
+              jsonStr = trimmed;
+            } catch (e) { /* not valid JSON, try next line */ }
+          }
+        }
+        // Fallback: greedy regex match
+        if (!jsonStr) {
+          const jsonMatch = result.match(/\{[^{}]*"platforms"\s*:\s*\[[\s\S]*?\}[\s\S]*?\}/);
+          if (jsonMatch) jsonStr = jsonMatch[0];
+        }
+        if (jsonStr) {
           try {
-            interviewResults = JSON.parse(jsonMatch[0]);
+            interviewResults = JSON.parse(jsonStr);
             
             console.log('');
             console.log(chalk.cyan('📊 Yanstaller Recommendations:'));
@@ -538,6 +573,9 @@ async function install() {
       
       console.log(chalk.yellow('⚠ No AI platform detected, using defaults'));
     }
+    
+    // Cleanup temp prompt file
+    await fs.remove(path.join(projectRoot, '.yanstaller-prompt.tmp')).catch(() => {});
     
     console.log('');
   }
