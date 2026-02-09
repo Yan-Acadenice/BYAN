@@ -90,38 +90,53 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
 
 // Detect installed platforms (Yanstaller logic)
 async function detectPlatforms() {
+  const os = require('os');
   const platforms = {
     copilot: false,
     codex: false,
     claude: false
   };
   
+  // GitHub Copilot CLI detection
   try {
-    execSync('which copilot 2>/dev/null', { stdio: 'ignore' });
-    platforms.copilot = true;
+    const result = execSync('which copilot 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (result) {
+      platforms.copilot = true;
+    }
   } catch (e) {
-    try {
-      if (fs.existsSync(path.join(require('os').homedir(), '.config', 'copilot'))) {
+    // Fallback: check config directory
+    const copilotPaths = [
+      path.join(os.homedir(), '.config', 'github-copilot'),
+      path.join(os.homedir(), '.config', 'copilot')
+    ];
+    for (const p of copilotPaths) {
+      if (fs.existsSync(p)) {
         platforms.copilot = true;
+        break;
       }
-    } catch (err) {}
+    }
   }
   
+  // Codex detection (project-local)
   try {
-    if (fs.existsSync('.codex') || fs.existsSync('.codex/config.json')) {
+    const codexPath = path.join(process.cwd(), '.codex');
+    if (fs.existsSync(codexPath)) {
       platforms.codex = true;
     }
   } catch (e) {}
   
+  // Claude Code detection
   try {
-    execSync('which claude 2>/dev/null', { stdio: 'ignore' });
-    platforms.claude = true;
+    const result = execSync('which claude 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (result) {
+      platforms.claude = true;
+    }
   } catch (e) {
-    try {
-      if (fs.existsSync(path.join(require('os').homedir(), '.config', 'claude'))) {
-        platforms.claude = true;
-      }
-    } catch (err) {}
+    // Fallback: check config directory
+    const claudePath = path.join(os.homedir(), '.config', 'claude');
+    if (fs.existsSync(claudePath)) {
+      platforms.claude = true;
+    }
   }
   
   return platforms;
