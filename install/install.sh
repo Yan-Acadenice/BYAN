@@ -87,7 +87,7 @@ echo -e "${GREEN}✓ Directories created${NC}"
 echo -e "${BLUE}[3/7] Installing BYAN files...${NC}"
 
 # Check if we're in the conception directory (development mode)
-if [ -f "${PROJECT_ROOT}/_bmad/bmb/agents/byan.md" ]; then
+if [ -f "${PROJECT_ROOT}/_byan/bmb/agents/byan.md" ]; then
     echo -e "${YELLOW}Development mode: Using local files${NC}"
     # Files already exist, skip download
 else
