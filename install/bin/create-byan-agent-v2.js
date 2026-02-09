@@ -89,6 +89,7 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
 }
 
 // Detect installed platforms (Yanstaller logic)
+// Detects SYSTEM binaries, not project folders (.codex, .github/agents are created by yanstaller)
 async function detectPlatforms() {
   const os = require('os');
   const platforms = {
@@ -97,14 +98,14 @@ async function detectPlatforms() {
     claude: false
   };
   
-  // GitHub Copilot CLI detection
+  // GitHub Copilot CLI detection (binary + config)
   try {
     const result = execSync('which copilot 2>/dev/null', { encoding: 'utf8' }).trim();
     if (result) {
       platforms.copilot = true;
     }
   } catch (e) {
-    // Fallback: check config directory
+    // Fallback: check config directory (means it was installed)
     const copilotPaths = [
       path.join(os.homedir(), '.config', 'github-copilot'),
       path.join(os.homedir(), '.config', 'copilot')
@@ -117,15 +118,27 @@ async function detectPlatforms() {
     }
   }
   
-  // Codex detection (project-local)
+  // Codex detection (binary + config, NOT project .codex/ folder)
   try {
-    const codexPath = path.join(process.cwd(), '.codex');
-    if (fs.existsSync(codexPath)) {
+    const result = execSync('which codex 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (result) {
       platforms.codex = true;
     }
-  } catch (e) {}
+  } catch (e) {
+    // Fallback: check config directory
+    const codexPaths = [
+      path.join(os.homedir(), '.config', 'codex'),
+      path.join(os.homedir(), '.codex')
+    ];
+    for (const p of codexPaths) {
+      if (fs.existsSync(p)) {
+        platforms.codex = true;
+        break;
+      }
+    }
+  }
   
-  // Claude Code detection
+  // Claude Code detection (binary + config)
   try {
     const result = execSync('which claude 2>/dev/null', { encoding: 'utf8' }).trim();
     if (result) {
@@ -133,9 +146,15 @@ async function detectPlatforms() {
     }
   } catch (e) {
     // Fallback: check config directory
-    const claudePath = path.join(os.homedir(), '.config', 'claude');
-    if (fs.existsSync(claudePath)) {
-      platforms.claude = true;
+    const claudePaths = [
+      path.join(os.homedir(), '.config', 'claude'),
+      path.join(os.homedir(), '.claude')
+    ];
+    for (const p of claudePaths) {
+      if (fs.existsSync(p)) {
+        platforms.claude = true;
+        break;
+      }
     }
   }
   
