@@ -320,7 +320,211 @@ async function install() {
   console.log(chalk.gray('  → Optimized for cost efficiency during installation'));
   console.log('');
   
-  // Step 3: Platform selection
+  // Step 2.8: Installation mode selection
+  const { installMode } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'installMode',
+      message: 'Choose installation mode:',
+      choices: [
+        { name: '🚀 AUTO - Quick install with smart defaults (Recommended)', value: 'auto' },
+        { name: '🎯 CUSTOM - Guided interview with personalized recommendations', value: 'custom' }
+      ],
+      default: 'auto'
+    }
+  ]);
+  
+  let interviewResults = null;
+  
+  // Step 2.9: Intelligent Interview (if CUSTOM mode)
+  if (installMode === 'custom') {
+    console.log('');
+    console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
+    console.log(chalk.blue('║                                                            ║'));
+    console.log(chalk.blue('║   🎯 YANSTALLER - Intelligent Interview                    ║'));
+    console.log(chalk.blue('║   Style BYAN: Challenge Before Confirm                     ║'));
+    console.log(chalk.blue('║                                                            ║'));
+    console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
+    console.log('');
+    console.log(chalk.gray('10 questions pour personnaliser votre installation BYAN'));
+    console.log('');
+    
+    interviewResults = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'projectType',
+        message: '1. Type de projet?',
+        choices: [
+          { name: '✨ Nouveau projet (from scratch)', value: 'new' },
+          { name: '📦 Projet existant (ajouter BYAN)', value: 'existing' },
+          { name: '🔄 Migration (depuis autre système)', value: 'migration' }
+        ]
+      },
+      {
+        type: 'checkbox',
+        name: 'objectives',
+        message: '2. Objectifs principaux? (sélection multiple)',
+        choices: [
+          { name: '🏗️  Créer des agents intelligents', value: 'agents', checked: true },
+          { name: '⚙️  Orchestrer des workflows', value: 'workflows' },
+          { name: '🧪 Automatiser les tests', value: 'tests' },
+          { name: '📊 Analyser/documenter code', value: 'analysis' },
+          { name: '🎤 Voice dictation (Turbo Whisper)', value: 'voice' }
+        ],
+        validate: (answer) => answer.length > 0 ? true : 'Choisissez au moins un objectif'
+      },
+      {
+        type: 'list',
+        name: 'teamSize',
+        message: '3. Taille de l\'équipe?',
+        choices: [
+          { name: '👤 Solo (juste moi)', value: 'solo' },
+          { name: '👥 Petite équipe (2-5 personnes)', value: 'small' },
+          { name: '👨‍👩‍👧‍👦 Équipe moyenne (6-15 personnes)', value: 'medium' },
+          { name: '🏢 Grande équipe (16+ personnes)', value: 'large' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'experience',
+        message: '4. Votre expérience avec AI platforms?',
+        choices: [
+          { name: '🌱 Débutant (première fois)', value: 'beginner' },
+          { name: '🔧 Intermédiaire (quelques projets)', value: 'intermediate' },
+          { name: '🚀 Expert (production daily)', value: 'expert' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'connectivity',
+        message: '5. Environnement de travail?',
+        choices: [
+          { name: '🌐 Online (connexion stable)', value: 'online' },
+          { name: '🔌 Offline / Air-gapped', value: 'offline' },
+          { name: '📶 Intermittent (parfois offline)', value: 'intermittent' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'gpuAvailable',
+        message: '6. GPU disponible pour Turbo Whisper?',
+        choices: [
+          { name: '🎮 Oui, GPU NVIDIA (CUDA)', value: 'yes' },
+          { name: '💻 Non, CPU seulement', value: 'no' },
+          { name: '❓ Je ne sais pas', value: 'unknown' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'methodology',
+        message: '7. Méthodologie de développement?',
+        choices: [
+          { name: '🔄 Agile / Scrum', value: 'agile' },
+          { name: '🧪 TDD (Test-Driven)', value: 'tdd' },
+          { name: '🏗️  Merise Agile (BYAN default)', value: 'merise-agile' },
+          { name: '🎯 Hybride / Flexible', value: 'hybrid' }
+        ],
+        default: 'merise-agile'
+      },
+      {
+        type: 'list',
+        name: 'domain',
+        message: '8. Domaine d\'application principal?',
+        choices: [
+          { name: '🌐 Web / Frontend', value: 'web' },
+          { name: '⚙️  Backend / API', value: 'backend' },
+          { name: '📊 Data / ML', value: 'data' },
+          { name: '📱 Mobile', value: 'mobile' },
+          { name: '🔧 DevOps / Infra', value: 'devops' },
+          { name: '🎯 Autre / Multi-domaine', value: 'other' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'frequency',
+        message: '9. Fréquence d\'utilisation prévue?',
+        choices: [
+          { name: '📆 Quotidienne (tous les jours)', value: 'daily' },
+          { name: '📅 Hebdomadaire (plusieurs fois/semaine)', value: 'weekly' },
+          { name: '🗓️  Occasionnelle (quand besoin)', value: 'occasional' }
+        ]
+      },
+      {
+        type: 'list',
+        name: 'qualityLevel',
+        message: '10. Niveau de qualité/criticité?',
+        choices: [
+          { name: '⚡ MVP rapide (speed priority)', value: 'mvp' },
+          { name: '⚖️  Balanced (qualité + speed)', value: 'balanced' },
+          { name: '💎 Production (high quality)', value: 'production' },
+          { name: '🔒 Mission-critical (maximum quality)', value: 'critical' }
+        ]
+      }
+    ]);
+    
+    // Analysis and recommendations
+    console.log('');
+    console.log(chalk.cyan('📊 Analyse de vos réponses...'));
+    console.log('');
+  }
+  
+  // Step 3: Platform selection (with interview recommendations if CUSTOM mode)
+  let recommendedPlatforms = [];
+  let recommendedTurboWhisper = 'skip';
+  let autoSelectPlatform = null;
+  
+  if (installMode === 'custom' && interviewResults) {
+    // Generate smart recommendations based on interview
+    console.log(chalk.blue('🎯 Recommandations personnalisées:'));
+    console.log('');
+    
+    // Platform recommendations
+    if (detectedPlatforms.copilot) {
+      recommendedPlatforms.push('copilot');
+      console.log(chalk.green('  ✓ GitHub Copilot CLI - Recommandé (détecté + large community)'));
+    }
+    if (detectedPlatforms.codex) {
+      recommendedPlatforms.push('codex');
+      console.log(chalk.green('  ✓ Codex - Recommandé (détecté + workflow-focused)'));
+    }
+    if (detectedPlatforms.claude) {
+      recommendedPlatforms.push('claude');
+      console.log(chalk.green('  ✓ Claude Code - Recommandé (détecté + high quality)'));
+    }
+    
+    // Turbo Whisper recommendation
+    if (interviewResults.objectives.includes('voice') || interviewResults.frequency === 'daily') {
+      if (interviewResults.gpuAvailable === 'yes') {
+        recommendedTurboWhisper = 'docker';
+        console.log(chalk.cyan('  🎤 Turbo Whisper (GPU) - Recommandé pour productivité quotidienne'));
+      } else {
+        recommendedTurboWhisper = 'local';
+        console.log(chalk.cyan('  🎤 Turbo Whisper (CPU) - Recommandé mais plus lent'));
+      }
+    }
+    
+    // Methodology recommendation
+    if (interviewResults.methodology === 'merise-agile') {
+      console.log(chalk.cyan('  📐 Merise Agile - Excellent choix! (BYAN native)'));
+    } else if (interviewResults.methodology === 'tdd') {
+      console.log(chalk.cyan('  🧪 TDD - Compatible avec BYAN TEA module'));
+    }
+    
+    // Team size insights
+    if (interviewResults.teamSize === 'solo') {
+      console.log(chalk.gray('  👤 Solo: Recommandé de commencer avec 1-2 agents essentiels'));
+    } else if (interviewResults.teamSize === 'large') {
+      console.log(chalk.gray('  🏢 Grande équipe: Installer sur toutes plateformes pour flexibilité'));
+    }
+    
+    console.log('');
+    
+    // Auto-select best platform based on detection
+    autoSelectPlatform = recommendedPlatforms[0] || (detectedPlatforms.copilot ? 'copilot' : 
+                                                      detectedPlatforms.codex ? 'codex' : 
+                                                      detectedPlatforms.claude ? 'claude' : 'copilot');
+  }
+  
   // Step 3: Platform selection (pre-select detected platforms)
   const platformChoices = [
     { name: `GitHub Copilot CLI ${detectedPlatforms.copilot ? chalk.green('(✓ Detected)') : ''}`, value: 'copilot' },
@@ -330,16 +534,17 @@ async function install() {
     { name: 'All platforms', value: 'all' }
   ];
   
-  // Auto-select first detected platform as default
-  const defaultPlatform = detectedPlatforms.copilot ? 'copilot' :
-                          detectedPlatforms.codex ? 'codex' :
-                          detectedPlatforms.claude ? 'claude' : 'copilot';
+  // Auto-select first detected platform as default (or use interview recommendation)
+  const defaultPlatform = (installMode === 'custom' && autoSelectPlatform) ? autoSelectPlatform :
+                          (detectedPlatforms.copilot ? 'copilot' :
+                           detectedPlatforms.codex ? 'codex' :
+                           detectedPlatforms.claude ? 'claude' : 'copilot');
   
   const { platform } = await inquirer.prompt([
     {
       type: 'list',
       name: 'platform',
-      message: 'Select platform to install for:',
+      message: installMode === 'custom' ? 'Confirmer la plateforme (recommandation ci-dessus):' : 'Select platform to install for:',
       choices: platformChoices,
       default: defaultPlatform
     }
@@ -358,7 +563,7 @@ async function install() {
       name: 'language',
       message: 'Communication language:',
       choices: ['Francais', 'English'],
-      default: 'English'
+      default: installMode === 'custom' && interviewResults ? 'Francais' : 'English'
     }
   ]);
   
@@ -392,21 +597,30 @@ async function install() {
     }
   }
   
-  // Step 5.5: Turbo Whisper voice dictation (optional)
+  // Step 5.5: Turbo Whisper voice dictation (optional, with interview recommendation)
   console.log(chalk.blue('\n🎤 Voice Dictation Setup'));
   console.log(chalk.gray('Turbo Whisper enables voice-to-text with local Whisper AI server.\n'));
+  
+  let turboWhisperChoices = [
+    { name: '🖥️  Local (CPU) - Run Whisper server locally', value: 'local' },
+    { name: '🚀 Docker (GPU) - Run Whisper in Docker with GPU', value: 'docker' },
+    { name: '⏭️  Skip - Install later manually', value: 'skip' }
+  ];
+  
+  // Adjust default based on interview
+  let defaultTurboMode = 'skip';
+  if (installMode === 'custom' && recommendedTurboWhisper !== 'skip') {
+    defaultTurboMode = recommendedTurboWhisper;
+    console.log(chalk.cyan(`💡 Recommandation: ${recommendedTurboWhisper === 'docker' ? 'Docker (GPU)' : 'Local (CPU)'} basé sur votre profil\n`));
+  }
   
   const { turboWhisperMode } = await inquirer.prompt([
     {
       type: 'list',
       name: 'turboWhisperMode',
       message: 'Install Turbo Whisper voice dictation?',
-      choices: [
-        { name: '🖥️  Local (CPU) - Run Whisper server locally', value: 'local' },
-        { name: '🚀 Docker (GPU) - Run Whisper in Docker with GPU', value: 'docker' },
-        { name: '⏭️  Skip - Install later manually', value: 'skip' }
-      ],
-      default: 'skip'
+      choices: turboWhisperChoices,
+      default: defaultTurboMode
     }
   ]);
   
