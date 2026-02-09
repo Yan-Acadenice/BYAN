@@ -1,0 +1,219 @@
+# Model Selector - Intelligent AI Model Selection
+# Based on complexity analysis and task requirements
+# Inspired by BYAN v2 workers.md concept
+
+version: "1.0.0"
+description: "Auto-select optimal AI model based on task complexity"
+
+# Complexity Levels
+complexity_levels:
+  simple:
+    score_range: [0, 30]
+    description: "Simple tasks - bash commands, file operations, detection"
+    recommended_model: "gpt-5-mini"
+    fallback_model: "gpt-5-mini"
+    cost_tier: "FREE"
+    use_cases:
+      - Platform detection
+      - File copy/installation
+      - Dependency validation
+      - Simple bash commands
+    
+  medium:
+    score_range: [31, 60]
+    description: "Medium tasks - code analysis, refactoring, documentation"
+    recommended_model: "claude-haiku-4.5"
+    fallback_model: "gpt-5-mini"
+    cost_tier: "LOW"
+    use_cases:
+      - Code analysis
+      - Refactoring suggestions
+      - Test generation
+      - Documentation writing
+    
+  complex:
+    score_range: [61, 85]
+    description: "Complex tasks - agent creation, architecture, workflow design"
+    recommended_model: "claude-sonnet-4.5"
+    fallback_model: "gpt-5.1-codex"
+    cost_tier: "MEDIUM"
+    use_cases:
+      - Agent creation
+      - Architecture design
+      - Workflow orchestration
+      - Business logic
+    
+  expert:
+    score_range: [86, 100]
+    description: "Expert tasks - critical review, security audit, optimization"
+    recommended_model: "claude-opus-4.6"
+    fallback_model: "claude-sonnet-4.5"
+    cost_tier: "HIGH"
+    use_cases:
+      - Security audits
+      - Critical code review
+      - Performance optimization
+      - Production deployment
+
+# Complexity Calculation Factors
+calculation_factors:
+  
+  task_type:
+    description: "Type of task being performed"
+    weights:
+      detect: 5
+      install: 10
+      copy: 5
+      validate: 10
+      analyze: 40
+      refactor: 45
+      create: 70
+      design: 75
+      review: 60
+      audit: 90
+      optimize: 85
+      document: 35
+      test: 40
+  
+  context_size:
+    description: "Amount of context/code being processed"
+    weights:
+      tiny: 0        # < 50 lines
+      small: 5       # 50-100 lines
+      medium: 20     # 100-1000 lines
+      large: 40      # 1000-5000 lines
+      huge: 60       # > 5000 lines
+  
+  reasoning_depth:
+    description: "Depth of reasoning required"
+    weights:
+      shallow: 0     # Simple if/then logic
+      medium: 20     # Some analysis required
+      deep: 40       # Complex reasoning chains
+      expert: 60     # Multi-step reasoning with validation
+  
+  quality_requirement:
+    description: "Quality vs speed tradeoff"
+    weights:
+      fast: 0        # Speed priority, acceptable quality
+      balanced: 10   # Balance speed and quality
+      high: 20       # Quality priority
+      critical: 30   # Maximum quality, production-critical
+
+# Model Capabilities Matrix
+models:
+  gpt-5-mini:
+    provider: "OpenAI"
+    tier: "free"
+    strengths: ["speed", "cost", "simple-tasks"]
+    weaknesses: ["complex-reasoning", "large-context"]
+    max_tokens: 128000
+    typical_latency: "2-5s"
+    cost_per_1k_tokens: 0.0
+    
+  claude-haiku-4.5:
+    provider: "Anthropic"
+    tier: "low-cost"
+    strengths: ["balanced", "speed", "medium-tasks"]
+    weaknesses: ["very-complex-reasoning"]
+    max_tokens: 200000
+    typical_latency: "3-7s"
+    cost_per_1k_tokens: 0.00025
+    
+  claude-sonnet-4.5:
+    provider: "Anthropic"
+    tier: "standard"
+    strengths: ["reasoning", "code-generation", "analysis"]
+    weaknesses: ["cost"]
+    max_tokens: 200000
+    typical_latency: "5-15s"
+    cost_per_1k_tokens: 0.003
+    
+  claude-opus-4.6:
+    provider: "Anthropic"
+    tier: "premium"
+    strengths: ["expert-reasoning", "critical-tasks", "accuracy"]
+    weaknesses: ["cost", "latency"]
+    max_tokens: 200000
+    typical_latency: "10-30s"
+    cost_per_1k_tokens: 0.015
+    
+  gpt-5.1-codex:
+    provider: "OpenAI"
+    tier: "standard"
+    strengths: ["code-generation", "technical-accuracy"]
+    weaknesses: ["general-reasoning"]
+    max_tokens: 128000
+    typical_latency: "4-10s"
+    cost_per_1k_tokens: 0.002
+
+# Usage Examples
+examples:
+  yanstaller_detect:
+    task_type: "detect"
+    context_size: "small"
+    reasoning_depth: "shallow"
+    quality_requirement: "fast"
+    calculated_score: 10
+    selected_model: "gpt-5-mini"
+    rationale: "Simple platform detection, no reasoning needed"
+    
+  byan_interview:
+    task_type: "create"
+    context_size: "medium"
+    reasoning_depth: "deep"
+    quality_requirement: "critical"
+    calculated_score: 130
+    selected_model: "claude-sonnet-4.5"
+    rationale: "Complex agent creation requires deep reasoning"
+    
+  code_review_critical:
+    task_type: "audit"
+    context_size: "large"
+    reasoning_depth: "expert"
+    quality_requirement: "critical"
+    calculated_score: 190
+    selected_model: "claude-opus-4.6"
+    rationale: "Critical security audit needs maximum quality"
+    
+  quick_refactor:
+    task_type: "refactor"
+    context_size: "medium"
+    reasoning_depth: "medium"
+    quality_requirement: "balanced"
+    calculated_score: 75
+    selected_model: "claude-sonnet-4.5"
+    rationale: "Medium complexity refactoring"
+
+# Override Rules
+overrides:
+  user_preference:
+    description: "User can override with --model flag"
+    priority: "highest"
+    
+  cost_limit:
+    description: "If user has cost limit, downgrade model"
+    priority: "high"
+    
+  platform_availability:
+    description: "If preferred model unavailable, use fallback"
+    priority: "medium"
+
+# Logging and Metrics
+logging:
+  enabled: true
+  log_level: "info"
+  log_file: "{project-root}/_byan-output/model-selector.log"
+  metrics:
+    - model_selected
+    - calculated_score
+    - actual_tokens_used
+    - actual_cost
+    - execution_time
+
+# Integration
+integration:
+  workflow_frontmatter: true
+  agent_activation: true
+  cli_flag: "--model"
+  env_variable: "BYAN_MODEL"

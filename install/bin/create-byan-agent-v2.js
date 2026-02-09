@@ -639,11 +639,11 @@ async function install() {
     }
   }
   
-  // Step 6: Create directory structure (Platform - _bmad)
+  // Step 6: Create directory structure (Platform - _byan)
   const installSpinner = ora('Creating directory structure...').start();
   
-  const bmadDir = path.join(projectRoot, '_bmad');
-  const bmbDir = path.join(bmadDir, 'bmb');
+  const byanDir = path.join(projectRoot, '_byan');
+  const bmbDir = path.join(byanDir, 'bmb');
   const githubAgentsDir = path.join(projectRoot, '.github', 'agents');
   
   await fs.ensureDir(path.join(bmadDir, 'bmb', 'agents'));
@@ -663,7 +663,7 @@ async function install() {
   
   try {
     // Copy agent files
-    const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
+    const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
     const agentsDest = path.join(bmbDir, 'agents');
     
     if (await fs.pathExists(agentsSource)) {
@@ -675,7 +675,7 @@ async function install() {
     }
     
     // Copy workflow files
-    const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
+    const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
     const workflowsDest = path.join(bmbDir, 'workflows', 'byan');
     
     if (await fs.pathExists(workflowsSource)) {
@@ -708,11 +708,11 @@ async function install() {
   const configSpinner = ora('Generating configuration...').start();
   
   const configContent = {
-    bmb_creations_output_folder: "{project-root}/_bmad-output/bmb-creations",
+    bmb_creations_output_folder: "{project-root}/_byan-output/bmb-creations",
     user_name: config.userName,
     communication_language: config.language,
     document_output_language: config.language,
-    output_folder: "{project-root}/_bmad-output",
+    output_folder: "{project-root}/_byan-output",
     platform: platform,
     byan_version: v2Installed ? '2.0.0-alpha.1' : '1.0.0'
   };
