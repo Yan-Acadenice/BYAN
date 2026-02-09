@@ -336,135 +336,84 @@ async function install() {
   
   let interviewResults = null;
   
-  // Step 2.9: Intelligent Interview (if CUSTOM mode)
+  // Step 2.9: Intelligent Interview (if CUSTOM mode) - Delegate to Yanstaller Agent
   if (installMode === 'custom') {
     console.log('');
     console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
     console.log(chalk.blue('║                                                            ║'));
     console.log(chalk.blue('║   🎯 YANSTALLER - Intelligent Interview                    ║'));
-    console.log(chalk.blue('║   Style BYAN: Challenge Before Confirm                     ║'));
+    console.log(chalk.blue('║   Powered by bmad-agent-yanstaller                         ║'));
     console.log(chalk.blue('║                                                            ║'));
     console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
     console.log('');
-    console.log(chalk.gray('10 questions pour personnaliser votre installation BYAN'));
+    console.log(chalk.gray('Calling agent yanstaller for intelligent interview...'));
+    console.log(chalk.gray('Model: gpt-5-mini (token-optimized)'));
     console.log('');
     
-    interviewResults = await inquirer.prompt([
-      {
-        type: 'list',
-        name: 'projectType',
-        message: '1. Type de projet?',
-        choices: [
-          { name: '✨ Nouveau projet (from scratch)', value: 'new' },
-          { name: '📦 Projet existant (ajouter BYAN)', value: 'existing' },
-          { name: '🔄 Migration (depuis autre système)', value: 'migration' }
-        ]
-      },
-      {
-        type: 'checkbox',
-        name: 'objectives',
-        message: '2. Objectifs principaux? (sélection multiple)',
-        choices: [
-          { name: '🏗️  Créer des agents intelligents', value: 'agents', checked: true },
-          { name: '⚙️  Orchestrer des workflows', value: 'workflows' },
-          { name: '🧪 Automatiser les tests', value: 'tests' },
-          { name: '📊 Analyser/documenter code', value: 'analysis' },
-          { name: '🎤 Voice dictation (Turbo Whisper)', value: 'voice' }
-        ],
-        validate: (answer) => answer.length > 0 ? true : 'Choisissez au moins un objectif'
-      },
-      {
-        type: 'list',
-        name: 'teamSize',
-        message: '3. Taille de l\'équipe?',
-        choices: [
-          { name: '👤 Solo (juste moi)', value: 'solo' },
-          { name: '👥 Petite équipe (2-5 personnes)', value: 'small' },
-          { name: '👨‍👩‍👧‍👦 Équipe moyenne (6-15 personnes)', value: 'medium' },
-          { name: '🏢 Grande équipe (16+ personnes)', value: 'large' }
-        ]
-      },
-      {
-        type: 'list',
-        name: 'experience',
-        message: '4. Votre expérience avec AI platforms?',
-        choices: [
-          { name: '🌱 Débutant (première fois)', value: 'beginner' },
-          { name: '🔧 Intermédiaire (quelques projets)', value: 'intermediate' },
-          { name: '🚀 Expert (production daily)', value: 'expert' }
-        ]
-      },
-      {
-        type: 'list',
-        name: 'connectivity',
-        message: '5. Environnement de travail?',
-        choices: [
-          { name: '🌐 Online (connexion stable)', value: 'online' },
-          { name: '🔌 Offline / Air-gapped', value: 'offline' },
-          { name: '📶 Intermittent (parfois offline)', value: 'intermittent' }
-        ]
-      },
-      {
-        type: 'list',
-        name: 'gpuAvailable',
-        message: '6. GPU disponible pour Turbo Whisper?',
-        choices: [
-          { name: '🎮 Oui, GPU NVIDIA (CUDA)', value: 'yes' },
-          { name: '💻 Non, CPU seulement', value: 'no' },
-          { name: '❓ Je ne sais pas', value: 'unknown' }
-        ]
-      },
-      {
-        type: 'list',
-        name: 'methodology',
-        message: '7. Méthodologie de développement?',
-        choices: [
-          { name: '🔄 Agile / Scrum', value: 'agile' },
-          { name: '🧪 TDD (Test-Driven)', value: 'tdd' },
-          { name: '🏗️  Merise Agile (BYAN default)', value: 'merise-agile' },
-          { name: '🎯 Hybride / Flexible', value: 'hybrid' }
-        ],
-        default: 'merise-agile'
-      },
-      {
-        type: 'list',
-        name: 'domain',
-        message: '8. Domaine d\'application principal?',
-        choices: [
-          { name: '🌐 Web / Frontend', value: 'web' },
-          { name: '⚙️  Backend / API', value: 'backend' },
-          { name: '📊 Data / ML', value: 'data' },
-          { name: '📱 Mobile', value: 'mobile' },
-          { name: '🔧 DevOps / Infra', value: 'devops' },
-          { name: '🎯 Autre / Multi-domaine', value: 'other' }
-        ]
-      },
-      {
-        type: 'list',
-        name: 'frequency',
-        message: '9. Fréquence d\'utilisation prévue?',
-        choices: [
-          { name: '📆 Quotidienne (tous les jours)', value: 'daily' },
-          { name: '📅 Hebdomadaire (plusieurs fois/semaine)', value: 'weekly' },
-          { name: '🗓️  Occasionnelle (quand besoin)', value: 'occasional' }
-        ]
-      },
-      {
-        type: 'list',
-        name: 'qualityLevel',
-        message: '10. Niveau de qualité/criticité?',
-        choices: [
-          { name: '⚡ MVP rapide (speed priority)', value: 'mvp' },
-          { name: '⚖️  Balanced (qualité + speed)', value: 'balanced' },
-          { name: '💎 Production (high quality)', value: 'production' },
-          { name: '🔒 Mission-critical (maximum quality)', value: 'critical' }
-        ]
+    try {
+      // Call yanstaller agent in interview mode
+      const interviewSpinner = ora('Running intelligent interview...').start();
+      
+      // Check if we're already in a git repo to use copilot
+      const agentCommand = detectedPlatforms.copilot 
+        ? `copilot --agent=bmad-agent-yanstaller --prompt "interview" --model gpt-5-mini --silent`
+        : null;
+      
+      if (!agentCommand) {
+        interviewSpinner.warn('Copilot CLI not available, falling back to basic interview');
+        // Fallback to basic interview
+        interviewResults = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'projectType',
+            message: 'Type de projet?',
+            choices: [
+              { name: 'Nouveau (from scratch)', value: 'new' },
+              { name: 'Existant (ajouter BYAN)', value: 'existing' }
+            ]
+          },
+          {
+            type: 'list',
+            name: 'experience',
+            message: 'Expérience avec AI platforms?',
+            choices: [
+              { name: 'Débutant', value: 'beginner' },
+              { name: 'Intermédiaire', value: 'intermediate' },
+              { name: 'Expert', value: 'expert' }
+            ]
+          }
+        ]);
+      } else {
+        // Execute agent interview
+        const result = execSync(agentCommand, { 
+          encoding: 'utf8',
+          cwd: projectRoot,
+          timeout: 60000 // 60s timeout
+        });
+        
+        interviewSpinner.succeed('Interview completed');
+        
+        // Extract JSON from agent output
+        const jsonMatch = result.match(/\{[\s\S]*"interview_completed"[\s\S]*\}/);
+        if (jsonMatch) {
+          interviewResults = JSON.parse(jsonMatch[0]);
+          console.log('');
+          console.log(chalk.cyan('📊 Interview Analysis:'));
+          console.log(chalk.gray(`  Type: ${interviewResults.responses?.projectType || 'N/A'}`));
+          console.log(chalk.gray(`  Experience: ${interviewResults.responses?.experience || 'N/A'}`));
+          console.log(chalk.gray(`  Score: ${interviewResults.complexity_score || 'N/A'}`));
+        } else {
+          interviewSpinner.warn('Could not parse interview results, using defaults');
+          interviewResults = null;
+        }
       }
-    ]);
+    } catch (error) {
+      console.log('');
+      console.log(chalk.yellow('⚠ Interview agent failed, using basic mode'));
+      console.log(chalk.gray(`  Error: ${error.message}`));
+      interviewResults = null;
+    }
     
-    // Analysis and recommendations
-    console.log('');
-    console.log(chalk.cyan('📊 Analyse de vos réponses...'));
     console.log('');
   }
   
