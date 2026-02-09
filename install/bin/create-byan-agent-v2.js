@@ -346,72 +346,197 @@ async function install() {
     console.log(chalk.blue('║                                                            ║'));
     console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
     console.log('');
-    console.log(chalk.gray('Calling agent yanstaller for intelligent interview...'));
-    console.log(chalk.gray('Model: gpt-5-mini (token-optimized)'));
-    console.log('');
     
-    try {
-      // Call yanstaller agent in interview mode
-      const interviewSpinner = ora('Running intelligent interview...').start();
+    // Gather user context via inquirer FIRST (fast, local, no tokens)
+    const interviewAnswers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'projectType',
+        message: '1. Type de projet?',
+        choices: [
+          { name: 'Nouveau (from scratch)', value: 'new' },
+          { name: 'Existant (ajouter BYAN)', value: 'existing' },
+          { name: 'Migration (autre système)', value: 'migration' }
+        ]
+      },
+      {
+        type: 'checkbox',
+        name: 'objectives',
+        message: '2. Objectifs? (espace pour sélectionner)',
+        choices: [
+          { name: 'Créer des agents', value: 'agents', checked: true },
+          { name: 'Orchestrer workflows', value: 'workflows' },
+          { name: 'Automatiser tests', value: 'tests' },
+          { name: 'Analyser/documenter', value: 'analysis' },
+          { name: 'Voice dictation', value: 'voice' }
+        ],
+        validate: (a) => a.length > 0 ? true : 'Choisissez au moins un'
+      },
+      {
+        type: 'list',
+        name: 'teamSize',
+        message: '3. Taille équipe?',
+        choices: ['solo', 'small (2-5)', 'medium (6-15)', 'large (16+)']
+      },
+      {
+        type: 'list',
+        name: 'experience',
+        message: '4. Expérience AI?',
+        choices: ['beginner', 'intermediate', 'expert']
+      },
+      {
+        type: 'list',
+        name: 'connectivity',
+        message: '5. Connectivité?',
+        choices: ['online', 'offline', 'intermittent']
+      },
+      {
+        type: 'list',
+        name: 'gpu',
+        message: '6. GPU dispo (Turbo Whisper)?',
+        choices: ['yes (NVIDIA)', 'no (CPU)', 'unknown']
+      },
+      {
+        type: 'list',
+        name: 'methodology',
+        message: '7. Méthodologie?',
+        choices: ['merise-agile (BYAN native)', 'tdd', 'agile/scrum', 'hybrid']
+      },
+      {
+        type: 'list',
+        name: 'domain',
+        message: '8. Domaine?',
+        choices: ['web', 'backend/API', 'data/ML', 'mobile', 'devops', 'multi-domain']
+      },
+      {
+        type: 'list',
+        name: 'frequency',
+        message: '9. Fréquence?',
+        choices: ['daily', 'weekly', 'occasional']
+      },
+      {
+        type: 'list',
+        name: 'quality',
+        message: '10. Niveau qualité?',
+        choices: ['mvp (speed)', 'balanced', 'production', 'critical']
+      }
+    ]);
+    
+    // Build prompt for yanstaller agent with interview data + detected platforms
+    const interviewPrompt = [
+      `Analyse ce profil utilisateur et retourne UNIQUEMENT un JSON de recommandations.`,
+      `DETECTED PLATFORMS: copilot=${detectedPlatforms.copilot}, codex=${detectedPlatforms.codex}, claude=${detectedPlatforms.claude}`,
+      `PROJECT: type=${interviewAnswers.projectType}, domain=${interviewAnswers.domain}`,
+      `OBJECTIVES: ${interviewAnswers.objectives.join(',')}`,
+      `TEAM: ${interviewAnswers.teamSize}, EXPERIENCE: ${interviewAnswers.experience}`,
+      `CONNECTIVITY: ${interviewAnswers.connectivity}, GPU: ${interviewAnswers.gpu}`,
+      `METHODOLOGY: ${interviewAnswers.methodology}, FREQUENCY: ${interviewAnswers.frequency}`,
+      `QUALITY: ${interviewAnswers.quality}`,
+      `Retourne UNIQUEMENT un JSON valide avec: platforms (array), turboWhisper (mode/reason),`,
+      `agents (essential/optional arrays), modules (array), recommended_model (string).`,
+      `Format: {"platforms":[...],"turboWhisper":{"mode":"...","reason":"..."},`,
+      `"agents":{"essential":[...],"optional":[...]},"modules":[...],"recommended_model":"...","complexity_score":N}`
+    ].join(' ');
+    
+    // Calculate model for interview analysis based on complexity
+    const interviewComplexity = interviewAnswers.quality === 'critical' ? 'claude-haiku-4.5' : 'gpt-5-mini';
+    
+    // Detect which CLI to use
+    let agentCommand = null;
+    if (detectedPlatforms.copilot) {
+      agentCommand = `copilot --agent=bmad-agent-yanstaller --prompt "${interviewPrompt.replace(/"/g, '\\"')}" --model ${interviewComplexity} --silent`;
+    } else if (detectedPlatforms.codex) {
+      agentCommand = `codex --prompt "${interviewPrompt.replace(/"/g, '\\"')}" --model ${interviewComplexity}`;
+    } else if (detectedPlatforms.claude) {
+      agentCommand = `claude --prompt "${interviewPrompt.replace(/"/g, '\\"')}"`;
+    }
+    
+    if (agentCommand) {
+      const agentSpinner = ora(`Analysing with yanstaller agent (${interviewComplexity})...`).start();
       
-      // Check if we're already in a git repo to use copilot
-      const agentCommand = detectedPlatforms.copilot 
-        ? `copilot --agent=bmad-agent-yanstaller --prompt "interview" --model gpt-5-mini --silent`
-        : null;
-      
-      if (!agentCommand) {
-        interviewSpinner.warn('Copilot CLI not available, falling back to basic interview');
-        // Fallback to basic interview
-        interviewResults = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'projectType',
-            message: 'Type de projet?',
-            choices: [
-              { name: 'Nouveau (from scratch)', value: 'new' },
-              { name: 'Existant (ajouter BYAN)', value: 'existing' }
-            ]
-          },
-          {
-            type: 'list',
-            name: 'experience',
-            message: 'Expérience avec AI platforms?',
-            choices: [
-              { name: 'Débutant', value: 'beginner' },
-              { name: 'Intermédiaire', value: 'intermediate' },
-              { name: 'Expert', value: 'expert' }
-            ]
-          }
-        ]);
-      } else {
-        // Execute agent interview
-        const result = execSync(agentCommand, { 
+      try {
+        const result = execSync(agentCommand, {
           encoding: 'utf8',
           cwd: projectRoot,
-          timeout: 60000 // 60s timeout
+          timeout: 120000,
+          stdio: ['pipe', 'pipe', 'pipe']
         });
         
-        interviewSpinner.succeed('Interview completed');
+        agentSpinner.succeed(`Analysis complete (model: ${interviewComplexity})`);
         
-        // Extract JSON from agent output
-        const jsonMatch = result.match(/\{[\s\S]*"interview_completed"[\s\S]*\}/);
+        // Parse JSON from agent response
+        const jsonMatch = result.match(/\{[\s\S]*"platforms"[\s\S]*\}/);
         if (jsonMatch) {
-          interviewResults = JSON.parse(jsonMatch[0]);
-          console.log('');
-          console.log(chalk.cyan('📊 Interview Analysis:'));
-          console.log(chalk.gray(`  Type: ${interviewResults.responses?.projectType || 'N/A'}`));
-          console.log(chalk.gray(`  Experience: ${interviewResults.responses?.experience || 'N/A'}`));
-          console.log(chalk.gray(`  Score: ${interviewResults.complexity_score || 'N/A'}`));
+          try {
+            interviewResults = JSON.parse(jsonMatch[0]);
+            
+            console.log('');
+            console.log(chalk.cyan('📊 Yanstaller Recommendations:'));
+            if (interviewResults.platforms) {
+              console.log(chalk.green(`  Platforms: ${interviewResults.platforms.join(', ')}`));
+            }
+            if (interviewResults.turboWhisper) {
+              console.log(chalk.green(`  Turbo Whisper: ${interviewResults.turboWhisper.mode} (${interviewResults.turboWhisper.reason})`));
+            }
+            if (interviewResults.agents) {
+              console.log(chalk.green(`  Essential agents: ${interviewResults.agents.essential?.join(', ')}`));
+            }
+            if (interviewResults.modules) {
+              console.log(chalk.green(`  Modules: ${interviewResults.modules.join(', ')}`));
+            }
+            console.log(chalk.green(`  Model: ${interviewResults.recommended_model || interviewComplexity}`));
+            console.log(chalk.green(`  Complexity: ${interviewResults.complexity_score || 'N/A'}`));
+          } catch (parseErr) {
+            console.log(chalk.yellow('  ⚠ JSON parse error, using detection defaults'));
+            interviewResults = null;
+          }
         } else {
-          interviewSpinner.warn('Could not parse interview results, using defaults');
+          console.log(chalk.yellow('  ⚠ No JSON in agent response, using detection defaults'));
           interviewResults = null;
         }
+      } catch (error) {
+        agentSpinner.warn(`Agent unavailable, using interview data directly`);
+        // Build recommendations locally from interview data
+        interviewResults = {
+          platforms: Object.entries(detectedPlatforms).filter(([,v]) => v).map(([k]) => k),
+          turboWhisper: {
+            mode: interviewAnswers.gpu.startsWith('yes') && (interviewAnswers.objectives.includes('voice') || interviewAnswers.frequency === 'daily') ? 'docker' : 
+                  interviewAnswers.objectives.includes('voice') || interviewAnswers.frequency === 'daily' ? 'local' : 'skip',
+            reason: interviewAnswers.objectives.includes('voice') ? 'Voice dictation selected' : 
+                    interviewAnswers.frequency === 'daily' ? 'Daily usage - productivity boost' : 'Based on interview'
+          },
+          agents: {
+            essential: ['byan', 'analyst'],
+            optional: interviewAnswers.experience === 'expert' ? ['dev', 'pm', 'architect', 'sm'] : ['dev']
+          },
+          modules: ['bmm', 'bmb'],
+          recommended_model: interviewComplexity,
+          complexity_score: 15
+        };
+        
+        console.log('');
+        console.log(chalk.cyan('📊 Local Recommendations (from interview):'));
+        console.log(chalk.green(`  Platforms: ${interviewResults.platforms.join(', ')}`));
+        console.log(chalk.green(`  Turbo Whisper: ${interviewResults.turboWhisper.mode}`));
+        console.log(chalk.green(`  Essential agents: ${interviewResults.agents.essential.join(', ')}`));
+        console.log(chalk.green(`  Model: ${interviewResults.recommended_model}`));
       }
-    } catch (error) {
-      console.log('');
-      console.log(chalk.yellow('⚠ Interview agent failed, using basic mode'));
-      console.log(chalk.gray(`  Error: ${error.message}`));
-      interviewResults = null;
+    } else {
+      // No AI platform detected - build from interview data
+      interviewResults = {
+        platforms: ['copilot'],
+        turboWhisper: {
+          mode: interviewAnswers.gpu.startsWith('yes') && (interviewAnswers.objectives.includes('voice') || interviewAnswers.frequency === 'daily') ? 'docker' :
+                interviewAnswers.objectives.includes('voice') || interviewAnswers.frequency === 'daily' ? 'local' : 'skip',
+          reason: 'No AI platform detected'
+        },
+        agents: { essential: ['byan'], optional: [] },
+        modules: ['bmm', 'bmb'],
+        recommended_model: 'gpt-5-mini',
+        complexity_score: 15
+      };
+      
+      console.log(chalk.yellow('⚠ No AI platform detected, using defaults'));
     }
     
     console.log('');
@@ -423,55 +548,47 @@ async function install() {
   let autoSelectPlatform = null;
   
   if (installMode === 'custom' && interviewResults) {
-    // Generate smart recommendations based on interview
+    // Use agent/interview recommendations
     console.log(chalk.blue('🎯 Recommandations personnalisées:'));
     console.log('');
     
-    // Platform recommendations
-    if (detectedPlatforms.copilot) {
-      recommendedPlatforms.push('copilot');
-      console.log(chalk.green('  ✓ GitHub Copilot CLI - Recommandé (détecté + large community)'));
-    }
-    if (detectedPlatforms.codex) {
-      recommendedPlatforms.push('codex');
-      console.log(chalk.green('  ✓ Codex - Recommandé (détecté + workflow-focused)'));
-    }
-    if (detectedPlatforms.claude) {
-      recommendedPlatforms.push('claude');
-      console.log(chalk.green('  ✓ Claude Code - Recommandé (détecté + high quality)'));
+    // Platform recommendations (from agent JSON or detected platforms)
+    const agentPlatforms = interviewResults.platforms || [];
+    if (agentPlatforms.length > 0) {
+      agentPlatforms.forEach(p => {
+        recommendedPlatforms.push(p);
+        console.log(chalk.green(`  ✓ ${p} - Recommandé par yanstaller`));
+      });
+    } else {
+      if (detectedPlatforms.copilot) { recommendedPlatforms.push('copilot'); console.log(chalk.green('  ✓ GitHub Copilot CLI - Détecté')); }
+      if (detectedPlatforms.codex) { recommendedPlatforms.push('codex'); console.log(chalk.green('  ✓ Codex - Détecté')); }
+      if (detectedPlatforms.claude) { recommendedPlatforms.push('claude'); console.log(chalk.green('  ✓ Claude Code - Détecté')); }
     }
     
-    // Turbo Whisper recommendation
-    if (interviewResults.objectives.includes('voice') || interviewResults.frequency === 'daily') {
-      if (interviewResults.gpuAvailable === 'yes') {
-        recommendedTurboWhisper = 'docker';
-        console.log(chalk.cyan('  🎤 Turbo Whisper (GPU) - Recommandé pour productivité quotidienne'));
-      } else {
-        recommendedTurboWhisper = 'local';
-        console.log(chalk.cyan('  🎤 Turbo Whisper (CPU) - Recommandé mais plus lent'));
+    // Turbo Whisper (from agent or interview data)
+    if (interviewResults.turboWhisper) {
+      recommendedTurboWhisper = interviewResults.turboWhisper.mode || 'skip';
+      if (recommendedTurboWhisper !== 'skip') {
+        console.log(chalk.cyan(`  🎤 Turbo Whisper (${recommendedTurboWhisper}) - ${interviewResults.turboWhisper.reason || 'Recommandé'}`));
       }
     }
     
-    // Methodology recommendation
-    if (interviewResults.methodology === 'merise-agile') {
-      console.log(chalk.cyan('  📐 Merise Agile - Excellent choix! (BYAN native)'));
-    } else if (interviewResults.methodology === 'tdd') {
-      console.log(chalk.cyan('  🧪 TDD - Compatible avec BYAN TEA module'));
+    // Agents recommendation
+    if (interviewResults.agents) {
+      console.log(chalk.cyan(`  📦 Agents essentiels: ${(interviewResults.agents.essential || []).join(', ')}`));
+      if (interviewResults.agents.optional?.length > 0) {
+        console.log(chalk.gray(`  📦 Agents optionnels: ${interviewResults.agents.optional.join(', ')}`));
+      }
     }
     
-    // Team size insights
-    if (interviewResults.teamSize === 'solo') {
-      console.log(chalk.gray('  👤 Solo: Recommandé de commencer avec 1-2 agents essentiels'));
-    } else if (interviewResults.teamSize === 'large') {
-      console.log(chalk.gray('  🏢 Grande équipe: Installer sur toutes plateformes pour flexibilité'));
+    // Model recommendation
+    if (interviewResults.recommended_model) {
+      console.log(chalk.cyan(`  🧠 Model recommandé: ${interviewResults.recommended_model} (score: ${interviewResults.complexity_score || 'N/A'})`));
     }
     
     console.log('');
     
-    // Auto-select best platform based on detection
-    autoSelectPlatform = recommendedPlatforms[0] || (detectedPlatforms.copilot ? 'copilot' : 
-                                                      detectedPlatforms.codex ? 'codex' : 
-                                                      detectedPlatforms.claude ? 'claude' : 'copilot');
+    autoSelectPlatform = recommendedPlatforms[0] || 'copilot';
   }
   
   // Step 3: Platform selection (pre-select detected platforms)
