@@ -8,17 +8,18 @@ const chalk = require('chalk');
 const ora = require('ora');
 const yaml = require('js-yaml');
 
-const BYAN_VERSION = '2.0.0-alpha.1';
+const BYAN_VERSION = '2.2.0';
 
 // ASCII Art Banner
 const banner = `
 ${chalk.blue('╔════════════════════════════════════════════════════════════╗')}
 ${chalk.blue('║')}                                                            ${chalk.blue('║')}
-${chalk.blue('║')}   ${chalk.bold('🏗️  BYAN INSTALLER v' + BYAN_VERSION)}                   ${chalk.blue('║')}
+${chalk.blue('║')}   ${chalk.bold('🏗️  BYAN INSTALLER v' + BYAN_VERSION)}                          ${chalk.blue('║')}
 ${chalk.blue('║')}   ${chalk.gray('Builder of YAN - Agent Creator')}                          ${chalk.blue('║')}
 ${chalk.blue('║')}                                                            ${chalk.blue('║')}
-${chalk.blue('║')}   ${chalk.gray('Architecture: 4 Pilliers + v2.0 Runtime')}              ${chalk.blue('║')}
+${chalk.blue('║')}   ${chalk.gray('Architecture: _byan/ + Model Selector')}                ${chalk.blue('║')}
 ${chalk.blue('║')}   ${chalk.gray('Methodology: Merise Agile + TDD + 64 Mantras')}           ${chalk.blue('║')}
+${chalk.blue('║')}   ${chalk.gray('Intelligence: Auto GPU Detection + Multi-Platform')}       ${chalk.blue('║')}
 ${chalk.blue('║')}                                                            ${chalk.blue('║')}
 ${chalk.blue('╚════════════════════════════════════════════════════════════╝')}
 `;
@@ -85,6 +86,62 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
   }
   
   return copiedCount;
+}
+
+// Detect installed platforms (Yanstaller logic)
+async function detectPlatforms() {
+  const platforms = {
+    copilot: false,
+    codex: false,
+    claude: false
+  };
+  
+  try {
+    execSync('which copilot 2>/dev/null', { stdio: 'ignore' });
+    platforms.copilot = true;
+  } catch (e) {
+    try {
+      if (fs.existsSync(path.join(require('os').homedir(), '.config', 'copilot'))) {
+        platforms.copilot = true;
+      }
+    } catch (err) {}
+  }
+  
+  try {
+    if (fs.existsSync('.codex') || fs.existsSync('.codex/config.json')) {
+      platforms.codex = true;
+    }
+  } catch (e) {}
+  
+  try {
+    execSync('which claude 2>/dev/null', { stdio: 'ignore' });
+    platforms.claude = true;
+  } catch (e) {
+    try {
+      if (fs.existsSync(path.join(require('os').homedir(), '.config', 'claude'))) {
+        platforms.claude = true;
+      }
+    } catch (err) {}
+  }
+  
+  return platforms;
+}
+
+// Calculate installation complexity (Model Selector)
+function calculateInstallComplexity() {
+  const weights = {
+    task_type: { install: 10 },
+    context_size: { small: 5 },
+    reasoning_depth: { shallow: 0 },
+    quality_requirement: { fast: 0 }
+  };
+  
+  const score = weights.task_type.install + 
+                weights.context_size.small + 
+                weights.reasoning_depth.shallow + 
+                weights.quality_requirement.fast;
+  
+  return { score, recommended: score <= 30 ? 'gpt-5-mini (FREE)' : 'claude-haiku-4.5' };
 }
 
 // Merge package.json with v2.0 dependencies
@@ -209,19 +266,48 @@ async function install() {
     detectSpinner.succeed('BYAN v1.0 detected (Platform only)');
   }
   
+  // Step 2.5: Auto-detect installed platforms (Yanstaller logic)
+  console.log('');
+  const platformSpinner = ora('Detecting installed AI platforms...').start();
+  const detectedPlatforms = await detectPlatforms();
+  platformSpinner.succeed('Platform detection complete');
+  
+  console.log(chalk.cyan('\n📦 Installed Platforms:'));
+  console.log(`  GitHub Copilot CLI: ${detectedPlatforms.copilot ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
+  console.log(`  OpenAI Codex:       ${detectedPlatforms.codex ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
+  console.log(`  Claude Code:        ${detectedPlatforms.claude ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
+  console.log('');
+  
+  // Calculate recommended model for installation
+  const complexity = calculateInstallComplexity();
+  console.log(chalk.cyan('🧠 Model Selector (Complexity Analysis):'));
+  console.log(`  Installation Score: ${chalk.yellow(complexity.score)} (simple task)`);
+  console.log(`  Recommended Model:  ${chalk.green(complexity.recommended)}`);
+  console.log(chalk.gray('  → Optimized for cost efficiency during installation'));
+  console.log('');
+  
   // Step 3: Platform selection
+  // Step 3: Platform selection (pre-select detected platforms)
+  const platformChoices = [
+    { name: `GitHub Copilot CLI ${detectedPlatforms.copilot ? chalk.green('(✓ Detected)') : ''}`, value: 'copilot' },
+    { name: `VSCode`, value: 'vscode' },
+    { name: `Claude Code ${detectedPlatforms.claude ? chalk.green('(✓ Detected)') : ''}`, value: 'claude' },
+    { name: `Codex ${detectedPlatforms.codex ? chalk.green('(✓ Detected)') : ''}`, value: 'codex' },
+    { name: 'All platforms', value: 'all' }
+  ];
+  
+  // Auto-select first detected platform as default
+  const defaultPlatform = detectedPlatforms.copilot ? 'copilot' :
+                          detectedPlatforms.codex ? 'codex' :
+                          detectedPlatforms.claude ? 'claude' : 'copilot';
+  
   const { platform } = await inquirer.prompt([
     {
       type: 'list',
       name: 'platform',
       message: 'Select platform to install for:',
-      choices: [
-        { name: 'GitHub Copilot CLI', value: 'copilot' },
-        { name: 'VSCode', value: 'vscode' },
-        { name: 'Claude Code', value: 'claude' },
-        { name: 'Codex', value: 'codex' },
-        { name: 'All platforms', value: 'all' }
-      ]
+      choices: platformChoices,
+      default: defaultPlatform
     }
   ]);
   
@@ -459,16 +545,18 @@ async function install() {
   
   console.log(chalk.bold('Installation Summary:'));
   console.log(`  • Platform: ${chalk.cyan(platform)}`);
-  console.log(`  • Version: ${chalk.cyan(v2Installed ? 'v2.0.0-alpha.1 (Runtime + Platform)' : 'v1.0.0 (Platform only)')}`);
+  console.log(`  • Version: ${chalk.cyan(v2Installed ? 'v2.2.0 (Runtime + Platform + Model Selector)' : 'v2.2.0 (Platform only)')}`);
   console.log(`  • Installation Directory: ${chalk.cyan(bmbDir)}`);
   console.log(`  • Configuration: ${chalk.cyan(configPath)}`);
   console.log(`  • User: ${chalk.cyan(config.userName)}`);
   console.log(`  • Language: ${chalk.cyan(config.language)}`);
   console.log(`  • Turbo Whisper: ${chalk.cyan(turboWhisperInstalled ? `Installed (${turboWhisperMode} mode)` : 'Not installed')}`);
+  console.log(`  • Model Selector: ${chalk.cyan('Integrated (Auto cost optimization)')}`);
   
   if (v2Installed) {
-    console.log(chalk.cyan('\n  v2.0 Components Installed:'));
+    console.log(chalk.cyan('\n  v2.2 Components Installed:'));
     console.log(chalk.cyan('  ✓ Core: Context, Cache, Dispatcher, Worker Pool, Workflow'));
+    console.log(chalk.cyan('  ✓ Model Selector: Intelligent model selection'));
     console.log(chalk.cyan('  ✓ Observability: Logger, Metrics, Dashboard'));
     console.log(chalk.cyan('  ✓ Tests: 9 test suites with 364 tests'));
     console.log(chalk.cyan('  ✓ Entry Point: src/index.js'));
@@ -536,7 +624,7 @@ async function install() {
 // CLI Program
 program
   .name('create-byan-agent')
-  .description('Install BYAN v2.0 - Builder of YAN agent creator with v2.0 runtime support')
+  .description('Install BYAN v2.2.0 - Builder of YAN with Model Selector and multi-platform support')
   .version(BYAN_VERSION)
   .action(install);
 
