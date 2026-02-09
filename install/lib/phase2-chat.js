@@ -1,16 +1,16 @@
 /**
- * Phase 2 Chat - Interactive conversation with Yanstaller agent
+ * Phase 2 Chat - Integrated conversation within the wizard
  * 
- * Launches a conversational session with the yanstaller-phase2 agent
- * instead of using inquirer-based questions.
+ * Provides an in-wizard chat experience with the yanstaller-phase2 agent
+ * using copilot/codex CLI for AI responses.
  */
 
-const { execSync, spawn } = require('child_process');
+const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
-const readline = require('readline');
+const inquirer = require('inquirer');
 const chalk = require('chalk');
-const os = require('os');
+const ora = require('ora');
 
 /**
  * Build the initial context prompt from Phase 1 answers
@@ -72,7 +72,70 @@ Quand l'utilisateur dit "finaliser", "terminer" ou "c'est bon", génère la conf
 }
 
 /**
- * Launch interactive chat with Phase 2 agent
+ * Send a message to the AI and get a response
+ * 
+ * @param {string} message User message
+ * @param {string} systemContext System context/preprompt
+ * @param {string} conversationHistory Previous conversation
+ * @param {Object} detectedPlatforms Available AI platforms
+ * @param {string} projectRoot Project root directory
+ * @returns {Promise<string>} AI response
+ */
+async function sendChatMessage(message, systemContext, conversationHistory, detectedPlatforms, projectRoot) {
+  // Build the full prompt with context and history
+  const fullPrompt = `${systemContext}
+
+## Historique de conversation:
+${conversationHistory}
+
+## Message utilisateur:
+${message}
+
+## Instructions:
+Réponds de manière concise et naturelle. Si l'utilisateur dit "finaliser", génère le JSON de configuration.
+Continue la conversation pour comprendre le projet et personnaliser les agents.`;
+
+  let result = '';
+  
+  try {
+    if (detectedPlatforms.copilot) {
+      // Use copilot with single prompt mode (-s for silent, no interactive)
+      const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      result = execSync(`copilot -p "${escaped}" -s 2>/dev/null`, {
+        encoding: 'utf8',
+        cwd: projectRoot,
+        timeout: 60000,
+        maxBuffer: 1024 * 1024
+      });
+    } else if (detectedPlatforms.codex) {
+      const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      result = execSync(`codex -p "${escaped}" --quiet 2>/dev/null`, {
+        encoding: 'utf8',
+        cwd: projectRoot,
+        timeout: 60000,
+        maxBuffer: 1024 * 1024
+      });
+    } else if (detectedPlatforms.claude) {
+      const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      result = execSync(`claude -p "${escaped}" --no-input 2>/dev/null`, {
+        encoding: 'utf8',
+        cwd: projectRoot,
+        timeout: 60000,
+        maxBuffer: 1024 * 1024
+      });
+    }
+  } catch (error) {
+    result = `Désolé, erreur de communication. Réessayez ou tapez "skip".`;
+  }
+  
+  // Clean up the response (remove ANSI codes, extra whitespace)
+  result = result.replace(/\x1b\[[0-9;]*m/g, '').trim();
+  
+  return result;
+}
+
+/**
+ * Launch integrated chat within the wizard
  * 
  * @param {Object} options Configuration options
  * @param {Object} options.interviewAnswers Phase 1 answers
@@ -95,7 +158,7 @@ async function launchPhase2Chat(options) {
   
   // Build context from Phase 1
   const context = buildPhase1Context(interviewAnswers, detectedPlatforms, userName, language);
-  const preprompt = generatePhase2Preprompt(context);
+  const systemContext = generatePhase2Preprompt(context);
   
   // Pre-copy Phase 2 agent to project
   const phase2AgentSource = path.join(templateDir, '.github', 'agents', 'bmad-agent-yanstaller-phase2.md');
@@ -106,10 +169,6 @@ async function launchPhase2Chat(options) {
     await fs.copy(phase2AgentSource, path.join(githubAgentsDir, 'bmad-agent-yanstaller-phase2.md'), { overwrite: true });
   }
   
-  // Write preprompt to temp file
-  const prepromptFile = path.join(projectRoot, '.yanstaller-phase2-context.tmp');
-  await fs.writeFile(prepromptFile, preprompt, 'utf8');
-  
   // Display Phase 2 header
   console.log('');
   console.log(chalk.magenta('╔════════════════════════════════════════════════════════════╗'));
@@ -119,140 +178,127 @@ async function launchPhase2Chat(options) {
   console.log(chalk.magenta('║') + '                                                            ' + chalk.magenta('║'));
   console.log(chalk.magenta('╚════════════════════════════════════════════════════════════╝'));
   console.log('');
-  console.log(chalk.gray('  Tapez vos réponses naturellement.'));
-  console.log(chalk.gray('  Dites "finaliser" pour générer la configuration.'));
-  console.log(chalk.gray('  Dites "skip" pour passer cette phase.'));
+  console.log(chalk.gray('  Commandes: "finaliser" | "skip" | "aide"'));
   console.log('');
   
-  // Determine which CLI to use
-  let cliCommand = null;
-  let cliArgs = [];
-  
-  if (detectedPlatforms.copilot) {
-    cliCommand = 'copilot';
-    cliArgs = ['--agent=bmad-agent-yanstaller-phase2'];
-  } else if (detectedPlatforms.codex) {
-    cliCommand = 'codex';
-    cliArgs = ['chat'];
-  } else if (detectedPlatforms.claude) {
-    cliCommand = 'claude';
-    cliArgs = [];
-  }
-  
-  if (!cliCommand) {
+  // Check if any AI platform is available
+  if (!detectedPlatforms.copilot && !detectedPlatforms.codex && !detectedPlatforms.claude) {
     console.log(chalk.yellow('  ⚠ Aucune plateforme AI détectée pour le chat.'));
-    console.log(chalk.gray('  Passez à la configuration manuelle.'));
-    await fs.remove(prepromptFile).catch(() => {});
     return null;
   }
   
-  // Launch interactive session
-  return new Promise(async (resolve) => {
-    try {
-      // For copilot, we need to handle it specially
-      if (cliCommand === 'copilot') {
-        // Use spawn for interactive session
-        console.log(chalk.cyan('  🚀 Lancement de la session interactive...'));
-        console.log(chalk.gray('  (La session Copilot va s\'ouvrir)'));
-        console.log('');
-        
-        // First, send the initial prompt
-        const initialPrompt = `Tu es yanstaller-phase2. Voici le contexte:\n\n${preprompt}\n\nCommence par accueillir l'utilisateur et pose ta première question.`;
-        
-        const child = spawn(cliCommand, [...cliArgs, '-p', initialPrompt], {
-          cwd: projectRoot,
-          stdio: 'inherit',
-          env: { ...process.env }
-        });
-        
-        child.on('close', async (code) => {
-          // Cleanup
-          await fs.remove(prepromptFile).catch(() => {});
-          
-          // Try to read any generated config
-          const configFile = path.join(projectRoot, '_byan-output', 'yanstaller-config.json');
-          if (await fs.pathExists(configFile)) {
-            try {
-              const config = await fs.readJson(configFile);
-              resolve(config);
-              return;
-            } catch (e) {
-              // Config parsing failed
-            }
-          }
-          
-          // Check for inline JSON in conversation log
-          const logFile = path.join(projectRoot, '.yanstaller-session.log');
-          if (await fs.pathExists(logFile)) {
-            try {
-              const log = await fs.readFile(logFile, 'utf8');
-              const jsonMatch = log.match(/\{[\s\S]*"coreAgents"[\s\S]*\}/);
-              if (jsonMatch) {
-                const config = JSON.parse(jsonMatch[0]);
-                await fs.remove(logFile).catch(() => {});
-                resolve(config);
-                return;
-              }
-            } catch (e) {
-              // Log parsing failed
-            }
-          }
-          
-          resolve(null);
-        });
-        
-        child.on('error', async (err) => {
-          console.log(chalk.yellow(`  ⚠ Erreur session: ${err.message}`));
-          await fs.remove(prepromptFile).catch(() => {});
-          resolve(null);
-        });
-        
-      } else {
-        // For other CLIs, use a simpler approach
-        console.log(chalk.yellow(`  Mode conversation non disponible pour ${cliCommand}.`));
-        console.log(chalk.gray('  Utilisation du mode prompt unique.'));
-        
-        // Fall back to single prompt mode
-        const singlePrompt = `${preprompt}\n\nGénère directement la configuration JSON pour ce projet ${context.domain}.`;
-        
-        try {
-          let result;
-          if (cliCommand === 'codex') {
-            result = execSync(`codex exec "${singlePrompt}"`, {
-              encoding: 'utf8',
-              cwd: projectRoot,
-              timeout: 120000
-            });
-          } else {
-            result = execSync(`${cliCommand} -p "${singlePrompt}"`, {
-              encoding: 'utf8',
-              cwd: projectRoot,
-              timeout: 120000
-            });
-          }
-          
-          // Parse JSON from result
-          const jsonMatch = result.match(/\{[\s\S]*"coreAgents"[\s\S]*\}/);
-          if (jsonMatch) {
-            const config = JSON.parse(jsonMatch[0]);
-            await fs.remove(prepromptFile).catch(() => {});
-            resolve(config);
-            return;
-          }
-        } catch (e) {
-          console.log(chalk.yellow(`  ⚠ Analyse non disponible: ${e.message}`));
-        }
-        
-        await fs.remove(prepromptFile).catch(() => {});
-        resolve(null);
+  // Get initial AI greeting
+  const spinner = ora('Yanstaller réfléchit...').start();
+  let conversationHistory = '';
+  
+  const initialMessage = `Commence par accueillir l'utilisateur ${context.user_name} avec un résumé de son profil (domaine: ${context.domain}, objectifs: ${context.objectives?.join(', ') || 'non spécifiés'}) et pose ta première question pour personnaliser son installation BYAN.`;
+  
+  const greeting = await sendChatMessage(initialMessage, systemContext, '', detectedPlatforms, projectRoot);
+  spinner.stop();
+  
+  console.log(chalk.cyan('  Yanstaller:'));
+  console.log(chalk.white('  ' + greeting.split('\n').join('\n  ')));
+  console.log('');
+  
+  conversationHistory += `Assistant: ${greeting}\n\n`;
+  
+  // Chat loop using inquirer (avoids readline/inquirer conflict)
+  let phase2Config = null;
+  let continueChat = true;
+  
+  while (continueChat) {
+    // Get user input using inquirer
+    const { userInput } = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'userInput',
+        message: '> Vous:',
+        prefix: ' '
       }
-      
-    } catch (error) {
-      console.log(chalk.yellow(`  ⚠ Erreur Phase 2: ${error.message}`));
-      await fs.remove(prepromptFile).catch(() => {});
-      resolve(null);
+    ]);
+    
+    const input = userInput.trim().toLowerCase();
+    
+    // Handle special commands
+    if (input === 'skip' || input === 'passer') {
+      console.log(chalk.gray('  Phase 2 ignorée.'));
+      return null;
     }
-  });
+    
+    if (input === 'aide' || input === 'help') {
+      console.log('');
+      console.log(chalk.cyan('  Commandes disponibles:'));
+      console.log(chalk.gray('    finaliser - Générer la configuration et continuer'));
+      console.log(chalk.gray('    skip      - Passer cette phase'));
+      console.log(chalk.gray('    aide      - Afficher cette aide'));
+      console.log('');
+      continue;
+    }
+    
+    // Add user message to history
+    conversationHistory += `Utilisateur: ${userInput}\n\n`;
+    
+    // Check for finalization
+    const wantsFinal = input.includes('finaliser') || 
+                      input.includes('terminer') || 
+                      input.includes('c\'est bon') ||
+                      input.includes('fini');
+    
+    // Send to AI
+    const chatSpinner = ora('Yanstaller réfléchit...').start();
+    
+    let aiPrompt = userInput;
+    if (wantsFinal) {
+      aiPrompt = `${userInput}
+
+IMPORTANT: L'utilisateur veut finaliser. Génère maintenant la configuration JSON complète avec ce format exact:
+\`\`\`json
+{
+  "coreAgents": [...],
+  "optionalAgents": [...],
+  "agentRelationships": [...],
+  "projectStructure": {...},
+  "customAgentsToCreate": [...],
+  "recommendedModel": "string",
+  "rationale": "string"
+}
+\`\`\``;
+    }
+    
+    const response = await sendChatMessage(aiPrompt, systemContext, conversationHistory, detectedPlatforms, projectRoot);
+    chatSpinner.stop();
+    
+    console.log('');
+    console.log(chalk.cyan('  Yanstaller:'));
+    console.log(chalk.white('  ' + response.split('\n').join('\n  ')));
+    console.log('');
+    
+    conversationHistory += `Assistant: ${response}\n\n`;
+    
+    // Try to extract JSON config from response
+    const jsonMatch = response.match(/```json\s*([\s\S]*?)```/) || 
+                     response.match(/\{[\s\S]*"coreAgents"[\s\S]*\}/);
+    
+    if (jsonMatch) {
+      try {
+        const jsonStr = jsonMatch[1] || jsonMatch[0];
+        phase2Config = JSON.parse(jsonStr.trim());
+        console.log(chalk.green('  ✓ Configuration extraite!'));
+        console.log('');
+        continueChat = false;
+      } catch (e) {
+        // JSON parse failed, continue conversation
+      }
+    }
+    
+    // If user wanted to finalize but we didn't get valid JSON
+    if (wantsFinal && !phase2Config) {
+      console.log(chalk.yellow('  ⚠ Configuration non générée. Réessayez "finaliser" ou "skip".'));
+      console.log('');
+    }
+  }
+  
+  return phase2Config;
 }
 
 /**
