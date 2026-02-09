@@ -11,7 +11,8 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "setup-turbo-whisper": "node install/setup-turbo-whisper.js"
+    "setup-turbo-whisper": "node install/setup-turbo-whisper.js",
+    "byan": "echo \"BYAN agent installed. Use: copilot and type /agent\""
   },
   "keywords": [
     "byan",

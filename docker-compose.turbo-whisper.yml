@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  whisper-server:
+    image: fedirz/faster-whisper-server:latest-cuda
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=large-v3
+      - DEVICE=cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
