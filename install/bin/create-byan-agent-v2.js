@@ -516,21 +516,15 @@ async function install() {
     console.log(chalk.yellow('🎤 Turbo Whisper Voice Dictation:'));
     console.log('');
     
-    if (turboWhisperMode === 'local') {
-      console.log(chalk.gray('  Start Whisper server:'));
-      console.log(`   ${chalk.blue('./scripts/start-whisper-server.sh')}`);
-      console.log('');
-    } else if (turboWhisperMode === 'docker') {
-      console.log(chalk.gray('  Start Docker container:'));
-      console.log(`   ${chalk.blue('docker-compose -f docker-compose.turbo-whisper.yml up -d')}`);
+    if (turboWhisperMode === 'local' || turboWhisperMode === 'docker') {
+      console.log(chalk.gray('  Lancement simplifié (1 commande):'));
+      console.log(`   ${chalk.blue('./scripts/launch-turbo-whisper.sh')}`);
+      console.log(chalk.gray('   → Démarre automatiquement le serveur si nécessaire'));
       console.log('');
     }
     
-    console.log(chalk.gray('  Launch voice dictation:'));
-    console.log(`   ${chalk.blue('./scripts/launch-turbo-whisper.sh')}`);
-    console.log('');
     console.log(chalk.gray('  Hotkey: Ctrl+Alt+R (start/stop recording)'));
-    console.log(chalk.gray('  See: TURBO-WHISPER-SETUP.md for details'));
+    console.log(chalk.gray('  Documentation: TURBO-WHISPER-SETUP.md'));
   }
   
   console.log('');

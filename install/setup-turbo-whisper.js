@@ -297,29 +297,131 @@ services:
   async createLaunchScript() {
     await fs.ensureDir(this.scriptsDir);
 
-    const launchScript = `#!/bin/bash
-# Launch Turbo Whisper voice dictation
+    let launchScript;
+    
+    if (this.mode === 'local') {
+      // Mode Local: Vérifie et lance le serveur si nécessaire
+      launchScript = `#!/bin/bash
+# Launch Turbo Whisper voice dictation with automatic server startup
 
 TURBO_DIR="$HOME/.local/share/turbo-whisper"
+SERVER_DIR="$HOME/faster-whisper-server"
+SERVER_PORT=8000
+
+echo "🔍 Vérification serveur Whisper..."
+
+# Vérifier si serveur déjà en cours
+if curl -s http://localhost:$SERVER_PORT/health > /dev/null 2>&1; then
+    echo "✅ Serveur Whisper déjà actif"
+else
+    echo "⚡ Démarrage serveur Whisper..."
+    
+    # Lancer serveur en arrière-plan
+    cd "$SERVER_DIR"
+    nohup uv run uvicorn --factory faster_whisper_server.main:create_app > /tmp/whisper-server.log 2>&1 &
+    SERVER_PID=$!
+    
+    echo "⏳ Attente démarrage serveur (15 secondes)..."
+    sleep 15
+    
+    # Vérifier que le serveur répond
+    if curl -s http://localhost:$SERVER_PORT/health > /dev/null 2>&1; then
+        echo "✅ Serveur Whisper prêt (PID: $SERVER_PID)"
+    else
+        echo "❌ Erreur: Serveur n'a pas démarré"
+        echo "📋 Logs: tail -f /tmp/whisper-server.log"
+        exit 1
+    fi
+fi
+
+echo ""
+echo "🚀 Lancement Turbo Whisper..."
+echo "📍 Hotkey: Ctrl+Alt+R"
+echo "📋 Logs serveur: tail -f /tmp/whisper-server.log"
+echo ""
 
 cd "$TURBO_DIR"
 source .venv/bin/activate
-
-echo "🚀 Lancement Turbo Whisper..."
-echo "📍 Hotkey: Ctrl+Alt+R"
-echo ""
-
 python -m turbo_whisper.main
 `;
+    } else if (this.mode === 'docker') {
+      // Mode Docker: Vérifie et lance le conteneur si nécessaire
+      launchScript = `#!/bin/bash
+# Launch Turbo Whisper voice dictation with Docker server
+
+TURBO_DIR="$HOME/.local/share/turbo-whisper"
+COMPOSE_FILE="$HOME/docker-compose.turbo-whisper.yml"
+SERVER_PORT=8000
+
+echo "🔍 Vérification serveur Whisper Docker..."
+
+# Vérifier si serveur déjà en cours
+if curl -s http://localhost:$SERVER_PORT/health > /dev/null 2>&1; then
+    echo "✅ Serveur Whisper déjà actif"
+else
+    echo "⚡ Démarrage conteneur Docker..."
+    
+    # Lancer Docker Compose
+    docker-compose -f "$COMPOSE_FILE" up -d
+    
+    echo "⏳ Attente démarrage serveur (20 secondes)..."
+    sleep 20
+    
+    # Vérifier que le serveur répond
+    if curl -s http://localhost:$SERVER_PORT/health > /dev/null 2>&1; then
+        echo "✅ Serveur Whisper prêt"
+    else
+        echo "❌ Erreur: Serveur n'a pas démarré"
+        echo "📋 Logs: docker-compose -f $COMPOSE_FILE logs"
+        exit 1
+    fi
+fi
+
+echo ""
+echo "🚀 Lancement Turbo Whisper..."
+echo "📍 Hotkey: Ctrl+Alt+R"
+echo "📋 Arrêter serveur: docker-compose -f $COMPOSE_FILE down"
+echo ""
+
+cd "$TURBO_DIR"
+source .venv/bin/activate
+python -m turbo_whisper.main
+`;
+    } else {
+      // Mode Skip (ne devrait pas arriver ici)
+      launchScript = `#!/bin/bash
+echo "⚠️  Turbo Whisper non installé"
+echo "Installez avec: npm run setup-turbo-whisper"
+exit 1
+`;
+    }
 
     const scriptPath = path.join(this.scriptsDir, 'launch-turbo-whisper.sh');
     await fs.writeFile(scriptPath, launchScript, 'utf-8');
     await fs.chmod(scriptPath, '755');
 
-    // Create server launch script
+    // Créer script d'arrêt pour mode Docker
+    if (this.mode === 'docker') {
+      const stopScript = `#!/bin/bash
+# Stop Turbo Whisper Docker server
+
+COMPOSE_FILE="$HOME/docker-compose.turbo-whisper.yml"
+
+echo "🛑 Arrêt serveur Whisper Docker..."
+docker-compose -f "$COMPOSE_FILE" down
+
+echo "✅ Serveur arrêté"
+`;
+
+      const stopScriptPath = path.join(this.scriptsDir, 'stop-whisper-server.sh');
+      await fs.writeFile(stopScriptPath, stopScript, 'utf-8');
+      await fs.chmod(stopScriptPath, '755');
+    }
+
+    // Create server launch script (standalone, optionnel)
     if (this.mode === 'local') {
       const serverScript = `#!/bin/bash
-# Launch faster-whisper-server locally
+# Launch faster-whisper-server locally (standalone)
 
 SERVER_DIR="$HOME/faster-whisper-server"
 
@@ -327,6 +429,7 @@ cd "$SERVER_DIR"
 echo "🚀 Starting Whisper server on http://localhost:8000"
 uv run uvicorn --factory faster_whisper_server.main:create_app
 `;
+
 
       const serverScriptPath = path.join(this.scriptsDir, 'start-whisper-server.sh');
       await fs.writeFile(serverScriptPath, serverScript, 'utf-8');
@@ -343,18 +446,32 @@ uv run uvicorn --factory faster_whisper_server.main:create_app
 ${this.mode === 'local' ? '✅ Whisper server installed in: `~/faster-whisper-server`' : ''}
 ${this.mode === 'docker' ? '✅ Docker configuration: `docker-compose.turbo-whisper.yml`' : ''}
 
-## Usage
+## Usage (Simplifié - Recommandé)
 
-### Start Whisper Server
-
-${this.mode === 'local' ? '```bash\n./scripts/start-whisper-server.sh\n# Or manually:\ncd ~/faster-whisper-server\nuv run uvicorn --factory faster_whisper_server.main:create_app\n```' : ''}
-
-${this.mode === 'docker' ? '```bash\ndocker-compose -f docker-compose.turbo-whisper.yml up -d\n```' : ''}
-
-### Start Turbo Whisper Client
+### Lancement Automatique (1 commande)
 
 \`\`\`bash
 ./scripts/launch-turbo-whisper.sh
+\`\`\`
+
+${this.mode === 'local' ? '**Ce script:**\n1. Vérifie si le serveur Whisper tourne\n2. Le démarre automatiquement si nécessaire (arrière-plan)\n3. Lance Turbo Whisper client\n\n**Logs serveur:** `/tmp/whisper-server.log`' : ''}
+
+${this.mode === 'docker' ? '**Ce script:**\n1. Vérifie si le conteneur Docker tourne\n2. Le démarre automatiquement si nécessaire\n3. Lance Turbo Whisper client\n\n**Arrêter serveur:** `./scripts/stop-whisper-server.sh`' : ''}
+
+## Usage Avancé (Manuel)
+
+### Démarrer Serveur Manuellement
+
+${this.mode === 'local' ? '```bash\n# Option 1: Script standalone\n./scripts/start-whisper-server.sh\n\n# Option 2: Commande directe\ncd ~/faster-whisper-server\nuv run uvicorn --factory faster_whisper_server.main:create_app\n```' : ''}
+
+${this.mode === 'docker' ? '```bash\n# Démarrer\ndocker-compose -f docker-compose.turbo-whisper.yml up -d\n\n# Vérifier\ndocker ps | grep whisper\n\n# Logs\ndocker-compose -f docker-compose.turbo-whisper.yml logs -f\n\n# Arrêter\ndocker-compose -f docker-compose.turbo-whisper.yml down\n```' : ''}
+
+### Démarrer Client Seul
+
+\`\`\`bash
+cd ~/.local/share/turbo-whisper
+source .venv/bin/activate
+python -m turbo_whisper.main
 \`\`\`
 
 ### Hotkey
@@ -412,19 +529,17 @@ Voir: \`TURBO-WHISPER-INTEGRATION-COMPLETE.md\` pour détails complets.
     console.log(chalk.blue('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
     console.log(chalk.bold('🎤 Turbo Whisper Usage:\n'));
     
+    console.log(chalk.green('✨ Lancement Automatique (Recommandé):\n'));
+    console.log(chalk.white('   ./scripts/launch-turbo-whisper.sh'));
+    console.log(chalk.gray('   → Démarre automatiquement le serveur si nécessaire\n'));
+    
     if (this.mode === 'local') {
-      console.log(chalk.gray('1. Start Whisper server:'));
-      console.log(chalk.white('   ./scripts/start-whisper-server.sh\n'));
+      console.log(chalk.gray('📋 Logs serveur: /tmp/whisper-server.log'));
     } else if (this.mode === 'docker') {
-      console.log(chalk.gray('1. Start Docker container:'));
-      console.log(chalk.white('   docker-compose -f docker-compose.turbo-whisper.yml up -d\n'));
+      console.log(chalk.gray('🛑 Arrêter serveur: ./scripts/stop-whisper-server.sh'));
     }
     
-    console.log(chalk.gray('2. Start Turbo Whisper:'));
-    console.log(chalk.white('   ./scripts/launch-turbo-whisper.sh\n'));
-    
-    console.log(chalk.gray('3. Use hotkey:'));
-    console.log(chalk.white('   Ctrl+Alt+R (start/stop recording)\n'));
+    console.log(chalk.gray('\n🎯 Hotkey: Ctrl+Alt+R (start/stop recording)\n'));
     
     console.log(chalk.blue('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'));
   }
