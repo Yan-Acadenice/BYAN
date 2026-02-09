@@ -350,7 +350,7 @@ Concepts reportés Phase 2:
 - Plan jour par jour établi
 
 **Livrables:**
-- Document session complet: `_bmad-output/brainstorming/brainstorming-session-2026-02-04.md`
+- Document session complet: `_byan-output/brainstorming/brainstorming-session-2026-02-04.md`
 - Architecture BYAN v2.0 complète documentée
 - Plan d'implémentation HYPER-MVP 1 semaine
 - Decision tree et success metrics

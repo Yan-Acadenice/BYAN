@@ -96,7 +96,7 @@ class WorkflowExecutor {
    * @throws {WorkflowError} Si workflow invalide ou step échoue
    * 
    * @example
-   * const result = await executor.execute('_bmad/workflows/create-prd/workflow.yaml');
+   * const result = await executor.execute('_byan/workflows/create-prd/workflow.yaml');
    * console.log(`Workflow: ${result.workflowName}`);
    * console.log(`Steps: ${result.stepsExecuted}`);
    * console.log(`Success: ${result.success}`);
@@ -209,7 +209,7 @@ class WorkflowExecutor {
 
 ## 🛠️ IMPLÉMENTATION
 
-### Fichier: `_bmad/core/workflow-executor.js`
+### Fichier: `_byan/core/workflow-executor.js`
 
 ```javascript
 const yaml = require('js-yaml');
@@ -645,7 +645,7 @@ steps:
 ### Fichier: `__tests__/workflow-executor.test.js`
 
 ```javascript
-const { WorkflowExecutor, WorkflowError } = require('../_bmad/core/workflow-executor');
+const { WorkflowExecutor, WorkflowError } = require('../_byan/core/workflow-executor');
 const fs = require('fs-extra');
 const path = require('path');
 const yaml = require('js-yaml');

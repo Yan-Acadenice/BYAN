@@ -198,7 +198,7 @@ module.exports = Worker;
 ### Pseudo-code WorkerPool
 
 ```javascript
-// _bmad/core/worker-pool.js
+// _byan/core/worker-pool.js
 
 class WorkerPool {
   constructor(size = 2, options = {}) {
@@ -314,7 +314,7 @@ module.exports = WorkerPool;
 ### Pseudo-code Worker
 
 ```javascript
-// _bmad/core/worker.js
+// _byan/core/worker.js
 
 class Worker {
   constructor(id, options = {}) {
@@ -750,7 +750,7 @@ test('should shutdown gracefully', async () => {
 ### Exemple 1: Basic Usage
 
 ```javascript
-const WorkerPool = require('./_bmad/core/worker-pool');
+const WorkerPool = require('./_byan/core/worker-pool');
 
 async function main() {
   const pool = new WorkerPool(2);

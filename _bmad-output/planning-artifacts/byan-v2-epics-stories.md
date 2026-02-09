@@ -7,7 +7,7 @@ user: Yan
 status: Ready for Implementation
 timeline: 7 jours (1 semaine)
 inputDocuments:
-  - /home/yan/conception/_bmad-output/architecture/byan-v2-0-architecture-node.md
+  - /home/yan/conception/_byan-output/architecture/byan-v2-0-architecture-node.md
   - /home/yan/conception/src/core/ (implementation skeletons)
 ---
 
@@ -69,12 +69,12 @@ inputDocuments:
 **AC1:** Function `loadContext(level, id)` exists in ContextLayer class
 - GIVEN level = 'platform'
 - WHEN calling loadContext('platform')
-- THEN it loads `_bmad/_context/platform.yaml` and returns parsed object
+- THEN it loads `_byan/_context/platform.yaml` and returns parsed object
 
 **AC2:** Function supports project-level loading
 - GIVEN level = 'project' and id = {projectId: 'my-project'}
 - WHEN calling loadContext('project', id)
-- THEN it loads `_bmad/_context/my-project/project.yaml`
+- THEN it loads `_byan/_context/my-project/project.yaml`
 - AND returns parsed object
 
 **AC3:** Function supports story-level loading
@@ -98,7 +98,7 @@ inputDocuments:
 **Technical Notes:**
 - Use `js-yaml` library for parsing
 - Use `fs-extra` for async file operations
-- Use `path.join(process.cwd(), '_bmad/_context', ...)` for paths
+- Use `path.join(process.cwd(), '_byan/_context', ...)` for paths
 
 ---
 
@@ -885,7 +885,7 @@ steps:
 **AC2:** Placeholder resolution in output path
 - GIVEN output_file = "{output_folder}/{step.extract.id}_result.md"
 - WHEN resolving
-- THEN path = "/path/to/_bmad-output/extract_requirements_result.md"
+- THEN path = "/path/to/_byan-output/extract_requirements_result.md"
 
 **AC3:** Directory creation if needed
 - GIVEN output path = "/new/dir/file.md"
@@ -1041,7 +1041,7 @@ steps:
 
 **AC1:** Winston logger configuration
 - Install winston package
-- Configure file transport: `_bmad-output/logs/byan.log`
+- Configure file transport: `_byan-output/logs/byan.log`
 - JSON format with timestamps
 - Log rotation: max 10MB per file, keep 5 files
 

@@ -131,7 +131,7 @@ APRÈS: "'Complète' = combien endpoints? Besoins métier? STOP #37..."
 
 ```bash
 # 1. Naviguer vers le répertoire
-cd /home/yan/conception/_bmad-output/bmb-creations
+cd /home/yan/conception/_byan-output/bmb-creations
 
 # 2. Vérifier le fichier optimisé
 ls -lh expert-merise-agile-optimized.md

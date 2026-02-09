@@ -219,7 +219,7 @@ Agent intelligent **YANSTALLER** (CLI via `npx yanstaller`) qui automatise l'ins
 ### Codebase Patterns
 
 **Architecture existante (96/100 score)** :
-- **Location** : `/home/yan/conception/_bmad-output/bmb-creations/yanstaller/ARCHITECTURE.md` (27 KB)
+- **Location** : `/home/yan/conception/_byan-output/bmb-creations/yanstaller/ARCHITECTURE.md` (27 KB)
 - **Code Status** : 22 module skeletons created (1,858 LOC total), 3 config files, __tests__/ structure ready but empty
 - **Design patterns** :
   - **Dependency Injection** : Config passed as parameters (not Singleton) for testability
@@ -279,13 +279,13 @@ Agent intelligent **YANSTALLER** (CLI via `npx yanstaller`) qui automatise l'ins
 
 | File | Purpose |
 | ---- | ------- |
-| `_bmad-output/bmb-creations/yanstaller/ARCHITECTURE.md` | Complete technical architecture (27 KB), design patterns, modules, testing strategy |
-| `_bmad-output/bmb-creations/yanstaller/ARCHITECTURE-SUMMARY.md` | Executive summary (13 KB), metrics, mantras validation |
-| `_bmad-output/bmb-creations/yanstaller/PHASE-1-DETECTION-PROMPT.md` | Phase 1 implementation guide (12.6 KB), 8 files, TDD approach, AC |
-| `_bmad-output/bmb-creations/yanstaller/DEPENDENCIES.md` | 6 production deps justified (5.3 KB), alternatives, bundle size |
-| `_bmad-output/bmb-creations/yanstaller/RISKS.md` | 8 risks identified (8.3 KB), mitigation strategies |
-| `_bmad-output/bmb-creations/yanstaller/ROLLBACK-STRATEGY.md` | Option B decision (2.5 KB), justification |
-| `_bmad-output/bmb-creations/yanstaller/PLAN-DEVELOPPEMENT.md` | 8 phases breakdown (29 KB), 240h total |
+| `_byan-output/bmb-creations/yanstaller/ARCHITECTURE.md` | Complete technical architecture (27 KB), design patterns, modules, testing strategy |
+| `_byan-output/bmb-creations/yanstaller/ARCHITECTURE-SUMMARY.md` | Executive summary (13 KB), metrics, mantras validation |
+| `_byan-output/bmb-creations/yanstaller/PHASE-1-DETECTION-PROMPT.md` | Phase 1 implementation guide (12.6 KB), 8 files, TDD approach, AC |
+| `_byan-output/bmb-creations/yanstaller/DEPENDENCIES.md` | 6 production deps justified (5.3 KB), alternatives, bundle size |
+| `_byan-output/bmb-creations/yanstaller/RISKS.md` | 8 risks identified (8.3 KB), mitigation strategies |
+| `_byan-output/bmb-creations/yanstaller/ROLLBACK-STRATEGY.md` | Option B decision (2.5 KB), justification |
+| `_byan-output/bmb-creations/yanstaller/PLAN-DEVELOPPEMENT.md` | 8 phases breakdown (29 KB), 240h total |
 | `install/lib/yanstaller/detector.js` | Main detection module skeleton (99 lines), JSDoc, TODOs |
 | `install/lib/utils/os-detector.js` | OS detection utility (73 lines), 4 functions |
 | `install/lib/utils/node-detector.js` | Node version detection (64 lines), semver comparison |
@@ -885,7 +885,7 @@ __tests__/
   - Justification : Mantra #37 Ockham's Razor, installation = file copies (low risk), idempotent re-run possible
   - Future : v2.0 can add auto-rollback if users request it
 
-- **No uninstall command** : Out of scope for v1.0, users must delete manually (`rm -rf _bmad .github/agents`)
+- **No uninstall command** : Out of scope for v1.0, users must delete manually (`rm -rf _byan .github/agents`)
   - Future : v1.1 can add `yanstaller uninstall` command
 
 - **No update command** : Out of scope for v1.0, users must re-run installer (overwrites existing)

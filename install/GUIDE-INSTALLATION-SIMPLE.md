@@ -91,7 +91,7 @@ claude chat --agent marc
 
 **Menu Principal :**
 - `[INSTALL]` Installer BYAN via NPX
-- `[VALIDATE]` Valider structure _bmad
+- `[VALIDATE]` Valider structure _byan
 - `[FIX-DEPS]` Corriger dépendances npm
 - `[UPDATE-PKG]` Mettre à jour package.json
 - `[PUBLISH]` Publier sur npm
@@ -133,7 +133,7 @@ Après installation, votre projet contient :
 
 ```
 votre-projet/
-├── _bmad/                          # Dossier BMAD principal
+├── _byan/                          # Dossier BMAD principal
 │   ├── bmb/                        # Module BMB (BYAN)
 │   │   ├── agents/                 # Agents sources
 │   │   │   ├── byan.md
@@ -157,7 +157,7 @@ votre-projet/
 │       ├── bmad-agent-rachid.md
 │       └── bmad-agent-marc.md
 │
-└── _bmad-output/                   # Agents créés par BYAN
+└── _byan-output/                   # Agents créés par BYAN
     └── bmb-creations/
 ```
 
@@ -186,7 +186,7 @@ votre-projet/
    - etc.
 
 4. **BYAN génère l'agent**
-   - Créé dans `_bmad-output/bmb-creations/backend-expert.md`
+   - Créé dans `_byan-output/bmb-creations/backend-expert.md`
 
 5. **Installer avec MARC**
    ```
@@ -204,11 +204,11 @@ votre-projet/
 
 ## ⚙️ Configuration
 
-Le fichier `_bmad/bmb/config.yaml` contient :
+Le fichier `_byan/bmb/config.yaml` contient :
 
 ```yaml
 # Dossier de sortie pour créations BYAN
-bmb_creations_output_folder: "{project-root}/_bmad-output/bmb-creations"
+bmb_creations_output_folder: "{project-root}/_byan-output/bmb-creations"
 
 # Votre nom (utilisé par agents)
 user_name: VotreNom
@@ -220,7 +220,7 @@ communication_language: Francais  # ou English
 document_output_language: Francais  # ou English
 
 # Dossier de sortie général
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 
 # Plateforme cible
 platform: copilot  # ou vscode, claude, codex, all

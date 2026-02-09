@@ -32,7 +32,7 @@ create-byan-agent/
 ├── templates/
 │   ├── .github/
 │   │   └── agents/             ← Stubs Copilot CLI
-│   └── _bmad/
+│   └── _byan/
 │       └── bmb/
 │           ├── agents/         ← Agents complets (byan.md, rachid.md, marc.md)
 │           └── workflows/      ← Workflows BYAN
@@ -64,7 +64,7 @@ const npmPackagePath = path.join(__dirname, '..', 'templates');
 
 ---
 
-#### **BUG #2 : Chemins des sources - Manque `_bmad/`**
+#### **BUG #2 : Chemins des sources - Manque `_byan/`**
 
 **Lignes 136, 147 (AVANT) :**
 ```javascript
@@ -73,17 +73,17 @@ const workflowsSource = path.join(templateDir, 'bmb', 'workflows', 'byan');
 ```
 
 **Problème :**
-- Les fichiers sont dans `templates/_bmad/bmb/...` et non `templates/bmb/...`
+- Les fichiers sont dans `templates/_byan/bmb/...` et non `templates/bmb/...`
 - Chemins inexistants = aucun fichier copié
 
 **Lignes 154, 165 (APRÈS) :**
 ```javascript
-const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
-const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
+const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
+const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
 ```
 
 **Solution :**
-- Ajoute `_bmad/` dans le chemin
+- Ajoute `_byan/` dans le chemin
 - Chemins corrects = fichiers trouvés ✅
 
 ---
@@ -155,10 +155,10 @@ if (!templateDir) {
 
 ```javascript
 // Agents
-const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
+const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
 
 // Workflows
-const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
+const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
 
 // GitHub agents (stubs)
 const githubAgentsSource = path.join(templateDir, '.github', 'agents');
@@ -188,8 +188,8 @@ node bin/create-byan-agent.js --help  # Vérification syntaxe
 
 ```
 ✅ templateDir = .../node_modules/create-byan-agent/templates
-✅ agentsSource = .../templates/_bmad/bmb/agents (8 fichiers trouvés)
-✅ workflowsSource = .../templates/_bmad/bmb/workflows/byan (8 dirs trouvés)
+✅ agentsSource = .../templates/_byan/bmb/agents (8 fichiers trouvés)
+✅ workflowsSource = .../templates/_byan/bmb/workflows/byan (8 dirs trouvés)
 ✅ githubAgentsSource = .../templates/.github/agents (23 fichiers trouvés)
 ```
 
@@ -204,10 +204,10 @@ npx create-byan-agent
 ```
 
 **Vérifications :**
-- [ ] `_bmad/bmb/agents/byan.md` existe
-- [ ] `_bmad/bmb/agents/rachid.md` existe
-- [ ] `_bmad/bmb/agents/marc.md` existe
-- [ ] `_bmad/bmb/workflows/byan/` contient 8+ fichiers
+- [ ] `_byan/bmb/agents/byan.md` existe
+- [ ] `_byan/bmb/agents/rachid.md` existe
+- [ ] `_byan/bmb/agents/marc.md` existe
+- [ ] `_byan/bmb/workflows/byan/` contient 8+ fichiers
 - [ ] `.github/agents/bmad-agent-byan.md` existe
 - [ ] `.github/agents/bmad-agent-rachid.md` existe
 - [ ] `.github/agents/bmad-agent-marc.md` existe
@@ -240,7 +240,7 @@ Avant de publier la version corrigée `1.1.3` :
 ### 🐛 Bug Fixes
 - **CRITICAL:** Fixed template directory resolution for npm/npx installation
   - Corrected path from `__dirname/../../create-byan-agent/templates` to `__dirname/../templates`
-  - Added `_bmad/` prefix to agent and workflow source paths
+  - Added `_byan/` prefix to agent and workflow source paths
   - Fixed `.github/agents` path to stay within package scope
   - Added validation to fail early if templates not found
   - Improved logging for debugging installation issues

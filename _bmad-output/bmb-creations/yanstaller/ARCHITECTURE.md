@@ -65,7 +65,7 @@ Node version check dès le début, exit code 1 si erreur critique.
 Pas de hiérarchie de classes. Fonctions pures composées.
 
 ### 5. Convention over Configuration
-Chemins par défaut sensibles (.github/agents/, _bmad/, etc.)
+Chemins par défaut sensibles (.github/agents/, _byan/, etc.)
 
 ---
 
@@ -146,7 +146,7 @@ User runs: npx create-byan-agent
 └────────┬─────────┘
          ▼
 ┌──────────────────┐
-│ 5. BACKUP        │ → If _bmad/ exists → Backup to _bmad.backup-{timestamp}/
+│ 5. BACKUP        │ → If _byan/ exists → Backup to _byan.backup-{timestamp}/
 └────────┬─────────┘
          ▼
 ┌──────────────────┐
@@ -422,7 +422,7 @@ install/
  * @property {string} userName
  * @property {string} language - 'Francais' | 'English'
  * @property {string[]} targetPlatforms - Platforms to install on
- * @property {string} outputFolder - e.g., '{project-root}/_bmad-output'
+ * @property {string} outputFolder - e.g., '{project-root}/_byan-output'
  */
 
 /**
@@ -466,8 +466,8 @@ async function main() {
     : await interviewer.ask(recommendation);
   
   // 6. Backup if needed
-  if (await fileUtils.exists('_bmad')) {
-    await backuper.backup('_bmad');
+  if (await fileUtils.exists('_byan')) {
+    await backuper.backup('_byan');
   }
   
   // 7. Install
@@ -770,10 +770,10 @@ describe('E2E Windows', () => {
 
 ```javascript
 // ✅ GOOD: path.join()
-const agentPath = path.join(projectRoot, '_bmad', 'agents', 'byan.md');
+const agentPath = path.join(projectRoot, '_byan', 'agents', 'byan.md');
 
 // ❌ BAD: String concatenation
-const agentPath = projectRoot + '/_bmad/agents/byan.md'; // Fail sur Windows
+const agentPath = projectRoot + '/_byan/agents/byan.md'; // Fail sur Windows
 ```
 
 ### Permissions

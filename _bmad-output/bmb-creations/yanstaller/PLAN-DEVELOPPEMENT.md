@@ -465,27 +465,27 @@ it('should generate config.yaml', async () => {
 **Fichier**: `lib/utils/file-ops.js`
 
 **Fonctionnalités**:
-- Crée `_bmad/` (RG-YAN-003: backup si existe)
+- Crée `_byan/` (RG-YAN-003: backup si existe)
 - Crée sous-dossiers (bmb, core, _config, _memory, _output)
 - Crée `.github/agents/`
 - Permissions correctes (chmod)
 
 **Tests**:
 ```javascript
-it('should create _bmad/ structure', async () => {
+it('should create _byan/ structure', async () => {
   await fileOps.createStructure('/test-project');
   
-  expect(fs.existsSync('/test-project/_bmad')).toBe(true);
-  expect(fs.existsSync('/test-project/_bmad/bmb/agents')).toBe(true);
+  expect(fs.existsSync('/test-project/_byan')).toBe(true);
+  expect(fs.existsSync('/test-project/_byan/bmb/agents')).toBe(true);
 });
 
-it('should backup existing _bmad/', async () => {
-  // Create existing _bmad/
-  fs.mkdirSync('/test-project/_bmad');
+it('should backup existing _byan/', async () => {
+  // Create existing _byan/
+  fs.mkdirSync('/test-project/_byan');
   
   await fileOps.createStructure('/test-project');
   
-  expect(fs.existsSync('/test-project/_bmad.backup-*')).toBe(true);
+  expect(fs.existsSync('/test-project/_byan.backup-*')).toBe(true);
 });
 ```
 
@@ -495,7 +495,7 @@ it('should backup existing _bmad/', async () => {
 **Fichier**: `lib/yanstaller/installer.js`
 
 **Fonctionnalités**:
-- Copie agents depuis `templates/` vers `_bmad/bmb/agents/`
+- Copie agents depuis `templates/` vers `_byan/bmb/agents/`
 - Génère stubs `.github/agents/` (YAML frontmatter)
 - Gère plateformes multiples (Copilot, VSCode, Claude, Codex)
 - Progress bar (ora)
@@ -508,7 +508,7 @@ it('should copy minimal agents', async () => {
     projectRoot: '/test-project'
   });
   
-  expect(fs.existsSync('/test-project/_bmad/bmb/agents/byan.md')).toBe(true);
+  expect(fs.existsSync('/test-project/_byan/bmb/agents/byan.md')).toBe(true);
   expect(fs.existsSync('/test-project/.github/agents/byan.md')).toBe(true);
 });
 
@@ -528,7 +528,7 @@ it('should generate correct YAML frontmatter', async () => {
 **Fichier**: `lib/yanstaller/installer.js`
 
 **Fonctionnalités**:
-- Génère `_bmad/bmb/config.yaml`
+- Génère `_byan/bmb/config.yaml`
 - Variables résolues (`{project-root}`)
 - Métadata installation (version, date, mode)
 
@@ -541,7 +541,7 @@ it('should generate valid config.yaml', async () => {
     mode: 'minimal'
   });
   
-  const config = yaml.load(fs.readFileSync('_bmad/bmb/config.yaml'));
+  const config = yaml.load(fs.readFileSync('_byan/bmb/config.yaml'));
   expect(config.user_name).toBe('Test');
   expect(config.mode).toBe('minimal');
 });
@@ -567,7 +567,7 @@ it('should install for Copilot CLI', async () => {
 
 it('should install for Claude Code', async () => {
   await platforms.claudeCode.install(agents);
-  expect(fs.existsSync('_bmad/bmb/agents/yanstaller-mcp-config.json')).toBe(true);
+  expect(fs.existsSync('_byan/bmb/agents/yanstaller-mcp-config.json')).toBe(true);
 });
 ```
 
@@ -581,8 +581,8 @@ it('should install for Claude Code', async () => {
 **Fichier**: `lib/yanstaller/validator.js`
 
 **Checks (10 total)**:
-1. ✅ `_bmad/` existe
-2. ✅ `_bmad/bmb/agents/` contient agents
+1. ✅ `_byan/` existe
+2. ✅ `_byan/bmb/agents/` contient agents
 3. ✅ `.github/agents/` contient stubs
 4. ✅ `config.yaml` généré
 5. ✅ Permissions correctes (read/write)
@@ -660,7 +660,7 @@ it('should detect missing name field', () => {
   total: 10,
   status: 'SUCCESS',
   details: [
-    { check: '_bmad/ exists', status: 'PASS' },
+    { check: '_byan/ exists', status: 'PASS' },
     { check: 'Agents copied', status: 'PASS', count: 5 },
     { check: 'Stubs generated', status: 'PASS' },
     { check: 'YAML valid', status: 'PASS' },
@@ -768,20 +768,20 @@ it('should provide Node.js upgrade guide', () => {
 
 **Fonctionnalités**:
 - Backup avant overwrite (RG-YAN-003)
-- Format: `_bmad.backup-{timestamp}/`
+- Format: `_byan.backup-{timestamp}/`
 - Compression optionnelle (.tar.gz)
 - Cleanup old backups (> 5)
 
 **Tests**:
 ```javascript
-it('should backup existing _bmad/', async () => {
-  fs.mkdirSync('_bmad');
-  fs.writeFileSync('_bmad/test.txt', 'data');
+it('should backup existing _byan/', async () => {
+  fs.mkdirSync('_byan');
+  fs.writeFileSync('_byan/test.txt', 'data');
   
-  await backuper.backup('_bmad');
+  await backuper.backup('_byan');
   
-  expect(fs.existsSync('_bmad.backup-*')).toBe(true);
-  const backupContent = fs.readFileSync('_bmad.backup-*/test.txt');
+  expect(fs.existsSync('_byan.backup-*')).toBe(true);
+  const backupContent = fs.readFileSync('_byan.backup-*/test.txt');
   expect(backupContent.toString()).toBe('data');
 });
 ```
@@ -800,12 +800,12 @@ it('should backup existing _bmad/', async () => {
 **Tests**:
 ```javascript
 it('should rollback to latest backup', async () => {
-  await backuper.backup('_bmad');
-  fs.rmSync('_bmad', { recursive: true });
+  await backuper.backup('_byan');
+  fs.rmSync('_byan', { recursive: true });
   
   await backuper.rollback();
   
-  expect(fs.existsSync('_bmad')).toBe(true);
+  expect(fs.existsSync('_byan')).toBe(true);
 });
 ```
 

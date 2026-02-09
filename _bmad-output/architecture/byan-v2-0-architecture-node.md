@@ -53,14 +53,14 @@ BYAN v2.0 transforme l'assistant intelligent d'interview métier en une **platef
 ### 1. CONTEXT LAYER
 
 ```javascript
-// _bmad/core/context.js
+// _byan/core/context.js
 const yaml = require('js-yaml');
 const fs = require('fs-extra');
 const path = require('path');
 
 class ContextLayer {
   async loadContext(level, id = null) {
-    const contextDir = path.join(process.cwd(), '_bmad/_context');
+    const contextDir = path.join(process.cwd(), '_byan/_context');
     
     if (level === 'platform') {
       return yaml.load(await fs.readFile(
@@ -95,7 +95,7 @@ module.exports = ContextLayer;
 ### 2. ECONOMIC DISPATCHER
 
 ```javascript
-// _bmad/core/dispatcher.js
+// _byan/core/dispatcher.js
 
 class EconomicDispatcher {
   calculateComplexity(task) {
@@ -153,7 +153,7 @@ module.exports = EconomicDispatcher;
 ### 3. WORKER POOL
 
 ```javascript
-// _bmad/core/worker-pool.js
+// _byan/core/worker-pool.js
 
 class WorkerPool {
   constructor(size = 2) {
@@ -230,7 +230,7 @@ module.exports = WorkerPool;
 ### 4. WORKFLOW EXECUTOR
 
 ```javascript
-// _bmad/core/workflow-executor.js
+// _byan/core/workflow-executor.js
 const yaml = require('js-yaml');
 const fs = require('fs-extra');
 
@@ -317,7 +317,7 @@ module.exports = WorkflowExecutor;
 ### 5. OBSERVABILITY LAYER
 
 ```javascript
-// _bmad/core/structured-logger.js
+// _byan/core/structured-logger.js
 const winston = require('winston');
 const path = require('path');
 
@@ -331,7 +331,7 @@ class StructuredLogger {
       ),
       transports: [
         new winston.transports.File({ 
-          filename: path.join('_bmad-output', 'logs', 'byan.log')
+          filename: path.join('_byan-output', 'logs', 'byan.log')
         })
       ]
     });
@@ -361,8 +361,8 @@ module.exports = StructuredLogger;
 ### JOUR 1-2: Context Multi-Layer
 ```bash
 # Fichiers
-_bmad/core/context.js
-_bmad/core/cache.js (using node-cache)
+_byan/core/context.js
+_byan/core/cache.js (using node-cache)
 
 # Tests
 __tests__/context.test.js
@@ -374,8 +374,8 @@ npm install node-cache js-yaml fs-extra
 ### JOUR 3-4: Dispatcher + Worker Pool
 ```bash
 # Fichiers
-_bmad/core/dispatcher.js
-_bmad/core/worker-pool.js
+_byan/core/dispatcher.js
+_byan/core/worker-pool.js
 
 # Tests
 __tests__/dispatcher.test.js
@@ -385,8 +385,8 @@ __tests__/worker-pool.test.js
 ### JOUR 5: Workflow Executor
 ```bash
 # Fichiers
-_bmad/core/workflow-executor.js
-_bmad/workflows/create-simple-prd/workflow.yaml
+_byan/core/workflow-executor.js
+_byan/workflows/create-simple-prd/workflow.yaml
 
 # Tests
 __tests__/workflow-executor.test.js
@@ -395,8 +395,8 @@ __tests__/workflow-executor.test.js
 ### JOUR 6: Observability
 ```bash
 # Fichiers
-_bmad/core/structured-logger.js
-_bmad/core/metrics-collector.js
+_byan/core/structured-logger.js
+_byan/core/metrics-collector.js
 
 # Dependencies
 npm install winston
@@ -488,7 +488,7 @@ Les diagrammes UML ont été générés par l'agent drawio:
 - `byan-v2-component-diagram.drawio` - Architecture composants
 - `byan-v2-deployment-diagram.drawio` - Déploiement multi-OS
 
-Fichiers dans: `_bmad-output/architecture/diagrams/`
+Fichiers dans: `_byan-output/architecture/diagrams/`
 
 ---
 

@@ -18,8 +18,8 @@ Résultat:
 ⚠ GitHub agents source not found
 
 Dossiers créés mais VIDES:
-├── _bmad/bmb/agents/       ← 0 fichiers (devrait avoir 8)
-├── _bmad/bmb/workflows/    ← 0 fichiers (devrait avoir 6)
+├── _byan/bmb/agents/       ← 0 fichiers (devrait avoir 8)
+├── _byan/bmb/workflows/    ← 0 fichiers (devrait avoir 6)
 └── .github/agents/         ← 0 fichiers (devrait avoir 23)
 
 ❌ Agents non détectés par /agent
@@ -39,7 +39,7 @@ Package npm installé dans:
     │   └── create-byan-agent.js    ← __dirname ICI
     └── templates/
         ├── .github/agents/
-        └── _bmad/bmb/
+        └── _byan/bmb/
             ├── agents/
             └── workflows/
 
@@ -103,13 +103,13 @@ APRÈS (corrigé):
 ### **Ligne 154 : Agents Path**
 ```diff
 - const agentsSource = path.join(templateDir, 'bmb', 'agents');
-+ const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
++ const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
 ```
 
 ### **Ligne 165 : Workflows Path**
 ```diff
 - const workflowsSource = path.join(templateDir, 'bmb', 'workflows', 'byan');
-+ const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
++ const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
 ```
 
 ### **Ligne 176 : GitHub Agents Path**
@@ -170,8 +170,8 @@ const path = require('path');
 const fs = require('fs');
 const __dirname = path.join(process.cwd(), 'bin');
 const tpl = path.join(__dirname, '..', 'templates');
-const agents = path.join(tpl, '_bmad/bmb/agents');
-const workflows = path.join(tpl, '_bmad/bmb/workflows/byan');
+const agents = path.join(tpl, '_byan/bmb/agents');
+const workflows = path.join(tpl, '_byan/bmb/workflows/byan');
 const github = path.join(tpl, '.github/agents');
 
 console.log('Template dir:', fs.existsSync(tpl) ? '✅' : '❌');

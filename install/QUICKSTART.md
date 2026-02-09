@@ -96,9 +96,9 @@ nano ~/.config/Claude/claude_desktop_config.json
   "mcpServers": {
     "byan-agents": {
       "command": "node",
-      "args": ["/absolute/path/to/_bmad/mcp-server.js"],
+      "args": ["/absolute/path/to/_byan/mcp-server.js"],
       "env": {
-        "BMAD_ROOT": "/absolute/path/to/_bmad"
+        "BMAD_ROOT": "/absolute/path/to/_byan"
       }
     }
   }
@@ -111,7 +111,7 @@ nano ~/.config/Claude/claude_desktop_config.json
 
 ### MCP Server Script
 
-**Create `_bmad/mcp-server.js`:**
+**Create `_byan/mcp-server.js`:**
 ```javascript
 #!/usr/bin/env node
 const fs = require('fs');

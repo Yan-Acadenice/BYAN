@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-Suite à la migration `_bmad` → `_byan`, la structure BYAN v2 a été complétée avec tous les workflows et documentation manquants. La plateforme dispose maintenant d'une architecture documentée complète et opérationnelle.
+Suite à la migration `_byan` → `_byan`, la structure BYAN v2 a été complétée avec tous les workflows et documentation manquants. La plateforme dispose maintenant d'une architecture documentée complète et opérationnelle.
 
 ---
 
@@ -188,7 +188,7 @@ Tous les workflows et workers documentés correspondent au code dans `src/byan-v
 
 ## Comparaison Avant/Après
 
-### Avant (Post-migration _bmad→_byan)
+### Avant (Post-migration _byan→_byan)
 
 ```
 _byan/

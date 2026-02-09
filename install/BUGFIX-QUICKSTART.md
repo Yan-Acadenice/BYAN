@@ -29,13 +29,13 @@
 ### Ligne 154 : Agents path
 ```diff
 - const agentsSource = path.join(templateDir, 'bmb', 'agents');
-+ const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
++ const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
 ```
 
 ### Ligne 165 : Workflows path
 ```diff
 - const workflowsSource = path.join(templateDir, 'bmb', 'workflows', 'byan');
-+ const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
++ const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
 ```
 
 ### Ligne 176 : GitHub agents path
@@ -58,8 +58,8 @@ const fs = require('fs');
 const __dirname = path.join(process.cwd(), 'bin');
 const tpl = path.join(__dirname, '..', 'templates');
 console.log('Template dir:', fs.existsSync(tpl) ? '✅' : '❌');
-console.log('Agents:', fs.existsSync(path.join(tpl, '_bmad/bmb/agents')) ? '✅' : '❌');
-console.log('Workflows:', fs.existsSync(path.join(tpl, '_bmad/bmb/workflows/byan')) ? '✅' : '❌');
+console.log('Agents:', fs.existsSync(path.join(tpl, '_byan/bmb/agents')) ? '✅' : '❌');
+console.log('Workflows:', fs.existsSync(path.join(tpl, '_byan/bmb/workflows/byan')) ? '✅' : '❌');
 console.log('GitHub:', fs.existsSync(path.join(tpl, '.github/agents')) ? '✅' : '❌');
 "
 
@@ -91,7 +91,7 @@ cat >> CHANGELOG.md << 'EOF'
 ### 🐛 Bug Fixes
 - **CRITICAL:** Fixed template directory resolution for npm/npx installation
   - Corrected path from `__dirname/../../create-byan-agent/templates` to `__dirname/../templates`
-  - Added `_bmad/` prefix to agent and workflow source paths
+  - Added `_byan/` prefix to agent and workflow source paths
   - Fixed `.github/agents` path to stay within package scope
   - Added validation to fail early if templates not found
   - Improved logging for debugging installation issues
@@ -109,7 +109,7 @@ CRITICAL BUG: npx create-byan-agent was copying 0 files due to incorrect templat
 
 Fixed:
 - getTemplateDir() now correctly resolves to __dirname/../templates
-- Added _bmad/ prefix to agent/workflow paths
+- Added _byan/ prefix to agent/workflow paths
 - Fixed .github/agents path to stay in package
 - Added validation + better error messages
 

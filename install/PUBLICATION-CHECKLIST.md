@@ -10,14 +10,14 @@
 
 ### Structure Package
 - [x] Dossier `templates/` créé
-- [x] `templates/_bmad/bmb/agents/` - 6 agents copiés
+- [x] `templates/_byan/bmb/agents/` - 6 agents copiés
   - [x] byan.md (12.8 KB)
   - [x] rachid.md (7.2 KB) ← NOUVEAU
   - [x] marc.md (10.8 KB) ← NOUVEAU
   - [x] agent-builder.md
   - [x] module-builder.md
   - [x] workflow-builder.md
-- [x] `templates/_bmad/bmb/workflows/byan/` - workflows complets
+- [x] `templates/_byan/bmb/workflows/byan/` - workflows complets
   - [x] interview-workflow.md
   - [x] quick-create-workflow.md
   - [x] edit-agent-workflow.md
@@ -94,9 +94,9 @@ npx /home/yan/conception/install/create-byan-agent-1.0.2.tgz
 - [ ] Installation démarre sans erreur
 - [ ] Choix plateforme affiché
 - [ ] Prompts nom et langue fonctionnent
-- [ ] Structure _bmad/ créée
-- [ ] 3 agents copiés dans _bmad/bmb/agents/
-- [ ] Workflows copiés dans _bmad/bmb/workflows/byan/
+- [ ] Structure _byan/ créée
+- [ ] 3 agents copiés dans _byan/bmb/agents/
+- [ ] Workflows copiés dans _byan/bmb/workflows/byan/
 - [ ] Stubs copiés dans .github/agents/
 - [ ] config.yaml créé
 - [ ] Vérification: 10/10 checks ✓
@@ -104,13 +104,13 @@ npx /home/yan/conception/install/create-byan-agent-1.0.2.tgz
 ### Test 5: Vérification Post-Installation
 ```bash
 cd /tmp/test-byan-1.0.2
-ls -la _bmad/bmb/agents/
+ls -la _byan/bmb/agents/
 # Attendu: byan.md, rachid.md, marc.md, etc.
 
 ls -la .github/agents/
 # Attendu: bmad-agent-byan.md, bmad-agent-rachid.md, bmad-agent-marc.md
 
-cat _bmad/bmb/config.yaml
+cat _byan/bmb/config.yaml
 # Attendu: user_name, communication_language, etc.
 ```
 - [ ] byan.md présent (> 12 KB)

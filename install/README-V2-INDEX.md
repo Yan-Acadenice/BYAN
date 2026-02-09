@@ -105,7 +105,7 @@ Total Lines: 2,114
 ```
 v2.0 Installation Includes:
 ├── Platform Assets (v1.0)
-│   └── _bmad/bmb/
+│   └── _byan/bmb/
 │       ├── agents/ (3 agents)
 │       ├── workflows/
 │       └── config.yaml

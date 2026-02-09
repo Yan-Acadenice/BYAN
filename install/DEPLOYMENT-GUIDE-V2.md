@@ -56,8 +56,8 @@ ls -la __tests__/
 cat package.json | grep jest
 
 # Check platform files
-ls -la _bmad/bmb/agents/
-ls -la _bmad/bmb/workflows/
+ls -la _byan/bmb/agents/
+ls -la _byan/bmb/workflows/
 
 # Run tests
 npm install
@@ -141,7 +141,7 @@ node /home/yan/conception/install/bin/create-byan-agent-v2.js
 **Expected:**
 - Prompts for v2.0 installation
 - Creates `src/`, `__tests__/`, `package.json`
-- Creates `_bmad/bmb/` structure
+- Creates `_byan/bmb/` structure
 - 9/9 validation checks pass
 
 ### Scenario 2: Existing Node Project
@@ -166,8 +166,8 @@ node /home/yan/conception/install/bin/create-byan-agent-v2.js
 ```bash
 cd /tmp
 mkdir v1-project && cd v1-project
-mkdir -p _bmad/bmb/agents
-echo "# v1.0 config" > _bmad/bmb/config.yaml
+mkdir -p _byan/bmb/agents
+echo "# v1.0 config" > _byan/bmb/config.yaml
 node /home/yan/conception/install/bin/create-byan-agent-v2.js
 ```
 
@@ -185,7 +185,7 @@ node /home/yan/conception/install/bin/create-byan-agent-v2.js
 
 ```
 project/
-└── _bmad/
+└── _byan/
     └── bmb/
         ├── agents/
         │   ├── byan.md
@@ -201,7 +201,7 @@ project/
 
 ```
 project/
-├── _bmad/                   ← Platform (v1.0)
+├── _byan/                   ← Platform (v1.0)
 │   └── bmb/
 │       ├── agents/
 │       ├── workflows/
@@ -326,7 +326,7 @@ npx create-byan-agent@alpha
 ```bash
 ls -la src/
 ls -la __tests__/
-ls -la _bmad/bmb/
+ls -la _byan/bmb/
 cat package.json | grep jest
 ```
 

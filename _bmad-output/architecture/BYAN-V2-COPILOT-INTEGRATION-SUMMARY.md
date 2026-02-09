@@ -299,7 +299,7 @@ Avant de démarrer, clarifier:
 ---
 
 **Document:** `byan-v2-copilot-integration-architecture.md` (1710 lignes)  
-**Localisation:** `/home/yan/conception/_bmad-output/architecture/`  
+**Localisation:** `/home/yan/conception/_byan-output/architecture/`  
 **Status:** ✅ COMPLET - Prêt pour Review
 
 ---

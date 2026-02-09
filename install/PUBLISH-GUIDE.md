@@ -43,7 +43,7 @@ npm init -y
 npx /home/yan/conception/install/create-byan-agent-1.0.2.tgz
 
 # Vérifier l'installation
-ls -la _bmad/bmb/agents/    # Doit contenir byan, rachid, marc
+ls -la _byan/bmb/agents/    # Doit contenir byan, rachid, marc
 ls -la .github/agents/       # Doit contenir les stubs
 ```
 

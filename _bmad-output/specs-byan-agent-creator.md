@@ -454,7 +454,7 @@
    - Lier à [AgentSpec]
 
 6. **Sauvegarder Fichier**
-   - Écrire dans _bmad/agents/[agent-name].md
+   - Écrire dans _byan/agents/[agent-name].md
    - Vérifier écriture réussie
 
 **Résultats:**
@@ -682,7 +682,7 @@
 ### Règles AgentFile
 
 **RG-FILE-001: Chemin conforme**
-- Description: file_path doit suivre convention BMAD (_bmad/agents/[name].md)
+- Description: file_path doit suivre convention BMAD (_byan/agents/[name].md)
 - Priorité: Critique
 - Test: TEST-FILE-001
 
@@ -927,10 +927,10 @@ class TestAgentFileRules:
         )
         
         # THEN
-        assert agent_file.file_path.startswith("_bmad/agents/")
+        assert agent_file.file_path.startswith("_byan/agents/")
         assert agent_file.file_path.endswith(".md")
     
-    def test_RG_FILE_002_format_bmad_valide(self):
+    def test_RG_FILE_002_format_byan_valide(self):
         """
         RG-FILE-002: Contenu doit être Markdown BMAD valide
         """
@@ -939,7 +939,7 @@ class TestAgentFileRules:
         agent_file = AgentFile.generate(agent_spec, platform="copilot")
         
         # WHEN
-        is_valid = validate_bmad_format(agent_file.file_content)
+        is_valid = validate_byan_format(agent_file.file_content)
         
         # THEN
         assert is_valid
@@ -963,7 +963,7 @@ class TestAgentFileRules:
 
 **Storage:**
 - Base de données: Entités persistées
-- Fichiers: Agents générés (.md) dans _bmad/agents/
+- Fichiers: Agents générés (.md) dans _byan/agents/
 - Config: YAML ou JSON
 
 **Intégration:**
@@ -975,7 +975,7 @@ class TestAgentFileRules:
 
 ```
 byan/
-├── _bmad/
+├── _byan/
 │   ├── agents/                    # Agents générés
 │   │   ├── backend-expert.md
 │   │   └── ...
@@ -1205,7 +1205,7 @@ Critères:
 - [ ] Installation via pip/npm
 - [ ] Vérification dépendances
 - [ ] Initialisation config
-- [ ] Création structure _bmad/
+- [ ] Création structure _byan/
 ```
 
 **US-BYAN-002: Charger les Mantras**
@@ -1360,7 +1360,7 @@ Je veux sauvegarder fichiers sur disque
 Afin de les rendre accessibles
 
 Critères:
-- [ ] Chemin: _bmad/agents/[name].md
+- [ ] Chemin: _byan/agents/[name].md
 - [ ] Écriture réussie
 - [ ] Permissions correctes
 - [ ] Confirmation user

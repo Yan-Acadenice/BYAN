@@ -70,7 +70,7 @@
 
 ### Décisions Architecture
 
-**Challenge 1: Séparation _bmad/ vs _bmad-custom/?**
+**Challenge 1: Séparation _byan/ vs _byan-custom/?**
 - Décision: Évaluer les deux, choisir optimal/stable pendant conception
 
 **Challenge 2: MVP phases?**
@@ -106,7 +106,7 @@
    - Résolution: Agent analyse, propose stratégies
 
 4. **Backup**
-   - Format: `_bmad-backup-{timestamp}/`
+   - Format: `_byan-backup-{timestamp}/`
    - Contenu: Snapshot complet + metadata
    - Automatique: Oui (avant toute modification)
 
@@ -251,7 +251,7 @@ Toujours expliquer WHY, pas juste WHAT. Rapports visuels (tableaux, couleurs). P
 ## Artefacts Générés
 
 ### 1. ProjectContext
-**Fichier:** `_bmad-output/project-context-update-byan-agent.yaml`  
+**Fichier:** `_byan-output/project-context-update-byan-agent.yaml`  
 **Contenu:**
 - Glossaire: 9 concepts validés
 - Acteurs: 4 profils utilisateurs
@@ -260,7 +260,7 @@ Toujours expliquer WHY, pas juste WHAT. Rapports visuels (tableaux, couleurs). P
 - Edge cases: 5 scénarios risque
 
 ### 2. AgentSpec
-**Fichier:** `_bmad-output/agent-spec-patnote.yaml`  
+**Fichier:** `_byan-output/agent-spec-patnote.yaml`  
 **Contenu:**
 - Rôle et responsabilités détaillées
 - 5 capacités avec inputs/outputs
@@ -270,10 +270,10 @@ Toujours expliquer WHY, pas juste WHAT. Rapports visuels (tableaux, couleurs). P
 - Contraintes techniques
 
 ### 3. Interview Summary
-**Fichier:** `_bmad-output/interview-summary-patnote-20260202.md` (ce document)
+**Fichier:** `_byan-output/interview-summary-patnote-20260202.md` (ce document)
 
 ### 4. Agent Patnote (prochaine étape)
-**Fichier:** `_bmad/bmb/agents/patnote.md`  
+**Fichier:** `_byan/bmb/agents/patnote.md`  
 **Format:** Frontmatter YAML + XML BMAD  
 **Plateforme:** GitHub Copilot CLI (+ VSCode, Claude Code, Codex)
 

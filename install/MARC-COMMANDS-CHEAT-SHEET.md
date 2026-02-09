@@ -38,13 +38,13 @@ npx /home/yan/conception/install/create-byan-agent-1.0.4.tgz
 **Vérifier résultat:**
 ```bash
 # Structure créée?
-ls -la _bmad/bmb/agents/
+ls -la _byan/bmb/agents/
 # Doit contenir: byan.md, rachid.md, marc.md
 
 ls -la .github/agents/
 # Doit contenir: bmad-agent-byan.md, bmad-agent-rachid.md, bmad-agent-marc.md
 
-cat _bmad/bmb/config.yaml
+cat _byan/bmb/config.yaml
 # Doit contenir: user_name: Rachid, communication_language: Francais
 ```
 
@@ -171,7 +171,7 @@ npx create-byan-agent
 cd /tmp/test-byan-v1.0.4
 
 # Agents sources
-ls -la _bmad/bmb/agents/
+ls -la _byan/bmb/agents/
 # Attendu: byan.md, rachid.md, marc.md, agent-builder.md, ...
 
 # Stubs Copilot
@@ -179,11 +179,11 @@ ls -la .github/agents/ | wc -l
 # Attendu: ~26 fichiers .md
 
 # Config
-cat _bmad/bmb/config.yaml
+cat _byan/bmb/config.yaml
 # Attendu: user_name, communication_language, platform
 
 # Workflows
-ls -la _bmad/bmb/workflows/byan/
+ls -la _byan/bmb/workflows/byan/
 # Attendu: interview-workflow.md, quick-create-workflow.md, ...
 ```
 
@@ -225,7 +225,7 @@ head -n 5 .github/agents/bmad-agent-marc.md
 grep -A 5 "<agent-activation" .github/agents/bmad-agent-byan.md
 # Attendu:
 # <agent-activation CRITICAL="TRUE">
-# 1. LOAD the FULL agent file from {project-root}/_bmad/bmb/agents/byan.md
+# 1. LOAD the FULL agent file from {project-root}/_byan/bmb/agents/byan.md
 # ...
 ```
 
@@ -257,10 +257,10 @@ copilot
 
 ```bash
 # Vérifier agent source
-cat _bmad/bmb/agents/byan.md | grep -A 20 "<menu>"
+cat _byan/bmb/agents/byan.md | grep -A 20 "<menu>"
 
 # Vérifier config
-cat _bmad/bmb/config.yaml
+cat _byan/bmb/config.yaml
 
 # Réinstaller si corrompu
 npx create-byan-agent
@@ -415,9 +415,9 @@ mkdir test-byan-quick && \
 cd test-byan-quick && \
 git init && \
 npx create-byan-agent && \
-ls -la _bmad/bmb/agents/ && \
+ls -la _byan/bmb/agents/ && \
 ls -la .github/agents/ && \
-cat _bmad/bmb/config.yaml && \
+cat _byan/bmb/config.yaml && \
 echo "✅ Installation OK. Now test: copilot -> /agent"
 ```
 

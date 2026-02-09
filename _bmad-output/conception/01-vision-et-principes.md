@@ -346,7 +346,7 @@ const result = await agent.execute({
 
 **Caractéristiques :**
 - Structure : 3 niveaux (Platform → Project → Story)
-- Persistance : YAML files dans `_bmad/_context/`
+- Persistance : YAML files dans `_byan/_context/`
 - Cache : In-memory LRU (50MB, TTL 5min)
 - Résolution : Child overrides parent
 
@@ -389,7 +389,7 @@ const context = await contextLayer.loadContext('story', {
 - Format : YAML DSL
 - Exécution : Séquentielle (HYPER-MVP), parallèle (Phase 2)
 - Features : Retry logic, output management, dependencies
-- Location : `_bmad/workflows/{workflow-name}/workflow.yaml`
+- Location : `_byan/workflows/{workflow-name}/workflow.yaml`
 
 **Structure :**
 
@@ -416,7 +416,7 @@ steps:
 
 ```javascript
 const executor = new WorkflowExecutor(contextLayer, dispatcher);
-const result = await executor.execute('_bmad/workflows/create-prd/workflow.yaml');
+const result = await executor.execute('_byan/workflows/create-prd/workflow.yaml');
 // result.stepsExecuted = 5
 // result.results = { step_1: {...}, step_2: {...} }
 ```

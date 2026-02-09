@@ -10,9 +10,9 @@ status: REVISED - Ready for Implementation
 paradigm_shift: Standalone Platform → GitHub Copilot CLI Agent (Option B)
 timeline: 5 jours MVP (77 SP @ ~15 SP/day)
 inputDocuments:
-  - /home/yan/conception/_bmad-output/architecture/byan-v2-copilot-integration-architecture.md
-  - /home/yan/conception/_bmad-output/architecture/BYAN-V2-COPILOT-INTEGRATION-SUMMARY.md
-  - /home/yan/conception/_bmad-output/planning-artifacts/byan-v2-epics-stories.md (ORIGINAL)
+  - /home/yan/conception/_byan-output/architecture/byan-v2-copilot-integration-architecture.md
+  - /home/yan/conception/_byan-output/architecture/BYAN-V2-COPILOT-INTEGRATION-SUMMARY.md
+  - /home/yan/conception/_byan-output/planning-artifacts/byan-v2-epics-stories.md (ORIGINAL)
 ---
 
 # BYAN v2.0 - Épics & Stories RÉVISÉS (Option B - Hybrid Integration)
@@ -1067,7 +1067,7 @@ class ProfileTemplate {
 
 **AC5:** Custom templates
 - Support user-provided templates
-- Path: `_bmad/templates/custom-agent.md`
+- Path: `_byan/templates/custom-agent.md`
 - Override default template
 
 **Dependencies:** Epic 4 (GENERATION state)  
@@ -1641,4 +1641,4 @@ Ce document révise complètement les épics et stories BYAN v2.0 pour l'archite
 
 **FIN DU DOCUMENT**
 
-_Ce document remplace: `/home/yan/conception/_bmad-output/planning-artifacts/byan-v2-epics-stories.md` (original)_
+_Ce document remplace: `/home/yan/conception/_byan-output/planning-artifacts/byan-v2-epics-stories.md` (original)_

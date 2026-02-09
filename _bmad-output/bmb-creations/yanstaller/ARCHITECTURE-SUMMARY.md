@@ -272,7 +272,7 @@ install/
 ## 📚 DOCUMENTATION SUITE
 
 ```
-_bmad-output/bmb-creations/yanstaller/
+_byan-output/bmb-creations/yanstaller/
 ├── README.md (17.8 KB)              User guide
 ├── PLAN-DEVELOPPEMENT.md (28.5 KB)  8 phases, 240h breakdown
 ├── ARCHITECTURE.md (23 KB)          Technical architecture ← NEW

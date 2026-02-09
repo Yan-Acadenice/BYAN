@@ -10,7 +10,7 @@
 ## 🎯 Objective
 
 Adapt the Yanstaller (BYAN installer) to support the new BYAN v2.0 architecture, which includes both:
-- **Platform assets** (`_bmad/` structure - existing v1.0)
+- **Platform assets** (`_byan/` structure - existing v1.0)
 - **Runtime components** (`src/`, `__tests__/` - new v2.0)
 
 ---
@@ -116,14 +116,14 @@ The installer intelligently merges `package.json`:
 
 ### 5. Configuration Updates
 
-The `_bmad/bmb/config.yaml` now includes version tracking:
+The `_byan/bmb/config.yaml` now includes version tracking:
 
 ```yaml
-bmb_creations_output_folder: "{project-root}/_bmad-output/bmb-creations"
+bmb_creations_output_folder: "{project-root}/_byan-output/bmb-creations"
 user_name: Yan
 communication_language: Francais
 document_output_language: Francais
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 platform: copilot
 byan_version: "2.0.0-alpha.1"  # ← NEW: Version tracking
 ```
@@ -197,7 +197,7 @@ byan_version: "2.0.0-alpha.1"  # ← NEW: Version tracking
   - Still functional
   - Kept as fallback
 
-- **`_bmad/`** structure (PRESERVED)
+- **`_byan/`** structure (PRESERVED)
   - No changes to platform assets
   - Agents still work
   - Workflows still work
@@ -269,7 +269,7 @@ create-byan-agent
 
 | Feature | v1.0 | v2.0 |
 |---------|------|------|
-| Platform Assets (`_bmad/`) | ✅ | ✅ |
+| Platform Assets (`_byan/`) | ✅ | ✅ |
 | Runtime Components (`src/`) | ❌ | ✅ |
 | Test Suite (`__tests__/`) | ❌ | ✅ |
 | Entry Point (`src/index.js`) | ❌ | ✅ |
@@ -291,7 +291,7 @@ create-byan-agent
 
 1. **Backup your configuration:**
    ```bash
-   cp _bmad/bmb/config.yaml _bmad/bmb/config.yaml.backup
+   cp _byan/bmb/config.yaml _byan/bmb/config.yaml.backup
    ```
 
 2. **Run v2.0 installer:**
@@ -365,7 +365,7 @@ create-byan-agent
 2. **Test installer in real scenarios:**
    - New project (no package.json)
    - Existing Node project (has package.json)
-   - Existing BYAN v1.0 project (has _bmad/)
+   - Existing BYAN v1.0 project (has _byan/)
 
 3. **Update documentation:**
    - README.md in install/ directory
@@ -454,7 +454,7 @@ create-byan-agent
 - Verify source files: `ls -la src/ __tests__/`
 
 **Questions?**
-- BYAN Documentation: `_bmad-output/`
+- BYAN Documentation: `_byan-output/`
 - Installer code: `install/bin/create-byan-agent-v2.js`
 - This document: `install/INSTALLER-V2-CHANGES.md`
 

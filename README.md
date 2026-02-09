@@ -32,7 +32,7 @@ const ByanV2 = require('create-byan-agent');
 
 const byan = new ByanV2({
   maxQuestions: 12,
-  outputDir: './_bmad-output'
+  outputDir: './_byan-output'
 });
 
 await byan.startSession();
@@ -189,7 +189,7 @@ console.log(`Non-compliant: ${validation.nonCompliant.length}/64`);
 ```javascript
 const byan = new ByanV2({
   maxQuestions: 12,
-  outputDir: './_bmad-output/bmb-creations',
+  outputDir: './_byan-output/bmb-creations',
   sessionId: 'my-session'
 });
 ```

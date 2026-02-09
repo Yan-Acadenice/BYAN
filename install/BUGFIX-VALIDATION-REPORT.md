@@ -14,7 +14,7 @@ Le bug critique d'installation de BYAN via `npx create-byan-agent` a été **COM
 
 **Problème initial :**
 - ❌ Aucun fichier copié lors de l'installation
-- ❌ Dossiers `_bmad/`, `.github/agents/` vides
+- ❌ Dossiers `_byan/`, `.github/agents/` vides
 - ❌ Agents non détectés par GitHub Copilot CLI
 - ❌ Utilisateurs bloqués (dont Dimitry)
 
@@ -60,15 +60,15 @@ const npmPackagePath = path.join(__dirname, '..', 'templates');
 **AVANT (bugué) :**
 ```javascript
 const agentsSource = path.join(templateDir, 'bmb', 'agents');
-// ❌ Manque '_bmad/' dans le chemin
+// ❌ Manque '_byan/' dans le chemin
 // Résultat: .../templates/bmb/agents (INEXISTANT!)
 ```
 
 **APRÈS (corrigé) :**
 ```javascript
-const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
-// ✅ Chemin complet avec '_bmad/'
-// Résultat: .../templates/_bmad/bmb/agents (CORRECT!)
+const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
+// ✅ Chemin complet avec '_byan/'
+// Résultat: .../templates/_byan/bmb/agents (CORRECT!)
 ```
 
 **Impact :** Agents BYAN, RACHID, MARC non copiés
@@ -83,13 +83,13 @@ const agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents');
 **AVANT (bugué) :**
 ```javascript
 const workflowsSource = path.join(templateDir, 'bmb', 'workflows', 'byan');
-// ❌ Manque '_bmad/' dans le chemin
+// ❌ Manque '_byan/' dans le chemin
 ```
 
 **APRÈS (corrigé) :**
 ```javascript
-const workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan');
-// ✅ Chemin complet avec '_bmad/'
+const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
+// ✅ Chemin complet avec '_byan/'
 ```
 
 **Impact :** Workflows BYAN non copiés (interviews, templates, etc.)
@@ -164,10 +164,10 @@ console.log(chalk.green(`  ✓ GitHub agents: ${githubAgentsSource} → ${github
 
 ```bash
 ✓ /home/yan/conception/install/templates
-✓ /home/yan/conception/install/templates/_bmad
-✓ /home/yan/conception/install/templates/_bmad/bmb
-✓ /home/yan/conception/install/templates/_bmad/bmb/agents
-✓ /home/yan/conception/install/templates/_bmad/bmb/workflows/byan
+✓ /home/yan/conception/install/templates/_byan
+✓ /home/yan/conception/install/templates/_byan/bmb
+✓ /home/yan/conception/install/templates/_byan/bmb/agents
+✓ /home/yan/conception/install/templates/_byan/bmb/workflows/byan
 ✓ /home/yan/conception/install/templates/.github/agents
 ```
 
@@ -230,11 +230,11 @@ __dirname = .../node_modules/create-byan-agent/bin
 templateDir = path.join(__dirname, '..', 'templates')
 // = .../node_modules/create-byan-agent/templates ✅
 
-agentsSource = path.join(templateDir, '_bmad', 'bmb', 'agents')
-// = .../templates/_bmad/bmb/agents ✅
+agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents')
+// = .../templates/_byan/bmb/agents ✅
 
-workflowsSource = path.join(templateDir, '_bmad', 'bmb', 'workflows', 'byan')
-// = .../templates/_bmad/bmb/workflows/byan ✅
+workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan')
+// = .../templates/_byan/bmb/workflows/byan ✅
 
 githubAgentsSource = path.join(templateDir, '.github', 'agents')
 // = .../templates/.github/agents ✅
@@ -409,8 +409,8 @@ npx create-byan-agent
 **APRÈS LE FIX :**
 ```
 npx create-byan-agent
-✓ Agents: .../templates/_bmad/bmb/agents → _bmad/bmb/agents
-✓ Workflows: .../templates/_bmad/bmb/workflows/byan → _bmad/bmb/workflows/byan
+✓ Agents: .../templates/_byan/bmb/agents → _byan/bmb/agents
+✓ Workflows: .../templates/_byan/bmb/workflows/byan → _byan/bmb/workflows/byan
 ✓ GitHub agents: .../templates/.github/agents → .github/agents
 ✅ Installation: 37/37 fichiers copiés
 ✅ Verification: 10/10 checks passed

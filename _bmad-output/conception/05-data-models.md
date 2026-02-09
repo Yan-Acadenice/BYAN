@@ -97,7 +97,7 @@ erDiagram
 
 ### 1. Platform Context (platform.yaml)
 
-**Emplacement :** `_bmad/_context/platform.yaml`
+**Emplacement :** `_byan/_context/platform.yaml`
 
 **Description :** Context global partagé par tous les projets et stories.
 
@@ -130,7 +130,7 @@ user_skill_level: string
 company_name: "Acme Corporation"
 methodology: "Merise Agile"
 project_root: "/home/user/projects/acme"
-output_folder: "{project_root}/_bmad-output"
+output_folder: "{project_root}/_byan-output"
 
 # Communication
 communication_language: "Francais"
@@ -196,7 +196,7 @@ const platformSchema = {
 
 ### 2. Project Context (project.yaml)
 
-**Emplacement :** `_bmad/_context/{projectId}/project.yaml`
+**Emplacement :** `_byan/_context/{projectId}/project.yaml`
 
 **Description :** Context spécifique à un projet. Hérite de platform.yaml.
 
@@ -263,8 +263,8 @@ team:
     - "Carol Martinez"
 
 # Chemins artifacts (hérite de platform si non redéfini)
-planning_artifacts: "{project_root}/erp-system/_bmad-output/planning"
-implementation_artifacts: "{project_root}/erp-system/_bmad-output/implementation"
+planning_artifacts: "{project_root}/erp-system/_byan-output/planning"
+implementation_artifacts: "{project_root}/erp-system/_byan-output/implementation"
 project_knowledge: "{project_root}/erp-system/docs"
 
 # Configuration CI/CD
@@ -294,7 +294,7 @@ const projectSchema = {
 
 ### 3. Story Context (story.yaml)
 
-**Emplacement :** `_bmad/_context/{projectId}/{storyId}/story.yaml`
+**Emplacement :** `_byan/_context/{projectId}/{storyId}/story.yaml`
 
 **Description :** Context spécifique à une user story. Hérite de project.yaml + platform.yaml.
 
@@ -403,7 +403,7 @@ const storySchema = {
 
 ### 4. Workflow Definition (workflow.yaml)
 
-**Emplacement :** `_bmad/workflows/{workflowName}/workflow.yaml`
+**Emplacement :** `_byan/workflows/{workflowName}/workflow.yaml`
 
 **Description :** Définition déclarative d'un workflow orchestrant des agents et workers.
 
@@ -727,7 +727,7 @@ const result = {
 const platformContext = {
   company_name: "Acme Corp",
   methodology: "Merise Agile",
-  output_folder: "/home/user/project/_bmad-output",
+  output_folder: "/home/user/project/_byan-output",
   mantras: [
     "Simplicity is the ultimate sophistication",
     "Trust but verify",
@@ -1009,7 +1009,7 @@ async function validateWorkflow(workflowData) {
 
 ### Exemple 1 : Workflow "Create Simple PRD"
 
-**Fichier : `_bmad/workflows/create-simple-prd/workflow.yaml`**
+**Fichier : `_byan/workflows/create-simple-prd/workflow.yaml`**
 
 ```yaml
 name: create-simple-prd
@@ -1050,7 +1050,7 @@ const context = await contextLayer.loadContext('story', {
 });
 
 const result = await executor.execute(
-  '_bmad/workflows/create-simple-prd/workflow.yaml',
+  '_byan/workflows/create-simple-prd/workflow.yaml',
   {
     ...context,
     user_input: "I need a user authentication system with OAuth2"
@@ -1067,16 +1067,16 @@ console.log(`PRD generated: ${result.results.generate_prd.output}`);
 **Platform Context :**
 
 ```yaml
-# _bmad/_context/platform.yaml
+# _byan/_context/platform.yaml
 company_name: "Acme Corp"
 methodology: "Merise Agile"
-output_folder: "/home/user/projects/_bmad-output"
+output_folder: "/home/user/projects/_byan-output"
 ```
 
 **Project Context :**
 
 ```yaml
-# _bmad/_context/erp-system/project.yaml
+# _byan/_context/erp-system/project.yaml
 project_id: "erp-system"
 project_name: "ERP System v2.0"
 tech_stack: "Node.js >= 18.0.0"
@@ -1086,7 +1086,7 @@ tech_stack: "Node.js >= 18.0.0"
 **Story Context :**
 
 ```yaml
-# _bmad/_context/erp-system/US-123/story.yaml
+# _byan/_context/erp-system/US-123/story.yaml
 story_id: "US-123"
 feature: "User Authentication"
 acceptance_criteria:
@@ -1182,7 +1182,7 @@ steps:
 
 ```javascript
 const result = await executor.execute(
-  '_bmad/workflows/resilient-workflow/workflow.yaml',
+  '_byan/workflows/resilient-workflow/workflow.yaml',
   { input_data: 'Sample data' }
 );
 

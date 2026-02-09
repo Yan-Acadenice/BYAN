@@ -23,7 +23,7 @@ Le package npm `create-byan-agent` a été mis à jour de la version **1.0.1** �
 ### 1. Structure Templates (NOUVEAU)
 ```
 install/templates/                     272 KB, 37 fichiers
-├── _bmad/bmb/
+├── _byan/bmb/
 │   ├── agents/                        6 agents
 │   │   ├── byan.md                   12.8 KB ✓
 │   │   ├── rachid.md                 7.2 KB  ✓ (NOUVEAU)
@@ -203,18 +203,18 @@ Voir `PUBLICATION-CHECKLIST.md` pour checklist complète:
 
 ### 1. BYAN - Builder of YAN
 **Rôle:** Créateur d'agents intelligent  
-**Fichier:** templates/_bmad/bmb/agents/byan.md (12.8 KB)  
+**Fichier:** templates/_byan/bmb/agents/byan.md (12.8 KB)  
 **Workflows:** 5 workflows complets  
 **Menu:** [INT], [QC], [LA], [EA], [VA], [DA-AGENT], [PC], [MAN]
 
 ### 2. RACHID - Expert NPM/NPX
 **Rôle:** Déploiement et publication npm  
-**Fichier:** templates/_bmad/bmb/agents/rachid.md (7.2 KB)  
+**Fichier:** templates/_byan/bmb/agents/rachid.md (7.2 KB)  
 **Menu:** [INSTALL], [VALIDATE], [FIX-DEPS], [UPDATE-PKG], [PUBLISH], [TEST-NPX], [AUDIT], [HELP], [EXIT]
 
 ### 3. MARC - Expert Copilot CLI
 **Rôle:** Intégration GitHub Copilot CLI  
-**Fichier:** templates/_bmad/bmb/agents/marc.md (10.8 KB)  
+**Fichier:** templates/_byan/bmb/agents/marc.md (10.8 KB)  
 **Menu:** [VALIDATE], [TEST], [CREATE-STUB], [FIX-YAML], [MCP], [TEST-INVOKE], [OPTIMIZE], [HELP], [EXIT]
 
 ---

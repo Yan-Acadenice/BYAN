@@ -290,7 +290,7 @@ Changements requis:
 3. `INDEX.md` - Index & navigation
 4. `byan-v2-0-architecture-node.md` - Architecture originale (référence)
 
-**Localisation:** `/home/yan/conception/_bmad-output/architecture/`
+**Localisation:** `/home/yan/conception/_byan-output/architecture/`
 
 ---
 

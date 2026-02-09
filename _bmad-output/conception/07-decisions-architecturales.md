@@ -60,7 +60,7 @@ Python est souvent considéré comme le langage de prédilection pour l'IA/ML, m
 1. **Cohérence avec l'existant:**
    - BYAN v1.x est en Node.js
    - Pas de réécriture complète nécessaire
-   - Réutilisation de modules existants (_bmad/core/, _bmad/bmm/)
+   - Réutilisation de modules existants (_byan/core/, _byan/bmm/)
    - Expérience utilisateur préservée (NPX)
 
 2. **Async/Await natif:**
@@ -93,7 +93,7 @@ Python est souvent considéré comme le langage de prédilection pour l'IA/ML, m
 **Positives:**
 - ✅ Continuité technologique (pas de Big Bang rewrite)
 - ✅ Time-to-market réduit (7 jours au lieu de 3-4 semaines)
-- ✅ Réutilisation code existant (~60% de _bmad/core/)
+- ✅ Réutilisation code existant (~60% de _byan/core/)
 - ✅ Distribution NPM/NPX simple
 - ✅ Event loop optimal pour orchestration asynchrone
 
@@ -527,7 +527,7 @@ Exigences:
    ```
 
 2. **Pas de redéploiement:**
-   - Workflows = fichiers séparés dans `_bmad/workflows/`
+   - Workflows = fichiers séparés dans `_byan/workflows/`
    - Modification workflow → pas de `npm install` ou rebuild
    - Hot-reload possible (Phase 2)
 

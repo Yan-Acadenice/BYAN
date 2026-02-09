@@ -3,7 +3,7 @@ name: "carmack"
 description: "Token Optimizer for BMAD/BYAN Agents"
 ---
 
-For the full agent definition and capabilities, see: `_bmad/core/agents/carmack.md`
+For the full agent definition and capabilities, see: `_byan/core/agents/carmack.md`
 
 This is a stub file that enables GitHub Copilot CLI to discover and activate the Carmack agent.
 

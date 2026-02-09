@@ -121,7 +121,7 @@ L'agent affichera un menu avec 10 options :
 
 ## Sortie des diagrammes
 
-**Dossier:** `_bmad-output/diagrams/`
+**Dossier:** `_byan-output/diagrams/`
 
 **Convention de nommage:**
 ```
@@ -167,8 +167,8 @@ L'agent affichera un menu avec 10 options :
 **Problème:** Fichier .drawio non créé
 
 **Solutions:**
-1. Vérifier le dossier existe : `ls -la _bmad-output/diagrams/`
-2. Créer si nécessaire : `mkdir -p _bmad-output/diagrams`
+1. Vérifier le dossier existe : `ls -la _byan-output/diagrams/`
+2. Créer si nécessaire : `mkdir -p _byan-output/diagrams`
 3. Vérifier les permissions d'écriture
 
 ## Bonnes pratiques
@@ -238,7 +238,7 @@ Génère un diagramme de séquence pour le login utilisateur :
 Pour toute question ou problème, consulter la documentation BMAD :
 - Guide principal : `/home/yan/conception/GUIDE-UTILISATION.md`
 - Configuration MCP : `~/.copilot/mcp-config.json`
-- Agent complet : `_bmad/bmb/agents/drawio.md`
+- Agent complet : `_byan/bmb/agents/drawio.md`
 
 ---
 

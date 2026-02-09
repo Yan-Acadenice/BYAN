@@ -8,8 +8,8 @@ status: Architecture Design
 paradigm_shift: Standalone Platform → GitHub Copilot CLI Agent
 timeline: 5-7 jours MVP
 inputDocuments:
-  - /home/yan/conception/_bmad-output/architecture/byan-v2-0-architecture-node.md
-  - /home/yan/conception/_bmad-output/planning-artifacts/byan-v2-epics-stories.md
+  - /home/yan/conception/_byan-output/architecture/byan-v2-0-architecture-node.md
+  - /home/yan/conception/_byan-output/planning-artifacts/byan-v2-epics-stories.md
   - /home/yan/conception/src/core/
 ---
 
@@ -376,9 +376,9 @@ For tasks with complexity score:
 ## Context
 
 Load these documents as context:
-- `_bmad/methodology/merise-agile.md`
-- `_bmad/methodology/tdd-principles.md`
-- `_bmad/templates/agent-profile-template.md`
+- `_byan/methodology/merise-agile.md`
+- `_byan/methodology/tdd-principles.md`
+- `_byan/templates/agent-profile-template.md`
 ```
 
 **Avantages:**
@@ -704,9 +704,9 @@ For each task, calculate complexity score:
 ### Context Loading
 
 Load these methodology documents as context:
-- `_bmad/methodology/merise-agile.md`
-- `_bmad/methodology/tdd-principles.md`
-- `_bmad/templates/agent-profile-template.md`
+- `_byan/methodology/merise-agile.md`
+- `_byan/methodology/tdd-principles.md`
+- `_byan/templates/agent-profile-template.md`
 
 ## Example Usage
 
@@ -789,7 +789,7 @@ module.exports = TaskToolInterface;
 **Old Approach (Standalone):**
 ```javascript
 // Complex YAML hierarchy
-_bmad/_context/
+_byan/_context/
   platform.yaml
   project1/
     project.yaml
@@ -822,7 +822,7 @@ class SessionState {
   async save() {
     const sessionFile = path.join(
       process.cwd(),
-      '_bmad-sessions',
+      '_byan-sessions',
       `${this.sessionId}.json`
     );
     await fs.writeJSON(sessionFile, this, { spaces: 2 });
@@ -831,7 +831,7 @@ class SessionState {
   static async load(sessionId) {
     const sessionFile = path.join(
       process.cwd(),
-      '_bmad-sessions',
+      '_byan-sessions',
       `${sessionId}.json`
     );
     return await fs.readJSON(sessionFile);

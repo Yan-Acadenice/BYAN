@@ -110,7 +110,7 @@ WHY #5: ROOT CAUSE → Besoin proxy intelligent pour arrêter interruptions (90%
 ## 🎯 DELIVERABLES CREATED
 
 ### 1. ProjectContext
-**File:** `_bmad-output/project-context-alpha-omega.yaml`  
+**File:** `_byan-output/project-context-alpha-omega.yaml`  
 **Size:** 6.7 KB  
 **Contains:**
 - Project metadata
@@ -121,7 +121,7 @@ WHY #5: ROOT CAUSE → Besoin proxy intelligent pour arrêter interruptions (90%
 - Edge cases
 
 ### 2. AgentSpec
-**File:** `_bmad-output/agent-spec-expert-merise-agile.yaml`  
+**File:** `_byan-output/agent-spec-expert-merise-agile.yaml`  
 **Size:** 10.6 KB  
 **Contains:**
 - Agent identity & responsibilities
@@ -132,7 +132,7 @@ WHY #5: ROOT CAUSE → Besoin proxy intelligent pour arrêter interruptions (90%
 - Validation rules passed
 
 ### 3. Agent File
-**File:** `_bmad-output/bmb-creations/expert-merise-agile.md`  
+**File:** `_byan-output/bmb-creations/expert-merise-agile.md`  
 **Size:** 9.7 KB  
 **Format:** BMAD (Markdown + XML)  
 **Contains:**
@@ -224,15 +224,15 @@ All critical rules passed:
 
 ### Pending User Choice
 **Options:**
-- **Option A:** Déployer agent dans `_bmad/bmm/agents/` pour utilisation immédiate
+- **Option A:** Déployer agent dans `_byan/bmm/agents/` pour utilisation immédiate
 - **Option B:** Optimiser avec Carmack (réduction tokens) puis déployer
 - **Option C:** Tester agent avant déploiement
 - **Option D:** Générer versions multi-plateformes (VSCode, Claude, Codex)
 
 ### Installation
 Pour activer l'agent:
-1. Copier `expert-merise-agile.md` vers `_bmad/bmm/agents/`
-2. Ajouter entrée dans `_bmad/_config/agent-manifest.csv`
+1. Copier `expert-merise-agile.md` vers `_byan/bmm/agents/`
+2. Ajouter entrée dans `_byan/_config/agent-manifest.csv`
 3. Créer symlink `.github/agents/expert-merise-agile.md` (si GitHub Copilot CLI)
 4. Activer avec: `@expert-merise-agile` ou `bmad-agent-expert-merise-agile`
 

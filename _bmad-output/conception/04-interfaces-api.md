@@ -79,7 +79,7 @@ const context = await contextLayer.loadContext('story', {
 
 // 3. Exécuter un workflow
 const result = await executor.execute(
-  '_bmad/workflows/create-prd/workflow.yaml',
+  '_byan/workflows/create-prd/workflow.yaml',
   context
 );
 
@@ -99,7 +99,7 @@ Gère le context hiérarchique multi-niveaux avec héritage et cache LRU.
 ### Emplacement
 
 ```
-_bmad/core/context.js
+_byan/core/context.js
 ```
 
 ### Interface Publique
@@ -238,13 +238,13 @@ console.log(resolved);
 // Project: ERP System
 // Company: Acme Corp
 // Tech Stack: Node.js
-// Output: /home/user/project/_bmad-output/reports/
+// Output: /home/user/project/_byan-output/reports/
 ```
 
 ### Structure des Fichiers Context
 
 ```
-_bmad/_context/
+_byan/_context/
 ├── platform.yaml                    # Context global
 ├── {projectId}/
 │   ├── project.yaml                # Context projet
@@ -257,7 +257,7 @@ _bmad/_context/
 ```yaml
 company_name: "Acme Corp"
 methodology: "Merise Agile"
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 mantras:
   - "Simplicity is the ultimate sophistication"
   - "Trust but verify"
@@ -298,7 +298,7 @@ Route les tâches vers Worker ou Agent selon leur complexité, optimise les coû
 ### Emplacement
 
 ```
-_bmad/core/dispatcher.js
+_byan/core/dispatcher.js
 ```
 
 ### Interface Publique
@@ -486,7 +486,7 @@ Gère un pool de Workers (modèles légers) avec disponibilité et fallback.
 ### Emplacement
 
 ```
-_bmad/core/worker-pool.js
+_byan/core/worker-pool.js
 ```
 
 ### Interface Publique
@@ -630,7 +630,7 @@ Exécute des workflows déclaratifs YAML avec retry, context resolution, et outp
 ### Emplacement
 
 ```
-_bmad/core/workflow-executor.js
+_byan/core/workflow-executor.js
 ```
 
 ### Interface Publique
@@ -660,7 +660,7 @@ class WorkflowExecutor {
    * 
    * @example
    * const result = await executor.execute(
-   *   '_bmad/workflows/create-prd/workflow.yaml'
+   *   '_byan/workflows/create-prd/workflow.yaml'
    * );
    * console.log(result);
    * // {
@@ -713,7 +713,7 @@ steps:
 
 #### Exemple 1 : Workflow Simple
 
-**Fichier : `_bmad/workflows/format-doc/workflow.yaml`**
+**Fichier : `_byan/workflows/format-doc/workflow.yaml`**
 
 ```yaml
 name: format-document
@@ -738,7 +738,7 @@ steps:
 const executor = new WorkflowExecutor(contextLayer, dispatcher, logger);
 
 const result = await executor.execute(
-  '_bmad/workflows/format-doc/workflow.yaml',
+  '_byan/workflows/format-doc/workflow.yaml',
   { document_content: "# Title\n\nContent" }
 );
 
@@ -748,7 +748,7 @@ console.log(result.stepsExecuted); // 2
 
 #### Exemple 2 : Workflow Complexe Multi-Agent
 
-**Fichier : `_bmad/workflows/create-prd/workflow.yaml`**
+**Fichier : `_byan/workflows/create-prd/workflow.yaml`**
 
 ```yaml
 name: create-product-requirements
@@ -790,10 +790,10 @@ steps:
 
 ```javascript
 const result = await executor.execute(
-  '_bmad/workflows/create-prd/workflow.yaml',
+  '_byan/workflows/create-prd/workflow.yaml',
   {
     user_input: "I need a login system with OAuth2 support",
-    output_folder: "/home/user/project/_bmad-output"
+    output_folder: "/home/user/project/_byan-output"
   }
 );
 
@@ -822,7 +822,7 @@ const context = await contextLayer.loadContext('story', {
 
 // Workflow utilise le context pour placeholders
 const result = await executor.execute(
-  '_bmad/workflows/implement-story/workflow.yaml',
+  '_byan/workflows/implement-story/workflow.yaml',
   context
 );
 
@@ -841,7 +841,7 @@ Logger structuré pour observability, debugging, et tracking des coûts/performa
 ### Emplacement
 
 ```
-_bmad/core/structured-logger.js
+_byan/core/structured-logger.js
 ```
 
 ### Interface Publique
@@ -853,7 +853,7 @@ class StructuredLogger {
    * 
    * @param {string} [logPath] - Chemin custom pour fichier log
    */
-  constructor(logPath = '_bmad-output/logs/byan.log') { }
+  constructor(logPath = '_byan-output/logs/byan.log') { }
   
   /**
    * Log l'exécution d'une tâche
@@ -936,7 +936,7 @@ class StructuredLogger {
   "event": "workflow_execution",
   "timestamp": "2026-02-04T15:35:20.456Z",
   "workflow_name": "create-product-requirements",
-  "workflow_path": "_bmad/workflows/create-prd/workflow.yaml",
+  "workflow_path": "_byan/workflows/create-prd/workflow.yaml",
   "steps_executed": 4,
   "total_duration_ms": 12500,
   "total_tokens": {
@@ -976,7 +976,7 @@ logger.logTaskExecution(
 // Log workflow start
 logger.logWorkflowStart({
   name: 'create-product-requirements',
-  path: '_bmad/workflows/create-prd/workflow.yaml',
+  path: '_byan/workflows/create-prd/workflow.yaml',
   stepsCount: 4
 });
 
@@ -1104,7 +1104,7 @@ const ErrorCodes = {
 try {
   const executor = new WorkflowExecutor(contextLayer, dispatcher, logger);
   const result = await executor.execute(
-    '_bmad/workflows/create-prd/workflow.yaml'
+    '_byan/workflows/create-prd/workflow.yaml'
   );
   
   if (!result.success) {

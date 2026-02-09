@@ -49,7 +49,7 @@ copilot
 # Sélectionner: rachid
 
 # Dans RACHID:
-[VALIDATE]     # Valider la structure _bmad
+[VALIDATE]     # Valider la structure _byan
 [FIX-DEPS]     # Corriger les dépendances
 [PUBLISH]      # Publier sur npm
 [TEST-NPX]     # Tester npx create-byan-agent
@@ -74,7 +74,7 @@ copilot
 
 ```
 ~/conception/
-├── _bmad/
+├── _byan/
 │   └── bmb/
 │       ├── agents/
 │       │   ├── byan.md          ✅ Créateur d'agents
@@ -132,7 +132,7 @@ copilot
 
 ### Cas 3: Ajouter un nouvel agent à Copilot CLI
 ```bash
-# 1. Crée l'agent complet dans _bmad/bmb/agents/
+# 1. Crée l'agent complet dans _byan/bmb/agents/
 # 2. Utilise MARC pour créer le stub:
 
 copilot
@@ -169,7 +169,7 @@ ls -1 .github/agents/
 
 ### Vérifier config BMAD
 ```bash
-cat ~/conception/_bmad/bmb/config.yaml
+cat ~/conception/_byan/bmb/config.yaml
 ```
 
 ### Tester installation NPX
@@ -182,8 +182,8 @@ npx ~/conception/install/bin/create-byan-agent-fixed.js
 
 - **INSTALLATION-COMPLETE.md** : Guide d'installation complet
 - **README.md** (install/) : Documentation package npm
-- **Workflows** : `_bmad/bmb/workflows/byan/`
-- **Templates** : `_bmad/bmb/workflows/byan/templates/`
+- **Workflows** : `_byan/bmb/workflows/byan/`
+- **Templates** : `_byan/bmb/workflows/byan/templates/`
 
 ## 🆘 Aide
 

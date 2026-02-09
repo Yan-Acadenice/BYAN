@@ -41,7 +41,7 @@ BYAN v2.0 adopte une architecture modulaire basée sur **3 espaces distincts** :
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐  │
-│  │   _bmad/     │  │     src/     │  │  _bmad-output/  │  │
+│  │   _byan/     │  │     src/     │  │  _byan-output/  │  │
 │  │   Platform   │  │    Runtime   │  │    Artifacts    │  │
 │  │   Assets     │  │    Code      │  │    Generated    │  │
 │  └──────────────┘  └──────────────┘  └─────────────────┘  │
@@ -55,9 +55,9 @@ BYAN v2.0 adopte une architecture modulaire basée sur **3 espaces distincts** :
 ### Principes Structurels
 
 1. **Séparation des Préoccupations**
-   - `_bmad/` : Assets de la plateforme (agents, workflows, configuration)
+   - `_byan/` : Assets de la plateforme (agents, workflows, configuration)
    - `src/` : Code runtime (core, observability)
-   - `_bmad-output/` : Outputs générés (logs, documents, cache)
+   - `_byan-output/` : Outputs générés (logs, documents, cache)
 
 2. **Modularité par Domaine**
    - Chaque module (BMM, BMB, CIS, TEA) est auto-contenu
@@ -76,8 +76,8 @@ BYAN v2.0 adopte une architecture modulaire basée sur **3 espaces distincts** :
 
 ```
 byan-v2/
-├── _bmad/                    # Plateforme BYAN - Assets et Configuration
-├── _bmad-output/             # Outputs générés (logs, docs, cache)
+├── _byan/                    # Plateforme BYAN - Assets et Configuration
+├── _byan-output/             # Outputs générés (logs, docs, cache)
 ├── install/                  # Yanstaller - Installation Tool
 ├── src/                      # Code Runtime - Core Components
 ├── __tests__/                # Tests unitaires et intégration
@@ -89,10 +89,10 @@ byan-v2/
 └── validate-agents.sh        # Script validation agents
 ```
 
-### Vue Détaillée : `_bmad/`
+### Vue Détaillée : `_byan/`
 
 ```
-_bmad/
+_byan/
 ├── _config/                           # Configuration Globale
 │   ├── manifest.yaml                  # Manifeste principal
 │   ├── agent-manifest.csv             # Index agents disponibles
@@ -251,10 +251,10 @@ src/
     └── dashboard/                     # Future: metrics dashboard
 ```
 
-### Vue Détaillée : `_bmad-output/`
+### Vue Détaillée : `_byan-output/`
 
 ```
-_bmad-output/
+_byan-output/
 ├── architecture/                      # Docs architecture
 │   ├── byan-v2-0-architecture-node.md
 │   ├── byan-v2-file-structure.md     # Ce document
@@ -367,7 +367,7 @@ install/                               # Yanstaller - Installation Tool
 │
 ├── coverage/                         # Coverage reports
 ├── templates/                        # Installation templates
-│   └── _bmad/
+│   └── _byan/
 │
 ├── package.json
 ├── package-lock.json
@@ -397,7 +397,7 @@ __tests__/                            # Tests BYAN v2.0
 
 ### Répertoires de Niveau Racine
 
-#### `_bmad/`
+#### `_byan/`
 
 **Rôle:** Plateforme BYAN - Assets et configuration.
 
@@ -442,7 +442,7 @@ __tests__/                            # Tests BYAN v2.0
 | StructuredLogger | `src/observability/logger/structured-logger.js` | Logs structurés |
 | MetricsCollector | `src/observability/metrics/metrics-collector.js` | Collecte metrics |
 
-#### `_bmad-output/`
+#### `_byan-output/`
 
 **Rôle:** Outputs générés par la plateforme.
 
@@ -682,10 +682,10 @@ _memory/
 BYAN v2.0 utilise une configuration hiérarchique avec héritage:
 
 ```
-Global Config (_bmad/_config/manifest.yaml)
-├─ Module Config (_bmad/{module}/config.yaml)
-│  ├─ Agent Config (_bmad/_config/agents/{agent}.customize.yaml)
-│  └─ IDE Config (_bmad/_config/ides/codex.yaml)
+Global Config (_byan/_config/manifest.yaml)
+├─ Module Config (_byan/{module}/config.yaml)
+│  ├─ Agent Config (_byan/_config/agents/{agent}.customize.yaml)
+│  └─ IDE Config (_byan/_config/ides/codex.yaml)
 │
 └─ Project Config (package.json)
 ```
@@ -731,7 +731,7 @@ Global Config (_bmad/_config/manifest.yaml)
 }
 ```
 
-#### `_bmad/_config/manifest.yaml`
+#### `_byan/_config/manifest.yaml`
 
 **Rôle:** Manifeste principal BMAD (modules, versions, dépendances)
 
@@ -757,12 +757,12 @@ modules:
     enabled: false
 
 global_settings:
-  output_folder: "_bmad-output"
+  output_folder: "_byan-output"
   log_level: "info"
   cache_ttl: 300
 ```
 
-#### `_bmad/bmm/config.yaml`
+#### `_byan/bmm/config.yaml`
 
 **Rôle:** Configuration du module BMM
 
@@ -771,14 +771,14 @@ global_settings:
 ```yaml
 project_name: conception
 user_skill_level: intermediate
-planning_artifacts: "{project-root}/_bmad-output/planning-artifacts"
-implementation_artifacts: "{project-root}/_bmad-output/implementation-artifacts"
+planning_artifacts: "{project-root}/_byan-output/planning-artifacts"
+implementation_artifacts: "{project-root}/_byan-output/implementation-artifacts"
 project_knowledge: "{project-root}/docs"
 
 user_name: Yan
 communication_language: Francais
 document_output_language: Francais
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 ```
 
 **Placeholders supportés:**
@@ -788,11 +788,11 @@ output_folder: "{project-root}/_bmad-output"
 
 #### Agent Customization Files
 
-**Location:** `_bmad/_config/agents/`
+**Location:** `_byan/_config/agents/`
 
 **Nom:** `{module}-{agent-name}.customize.yaml`
 
-**Exemple:** `_bmad/_config/agents/bmm-pm.customize.yaml`
+**Exemple:** `_byan/_config/agents/bmm-pm.customize.yaml`
 
 ```yaml
 agent_id: "bmm/pm"
@@ -811,7 +811,7 @@ customizations:
 
 ### Manifestes CSV
 
-#### `_bmad/_config/agent-manifest.csv`
+#### `_byan/_config/agent-manifest.csv`
 
 **Rôle:** Index de tous les agents disponibles
 
@@ -819,12 +819,12 @@ customizations:
 
 ```csv
 module,agent_name,file_path,persona,enabled
-bmm,pm,_bmad/bmm/agents/pm.md,Product Manager,true
-bmm,architect,_bmad/bmm/agents/architect.md,Solution Architect,true
-bmb,agent-builder,_bmad/bmb/agents/agent-builder.md,Agent Builder,true
+bmm,pm,_byan/bmm/agents/pm.md,Product Manager,true
+bmm,architect,_byan/bmm/agents/architect.md,Solution Architect,true
+bmb,agent-builder,_byan/bmb/agents/agent-builder.md,Agent Builder,true
 ```
 
-#### `_bmad/_config/workflow-manifest.csv`
+#### `_byan/_config/workflow-manifest.csv`
 
 **Rôle:** Index de tous les workflows
 
@@ -832,11 +832,11 @@ bmb,agent-builder,_bmad/bmb/agents/agent-builder.md,Agent Builder,true
 
 ```csv
 module,workflow_name,path,description,enabled
-bmm,document-project,_bmad/bmm/workflows/document-project/workflow.yaml,Generate project documentation,true
-bmm,bmad-quick-flow,_bmad/bmm/workflows/bmad-quick-flow/workflow.yaml,Quick solo-dev workflow,true
+bmm,document-project,_byan/bmm/workflows/document-project/workflow.yaml,Generate project documentation,true
+bmm,bmad-quick-flow,_byan/bmm/workflows/bmad-quick-flow/workflow.yaml,Quick solo-dev workflow,true
 ```
 
-#### `_bmad/_config/bmad-help.csv`
+#### `_byan/_config/bmad-help.csv`
 
 **Rôle:** Messages d'aide contextuels
 
@@ -882,8 +882,8 @@ description: "Short description"
 **Convention:** `workflow.yaml` (dans un dossier nommé)
 
 **Exemples:**
-- `_bmad/bmm/workflows/document-project/workflow.yaml`
-- `_bmad/bmm/workflows/bmad-quick-flow/workflow.yaml`
+- `_byan/bmm/workflows/document-project/workflow.yaml`
+- `_byan/bmm/workflows/bmad-quick-flow/workflow.yaml`
 
 **Structure:**
 
@@ -903,8 +903,8 @@ steps:
 **Convention:** `config.yaml` ou `{entity}.customize.yaml`
 
 **Exemples:**
-- `_bmad/bmm/config.yaml` (module config)
-- `_bmad/_config/agents/bmm-pm.customize.yaml` (agent customization)
+- `_byan/bmm/config.yaml` (module config)
+- `_byan/_config/agents/bmm-pm.customize.yaml` (agent customization)
 
 #### Code JavaScript (`.js`)
 
@@ -1001,7 +1001,7 @@ User runs npx create-byan-agent
 ├─ Interview user (project type, tech stack)
 ├─ Recommend modules (BMM, BMB, CIS, TEA)
 ├─ Install selected modules
-├─ Generate config (_bmad/bmm/config.yaml)
+├─ Generate config (_byan/bmm/config.yaml)
 ├─ Validate installation
 └─ Display success message + quickstart
 ```
@@ -1023,7 +1023,7 @@ const workerPool = new WorkerPool(2);
 const executor = new WorkflowExecutor(context, dispatcher);
 
 // Execute workflow
-const result = await executor.execute('_bmad/workflows/my-workflow/workflow.yaml');
+const result = await executor.execute('_byan/workflows/my-workflow/workflow.yaml');
 ```
 
 ### Agents (via IDE)
@@ -1162,12 +1162,12 @@ Based on your answers, we recommend:
 📦 Installing BYAN v2.0...
 
 Creating directories...
-✓ _bmad/
-✓ _bmad/bmm/
-✓ _bmad/bmb/
-✓ _bmad/core/
-✓ _bmad/_config/
-✓ _bmad-output/
+✓ _byan/
+✓ _byan/bmm/
+✓ _byan/bmb/
+✓ _byan/core/
+✓ _byan/_config/
+✓ _byan-output/
 
 Copying files...
 ✓ BMM agents (8 agents)
@@ -1178,8 +1178,8 @@ Copying files...
 ✓ Configuration templates
 
 Generating config...
-✓ _bmad/bmm/config.yaml
-✓ _bmad/_config/manifest.yaml
+✓ _byan/bmm/config.yaml
+✓ _byan/_config/manifest.yaml
 
 Installing dependencies...
 ✓ js-yaml@4.1.0
@@ -1214,10 +1214,10 @@ Validating installation...
 3. Read documentation:
    - README.md
    - GUIDE-UTILISATION.md
-   - _bmad-output/architecture/byan-v2-file-structure.md
+   - _byan-output/architecture/byan-v2-file-structure.md
 
 🔧 Configuration:
-   Edit: _bmad/bmm/config.yaml
+   Edit: _byan/bmm/config.yaml
 
 📖 Documentation:
    https://github.com/your-repo/byan-v2
@@ -1234,7 +1234,7 @@ Happy Building! 🚀
 
 ```
 my-project/
-├── _bmad/
+├── _byan/
 │   ├── core/                 # Module Core (toujours installé)
 │   ├── bmm/                  # Module BMM (sélectionné)
 │   ├── bmb/                  # Module BMB (sélectionné)
@@ -1245,7 +1245,7 @@ my-project/
 │   └── _memory/
 │       └── config.yaml
 │
-├── _bmad-output/
+├── _byan-output/
 │   └── (vide initialement)
 │
 ├── package.json              # Mis à jour avec dependencies
@@ -1257,18 +1257,18 @@ my-project/
 #### Éditer Configuration Utilisateur
 
 ```yaml
-# _bmad/bmm/config.yaml
+# _byan/bmm/config.yaml
 project_name: my-awesome-project
 user_name: Yan
 communication_language: Francais
 user_skill_level: intermediate
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 ```
 
 #### Activer/Désactiver Agents
 
 ```yaml
-# _bmad/_config/agents/bmm-pm.customize.yaml
+# _byan/_config/agents/bmm-pm.customize.yaml
 agent_id: "bmm/pm"
 customizations:
   enabled: true
@@ -1305,7 +1305,7 @@ byan-v1/
 
 ```
 byan-v2/
-├── _bmad/                    # Plateforme modulaire
+├── _byan/                    # Plateforme modulaire
 │   ├── bmm/                  # Module BMM
 │   ├── bmb/                  # Module BMB
 │   ├── cis/                  # Module CIS
@@ -1313,7 +1313,7 @@ byan-v2/
 ├── src/                      # Code runtime séparé
 │   ├── core/                 # Composants core
 │   └── observability/        # Observability layer
-└── _bmad-output/             # Outputs séparés
+└── _byan-output/             # Outputs séparés
 ```
 
 #### Context Management
@@ -1384,11 +1384,11 @@ npx create-byan-agent
 **Migration:**
 
 1. Identifier le module approprié (BMM, BMB, CIS)
-2. Copier dans `_bmad/{module}/agents/`
-3. Ajouter entrée dans `_bmad/_config/agent-manifest.csv`
+2. Copier dans `_byan/{module}/agents/`
+3. Ajouter entrée dans `_byan/_config/agent-manifest.csv`
 
 ```csv
-bmm,my-custom-agent,_bmad/bmm/agents/my-custom-agent.md,Custom Agent,true
+bmm,my-custom-agent,_byan/bmm/agents/my-custom-agent.md,Custom Agent,true
 ```
 
 #### Étape 4: Migrer Workflows
@@ -1397,7 +1397,7 @@ bmm,my-custom-agent,_bmad/bmm/agents/my-custom-agent.md,Custom Agent,true
 
 **Migration:**
 
-1. Copier dans `_bmad/{module}/workflows/my-workflow/`
+1. Copier dans `_byan/{module}/workflows/my-workflow/`
 2. Renommer en `workflow.yaml`
 3. Adapter format si nécessaire:
 
@@ -1423,7 +1423,7 @@ steps:
 
 ```bash
 # Copier valeurs vers nouveau format
-vi _bmad/bmm/config.yaml
+vi _byan/bmm/config.yaml
 ```
 
 **Mapping:**
@@ -1433,7 +1433,7 @@ vi _bmad/bmm/config.yaml
 | `user_name` | `user_name` (identique) |
 | `project_name` | `project_name` (identique) |
 | `output_path` | `output_folder` |
-| `log_level` | `_bmad/_config/manifest.yaml` |
+| `log_level` | `_byan/_config/manifest.yaml` |
 
 #### Étape 6: Tester
 
@@ -1462,8 +1462,8 @@ const workflowPath = 'workflows/create-prd.yaml';
 **v2.0:**
 
 ```javascript
-const agentPath = '_bmad/bmm/agents/pm.md';
-const workflowPath = '_bmad/bmm/workflows/create-prd/workflow.yaml';
+const agentPath = '_byan/bmm/agents/pm.md';
+const workflowPath = '_byan/bmm/workflows/create-prd/workflow.yaml';
 ```
 
 #### API Interne
@@ -1483,7 +1483,7 @@ const { WorkflowExecutor, ContextLayer, EconomicDispatcher } = require('byan-v2'
 const context = new ContextLayer();
 const dispatcher = new EconomicDispatcher();
 const executor = new WorkflowExecutor(context, dispatcher);
-await executor.execute('_bmad/bmm/workflows/create-prd/workflow.yaml');
+await executor.execute('_byan/bmm/workflows/create-prd/workflow.yaml');
 ```
 
 #### Format Workflow
@@ -1536,11 +1536,11 @@ npx byan-migrate v1-to-v2
 ### Documents Architecture
 
 - [Architecture Technique BYAN v2.0](./byan-v2-0-architecture-node.md)
-- [Vision et Principes](../_bmad-output/conception/01-vision-et-principes.md)
-- [Interfaces API](../_bmad-output/conception/04-interfaces-api.md)
-- [Data Models](../_bmad-output/conception/05-data-models.md)
-- [Flux de Données](../_bmad-output/conception/06-flux-de-donnees.md)
-- [Décisions Architecturales](../_bmad-output/conception/07-decisions-architecturales.md)
+- [Vision et Principes](../_byan-output/conception/01-vision-et-principes.md)
+- [Interfaces API](../_byan-output/conception/04-interfaces-api.md)
+- [Data Models](../_byan-output/conception/05-data-models.md)
+- [Flux de Données](../_byan-output/conception/06-flux-de-donnees.md)
+- [Décisions Architecturales](../_byan-output/conception/07-decisions-architecturales.md)
 
 ### Diagrammes UML
 
@@ -1552,11 +1552,11 @@ npx byan-migrate v1-to-v2
 
 ### Composants Core
 
-- [ContextLayer](../_bmad-output/conception/03-composants/context-layer.md)
-- [EconomicDispatcher](../_bmad-output/conception/03-composants/economic-dispatcher.md)
-- [WorkerPool](../_bmad-output/conception/03-composants/worker-pool.md)
-- [WorkflowExecutor](../_bmad-output/conception/03-composants/workflow-executor.md)
-- [ObservabilityLayer](../_bmad-output/conception/03-composants/observability-layer.md)
+- [ContextLayer](../_byan-output/conception/03-composants/context-layer.md)
+- [EconomicDispatcher](../_byan-output/conception/03-composants/economic-dispatcher.md)
+- [WorkerPool](../_byan-output/conception/03-composants/worker-pool.md)
+- [WorkflowExecutor](../_byan-output/conception/03-composants/workflow-executor.md)
+- [ObservabilityLayer](../_byan-output/conception/03-composants/observability-layer.md)
 
 ### Guides Installation
 
@@ -1566,12 +1566,12 @@ npx byan-migrate v1-to-v2
 
 ### Sessions Design
 
-- [Brainstorming Session 2026-02-04](../_bmad-output/brainstorming/brainstorming-session-2026-02-04.md)
+- [Brainstorming Session 2026-02-04](../_byan-output/brainstorming/brainstorming-session-2026-02-04.md)
 
 ### Standards
 
-- [Documentation Standards](../_bmad/_memory/tech-writer-sidecar/documentation-standards.md)
-- [Merise Agile TDD Mantras](../_bmad-output/guide-reference-rapide-merise-agile-tdd.md)
+- [Documentation Standards](../_byan/_memory/tech-writer-sidecar/documentation-standards.md)
+- [Merise Agile TDD Mantras](../_byan-output/guide-reference-rapide-merise-agile-tdd.md)
 
 ---
 
@@ -1581,7 +1581,7 @@ npx byan-migrate v1-to-v2
 
 Pour créer un nouveau module BMAD:
 
-- [ ] Créer répertoire `_bmad/{module-name}/`
+- [ ] Créer répertoire `_byan/{module-name}/`
 - [ ] Créer `config.yaml` avec settings module
 - [ ] Créer `module-help.csv` avec aide contextuelle
 - [ ] Créer sous-répertoires:
@@ -1591,10 +1591,10 @@ Pour créer un nouveau module BMAD:
   - [ ] `data/` (optionnel)
 - [ ] Ajouter agents (fichiers `.md`)
 - [ ] Ajouter workflows (répertoires avec `workflow.yaml`)
-- [ ] Mettre à jour `_bmad/_config/manifest.yaml`
-- [ ] Mettre à jour `_bmad/_config/agent-manifest.csv`
-- [ ] Mettre à jour `_bmad/_config/workflow-manifest.csv`
-- [ ] Créer customization files dans `_bmad/_config/agents/`
+- [ ] Mettre à jour `_byan/_config/manifest.yaml`
+- [ ] Mettre à jour `_byan/_config/agent-manifest.csv`
+- [ ] Mettre à jour `_byan/_config/workflow-manifest.csv`
+- [ ] Créer customization files dans `_byan/_config/agents/`
 - [ ] Documenter dans README module
 - [ ] Créer tests si applicable
 
@@ -1602,11 +1602,11 @@ Pour créer un nouveau module BMAD:
 
 Pour créer un nouvel agent dans un module existant:
 
-- [ ] Créer fichier `_bmad/{module}/agents/{agent-name}.md`
+- [ ] Créer fichier `_byan/{module}/agents/{agent-name}.md`
 - [ ] Définir persona et capabilities
 - [ ] Créer menu avec items
-- [ ] Ajouter entrée dans `_bmad/_config/agent-manifest.csv`
-- [ ] Créer `_bmad/_config/agents/{module}-{agent-name}.customize.yaml`
+- [ ] Ajouter entrée dans `_byan/_config/agent-manifest.csv`
+- [ ] Créer `_byan/_config/agents/{module}-{agent-name}.customize.yaml`
 - [ ] Documenter agent dans module README
 - [ ] Tester activation agent
 - [ ] Ajouter à team file si applicable (`teams/{team-name}.yaml`)
@@ -1615,12 +1615,12 @@ Pour créer un nouvel agent dans un module existant:
 
 Pour créer un nouveau workflow:
 
-- [ ] Créer répertoire `_bmad/{module}/workflows/{workflow-name}/`
+- [ ] Créer répertoire `_byan/{module}/workflows/{workflow-name}/`
 - [ ] Créer `workflow.yaml` avec steps
 - [ ] Définir inputs/outputs
 - [ ] Ajouter retry logic si nécessaire
 - [ ] Tester exécution workflow
-- [ ] Ajouter entrée dans `_bmad/_config/workflow-manifest.csv`
+- [ ] Ajouter entrée dans `_byan/_config/workflow-manifest.csv`
 - [ ] Documenter dans README workflow
 - [ ] Créer fichiers support (templates, data) si nécessaire
 

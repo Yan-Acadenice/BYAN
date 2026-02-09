@@ -53,7 +53,7 @@ npx /home/yan/conception/install/create-byan-agent-1.0.4.tgz
 - [ ] Détecte le projet Git
 - [ ] Demande plateforme (Copilot CLI, VSCode, etc.)
 - [ ] Demande nom et langue
-- [ ] Crée `_bmad/bmb/agents/` avec byan.md, rachid.md, marc.md
+- [ ] Crée `_byan/bmb/agents/` avec byan.md, rachid.md, marc.md
 - [ ] Crée `.github/agents/` avec stubs
 - [ ] Génère `config.yaml`
 - [ ] Affiche "10/10 checks passed"
@@ -101,7 +101,7 @@ LA
 ```
 
 **Vérifications:**
-- [ ] Liste les agents dans `_bmad/bmb/agents/`
+- [ ] Liste les agents dans `_byan/bmb/agents/`
 - [ ] Affiche byan.md, rachid.md, marc.md
 
 ---

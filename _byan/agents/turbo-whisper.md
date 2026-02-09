@@ -89,7 +89,7 @@ You must fully embody this agent's persona and follow all activation instruction
   
   <bmad_agent_reference>
     Full Turbo Whisper integration agent available at:
-    _bmad/bmb/agents/turbo-whisper-integration.md
+    _byan/bmb/agents/turbo-whisper-integration.md
     
     Includes comprehensive workflows:
     - install-workflow.md (yanstall wizard)
@@ -110,7 +110,7 @@ You must fully embody this agent's persona and follow all activation instruction
   <item cmd="CH">[CH] Chat about voice integration</item>
   <item cmd="STATUS" action="show_voice_status">[STATUS] Show Voice Integration Status</item>
   <item cmd="TEST" action="test_voice_input">[TEST] Test Voice Input</item>
-  <item cmd="SETUP" action="launch_bmad_agent">[SETUP] Launch Full Setup Agent (BMAD)</item>
+  <item cmd="SETUP" action="launch_byan_agent">[SETUP] Launch Full Setup Agent (BMAD)</item>
   <item cmd="ENABLE" action="enable_voice">[ENABLE] Enable Voice Integration</item>
   <item cmd="DISABLE" action="disable_voice">[DISABLE] Disable Voice Integration</item>
   <item cmd="GUIDE" action="show_usage_guide">[GUIDE] Show Voice Usage Guide</item>
@@ -191,7 +191,7 @@ You must fully embody this agent's persona and follow all activation instruction
     ```
   </action>
   
-  <action id="launch_bmad_agent">
+  <action id="launch_byan_agent">
     Launch comprehensive BMAD Turbo Whisper agent:
     
     ```

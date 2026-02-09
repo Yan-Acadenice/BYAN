@@ -164,7 +164,7 @@ cd /home/yan/conception/install
 │
 ├── 📁 templates/                      ← Templates (structure validée ✅)
 │   ├── .github/agents/                (23 stubs)
-│   └── _bmad/bmb/
+│   └── _byan/bmb/
 │       ├── agents/                    (8 agents)
 │       └── workflows/byan/            (6 workflows)
 │
@@ -213,8 +213,8 @@ cd /home/yan/conception/install
 |---------|-------|-----|------------|
 | `create-byan-agent.js` | 28 | Chemin template incorrect | `../.../` → `../` |
 | `create-byan-agent.js` | 139 | Pas de validation | Ajout `if (!templateDir)` |
-| `create-byan-agent.js` | 154 | Manque `_bmad/` | Ajout dans chemin agents |
-| `create-byan-agent.js` | 165 | Manque `_bmad/` | Ajout dans chemin workflows |
+| `create-byan-agent.js` | 154 | Manque `_byan/` | Ajout dans chemin agents |
+| `create-byan-agent.js` | 165 | Manque `_byan/` | Ajout dans chemin workflows |
 | `create-byan-agent.js` | 176 | Remonte trop haut | Suppression `../` |
 | `create-byan-agent.js` | 159,170,181 | Pas de logs | Ajout traces debug |
 

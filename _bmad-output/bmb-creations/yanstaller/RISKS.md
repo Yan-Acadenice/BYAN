@@ -97,7 +97,7 @@
 
 ### R-005: Permission Errors
 
-**Description**: User lacks write permissions for .github/ or _bmad/.
+**Description**: User lacks write permissions for .github/ or _byan/.
 
 **Probability**: 30% (MODERATE)
 
@@ -134,7 +134,7 @@
 
 ### R-007: Data Loss (Overwrite)
 
-**Description**: User has custom _bmad/, YANSTALLER overwrites without backup.
+**Description**: User has custom _byan/, YANSTALLER overwrites without backup.
 
 **Probability**: 5% (LOW)
 
@@ -142,7 +142,7 @@
 
 **Mitigation**:
 1. ✅ **Mandatory backup**: ALWAYS backup before overwrite (RG-YAN-003)
-2. ✅ **Confirmation prompt**: "Overwrite existing _bmad/? (Backup will be created)"
+2. ✅ **Confirmation prompt**: "Overwrite existing _byan/? (Backup will be created)"
 3. ✅ **Rollback capability**: Keep backup for 7 days, offer restore
 4. ✅ **Diff preview**: Show what will change
 

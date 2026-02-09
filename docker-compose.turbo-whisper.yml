@@ -6,8 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MODEL_NAME=tiny
-      - DEVICE=cuda
+      - WHISPER__MODEL=Systran/faster-whisper-small
     deploy:
       resources:
         reservations:

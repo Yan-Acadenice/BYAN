@@ -339,18 +339,21 @@ os.environ.setdefault('LANG', 'fr_FR.UTF-8')
     // Use detected GPU info or fallback
     const gpuInfo = this.gpuInfo || this.detectGPU();
     const model = gpuInfo.model;
-    const device = gpuInfo.hasGPU ? 'cuda' : 'cpu';
+    const useGPU = gpuInfo.hasGPU;
+    
+    // Format model name according to official docs:
+    // https://github.com/knowall-ai/turbo-whisper
+    const modelFullName = `Systran/faster-whisper-${model}`;
     
     const dockerCompose = `version: '3.8'
 
 services:
   whisper-server:
-    image: fedirz/faster-whisper-server:latest-${device === 'cuda' ? 'cuda' : 'cpu'}
+    image: fedirz/faster-whisper-server:latest-${useGPU ? 'cuda' : 'cpu'}
     ports:
       - "8000:8000"
     environment:
-      - MODEL_NAME=${model}
-      - DEVICE=${device}${device === 'cuda' ? `
+      - WHISPER__MODEL=${modelFullName}${useGPU ? `
     deploy:
       resources:
         reservations:
@@ -365,7 +368,7 @@ services:
     await fs.writeFile(composePath, dockerCompose, 'utf-8');
     
     // Log configuration
-    console.log(chalk.gray(`\n  Docker config: ${device.toUpperCase()} with model ${model}`));
+    console.log(chalk.gray(`\n  Docker config: ${useGPU ? 'GPU (CUDA)' : 'CPU'} with model ${modelFullName}`));
   }
 
   async createLaunchScript() {

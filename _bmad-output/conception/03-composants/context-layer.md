@@ -31,7 +31,7 @@ Le **Context Layer** est le système de gestion d'état hiérarchique de BYAN v2
 ## Responsabilités
 
 1. **Chargement hiérarchique**
-   - Lire fichiers YAML depuis `_bmad/_context/`
+   - Lire fichiers YAML depuis `_byan/_context/`
    - Fusionner Platform → Project → Story (child override)
    - Valider structure YAML
 
@@ -156,7 +156,7 @@ module.exports = ContextLayer;
 ### Pseudo-code
 
 ```javascript
-// _bmad/core/context.js
+// _byan/core/context.js
 const yaml = require('js-yaml');
 const fs = require('fs-extra');
 const path = require('path');
@@ -164,7 +164,7 @@ const NodeCache = require('node-cache');
 
 class ContextLayer {
   constructor(options = {}) {
-    this.contextDir = options.contextDir || path.join(process.cwd(), '_bmad/_context');
+    this.contextDir = options.contextDir || path.join(process.cwd(), '_byan/_context');
     this.cache = new NodeCache({ 
       stdTTL: options.cacheTTL || 300,
       checkperiod: 60 
@@ -441,7 +441,7 @@ test('should merge platform + project + story', async () => {
 ```javascript
 test('should override parent values', async () => {
   // project.yaml has: output_folder: './custom-output'
-  // platform.yaml has: output_folder: './_bmad-output'
+  // platform.yaml has: output_folder: './_byan-output'
   
   const ctx = await contextLayer.loadContext('project', {
     projectId: 'custom-project'
@@ -586,7 +586,7 @@ npm install js-yaml fs-extra node-cache
 ### Exemple 1: CLI Tool
 
 ```javascript
-const ContextLayer = require('./_bmad/core/context');
+const ContextLayer = require('./_byan/core/context');
 
 async function main() {
   const contextLayer = new ContextLayer();
@@ -658,7 +658,7 @@ class Agent {
 ## Structure Fichiers
 
 ```
-_bmad/
+_byan/
 ├── _context/
 │   ├── platform.yaml              # Niveau 1
 │   ├── byan-v2/
@@ -682,7 +682,7 @@ __tests__/
 ```yaml
 user_name: Yan
 communication_language: Francais
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 llm:
   model: claude-sonnet-4
   temperature: 0.7

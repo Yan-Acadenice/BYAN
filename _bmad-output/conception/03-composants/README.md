@@ -3,7 +3,7 @@
 **Version:** 2.0.0-HYPER-MVP  
 **Date:** 2026-02-04  
 **Status:** Ready to Implement  
-**Source Architecture:** `_bmad-output/architecture/byan-v2-0-architecture-node.md`
+**Source Architecture:** `_byan-output/architecture/byan-v2-0-architecture-node.md`
 
 ---
 
@@ -29,7 +29,7 @@ Ce dossier contient les **5 spécifications techniques détaillées** des compos
 **Timeline:** 2 jours (Jour 1-2)
 
 **Fichiers:**
-- `_bmad/core/context.js`
+- `_byan/core/context.js`
 - `__tests__/context.test.js`
 
 **Objectifs Performance:**
@@ -51,7 +51,7 @@ npm install node-cache js-yaml fs-extra
 **Timeline:** 2 jours (Jour 3-4)
 
 **Fichiers:**
-- `_bmad/core/dispatcher.js`
+- `_byan/core/dispatcher.js`
 - `__tests__/dispatcher.test.js`
 
 **Objectifs Performance:**
@@ -71,7 +71,7 @@ Aucune dépendance externe (modules internes)
 **Timeline:** 2 jours (Jour 3-4)
 
 **Fichiers:**
-- `_bmad/core/worker-pool.js`
+- `_byan/core/worker-pool.js`
 - `__tests__/worker-pool.test.js`
 
 **Objectifs Performance:**
@@ -91,7 +91,7 @@ Aucune dépendance externe
 **Timeline:** 1 jour (Jour 5)
 
 **Fichiers:**
-- `_bmad/core/workflow-executor.js`
+- `_byan/core/workflow-executor.js`
 - `__tests__/workflow-executor.test.js`
 
 **Objectifs Performance:**
@@ -113,9 +113,9 @@ npm install js-yaml fs-extra
 **Timeline:** 1 jour (Jour 6)
 
 **Fichiers:**
-- `_bmad/core/structured-logger.js`
-- `_bmad/core/metrics-collector.js`
-- `_bmad/core/cli-dashboard.js`
+- `_byan/core/structured-logger.js`
+- `_byan/core/metrics-collector.js`
+- `_byan/core/cli-dashboard.js`
 - `__tests__/observability.test.js`
 
 **Objectifs Performance:**
@@ -266,8 +266,8 @@ npm run test:coverage
 ## 📚 RESSOURCES
 
 ### Documentation Source
-- Architecture globale: `_bmad-output/architecture/byan-v2-0-architecture-node.md`
-- Diagrammes UML: `_bmad-output/architecture/diagrams/`
+- Architecture globale: `_byan-output/architecture/byan-v2-0-architecture-node.md`
+- Diagrammes UML: `_byan-output/architecture/diagrams/`
 
 ### Stack Technique
 - **Runtime:** Node.js >= 18.0.0

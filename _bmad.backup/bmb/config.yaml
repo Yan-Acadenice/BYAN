@@ -1,0 +1,7 @@
+bmb_creations_output_folder: '{project-root}/_bmad-output/bmb-creations'
+user_name: Yan
+communication_language: Francais
+document_output_language: Francais
+output_folder: '{project-root}/_bmad-output'
+platform: copilot
+byan_version: 1.0.0

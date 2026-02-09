@@ -56,7 +56,7 @@ Successfully adapted the Yanstaller (BYAN installer) to support the new BYAN v2.
 - ✅ `bin/create-byan-agent.js` - Original v1.0 installer
 - ✅ `package.json` - Will be updated by user via switch script
 - ✅ All template files - No modifications needed
-- ✅ `_bmad/` structure - Platform assets untouched
+- ✅ `_byan/` structure - Platform assets untouched
 
 ---
 
@@ -97,7 +97,7 @@ async function mergePackageJson(templateDir, projectRoot, spinner) {
 #### 4. Version Tracking
 
 ```yaml
-# _bmad/bmb/config.yaml
+# _byan/bmb/config.yaml
 byan_version: "2.0.0-alpha.1"  # NEW field
 ```
 
@@ -498,7 +498,7 @@ npm test
 
 - Full backward compatibility with v1.0
 - Original installer preserved as fallback
-- Platform assets (`_bmad/`) unchanged
+- Platform assets (`_byan/`) unchanged
 - Zero breaking changes
 
 ---

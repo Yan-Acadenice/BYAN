@@ -150,7 +150,7 @@ module.exports = EconomicDispatcher;
 ### Pseudo-code
 
 ```javascript
-// _bmad/core/dispatcher.js
+// _byan/core/dispatcher.js
 
 class EconomicDispatcher {
   constructor(options = {}) {

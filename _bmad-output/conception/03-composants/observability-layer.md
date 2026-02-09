@@ -67,7 +67,7 @@ class StructuredLogger {
    * 
    * @param {Object} [options={}] - Configuration
    * @param {string} [options.level='info'] - Niveau de log (debug, info, warn, error)
-   * @param {string} [options.logDir='_bmad-output/logs'] - Répertoire logs
+   * @param {string} [options.logDir='_byan-output/logs'] - Répertoire logs
    * @param {boolean} [options.console=false] - Log vers console aussi
    * @param {number} [options.maxFiles=7] - Nombre max fichiers rotation
    * @param {string} [options.maxSize='10m'] - Taille max fichier log
@@ -336,7 +336,7 @@ class CLIDashboard {
 
 ## 🛠️ IMPLÉMENTATION
 
-### Fichier: `_bmad/core/structured-logger.js`
+### Fichier: `_byan/core/structured-logger.js`
 
 ```javascript
 const winston = require('winston');
@@ -347,7 +347,7 @@ class StructuredLogger {
   constructor(options = {}) {
     const logDir = options.logDir || path.join(
       process.cwd(),
-      '_bmad-output',
+      '_byan-output',
       'logs'
     );
 
@@ -504,7 +504,7 @@ class StructuredLogger {
 module.exports = StructuredLogger;
 ```
 
-### Fichier: `_bmad/core/metrics-collector.js`
+### Fichier: `_byan/core/metrics-collector.js`
 
 ```javascript
 class MetricsCollector {
@@ -632,7 +632,7 @@ class MetricsCollector {
 module.exports = MetricsCollector;
 ```
 
-### Fichier: `_bmad/core/cli-dashboard.js`
+### Fichier: `_byan/core/cli-dashboard.js`
 
 ```javascript
 const chalk = require('chalk');
@@ -806,9 +806,9 @@ module.exports = CLIDashboard;
 ### Fichier: `__tests__/observability.test.js`
 
 ```javascript
-const StructuredLogger = require('../_bmad/core/structured-logger');
-const MetricsCollector = require('../_bmad/core/metrics-collector');
-const CLIDashboard = require('../_bmad/core/cli-dashboard');
+const StructuredLogger = require('../_byan/core/structured-logger');
+const MetricsCollector = require('../_byan/core/metrics-collector');
+const CLIDashboard = require('../_byan/core/cli-dashboard');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -1017,7 +1017,7 @@ npm install winston chalk
 ### Exemple 1: Logging Simple
 
 ```javascript
-const { StructuredLogger } = require('./_bmad/core/structured-logger');
+const { StructuredLogger } = require('./_byan/core/structured-logger');
 
 const logger = new StructuredLogger({ console: true });
 
@@ -1045,8 +1045,8 @@ logger.logWorkflowComplete({
 ### Exemple 2: Métriques & Dashboard
 
 ```javascript
-const MetricsCollector = require('./_bmad/core/metrics-collector');
-const CLIDashboard = require('./_bmad/core/cli-dashboard');
+const MetricsCollector = require('./_byan/core/metrics-collector');
+const CLIDashboard = require('./_byan/core/cli-dashboard');
 
 const collector = new MetricsCollector();
 const dashboard = new CLIDashboard(collector);
@@ -1073,7 +1073,7 @@ const fs = require('fs-extra');
 const path = require('path');
 
 async function analyzeLogs() {
-  const logFile = path.join('_bmad-output', 'logs', 'byan.log');
+  const logFile = path.join('_byan-output', 'logs', 'byan.log');
   const content = await fs.readFile(logFile, 'utf8');
 
   const lines = content.trim().split('\n');

@@ -11,18 +11,18 @@
 ### 1. Nouveaux Agents Ajoutés
 
 #### RACHID - Expert NPM/NPX
-- **Fichier:** `templates/_bmad/bmb/agents/rachid.md` (7.2 KB)
+- **Fichier:** `templates/_byan/bmb/agents/rachid.md` (7.2 KB)
 - **Stub:** `templates/.github/agents/bmad-agent-rachid.md` (1.8 KB)
 - **Capacités:**
   - Installation BYAN via npx
-  - Validation structure _bmad
+  - Validation structure _byan
   - Gestion dépendances npm
   - Publication npm registry
   - Tests npx
   - Audits sécurité
 
 #### MARC - Expert GitHub Copilot CLI
-- **Fichier:** `templates/_bmad/bmb/agents/marc.md` (10.8 KB)
+- **Fichier:** `templates/_byan/bmb/agents/marc.md` (10.8 KB)
 - **Stub:** `templates/.github/agents/bmad-agent-marc.md` (1.9 KB)
 - **Capacités:**
   - Validation .github/agents/
@@ -37,7 +37,7 @@
 
 ```
 templates/
-├── _bmad/
+├── _byan/
 │   └── bmb/
 │       ├── agents/                    (6 agents)
 │       │   ├── byan.md               ✅ 12.8 KB

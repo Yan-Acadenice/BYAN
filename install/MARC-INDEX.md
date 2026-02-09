@@ -255,9 +255,9 @@ cat install/MARC-VALIDATION-REPORT.md
 
 | Agent | Block Présent | Référence Path | Steps Complets |
 |-------|---------------|----------------|----------------|
-| **BYAN** | ✅ Oui | ✅ `_bmad/bmb/agents/byan.md` | ✅ 6 steps |
-| **RACHID** | ✅ Oui | ✅ `_bmad/bmb/agents/rachid.md` | ✅ 4 steps |
-| **MARC** | ✅ Oui | ✅ `_bmad/bmb/agents/marc.md` | ✅ 4 steps |
+| **BYAN** | ✅ Oui | ✅ `_byan/bmb/agents/byan.md` | ✅ 6 steps |
+| **RACHID** | ✅ Oui | ✅ `_byan/bmb/agents/rachid.md` | ✅ 4 steps |
+| **MARC** | ✅ Oui | ✅ `_byan/bmb/agents/marc.md` | ✅ 4 steps |
 
 **Score Section:** 100/100
 
@@ -268,7 +268,7 @@ cat install/MARC-VALIDATION-REPORT.md
 | Feature | Status | Notes |
 |---------|--------|-------|
 | **Template resolution** | ✅ OK | Multi-env (npm, local, dev) |
-| **Directory creation** | ✅ OK | _bmad/ + .github/agents/ |
+| **Directory creation** | ✅ OK | _byan/ + .github/agents/ |
 | **Agent copy** | ✅ OK | Sources + stubs |
 | **Config generation** | ✅ OK | config.yaml avec user_name |
 | **Verification** | ✅ OK | 10 checks post-install |

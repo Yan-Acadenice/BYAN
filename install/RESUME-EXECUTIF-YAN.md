@@ -60,13 +60,13 @@ J'ai adapté le Yanstaller pour supporter BYAN v2.0 avec:
 ### Avant (v1.0)
 ```
 npx create-byan-agent
-→ Installe uniquement _bmad/ (plateforme)
+→ Installe uniquement _byan/ (plateforme)
 ```
 
 ### Maintenant (v2.0)
 ```
 npx create-byan-agent@alpha
-→ Installe _bmad/ (plateforme)
+→ Installe _byan/ (plateforme)
 → Propose d'installer src/ + __tests__/ (runtime v2.0)
 → Configure Jest automatiquement
 → Fusionne package.json intelligemment
@@ -220,7 +220,7 @@ install/
 #### Mode v1.0 (Plateforme Seule)
 ```
 project/
-└── _bmad/
+└── _byan/
     └── bmb/
         ├── agents/        (BYAN, RACHID, MARC)
         ├── workflows/     (Workflows BYAN)
@@ -230,7 +230,7 @@ project/
 #### Mode v2.0 (Plateforme + Runtime)
 ```
 project/
-├── _bmad/                 ← Plateforme (v1.0)
+├── _byan/                 ← Plateforme (v1.0)
 │   └── bmb/
 │       ├── agents/
 │       ├── workflows/

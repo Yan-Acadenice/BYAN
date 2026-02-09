@@ -28,7 +28,7 @@
 ## 📦 LIVRABLES CRÉÉS
 
 ### 1. Brainstorming & Innovation
-**Fichier:** `_bmad-output/brainstorming/brainstorming-session-2026-02-04.md`
+**Fichier:** `_byan-output/brainstorming/brainstorming-session-2026-02-04.md`
 - 4 phases Progressive Technique Flow (Carson/Brainstorming Coach)
 - 218 idées générées
 - 7 clusters identifiés
@@ -36,14 +36,14 @@
 - Décisions architecturales critiques
 
 ### 2. Architecture Node.js
-**Fichier:** `_bmad-output/architecture/byan-v2-0-architecture-node.md`
+**Fichier:** `_byan-output/architecture/byan-v2-0-architecture-node.md`
 - Spécification complète Node.js/JavaScript (50KB)
 - Correction critique: Python → Node.js
 - 5 composants core détaillés avec code examples
 - Stack technique: Node >= 18.0.0, js-yaml, winston, node-cache
 
 ### 3. Diagrammes UML (Draw.io via MCP)
-**Répertoire:** `_bmad-output/architecture/diagrams/`
+**Répertoire:** `_byan-output/architecture/diagrams/`
 - `byan-v2-class-diagram.drawio` - Classes et relations
 - `byan-v2-sequence-worker.drawio` - Flow Worker execution
 - `byan-v2-sequence-agent.drawio` - Flow Agent execution
@@ -51,7 +51,7 @@
 - `byan-v2-deployment-diagram.drawio` - Déploiement multi-OS (Node.js)
 
 ### 4. Documentation de Conception (11 docs)
-**Répertoire:** `_bmad-output/conception/`
+**Répertoire:** `_byan-output/conception/`
 
 **Par Paige (Tech Writer):**
 - `01-vision-et-principes.md` (18KB)
@@ -72,7 +72,7 @@
 **Total:** 273KB de documentation
 
 ### 5. File Structure Documentation
-**Fichier:** `_bmad-output/architecture/byan-v2-file-structure.md`
+**Fichier:** `_byan-output/architecture/byan-v2-file-structure.md`
 - 1,648 lignes de documentation
 - Arborescence complète (tree ASCII)
 - 113 répertoires documentés
@@ -125,7 +125,7 @@
 - + 12 autres test suites
 
 ### 8. Story BMAD
-**Fichier:** `_bmad-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md`
+**Fichier:** `_byan-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md`
 - Status: **DONE** ✅
 - 10 Acceptance Criteria (8 implémentés)
 - Epic: BYAN v2.0 Core Architecture
@@ -236,7 +236,7 @@ complexity = (
 ### Vue d'Ensemble
 ```
 {project-root}/
-├── _bmad/                          # Plateforme BMAD (inchangé)
+├── _byan/                          # Plateforme BMAD (inchangé)
 │   ├── _config/                    # Manifests
 │   ├── _memory/                    # Agent memory
 │   ├── core/                       # Module core
@@ -267,7 +267,7 @@ complexity = (
 │   ├── metrics-collector.test.js
 │   └── dashboard.test.js
 │
-├── _bmad-output/                   # Artifacts générés
+├── _byan-output/                   # Artifacts générés
 │   ├── brainstorming/
 │   ├── architecture/
 │   │   ├── diagrams/              # 5 UML diagrams
@@ -466,16 +466,16 @@ Session suivante:
 ### Fichiers Critiques à Connaître
 ```
 Pour reprendre le travail:
-1. _bmad-output/architecture/byan-v2-0-architecture-node.md
+1. _byan-output/architecture/byan-v2-0-architecture-node.md
    → Architecture complète
 
-2. _bmad-output/architecture/byan-v2-file-structure.md
+2. _byan-output/architecture/byan-v2-file-structure.md
    → Structure de fichiers complète
 
-3. _bmad-output/conception/07-decisions-architecturales.md
+3. _byan-output/conception/07-decisions-architecturales.md
    → ADR pour comprendre "pourquoi"
 
-4. _bmad-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md
+4. _byan-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md
    → Story avec AC (8/8 done)
 
 5. src/core/ et src/observability/
@@ -490,18 +490,18 @@ Pour reprendre le travail:
 ## 🔗 RÉFÉRENCES IMPORTANTES
 
 ### Documents de Travail
-- Brainstorming: `_bmad-output/brainstorming/brainstorming-session-2026-02-04.md`
-- Architecture: `_bmad-output/architecture/byan-v2-0-architecture-node.md`
-- File Structure: `_bmad-output/architecture/byan-v2-file-structure.md`
-- ADR: `_bmad-output/conception/07-decisions-architecturales.md`
-- Story: `_bmad-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md`
+- Brainstorming: `_byan-output/brainstorming/brainstorming-session-2026-02-04.md`
+- Architecture: `_byan-output/architecture/byan-v2-0-architecture-node.md`
+- File Structure: `_byan-output/architecture/byan-v2-file-structure.md`
+- ADR: `_byan-output/conception/07-decisions-architecturales.md`
+- Story: `_byan-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md`
 
 ### Diagrammes
-- `_bmad-output/architecture/diagrams/byan-v2-class-diagram.drawio`
-- `_bmad-output/architecture/diagrams/byan-v2-sequence-worker.drawio`
-- `_bmad-output/architecture/diagrams/byan-v2-sequence-agent.drawio`
-- `_bmad-output/architecture/diagrams/byan-v2-component-diagram.drawio`
-- `_bmad-output/architecture/diagrams/byan-v2-deployment-diagram.drawio`
+- `_byan-output/architecture/diagrams/byan-v2-class-diagram.drawio`
+- `_byan-output/architecture/diagrams/byan-v2-sequence-worker.drawio`
+- `_byan-output/architecture/diagrams/byan-v2-sequence-agent.drawio`
+- `_byan-output/architecture/diagrams/byan-v2-component-diagram.drawio`
+- `_byan-output/architecture/diagrams/byan-v2-deployment-diagram.drawio`
 
 ### Code Source
 - `src/core/context/context.js`

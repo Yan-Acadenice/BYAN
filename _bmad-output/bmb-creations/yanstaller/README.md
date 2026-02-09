@@ -264,7 +264,7 @@ copilot
   "mcpServers": {
     "yanstaller": {
       "command": "node",
-      "args": ["{project-root}/_bmad/bmb/agents/yanstaller-mcp-server.js"],
+      "args": ["{project-root}/_byan/bmb/agents/yanstaller-mcp-server.js"],
       "env": {
         "BYAN_PROJECT_ROOT": "{project-root}"
       }
@@ -381,7 +381,7 @@ Rationale:
 
 **Installation Process**:
 1. Validates Node.js version
-2. Creates `_bmad/` directory structure
+2. Creates `_byan/` directory structure
 3. Copies selected agent files
 4. Generates stubs (`.github/agents/`)
 5. Creates `config.yaml`
@@ -398,8 +398,8 @@ Rationale:
 ```
 
 **Validation Checks** (10 total):
-1. ✅ _bmad/ directory exists
-2. ✅ _bmad/bmb/agents/ contains agents
+1. ✅ _byan/ directory exists
+2. ✅ _byan/bmb/agents/ contains agents
 3. ✅ .github/agents/ contains stubs
 4. ✅ config.yaml generated
 5. ✅ YAML frontmatter valid
@@ -548,11 +548,11 @@ cat .github/agents/byan.md
 
 ---
 
-#### 3. "Permission denied creating _bmad/"
+#### 3. "Permission denied creating _byan/"
 
 **Error**:
 ```
-❌ Error: EACCES: permission denied, mkdir '_bmad'
+❌ Error: EACCES: permission denied, mkdir '_byan'
 ```
 
 **Fix**:
@@ -665,7 +665,7 @@ tail -f ~/.byan/logs/yanstaller-latest.log
 
 ```
 {project-root}/
-├── _bmad/                          # BYAN core files
+├── _byan/                          # BYAN core files
 │   ├── _config/                    # Manifests
 │   │   ├── agent-manifest.csv
 │   │   ├── workflow-manifest.csv
@@ -698,7 +698,7 @@ tail -f ~/.byan/logs/yanstaller-latest.log
 
 ### Configuration File
 
-**Location**: `_bmad/bmb/config.yaml`
+**Location**: `_byan/bmb/config.yaml`
 
 **Content**:
 ```yaml
@@ -708,8 +708,8 @@ tail -f ~/.byan/logs/yanstaller-latest.log
 user_name: "YourName"
 communication_language: "Francais"  # or "English"
 document_output_language: "Francais"
-output_folder: "{project-root}/_bmad-output"
-bmb_creations_output_folder: "{project-root}/_bmad-output/bmb-creations"
+output_folder: "{project-root}/_byan-output"
+bmb_creations_output_folder: "{project-root}/_byan-output/bmb-creations"
 
 # Platform installed
 platform: "copilot"  # or "vscode", "claude", "codex", "all"

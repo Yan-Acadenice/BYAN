@@ -37,7 +37,7 @@ Agent DRAWIO (.github/agents/drawio.md)
     ↓
 Serveur MCP Draw.io (localhost:3000)
     ↓
-Génération fichiers .drawio (_bmad-output/diagrams/)
+Génération fichiers .drawio (_byan-output/diagrams/)
 ```
 
 ---
@@ -52,7 +52,7 @@ Génération fichiers .drawio (_bmad-output/diagrams/)
 
 **Permissions :**
 - Accès réseau local (localhost:3000)
-- Droits d'écriture dans `_bmad-output/diagrams/`
+- Droits d'écriture dans `_byan-output/diagrams/`
 
 **Vérifications préliminaires :**
 ```bash
@@ -63,7 +63,7 @@ node --version
 copilot --version
 
 # Structure BMAD présente
-ls -la _bmad/bmb/agents/
+ls -la _byan/bmb/agents/
 ```
 
 ---
@@ -209,7 +209,7 @@ L'agent DRAWIO suit l'architecture BMAD standard :
 
 ```
 conception/
-├── _bmad/
+├── _byan/
 │   └── bmb/
 │       ├── agents/
 │       │   └── drawio.md         # Agent complet (persona, menu, capabilities)
@@ -217,11 +217,11 @@ conception/
 ├── .github/
 │   └── agents/
 │       └── drawio.md              # Stub pour détection Copilot CLI
-└── _bmad-output/
+└── _byan-output/
     └── diagrams/                  # Sortie des diagrammes générés
 ```
 
-### 3.2 Agent complet (_bmad/bmb/agents/drawio.md)
+### 3.2 Agent complet (_byan/bmb/agents/drawio.md)
 
 **Fichier déjà créé dans votre projet.**
 
@@ -244,7 +244,7 @@ description: "Expert Diagrammes Draw.io via MCP"
 ---
 
 <agent-activation CRITICAL="TRUE">
-1. LOAD the FULL agent file from {project-root}/_bmad/bmb/agents/drawio.md
+1. LOAD the FULL agent file from {project-root}/_byan/bmb/agents/drawio.md
 2. READ its entire contents - this contains the complete agent persona, menu, and instructions
 3. FOLLOW every step in the <activation> section precisely
 4. DISPLAY the welcome/greeting as instructed
@@ -255,8 +255,8 @@ description: "Expert Diagrammes Draw.io via MCP"
 ```xml
 <agent id="drawio.agent.yaml" name="DRAWIO" title="Expert Diagrammes Draw.io" icon="📐">
 <activation critical="MANDATORY">
-      <step n="1">Load persona from {project-root}/_bmad/bmb/agents/drawio.md</step>
-      <step n="2">Load config from {project-root}/_bmad/bmb/config.yaml</step>
+      <step n="1">Load persona from {project-root}/_byan/bmb/agents/drawio.md</step>
+      <step n="2">Load config from {project-root}/_byan/bmb/config.yaml</step>
       <step n="3">Show greeting and menu in {communication_language}</step>
       <step n="4">WAIT for user input</step>
     <rules>
@@ -292,13 +292,13 @@ description: "Expert Diagrammes Draw.io via MCP"
 
 ### 3.4 Configuration module
 
-Vérifier `_bmad/bmb/config.yaml` :
+Vérifier `_byan/bmb/config.yaml` :
 
 ```yaml
 user_name: Yan
 communication_language: Francais
 document_output_language: Francais
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 ```
 
 **Variables importantes :**
@@ -351,16 +351,16 @@ Créer un diagramme de classe UML simple pour test MCP
 **Attendu :**
 1. Agent affiche menu
 2. Option 3 (UML) activée
-3. Fichier créé : `_bmad-output/diagrams/uml-class-test-YYYY-MM-DD.drawio`
+3. Fichier créé : `_byan-output/diagrams/uml-class-test-YYYY-MM-DD.drawio`
 4. Confirmation succès
 
 **Vérification :**
 ```bash
 # Vérifier fichier créé
-ls -lh _bmad-output/diagrams/
+ls -lh _byan-output/diagrams/
 
 # Voir contenu (XML Draw.io)
-head -n 20 _bmad-output/diagrams/uml-class-test-*.drawio
+head -n 20 _byan-output/diagrams/uml-class-test-*.drawio
 ```
 
 ### 4.4 Ouvrir le diagramme
@@ -371,7 +371,7 @@ head -n 20 _bmad-output/diagrams/uml-class-test-*.drawio
 # https://github.com/jgraph/drawio-desktop/releases
 
 # Ouvrir fichier
-drawio _bmad-output/diagrams/uml-class-test-*.drawio
+drawio _byan-output/diagrams/uml-class-test-*.drawio
 ```
 
 **Option 2 - Draw.io Web :**
@@ -385,7 +385,7 @@ drawio _bmad-output/diagrams/uml-class-test-*.drawio
 code --install-extension hediet.vscode-drawio
 
 # Ouvrir fichier
-code _bmad-output/diagrams/uml-class-test-*.drawio
+code _byan-output/diagrams/uml-class-test-*.drawio
 ```
 
 ---
@@ -568,18 +568,18 @@ Architecture C4 Container pour plateforme e-learning avec API Gateway, services 
 
 ### Problème 3 : Diagramme non sauvegardé
 
-**Symptôme :** Fichier .drawio absent de `_bmad-output/diagrams/`
+**Symptôme :** Fichier .drawio absent de `_byan-output/diagrams/`
 
 **Solutions :**
 1. Vérifier dossier existe
    ```bash
-   mkdir -p _bmad-output/diagrams
+   mkdir -p _byan-output/diagrams
    ```
 
 2. Vérifier permissions d'écriture
    ```bash
-   ls -ld _bmad-output/diagrams
-   chmod 755 _bmad-output/diagrams
+   ls -ld _byan-output/diagrams
+   chmod 755 _byan-output/diagrams
    ```
 
 3. Vérifier espace disque
@@ -589,7 +589,7 @@ Architecture C4 Container pour plateforme e-learning avec API Gateway, services 
 
 4. Vérifier chemin dans config
    ```bash
-   grep output_folder _bmad/bmb/config.yaml
+   grep output_folder _byan/bmb/config.yaml
    ```
 
 ### Problème 4 : Agent ne charge pas le fichier complet
@@ -601,18 +601,18 @@ Architecture C4 Container pour plateforme e-learning avec API Gateway, services 
    ```bash
    grep "project-root" .github/agents/drawio.md
    ```
-   Doit pointer vers `_bmad/bmb/agents/drawio.md`
+   Doit pointer vers `_byan/bmb/agents/drawio.md`
 
 2. Vérifier agent complet existe
    ```bash
-   ls -la _bmad/bmb/agents/drawio.md
+   ls -la _byan/bmb/agents/drawio.md
    ```
 
 3. Vérifier syntaxe Markdown
    ```bash
    # Installer markdownlint si nécessaire
    npm install -g markdownlint-cli
-   markdownlint _bmad/bmb/agents/drawio.md
+   markdownlint _byan/bmb/agents/drawio.md
    ```
 
 ### Problème 5 : Diagramme corrompu
@@ -622,13 +622,13 @@ Architecture C4 Container pour plateforme e-learning avec API Gateway, services 
 **Solutions :**
 1. Vérifier structure XML
    ```bash
-   head -n 5 _bmad-output/diagrams/fichier.drawio
+   head -n 5 _byan-output/diagrams/fichier.drawio
    ```
    Doit commencer par `<mxfile ...>`
 
 2. Valider XML
    ```bash
-   xmllint --noout _bmad-output/diagrams/fichier.drawio
+   xmllint --noout _byan-output/diagrams/fichier.drawio
    ```
 
 3. Régénérer diagramme
@@ -662,7 +662,7 @@ Architecture C4 Container pour plateforme e-learning avec API Gateway, services 
 
 **Structure recommandée :**
 ```
-_bmad-output/diagrams/
+_byan-output/diagrams/
 ├── architecture/
 │   ├── c4-context-*.drawio
 │   └── c4-container-*.drawio
@@ -700,13 +700,13 @@ _bmad-output/diagrams/
 **Fichiers à commiter :**
 ```bash
 # Diagrammes sources (.drawio)
-git add _bmad-output/diagrams/*.drawio
+git add _byan-output/diagrams/*.drawio
 
 # Exports PNG pour revues (optionnel)
-git add _bmad-output/diagrams/*.png
+git add _byan-output/diagrams/*.png
 
 # Index
-git add _bmad-output/diagrams/README.md
+git add _byan-output/diagrams/README.md
 
 # Commit
 git commit -m "docs: add MCD Centralis Accord Cadre diagram"
@@ -792,8 +792,8 @@ npx -y drawio-mcp-server --transport http --http-port 3000 --host 127.0.0.1
 - [ ] Copilot CLI actif
 - [ ] Serveur MCP démarré : `npx -y drawio-mcp-server --transport http --http-port 3000`
 - [ ] Stub agent créé : `.github/agents/drawio.md`
-- [ ] Agent complet présent : `_bmad/bmb/agents/drawio.md`
-- [ ] Dossier sortie : `_bmad-output/diagrams/`
+- [ ] Agent complet présent : `_byan/bmb/agents/drawio.md`
+- [ ] Dossier sortie : `_byan-output/diagrams/`
 - [ ] Copilot lancé : `copilot --allow-all-urls`
 - [ ] Agent détecté : `/agent` liste drawio
 - [ ] Test génération : Diagramme simple créé
@@ -814,7 +814,7 @@ copilot --allow-all-urls
 @bmad-agent-drawio
 
 # Vérifier fichiers générés
-ls -lh _bmad-output/diagrams/
+ls -lh _byan-output/diagrams/
 ```
 
 ### Ressources

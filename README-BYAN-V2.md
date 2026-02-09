@@ -107,7 +107,7 @@ const ByanV2 = require('create-byan-agent');
 // Créer une instance
 const byan = new ByanV2({
   maxQuestions: 12,
-  outputDir: './_bmad-output/bmb-creations'
+  outputDir: './_byan-output/bmb-creations'
 });
 
 // Démarrer une session
@@ -282,7 +282,7 @@ You must fully embody this agent's persona...
     low: 30,
     medium: 60
   },
-  outputDir: './_bmad-output/bmb-creations',
+  outputDir: './_byan-output/bmb-creations',
   env: 'copilot' // or 'standalone'
 }
 ```

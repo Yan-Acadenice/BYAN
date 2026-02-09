@@ -92,7 +92,7 @@ mergePackageJson(template, project) // Fusionne deps
 
 ### Feature #2: Installation Modulaire
 ```
-Mode v1.0: Plateforme seule (_bmad/)
+Mode v1.0: Plateforme seule (_byan/)
 Mode v2.0: Plateforme + Runtime (src/, __tests__)
 ```
 

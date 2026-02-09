@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **CRITICAL**: Template path resolution in installer
   - Fixed template directory detection (removed extra `..` navigation)
-  - Added `_bmad/` prefix for agents and workflows paths
+  - Added `_byan/` prefix for agents and workflows paths
   - Removed extra `..` in .github agents path
   - Added validation and detailed logging for debugging
   - 100% file copy success rate achieved
@@ -51,9 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Affected agents: marc, byan, rachid, all BMM/BMB/CIS/TEA agents
 
 - **CRITICAL**: Fixed missing templates in NPX installer
-  - Added patnote.md to templates/_bmad/bmb/agents/
-  - Added byan-test.md to templates/_bmad/bmb/agents/
-  - Added carmack.md to templates/_bmad/core/agents/
+  - Added patnote.md to templates/_byan/bmb/agents/
+  - Added byan-test.md to templates/_byan/bmb/agents/
+  - Added carmack.md to templates/_byan/core/agents/
   - Users installing v1.1.0 were NOT getting new agents
 
 - **CRITICAL**: Fixed version mismatch in installer
@@ -148,7 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **RACHID Agent**: NPM/NPX deployment specialist
   - Install BYAN via npx create-byan-agent
-  - Validate _bmad directory structure
+  - Validate _byan directory structure
   - Fix npm dependency conflicts
   - Update package.json and scripts
   - Publish to npm registry
@@ -167,7 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Troubleshoot agent loading issues
 
 - **Templates Directory**: All BYAN files now packaged
-  - Complete _bmad/bmb/ structure
+  - Complete _byan/bmb/ structure
   - All agent definitions (byan.md, rachid.md, marc.md)
   - All workflows with steps
   - Templates and data files

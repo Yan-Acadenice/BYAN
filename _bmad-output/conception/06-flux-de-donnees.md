@@ -97,7 +97,7 @@ Ce scénario illustre le traitement d'une tâche simple (validation YAML) routé
 │ Input:  level='story', id={projectId, storyId}       │
 │ Output: {                                             │
 │   user_name: "Yan",                                   │
-│   output_folder: "/home/yan/conception/_bmad-output",│
+│   output_folder: "/home/yan/conception/_byan-output",│
 │   project_constraints: "YAML compliance required"    │
 │ }                                                     │
 └──────────────────┬───────────────────────────────────┘
@@ -194,16 +194,16 @@ Ce scénario illustre le traitement d'une tâche simple (validation YAML) routé
 **Context après chargement:**
 ```javascript
 {
-  // Platform level (from _bmad/_context/platform.yaml)
+  // Platform level (from _byan/_context/platform.yaml)
   user_name: "Yan",
   communication_language: "Francais",
-  output_folder: "{project-root}/_bmad-output",
+  output_folder: "{project-root}/_byan-output",
   
-  // Project level (from _bmad/_context/conception/project.yaml)
+  // Project level (from _byan/_context/conception/project.yaml)
   project_name: "conception",
   project_type: "architecture_design",
   
-  // Story level (from _bmad/_context/conception/US-123/story.yaml)
+  // Story level (from _byan/_context/conception/US-123/story.yaml)
   story_id: "US-123",
   story_title: "Validate YAML workflows",
   constraints: ["YAML 1.2 spec", "No anchors/aliases"]
@@ -215,11 +215,11 @@ Ce scénario illustre le traitement d'une tâche simple (validation YAML) routé
 {
   id: 'validate_syntax',
   type: 'validation',
-  input: 'Validate /home/yan/conception/_bmad/workflows/demo.yaml',
+  input: 'Validate /home/yan/conception/_byan/workflows/demo.yaml',
   agentName: null,
   context: {
     user_name: "Yan",
-    output_folder: "/home/yan/conception/_bmad-output",
+    output_folder: "/home/yan/conception/_byan-output",
     // ... autres champs context
   },
   complexityScore: 6  // Ajouté par dispatcher
@@ -354,7 +354,7 @@ Ce scénario illustre le traitement d'une tâche complexe (génération architec
 │                                                       │
 │ Input:  task object                                  │
 │ Process:                                              │
-│   1. Load agent config (_bmad/bmm/agents/architect/) │
+│   1. Load agent config (_byan/bmm/agents/architect/) │
 │   2. Merge context with agent memory                 │
 │   3. Call LLM (Sonnet-like model)                    │
 │      Prompt: "Design system architecture for BYAN... │
@@ -771,7 +771,7 @@ Ce chapitre décrit les mécanismes de gestion des erreurs à chaque niveau du p
 **Type:** Context file not found
 
 ```javascript
-// _bmad/core/context.js
+// _byan/core/context.js
 class ContextLayer {
   async loadContext(level, id) {
     try {
@@ -836,7 +836,7 @@ catch (error) {
 **Type:** Invalid workflow YAML
 
 ```javascript
-// _bmad/core/workflow-executor.js
+// _byan/core/workflow-executor.js
 async execute(workflowPath) {
   try {
     const workflow = yaml.load(await fs.readFile(workflowPath, 'utf8'));
@@ -956,7 +956,7 @@ steps:
 **Type:** No available executor
 
 ```javascript
-// _bmad/core/dispatcher.js
+// _byan/core/dispatcher.js
 async routeTask(task) {
   const complexity = this.calculateComplexity(task);
   
@@ -1018,7 +1018,7 @@ calculateComplexity(task) {
 **Type:** LLM API call failed
 
 ```javascript
-// _bmad/core/worker-pool.js
+// _byan/core/worker-pool.js
 class Worker {
   async execute(task) {
     this.status = 'busy';
@@ -1175,7 +1175,7 @@ _validateQuality(output, task) {
 **Type:** Agent not found
 
 ```javascript
-// _bmad/core/agent-registry.js
+// _byan/core/agent-registry.js
 class AgentRegistry {
   getAgent(agentName) {
     const agent = this.agents[agentName];
@@ -1313,7 +1313,7 @@ steps:
 Tous les composants logguent les erreurs dans un format structuré:
 
 ```javascript
-// _bmad/core/structured-logger.js
+// _byan/core/structured-logger.js
 logError(component, error, context = {}) {
   this.logger.error({
     event: 'error',
@@ -1413,9 +1413,9 @@ Consultez [`../architecture/byan-v2-0-architecture-node.md`](../architecture/bya
 ### Diagrammes UML
 
 Les diagrammes UML illustrant les flux décrits dans ce document sont disponibles dans:
-- `_bmad-output/architecture/diagrams/byan-v2-sequence-worker.drawio` - Flux Worker (Scénario 1)
-- `_bmad-output/architecture/diagrams/byan-v2-sequence-agent.drawio` - Flux Agent (Scénario 2)
-- `_bmad-output/architecture/diagrams/byan-v2-sequence-fallback.drawio` - Flux Fallback (Scénario 3)
+- `_byan-output/architecture/diagrams/byan-v2-sequence-worker.drawio` - Flux Worker (Scénario 1)
+- `_byan-output/architecture/diagrams/byan-v2-sequence-agent.drawio` - Flux Agent (Scénario 2)
+- `_byan-output/architecture/diagrams/byan-v2-sequence-fallback.drawio` - Flux Fallback (Scénario 3)
 
 **Note:** Ces diagrammes ont été générés par l'agent drawio le 2026-02-04 et peuvent être édités avec Draw.io ou visualisés dans VSCode avec l'extension Draw.io Integration.
 
@@ -1454,7 +1454,7 @@ Avant de considérer un flux comme correctement implémenté:
 - [ ] Result retourné avec success flag
 - [ ] Metrics collectées (tokens, duration, cost)
 - [ ] Erreurs gérées avec retry approprié
-- [ ] Logs structurés écrits dans `_bmad-output/logs/byan.log`
+- [ ] Logs structurés écrits dans `_byan-output/logs/byan.log`
 
 ---
 

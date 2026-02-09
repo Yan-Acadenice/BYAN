@@ -20,7 +20,7 @@ Implémenter le module **DETECTOR** de YANSTALLER qui détecte automatiquement l
 
 ## 📐 ARCHITECTURE CONTEXT
 
-**Architecture**: `/home/yan/conception/_bmad-output/bmb-creations/yanstaller/ARCHITECTURE.md`  
+**Architecture**: `/home/yan/conception/_byan-output/bmb-creations/yanstaller/ARCHITECTURE.md`  
 **Score validation**: 96/100 ✅  
 **Status**: Production ready
 
@@ -337,10 +337,10 @@ npm run lint:fix
 **Bonnes pratiques**:
 ```javascript
 // ✅ BON
-const agentPath = path.join(projectRoot, '_bmad', 'agents');
+const agentPath = path.join(projectRoot, '_byan', 'agents');
 
 // ❌ MAUVAIS
-const agentPath = projectRoot + '/_bmad/agents'; // Fail sur Windows
+const agentPath = projectRoot + '/_byan/agents'; // Fail sur Windows
 ```
 
 ### Error Handling
@@ -432,17 +432,17 @@ npm run lint:fix
 ## 📚 RESSOURCES DISPONIBLES
 
 **Architecture complète**:
-- `_bmad-output/bmb-creations/yanstaller/ARCHITECTURE.md` (27 KB)
-- `_bmad-output/bmb-creations/yanstaller/ARCHITECTURE-SUMMARY.md` (13 KB)
+- `_byan-output/bmb-creations/yanstaller/ARCHITECTURE.md` (27 KB)
+- `_byan-output/bmb-creations/yanstaller/ARCHITECTURE-SUMMARY.md` (13 KB)
 
 **Plan développement**:
-- `_bmad-output/bmb-creations/yanstaller/PLAN-DEVELOPPEMENT.md` (29 KB)
+- `_byan-output/bmb-creations/yanstaller/PLAN-DEVELOPPEMENT.md` (29 KB)
 
 **Risques & mitigation**:
-- `_bmad-output/bmb-creations/yanstaller/RISKS.md` (8.3 KB)
+- `_byan-output/bmb-creations/yanstaller/RISKS.md` (8.3 KB)
 
 **Specs agent**:
-- `_bmad-output/bmb-creations/yanstaller/AgentSpec-yanstaller.yaml` (9.7 KB)
+- `_byan-output/bmb-creations/yanstaller/AgentSpec-yanstaller.yaml` (9.7 KB)
 
 **Code skeleton**:
 - `install/lib/yanstaller/detector.js` (JSDoc + TODOs)

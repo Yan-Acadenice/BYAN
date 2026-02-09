@@ -167,9 +167,9 @@ npx create-byan-agent@1.1.1
    - **Dossier de sortie ?** → Laissez par défaut (Entrée)
 
 2. Le script va créer :
-   - `_bmad/` → Agents et workflows
+   - `_byan/` → Agents et workflows
    - `.github/agents/` → Agents pour Copilot CLI
-   - `_bmad-output/` → Sorties générées
+   - `_byan-output/` → Sorties générées
 
 **⏱️ Temps estimé :** 2-3 minutes
 
@@ -305,9 +305,9 @@ Copiez-collez ce JSON dans le fichier :
   "mcpServers": {
     "byan-agents": {
       "command": "node",
-      "args": ["/chemin/vers/votre/projet/_bmad/mcp-server.js"],
+      "args": ["/chemin/vers/votre/projet/_byan/mcp-server.js"],
       "env": {
-        "BMAD_ROOT": "/chemin/vers/votre/projet/_bmad"
+        "BMAD_ROOT": "/chemin/vers/votre/projet/_byan"
       }
     }
   }
@@ -318,17 +318,17 @@ Copiez-collez ce JSON dans le fichier :
 
 **Windows exemple :**
 ```json
-"args": ["C:\\Users\\Yan\\conception\\_bmad\\mcp-server.js"],
+"args": ["C:\\Users\\Yan\\conception\\_byan\\mcp-server.js"],
 "env": {
-  "BMAD_ROOT": "C:\\Users\\Yan\\conception\\_bmad"
+  "BMAD_ROOT": "C:\\Users\\Yan\\conception\\_byan"
 }
 ```
 
 **Linux exemple :**
 ```json
-"args": ["/home/yan/conception/_bmad/mcp-server.js"],
+"args": ["/home/yan/conception/_byan/mcp-server.js"],
 "env": {
-  "BMAD_ROOT": "/home/yan/conception/_bmad"
+  "BMAD_ROOT": "/home/yan/conception/_byan"
 }
 ```
 
@@ -336,17 +336,17 @@ Copiez-collez ce JSON dans le fichier :
 
 **Étape 3 : Créez le script MCP serveur**
 
-**Créez le fichier `_bmad/mcp-server.js` :**
+**Créez le fichier `_byan/mcp-server.js` :**
 
 **Windows :**
 ```powershell
-cd $HOME\conception\_bmad
+cd $HOME\conception\_byan
 notepad mcp-server.js
 ```
 
 **Linux :**
 ```bash
-cd ~/conception/_bmad
+cd ~/conception/_byan
 nano mcp-server.js
 ```
 
@@ -434,7 +434,7 @@ gh copilot --agent=byan-test
 # Plus rapide, consomme 46% moins de tokens
 ```
 
-**Résultat :** Un agent personnalisé dans `_bmad-output/bmb-creations/`
+**Résultat :** Un agent personnalisé dans `_byan-output/bmb-creations/`
 
 ---
 
@@ -564,7 +564,7 @@ npx create-byan-agent@1.1.1
 **Réponse :** Le fichier `config.yaml` n'a pas été correctement initialisé.
 
 **Solution :**
-Éditez `_bmad/bmb/config.yaml` :
+Éditez `_byan/bmb/config.yaml` :
 ```yaml
 communication_language: Francais
 document_output_language: Francais
@@ -600,14 +600,14 @@ document_output_language: Francais
 **Réponse :**
 ```bash
 # Supprimez les dossiers créés
-rm -rf _bmad/
+rm -rf _byan/
 rm -rf .github/agents/
-rm -rf _bmad-output/
+rm -rf _byan-output/
 
 # Sur Windows :
-# rmdir /s _bmad
+# rmdir /s _byan
 # rmdir /s .github\agents
-# rmdir /s _bmad-output
+# rmdir /s _byan-output
 ```
 
 ---
@@ -782,18 +782,18 @@ npm install
    ```
 
 2. Vérifiez les chemins :
-   - `args` doit pointer vers `_bmad/mcp-server.js` (chemin absolu)
-   - `BMAD_ROOT` doit pointer vers `_bmad/` (chemin absolu)
+   - `args` doit pointer vers `_byan/mcp-server.js` (chemin absolu)
+   - `BMAD_ROOT` doit pointer vers `_byan/` (chemin absolu)
 
 3. Testez le serveur MCP manuellement :
    ```bash
-   node _bmad/mcp-server.js
+   node _byan/mcp-server.js
    ```
    
    **✅ Vous devriez voir :**
    ```
    BYAN MCP Server started
-   BMAD_ROOT: /home/yan/conception/_bmad
+   BMAD_ROOT: /home/yan/conception/_byan
    Agents disponibles: byan, byan-test, marc, rachid, patnote, carmack
    ```
 
@@ -875,9 +875,9 @@ Cochez chaque élément pour valider votre installation :
 
 ### Installation BYAN
 - [ ] NPX exécuté sans erreur (`npx create-byan-agent@1.1.1`)
-- [ ] Dossier `_bmad/` créé
+- [ ] Dossier `_byan/` créé
 - [ ] Dossier `.github/agents/` créé avec 27 fichiers
-- [ ] Fichier `_bmad/bmb/config.yaml` existe
+- [ ] Fichier `_byan/bmb/config.yaml` existe
 
 ### Tests Fonctionnels
 - [ ] `gh copilot` démarre sans erreur
@@ -929,7 +929,7 @@ gh copilot --agent=marc
 
 ```
 votre-projet/
-├── _bmad/                          # Platform code
+├── _byan/                          # Platform code
 │   ├── bmb/                        # BYAN Module
 │   │   ├── agents/
 │   │   │   ├── byan.md             # ✅ Agent BYAN standard
@@ -955,7 +955,7 @@ votre-projet/
 │       ├── bmad-agent-patnote.md   # ✅
 │       ├── bmad-agent-carmack.md   # ✅
 │       └── ... (21 autres agents BMAD)
-└── _bmad-output/                   # Generated artifacts
+└── _byan-output/                   # Generated artifacts
     ├── bmb-creations/              # Vos agents créés
     └── planning-artifacts/
 ```
@@ -998,13 +998,13 @@ npm view create-byan-agent  # Infos package npm
 
 ### Annexe C : Variables de Configuration
 
-**Fichier : `_bmad/bmb/config.yaml`**
+**Fichier : `_byan/bmb/config.yaml`**
 
 ```yaml
 user_name: Yan                      # Votre nom/prénom
 communication_language: Francais    # Francais ou English
 document_output_language: Francais  # Francais ou English
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 ```
 
 **Variables dynamiques :**

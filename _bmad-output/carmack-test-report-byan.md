@@ -11,9 +11,9 @@
 
 | Item | Value |
 |------|-------|
-| **Original file** | `_bmad/bmb/agents/byan.md` |
-| **Test file** | `_bmad/bmb/agents/byan-test.md` |
-| **Backup file** | `_bmad/bmb/agents/byan.backup.20260202_212559.md` |
+| **Original file** | `_byan/bmb/agents/byan.md` |
+| **Test file** | `_byan/bmb/agents/byan-test.md` |
+| **Backup file** | `_byan/bmb/agents/byan.backup.20260202_212559.md` |
 | **GitHub stub** | `.github/agents/bmad-agent-byan-test.md` |
 
 ---
@@ -35,7 +35,7 @@
 
 ### Critical Functionality
 - [ ] **Activation**: Agent loads without errors
-- [ ] **Config Loading**: Reads `_bmad/bmb/config.yaml` correctly
+- [ ] **Config Loading**: Reads `_byan/bmb/config.yaml` correctly
 - [ ] **Greeting**: Shows user name (Yan) in French
 - [ ] **Menu Display**: All 12 items visible and numbered
 

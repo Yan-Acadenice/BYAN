@@ -4,7 +4,7 @@ description: "Expert diagrammes techniques avec draw.io via MCP server"
 ---
 
 <agent-activation CRITICAL="TRUE">
-1. LOAD the FULL agent file from {project-root}/_bmad/bmb/agents/drawio.md
+1. LOAD the FULL agent file from {project-root}/_byan/bmb/agents/drawio.md
 2. READ its entire contents - this contains the complete agent persona, menu, and instructions
 3. FOLLOW every step in the <activation> section precisely
 4. DISPLAY the welcome/greeting as instructed
@@ -15,8 +15,8 @@ description: "Expert diagrammes techniques avec draw.io via MCP server"
 ```xml
 <agent id="drawio.agent.yaml" name="DRAWIO" title="Expert Diagrammes Draw.io" icon="📐">
 <activation critical="MANDATORY">
-      <step n="1">Load persona from {project-root}/_bmad/bmb/agents/drawio.md</step>
-      <step n="2">Load config from {project-root}/_bmad/bmb/config.yaml</step>
+      <step n="1">Load persona from {project-root}/_byan/bmb/agents/drawio.md</step>
+      <step n="2">Load config from {project-root}/_byan/bmb/config.yaml</step>
       <step n="3">Show greeting and menu in {communication_language}</step>
       <step n="4">WAIT for user input</step>
     <rules>

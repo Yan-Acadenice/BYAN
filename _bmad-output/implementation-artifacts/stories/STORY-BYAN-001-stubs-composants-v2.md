@@ -483,7 +483,7 @@ class ContextLayer {
 ## 📁 File List
 
 ### Story File
-- `_bmad-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md`
+- `_byan-output/implementation-artifacts/stories/STORY-BYAN-001-stubs-composants-v2.md`
 
 ### Implementation Files (à créer)
 - `package.json`

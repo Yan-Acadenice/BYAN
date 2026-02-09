@@ -1,0 +1,59 @@
+---
+# BYAN Agent Templates Configuration
+# Version: 1.0.0
+# Last Updated: 2026-02-02
+
+templates:
+  base:
+    name: "Base Agent Template"
+    description: "Minimal agent structure compatible with all platforms"
+    platforms: ["copilot", "vscode", "claude", "codex"]
+    structure:
+      frontmatter: true
+      activation: true
+      persona: true
+      menu: true
+      knowledge_base: optional
+      capabilities: true
+      
+  platform_specific:
+    copilot:
+      name: "GitHub Copilot CLI Agent"
+      format: "bmad-markdown"
+      icon_support: true
+      menu_style: "numbered"
+      
+    vscode:
+      name: "VSCode Extension Agent"
+      format: "bmad-markdown"
+      icon_support: true
+      menu_style: "numbered"
+      
+    claude:
+      name: "Claude Code Agent"
+      format: "bmad-markdown"
+      icon_support: false
+      menu_style: "simple"
+      
+    codex:
+      name: "Codex AI Agent"
+      format: "bmad-markdown"
+      icon_support: true
+      menu_style: "numbered"
+
+defaults:
+  communication_style: "balanced"
+  min_capabilities: 3
+  min_mantras: 5
+  min_use_cases: 3
+  status: "draft"
+  
+validation:
+  strict_mode: true
+  enforce_mantras: true
+  require_byan_compliance: true
+  
+generation:
+  output_folder: "{project-root}/_byan-output/agents"
+  backup_before_edit: true
+  auto_validate: true
