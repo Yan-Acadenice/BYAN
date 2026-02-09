@@ -9,26 +9,46 @@
 
 ## Vue d'Ensemble
 
-L'installeur BYAN détecte maintenant automatiquement votre carte graphique et choisit le modèle Whisper optimal selon la VRAM disponible.
+L'installeur BYAN détecte automatiquement votre carte graphique et choisit le modèle Whisper optimal selon la VRAM disponible.
 
 **Avantages:**
 - ✅ Configuration automatique - zéro intervention utilisateur
 - ✅ Performance optimale selon hardware
-- ✅ Économie VRAM sur petites GPU
+- ✅ Mapping conforme specs officielles GitHub
 - ✅ Fallback CPU si pas de GPU
 
 ---
 
-## Mapping GPU → Modèle
+## Mapping GPU → Modèle (Specs Officielles)
 
-| VRAM Disponible | Modèle | Taille | Qualité | Use Case |
-|-----------------|--------|---------|---------|----------|
-| < 4 GB | **tiny** | 74 MB | Bonne | Laptop, MX450, petites GPU |
-| 4-6 GB | **small** | 461 MB | Très bonne | GTX 1650, RTX 3050 |
-| 6-8 GB | **medium** | 1.5 GB | Excellente | RTX 3060, RX 6600 |
-| 8-12 GB | **large-v2** | 2.9 GB | Supérieure | RTX 3070, RTX 4060 |
-| 12+ GB | **large-v3** | 2.9 GB | État de l'art | RTX 4070+, A4000+ |
-| Pas de GPU | **base** | 142 MB | Correcte | Mode CPU fallback |
+**Source:** https://github.com/knowall-ai/turbo-whisper
+
+| VRAM | Modèle | RAM (CPU) | Vitesse | Qualité | GPU Typiques |
+|------|--------|-----------|---------|---------|--------------|
+| ~1 GB | **tiny** | ~2 GB | Fastest | Basic | GT 1030, MX150 |
+| ~1 GB | **base** | ~2 GB | Very fast | Good | Fallback CPU |
+| ~2 GB | **small** | ~4 GB | Fast | Better | MX450, GTX 1650 |
+| ~5 GB | **medium** | ~8 GB | Moderate | Great | RTX 3060, RTX 4050 |
+| ~10 GB | **large-v3** | ~16 GB | Slower | Best | RTX 4070+, A4000+ |
+
+**Recommandations officielles:**
+- GPU 6+ GB VRAM: large-v3 pour meilleure précision
+- GPU 4 GB VRAM: small ou medium
+- CPU only: tiny ou base (transcription plus lente)
+
+---
+
+## Logique de Sélection
+
+```javascript
+if (vram < 2000)  → tiny      // < 2 GB
+if (vram < 4000)  → small     // 2-4 GB
+if (vram < 6000)  → medium    // 4-6 GB
+if (vram < 10000) → large-v2  // 6-10 GB
+else              → large-v3  // 10+ GB
+```
+
+**Note:** Marge de sécurité de 1-2 GB pour l'OS et autres processus GPU.
 
 ---
 
@@ -46,9 +66,9 @@ Mode: docker
 
 ✓ GPU detected: NVIDIA GeForce MX450
   VRAM: 2048 MB
-  Optimal model: tiny (74 MB)
+  Optimal model: small (~2 GB VRAM)
 
-  Docker config: CUDA with model tiny
+  Docker config: CUDA with model small
 ✔ Turbo Whisper installed (Docker mode)
 ```
 
@@ -60,7 +80,7 @@ services:
   whisper-server:
     image: fedirz/faster-whisper-server:latest-cuda
     environment:
-      - MODEL_NAME=tiny         # ← Auto-détecté!
+      - MODEL_NAME=small        # ← Auto-détecté selon VRAM!
       - DEVICE=cuda
 ```
 
@@ -117,13 +137,24 @@ DEVICE=cuda
 ### Laptop Budget (MX450, 2 GB)
 
 ```yaml
+MODEL_NAME=small  # Auto-sélectionné
+DEVICE=cuda
+```
+
+**Performance:** ~0.5s pour 5s audio  
+**Qualité:** Better (WER ~6%)  
+**Note:** Conforme specs officielles (small = 2 GB VRAM)
+
+### Laptop Ultra-Budget (GT 1030, 1 GB)
+
+```yaml
 MODEL_NAME=tiny  # Auto-sélectionné
 DEVICE=cuda
 ```
 
 **Performance:** ~0.8s pour 5s audio  
-**Qualité:** Bonne (WER ~8%)  
-**Note:** 4x plus rapide que CPU!
+**Qualité:** Basic (WER ~8%)  
+**Note:** Minimum pour GPU acceleration
 
 ### Sans GPU (CPU uniquement)
 

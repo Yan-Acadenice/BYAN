@@ -27,6 +27,7 @@ class TurboWhisperInstaller {
 
   /**
    * Detect GPU and determine optimal Whisper model
+   * Based on official specs: https://github.com/knowall-ai/turbo-whisper
    * @returns {Object} { hasGPU, vram, gpuName, model, modelSize }
    */
   detectGPU() {
@@ -37,29 +38,30 @@ class TurboWhisperInstaller {
       }).trim();
       
       if (!result || result === 'NO_GPU') {
-        return { hasGPU: false, model: 'base', modelSize: '142 MB' };
+        return { hasGPU: false, model: 'base', modelSize: '~1 GB VRAM' };
       }
 
       const [gpuName, vramStr] = result.split(',').map(s => s.trim());
       const vram = parseInt(vramStr);
 
-      // Map VRAM to optimal model
+      // Map VRAM to optimal model (official specs from GitHub)
+      // tiny: ~1 GB VRAM, base: ~1 GB, small: ~2 GB, medium: ~5 GB, large-v3: ~10 GB
       let model, modelSize;
-      if (vram < 4000) {
+      if (vram < 2000) {
         model = 'tiny';
-        modelSize = '74 MB';
-      } else if (vram < 6000) {
+        modelSize = '~1 GB VRAM';
+      } else if (vram < 4000) {
         model = 'small';
-        modelSize = '461 MB';
-      } else if (vram < 8000) {
+        modelSize = '~2 GB VRAM';
+      } else if (vram < 6000) {
         model = 'medium';
-        modelSize = '1.5 GB';
-      } else if (vram < 12000) {
+        modelSize = '~5 GB VRAM';
+      } else if (vram < 10000) {
         model = 'large-v2';
-        modelSize = '2.9 GB';
+        modelSize = '~8 GB VRAM';
       } else {
         model = 'large-v3';
-        modelSize = '2.9 GB';
+        modelSize = '~10 GB VRAM';
       }
 
       return {
@@ -70,7 +72,7 @@ class TurboWhisperInstaller {
         modelSize
       };
     } catch (error) {
-      return { hasGPU: false, model: 'base', modelSize: '142 MB' };
+      return { hasGPU: false, model: 'base', modelSize: '~1 GB VRAM' };
     }
   }
 
