@@ -646,14 +646,14 @@ async function install() {
   const bmbDir = path.join(byanDir, 'bmb');
   const githubAgentsDir = path.join(projectRoot, '.github', 'agents');
   
-  await fs.ensureDir(path.join(bmadDir, 'bmb', 'agents'));
-  await fs.ensureDir(path.join(bmadDir, 'bmb', 'workflows', 'byan', 'steps'));
-  await fs.ensureDir(path.join(bmadDir, 'bmb', 'workflows', 'byan', 'templates'));
-  await fs.ensureDir(path.join(bmadDir, 'bmb', 'workflows', 'byan', 'data'));
-  await fs.ensureDir(path.join(bmadDir, 'core'));
-  await fs.ensureDir(path.join(bmadDir, '_config'));
-  await fs.ensureDir(path.join(bmadDir, '_memory'));
-  await fs.ensureDir(path.join(bmadDir, '_output'));
+  await fs.ensureDir(path.join(byanDir, 'bmb', 'agents'));
+  await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'steps'));
+  await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'templates'));
+  await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'data'));
+  await fs.ensureDir(path.join(byanDir, 'core'));
+  await fs.ensureDir(path.join(byanDir, '_config'));
+  await fs.ensureDir(path.join(byanDir, '_memory'));
+  await fs.ensureDir(path.join(byanDir, '_output'));
   await fs.ensureDir(githubAgentsDir);
   
   installSpinner.succeed('Directory structure created');
