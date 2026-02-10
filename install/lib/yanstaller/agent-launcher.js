@@ -102,9 +102,27 @@ const LAUNCH_CONFIGS = {
   
   'codex': {
     command: 'codex',
-    args: (agent, options) => {
-      // TODO: Implement when Codex integration is ready
-      return [];
+    args: (agent, options = {}) => {
+      const args = [];
+      
+      // Codex uses "skills" not "agents"
+      // Format: codex skill <skill-name> [prompt]
+      
+      if (agent) {
+        args.push('skill', `bmad-${agent}`);
+      }
+      
+      // Prompt as positional argument
+      if (options.prompt) {
+        args.push(options.prompt);
+      }
+      
+      // Model selection (if Codex supports it)
+      if (options.model) {
+        args.push('--model', options.model);
+      }
+      
+      return args;
     },
     checkAvailable: () => {
       try {

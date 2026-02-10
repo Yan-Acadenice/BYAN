@@ -17,7 +17,6 @@ describe('platform-selector', () => {
     });
     
     it('should return null for platforms without specialist', () => {
-      expect(platformSelector.getSpecialist('codex')).toBeNull();
       expect(platformSelector.getSpecialist('vscode')).toBeNull();
     });
     
@@ -35,8 +34,8 @@ describe('platform-selector', () => {
       expect(platformSelector.hasNativeIntegration('claude')).toBe(true);
     });
     
-    it('should return false for codex (not yet implemented)', () => {
-      expect(platformSelector.hasNativeIntegration('codex')).toBe(false);
+    it('should return true for codex', () => {
+      expect(platformSelector.hasNativeIntegration('codex')).toBe(true);
     });
     
     it('should return false for vscode', () => {

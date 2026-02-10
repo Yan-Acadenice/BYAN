@@ -37,10 +37,10 @@ describe('Platform Integration', () => {
       expect(copilotSpecialist).not.toBe(claudeSpecialist);
     });
     
-    it('should identify both Copilot and Claude as native platforms', () => {
+    it('should identify Copilot, Claude and Codex as native platforms', () => {
       expect(platformSelector.hasNativeIntegration('copilot-cli')).toBe(true);
       expect(platformSelector.hasNativeIntegration('claude')).toBe(true);
-      expect(platformSelector.hasNativeIntegration('codex')).toBe(false);
+      expect(platformSelector.hasNativeIntegration('codex')).toBe(true);
       expect(platformSelector.hasNativeIntegration('vscode')).toBe(false);
     });
   });

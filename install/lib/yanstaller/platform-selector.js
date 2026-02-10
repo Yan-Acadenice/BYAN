@@ -43,8 +43,8 @@ const PLATFORM_INFO = {
   },
   'codex': {
     displayName: 'OpenCode/Codex',
-    native: false, // TODO: Phase 5
-    specialist: null,
+    native: true, // NOW NATIVE!
+    specialist: 'codex',
     icon: '📝'
   },
   'vscode': {
