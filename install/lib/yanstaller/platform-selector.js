@@ -78,7 +78,58 @@ async function select(detectionResult) {
     };
   }
   
-  // Show platform selection menu
+  // Show primary platform selection first
+  const nativePlatforms = choices.filter(c => c.native && c.detected);
+  
+  // Step 1: Choose primary platform (if native available)
+  if (nativePlatforms.length > 0) {
+    const primaryAnswer = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'primary',
+        message: '🎯 Choose your PRIMARY platform for native agent invocation:',
+        choices: [
+          ...nativePlatforms.map(c => ({
+            name: `${c.icon} ${c.name} - ${c.agentSpecialist ? `@bmad-agent-${c.agentSpecialist}` : 'No specialist'}`,
+            value: c.id,
+            short: c.name
+          })),
+          new inquirer.Separator(),
+          {
+            name: '🔧 Advanced: Install on multiple platforms',
+            value: 'multi'
+          },
+          {
+            name: '⏭️  Skip native integration (manual install only)',
+            value: 'skip'
+          }
+        ]
+      }
+    ]);
+    
+    // If user chose single platform, return immediately
+    if (primaryAnswer.primary !== 'multi' && primaryAnswer.primary !== 'skip') {
+      const platform = nativePlatforms.find(c => c.id === primaryAnswer.primary);
+      return {
+        platforms: [primaryAnswer.primary],
+        mode: 'native',
+        specialist: platform.agentSpecialist,
+        primary: primaryAnswer.primary
+      };
+    }
+    
+    // If skip, fall through to conversational mode
+    if (primaryAnswer.primary === 'skip') {
+      return {
+        platforms: choices.map(c => c.id),
+        mode: 'conversational'
+      };
+    }
+    
+    // If multi, show full menu
+  }
+  
+  // Step 2: Full menu (multi-platform or no native available)
   const answer = await inquirer.prompt([
     {
       type: 'list',
