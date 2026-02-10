@@ -1,7 +1,7 @@
 {
   "name": "create-byan-agent",
-  "version": "2.2.0",
-  "description": "BYAN v2.2.0 - Intelligent AI agent installer with multi-platform native support (GitHub Copilot CLI, Claude Code, Codex/OpenCode)",
+  "version": "2.2.2",
+  "description": "BYAN v2.2.2 - Intelligent AI agent installer with multi-platform native support (GitHub Copilot CLI, Claude Code, Codex/OpenCode)",
   "bin": {
     "create-byan-agent": "bin/create-byan-agent-v2.js"
   },
