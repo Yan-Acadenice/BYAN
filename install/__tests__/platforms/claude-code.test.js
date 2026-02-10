@@ -159,9 +159,25 @@ describe('Claude Code Platform', () => {
     it('should return success for supported platforms', async () => {
       mockPlatform('darwin');
       
-      const result = await claudeCode.install('/project', ['agent1', 'agent2'], {});
+      // Mock file operations for direct MCP install
+      fileUtils.exists = jest.fn()
+        .mockImplementation((path) => {
+          // Config exists, MCP server exists
+          if (path.includes('claude_desktop_config.json')) return Promise.resolve(true);
+          if (path.includes('byan-mcp-server.js')) return Promise.resolve(true);
+          return Promise.resolve(false);
+        });
+      fileUtils.copy = jest.fn().mockResolvedValue(undefined);
+      fileUtils.readJson = jest.fn().mockResolvedValue({ mcpServers: {} });
+      fileUtils.writeJson = jest.fn().mockResolvedValue(undefined);
       
-      expect(result).toEqual({ success: true, installed: 2 });
+      const result = await claudeCode.install('/project', ['agent1', 'agent2'], {}, { useAgent: false });
+      
+      expect(result).toEqual({ 
+        success: true, 
+        installed: 2,
+        method: 'direct-mcp'
+      });
     });
 
     it('should throw error for unsupported platform', async () => {

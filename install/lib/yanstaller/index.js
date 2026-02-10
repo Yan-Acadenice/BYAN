@@ -14,12 +14,14 @@ const troubleshooter = require('./troubleshooter');
 const interviewer = require('./interviewer');
 const backuper = require('./backuper');
 const wizard = require('./wizard');
+const platformSelector = require('./platform-selector');
 const logger = require('../utils/logger');
 
 /**
  * @typedef {Object} YanInstallerOptions
  * @property {boolean} [yes] - Skip confirmations (--yes flag)
  * @property {string} [mode] - Installation mode: 'full' | 'minimal' | 'custom'
+ * @property {string[]} [platforms] - Target platforms (override detection)
  * @property {boolean} [verbose] - Verbose output
  * @property {boolean} [quiet] - Minimal output
  */
@@ -34,16 +36,57 @@ async function install(options = {}) {
   let backupPath = null;
   
   try {
-    // TODO: Implement Phase 1-8 orchestration
-    // 1. Detect environment
-    // 2. Validate Node version (FAIL FAST)
-    // 3. Recommend configuration
-    // 4. Run interview (unless --yes)
-    // 5. Backup existing installation
+    // Phase 1: Detect environment
+    logger.info('🔍 Detecting environment...');
+    const detection = await detector.detect();
+    
+    // Phase 2: Validate Node version (FAIL FAST)
+    if (!detector.isNodeVersionValid(detection.nodeVersion, '18.0.0')) {
+      throw new Error(`Node.js >= 18.0.0 required. Found: ${detection.nodeVersion}`);
+    }
+    
+    // Phase 3: Platform Selection
+    let platformSelection;
+    if (options.platforms) {
+      // CLI override
+      platformSelection = {
+        platforms: options.platforms,
+        mode: 'manual'
+      };
+    } else if (options.yes) {
+      // Auto mode
+      platformSelection = {
+        platforms: detection.platforms.filter(p => p.detected).map(p => p.name),
+        mode: 'auto'
+      };
+    } else {
+      // Interactive selection
+      platformSelection = await platformSelector.select(detection);
+    }
+    
+    logger.info(`\n✓ Selected ${platformSelection.platforms.length} platform(s)`);
+    logger.info(`  Mode: ${platformSelection.mode}`);
+    if (platformSelection.specialist) {
+      logger.info(`  Specialist: @bmad-agent-${platformSelection.specialist}`);
+    }
+    
+    // Phase 4: Recommend configuration
+    // TODO: Implement
+    
+    // Phase 5: Run interview (unless --yes)
+    // TODO: Implement
+    
+    // Phase 6: Backup existing installation
     // backupPath = await backuper.backup('_bmad');
-    // 6. Install agents
-    // 7. Validate installation
-    // 8. Show post-install wizard
+    
+    // Phase 7: Install agents
+    // TODO: Implement
+    
+    // Phase 8: Validate installation
+    // TODO: Implement
+    
+    // Phase 9: Show post-install wizard
+    // TODO: Implement
   } catch (error) {
     // ROLLBACK STRATEGY: Leave partial state + clear message
     // Rationale (Mantra #37 Ockham's Razor):
@@ -89,5 +132,8 @@ async function update(version) {
 module.exports = {
   install,
   uninstall,
-  update
+  update,
+  // Expose for testing
+  detector,
+  platformSelector
 };
