@@ -72,12 +72,7 @@ const LAUNCH_CONFIGS = {
         args.push('--model', options.model);
       }
       
-      // Prompt/action
-      if (options.prompt) {
-        args.push(options.prompt);
-      }
-      
-      // System prompt for context
+      // System prompt for context (before positional prompt)
       if (options.systemPrompt) {
         args.push('--system-prompt', options.systemPrompt);
       }
@@ -85,6 +80,12 @@ const LAUNCH_CONFIGS = {
       // MCP config if needed
       if (options.mcpConfig) {
         args.push('--mcp-config', options.mcpConfig);
+      }
+      
+      // Prompt as POSITIONAL argument (not --prompt)
+      // Must come AFTER all flags
+      if (options.prompt) {
+        args.push(options.prompt);
       }
       
       return args;
