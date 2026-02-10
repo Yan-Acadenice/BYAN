@@ -89,9 +89,32 @@ async function install(projectRoot, agents, config, options = {}) {
  * @returns {Promise<{success: boolean, installed: number, method: string}>}
  */
 async function installViaCopilotAgent(projectRoot, agents, config) {
-  // TODO: Launch @bmad-agent-claude with automated workflow
-  // For now, return instruction to user
+  const agentLauncher = require('../yanstaller/agent-launcher');
   
+  // Check if native launch is available
+  if (agentLauncher.supportsNativeLaunch('claude')) {
+    logger.info('\n🚀 Launching agent Claude for MCP integration...');
+    
+    // Launch agent Claude with create-mcp-server action
+    const result = await agentLauncher.launch({
+      agent: 'claude',
+      platform: 'claude',
+      prompt: 'create-mcp-server'
+    });
+    
+    if (result.success) {
+      return {
+        success: true,
+        installed: agents.length,
+        method: 'agent-claude-native'
+      };
+    } else {
+      logger.warn(`Native launch failed: ${result.error}`);
+      logger.info('Falling back to manual instructions...');
+    }
+  }
+  
+  // Fallback: Manual instructions
   logger.info('\n📝 To complete Claude Code integration:');
   logger.info('   1. Run: @bmad-agent-claude');
   logger.info('   2. Select option 1: Create MCP server for BYAN agents');
