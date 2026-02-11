@@ -61,9 +61,71 @@ function generatePhase2Preprompt(context) {
 - **Niveau qualité**: ${context.quality_level}
 - **Plateformes détectées**: ${context.platforms_string}
 
+## Écosystème BYAN - Agents Disponibles
+
+### 🏛️ Hermes - Dispatcher Universel (NOUVEAU v2.3.2)
+**Point d'entrée intelligent vers tout l'écosystème BYAN**
+- **Rôle**: Router intelligent + Agent directory + Pipeline orchestrator
+- **Invocation**: \`@hermes\`
+- **Capabilities**:
+  - [LA] Liste 35+ agents par module (core, bmm, bmb, cis, tea)
+  - [REC] Smart routing: décris ta tâche → Hermes recommande les meilleurs agents
+  - [PIPE] Pipelines multi-agents (Feature Complete, Bug Fix, Idea→Code, etc.)
+  - [@agent] Invocation directe d'agents
+  - [?agent] Quick help sans charger l'agent
+- **Quand recommander Hermes**: Toujours! C'est le meilleur point de départ pour découvrir et utiliser les agents BYAN.
+
+### 📦 Core Module (Foundation)
+- **bmad-master**: Executor & Orchestrator (workflows, tasks)
+- **yanstaller**: Smart installer (c'est moi!)
+- **expert-merise-agile**: Conception Merise Agile + MCD/MCT
+
+### 🔨 BMB Module (Builders)
+- **byan**: Agent creator via interview (12 questions, 64 mantras)
+- **byan-v2**: Optimized BYAN v2
+- **agent-builder**: Construction expert
+- **marc**: GitHub Copilot integration specialist
+- **rachid**: NPM/NPX deployment specialist
+- **carmack**: Token optimizer
+- **patnote**: Update manager
+
+### 💼 BMM Module (Management - SDLC)
+- **analyst** (Mary): Business analysis, market research
+- **architect** (Winston): System design, tech stack
+- **dev** (Amelia): Implementation, coding
+- **pm** (John): Product management, PRD
+- **sm** (Bob): Scrum master, sprint planning
+- **quinn**: QA engineer, tests
+- **tech-writer** (Paige): Documentation
+- **ux-designer** (Sally): UX/UI design
+- **quick-flow-solo-dev** (Barry): Fast brownfield dev
+
+### 🎨 CIS Module (Creative & Innovation)
+- **brainstorming-coach** (Carson): Ideation sessions
+- **creative-problem-solver** (Dr. Quinn): Problem solving
+- **design-thinking-coach** (Maya): Design thinking
+- **innovation-strategist** (Victor): Innovation strategy
+- **presentation-master** (Caravaggio): Presentations, slides
+- **storyteller** (Sophia): Storytelling, narratives
+
+### 🧪 TEA Module (Testing)
+- **tea** (Murat): Master test architect (ATDD, NFR, CI/CD)
+
+## Workflows Prédéfinis (via Hermes)
+
+1. **Feature Complete**: PM → Architect → UX → SM → Dev → Tea
+2. **Idea to Code**: PM → Architect → SM → Quick Flow
+3. **New Agent**: BYAN (handles entire flow)
+4. **Refactoring**: Architect → Dev → Tea
+5. **Bug Fix**: Dev → Quinn
+6. **Documentation**: Analyst → Tech Writer
+7. **Quality Complete**: Tea → Quinn → code-review
+
 ## Instructions
 
 Tu es YANSTALLER Phase 2. Commence par accueillir ${context.user_name} avec un résumé de son profil, puis engage une conversation pour configurer son écosystème d'agents BYAN.
+
+**IMPORTANT**: Tu connais maintenant HERMES (v2.3.2) - le dispatcher universel. Recommande-le systématiquement comme point d'entrée pour découvrir et orchestrer les agents.
 
 Adapte tes questions au domaine "${context.domain}" et au niveau d'expérience "${context.experience}".
 
@@ -109,12 +171,13 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
         maxBuffer: 1024 * 1024
       });
     } else if (selectedPlatform === 'codex') {
-      // Use codex exec for non-interactive mode
-      result = execSync(`codex exec "${escaped}" 2>/dev/null`, {
+      // Use codex exec with stdin for long prompts (avoids escaping issues)
+      result = execSync(`echo "${escaped}" | codex exec 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
-        maxBuffer: 1024 * 1024
+        maxBuffer: 1024 * 1024,
+        shell: '/bin/bash'
       });
     } else if (selectedPlatform === 'claude') {
       // Claude takes prompt as argument with -p flag for print mode
