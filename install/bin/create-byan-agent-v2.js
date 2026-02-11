@@ -943,6 +943,9 @@ async function install() {
   await fs.ensureDir(path.join(byanDir, '_memory'));
   await fs.ensureDir(path.join(byanDir, '_output'));
   await fs.ensureDir(githubAgentsDir);
+  if (detectedPlatforms.claude || platform === 'claude' || platform === 'all') {
+    await fs.ensureDir(path.join(projectRoot, '.claude', 'rules'));
+  }
   
   installSpinner.succeed('Directory structure created');
   
@@ -1003,6 +1006,19 @@ async function install() {
       copySpinner.warn(`⚠ GitHub agents source not found: ${githubAgentsSource}`);
     }
     
+    // Copy .claude/ files for Claude Code integration (always includes Hermes)
+    if (detectedPlatforms.claude || platform === 'claude' || platform === 'all') {
+      const claudeSource = path.join(templateDir, '.claude');
+      const claudeDest = path.join(projectRoot, '.claude');
+      
+      if (await fs.pathExists(claudeSource)) {
+        await fs.ensureDir(path.join(claudeDest, 'rules'));
+        await fs.copy(claudeSource, claudeDest, { overwrite: true });
+        copySpinner.text = 'Copied Claude Code rules + Hermes dispatcher...';
+        console.log(chalk.green(`  ✓ Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
+      }
+    }
+    
     copySpinner.succeed('BYAN platform files installed');
   } catch (error) {
     copySpinner.fail('Error copying files');
@@ -1057,6 +1073,15 @@ async function install() {
     { name: 'Config', path: configPath },
     { name: 'GitHub agents dir', path: githubAgentsDir }
   ];
+  
+  // Add Claude Code checks if installed
+  if (detectedPlatforms.claude || platform === 'claude' || platform === 'all') {
+    checks.push(
+      { name: 'Claude CLAUDE.md', path: path.join(projectRoot, '.claude', 'CLAUDE.md') },
+      { name: 'Claude rules/', path: path.join(projectRoot, '.claude', 'rules') },
+      { name: 'Hermes dispatcher rule', path: path.join(projectRoot, '.claude', 'rules', 'hermes-dispatcher.md') }
+    );
+  }
   
   // Add v2.0 checks if installed
   if (v2Installed) {
@@ -1147,7 +1172,10 @@ async function install() {
     console.log('   Open VSCode Command Palette (Ctrl+Shift+P)');
     console.log('   Type: \'Activate BYAN Agent\'');
   } else if (platform === 'claude') {
-    console.log(`   ${chalk.blue('claude chat --agent byan')}`);
+    console.log(`   ${chalk.blue('claude')}`);
+    console.log(`   Hermes est integre via ${chalk.cyan('.claude/CLAUDE.md')}`);
+    console.log(`   Demande: ${chalk.cyan('"quel agent pour mon projet?"')} → Hermes repond`);
+    console.log(`   Regles: ${chalk.cyan('.claude/rules/')} (hermes, agents, methodologie)`);
   } else {
     console.log('   Follow your platform\'s agent activation procedure');
   }
