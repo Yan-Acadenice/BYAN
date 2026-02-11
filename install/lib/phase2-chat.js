@@ -5,12 +5,35 @@
  * using copilot/codex CLI for AI responses.
  */
 
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs-extra');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 const ora = require('ora');
+
+/**
+ * Cross-platform CLI command execution
+ * Uses spawnSync without shell on Unix (no character interpretation)
+ * Uses shell on Windows for .cmd file support
+ */
+function runCliCommand(cmd, args, cwd, stdinInput) {
+  const isWindows = process.platform === 'win32';
+  const opts = {
+    encoding: 'utf8',
+    cwd: cwd,
+    timeout: 60000,
+    maxBuffer: 1024 * 1024,
+    stdio: ['pipe', 'pipe', 'pipe']
+  };
+  
+  if (stdinInput) opts.input = stdinInput;
+  if (isWindows) opts.shell = true;
+  
+  const res = spawnSync(cmd, args, opts);
+  if (res.error) throw res.error;
+  return (res.stdout || '').toString();
+}
 
 /**
  * Build the initial context prompt from Phase 1 answers
@@ -144,7 +167,6 @@ Quand l'utilisateur dit "finaliser", "terminer" ou "c'est bon", génère la conf
  * @returns {Promise<string>} AI response
  */
 async function sendChatMessage(message, systemContext, conversationHistory, selectedPlatform, projectRoot) {
-  // Build the full prompt with context and history
   const fullPrompt = `${systemContext}
 
 ## Historique de conversation:
@@ -160,46 +182,36 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
   let result = '';
   
   try {
-    const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
-    
     if (selectedPlatform === 'copilot') {
-      // Use copilot with single prompt mode (-s for silent, no interactive)
-      result = execSync(`copilot -p "${escaped}" -s 2>/dev/null`, {
-        encoding: 'utf8',
-        cwd: projectRoot,
-        timeout: 60000,
-        maxBuffer: 1024 * 1024
-      });
+      result = runCliCommand('copilot', ['-p', fullPrompt, '-s'], projectRoot);
     } else if (selectedPlatform === 'codex') {
-      // Use codex exec with stdin for long prompts (avoids escaping issues)
-      // Use single quotes to prevent bash interpretation of @ and other special chars
-      const singleQuoteEscaped = fullPrompt.replace(/'/g, "'\\''");
-      result = execSync(`echo '${singleQuoteEscaped}' | codex exec 2>/dev/null`, {
-        encoding: 'utf8',
-        cwd: projectRoot,
-        timeout: 60000,
-        maxBuffer: 1024 * 1024,
-        shell: '/bin/bash'
-      });
+      result = runCliCommand('codex', ['exec'], projectRoot, fullPrompt);
     } else if (selectedPlatform === 'claude') {
-      // Claude takes prompt as argument with -p flag for print mode
-      result = execSync(`claude -p "${escaped}" 2>/dev/null`, {
-        encoding: 'utf8',
-        cwd: projectRoot,
-        timeout: 60000,
-        maxBuffer: 1024 * 1024
-      });
+      result = runCliCommand('claude', ['-p', fullPrompt], projectRoot);
     } else {
       throw new Error(`Platform not supported: ${selectedPlatform}`);
     }
   } catch (error) {
+    const errMsg = (error.message || '').toLowerCase();
     console.error(chalk.red(`\n❌ Erreur ${selectedPlatform}: ${error.message}`));
+    
+    // Platform-specific login guidance
+    if (selectedPlatform === 'claude' && (errMsg.includes('auth') || errMsg.includes('api') || errMsg.includes('key') || errMsg.includes('login') || errMsg.includes('401'))) {
+      console.log('');
+      console.log(chalk.yellow('  💡 Pour se connecter à Claude Code:'));
+      console.log(chalk.cyan('     1. claude login'));
+      console.log(chalk.gray('     2. ou: export ANTHROPIC_API_KEY=sk-ant-...'));
+      console.log(chalk.gray('     3. ou dans Claude Code: /login'));
+    } else if (selectedPlatform === 'copilot') {
+      console.log(chalk.gray('     → gh auth login'));
+    } else if (selectedPlatform === 'codex') {
+      console.log(chalk.gray('     → codex login'));
+    }
+    
     result = `Désolé, erreur de communication avec ${selectedPlatform}. Réessayez ou tapez "skip".`;
   }
   
-  // Clean up the response (remove ANSI codes, extra whitespace)
   result = result.replace(/\x1b\[[0-9;]*m/g, '').trim();
-  
   return result;
 }
 
@@ -375,7 +387,7 @@ IMPORTANT: L'utilisateur veut finaliser. Génère maintenant la configuration JS
 /**
  * Fallback: Generate default config based on Phase 1 answers only
  */
-function generateDefaultConfig(interviewAnswers, detectedPlatforms) {
+function generateDefaultConfig(interviewAnswers, detectedPlatforms, selectedPlatform) {
   const domain = interviewAnswers.domain;
   const quality = interviewAnswers.quality;
   
@@ -479,9 +491,13 @@ function generateDefaultConfig(interviewAnswers, detectedPlatforms) {
     { from: 'architect', to: 'dev', type: 'triggers', description: 'Architecture triggers implementation' }
   ];
   
-  // Set model based on quality
-  config.recommendedModel = quality === 'critical' ? 'claude-sonnet-4' : 
-                            quality === 'production' ? 'gpt-5.1-codex' : 'gpt-5-mini';
+  // Set model based on quality and selected platform
+  if (selectedPlatform === 'claude') {
+    config.recommendedModel = quality === 'critical' ? 'claude-sonnet-4' : 'claude-haiku-4.5';
+  } else {
+    config.recommendedModel = quality === 'critical' ? 'claude-sonnet-4' : 
+                              quality === 'production' ? 'gpt-5.1-codex' : 'gpt-5-mini';
+  }
   
   config.rationale = `Configuration par défaut pour projet ${domain}. Personnalisez via la conversation Phase 2 pour plus de précision.`;
   

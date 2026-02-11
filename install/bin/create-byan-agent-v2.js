@@ -3,7 +3,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const { program } = require('commander');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
@@ -15,7 +15,7 @@ const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questio
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 
-const BYAN_VERSION = '2.3.0';
+const BYAN_VERSION = require('../../package.json').version;
 
 // ASCII Art Banner
 const banner = `
@@ -470,29 +470,41 @@ async function install() {
     const promptFile = path.join(projectRoot, '.yanstaller-prompt.tmp');
     await fs.writeFile(promptFile, interviewPrompt, 'utf8');
     
-    // Detect which CLI to use (non-interactive mode)
-    // Copilot: --agent loads from .github/agents/, -p for non-interactive, -s for silent
-    // Codex: exec subcommand for non-interactive, -m for model
-    // Claude: -p for non-interactive prompt
-    let agentCommand = null;
-    if (detectedPlatforms.copilot) {
-      agentCommand = `copilot --agent=bmad-agent-yanstaller-interview -p "$(cat '${promptFile}')" --model ${interviewComplexity} -s`;
-    } else if (detectedPlatforms.codex) {
-      agentCommand = `codex exec "$(cat '${promptFile}')"`;
-    } else if (detectedPlatforms.claude) {
-      agentCommand = `claude -p "$(cat '${promptFile}')"`;
-    }
+    // Cross-platform CLI execution using spawnSync (no shell = no escaping issues)
+    const isWindows = process.platform === 'win32';
+    const promptContent = await fs.readFile(promptFile, 'utf8');
+    let hasAgent = false;
     
-    if (agentCommand) {
+    if (detectedPlatforms.copilot || detectedPlatforms.codex || detectedPlatforms.claude) {
+      hasAgent = true;
       const agentSpinner = ora(`Analysing with yanstaller agent (${interviewComplexity})...`).start();
       
       try {
-        const result = execSync(agentCommand, {
+        const spawnOpts = {
           encoding: 'utf8',
           cwd: projectRoot,
           timeout: 120000,
+          maxBuffer: 1024 * 1024,
           stdio: ['pipe', 'pipe', 'pipe']
-        });
+        };
+        if (isWindows) spawnOpts.shell = true;
+        
+        let res;
+        if (detectedPlatforms.copilot) {
+          res = spawnSync('copilot', [
+            '--agent=bmad-agent-yanstaller-interview',
+            '-p', promptContent,
+            '--model', interviewComplexity,
+            '-s'
+          ], spawnOpts);
+        } else if (detectedPlatforms.codex) {
+          res = spawnSync('codex', ['exec'], { ...spawnOpts, input: promptContent });
+        } else if (detectedPlatforms.claude) {
+          res = spawnSync('claude', ['-p', promptContent], spawnOpts);
+        }
+        
+        if (res.error) throw res.error;
+        const result = (res.stdout || '').toString();
         
         agentSpinner.succeed(`Analysis complete (model: ${interviewComplexity})`);
         
@@ -568,7 +580,7 @@ async function install() {
         console.log(chalk.green(`  Essential agents: ${interviewResults.agents.essential.join(', ')}`));
         console.log(chalk.green(`  Model: ${interviewResults.recommended_model}`));
       }
-    } else {
+    } else if (!hasAgent) {
       // No AI platform detected - build from interview data
       interviewResults = {
         platforms: ['copilot'],
@@ -663,6 +675,15 @@ async function install() {
       installMode = 'auto';
     }
     
+    // Update recommended model based on selected platform
+    if (selectedPlatform === 'claude' && interviewResults) {
+      const oldModel = interviewResults.recommended_model || '';
+      if (oldModel.includes('gpt')) {
+        interviewResults.recommended_model = 'claude-haiku-4.5';
+        console.log(chalk.cyan(`  🧠 Model adapté: claude-haiku-4.5 (plateforme: Claude)`));
+      }
+    }
+    
     // NEW: Verify authentication for selected platform
     if (selectedPlatform && installMode === 'custom') {
       console.log('');
@@ -680,7 +701,7 @@ async function install() {
           loginCmd = 'codex login';
         } else if (selectedPlatform === 'claude') {
           checkCmd = 'claude --version';
-          loginCmd = 'claude auth';
+          loginCmd = 'claude login';
         }
         
         const result = execSync(checkCmd, { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
@@ -689,6 +710,10 @@ async function install() {
         console.log('');
         console.log(chalk.yellow(`⚠️  ${selectedPlatform} n'est pas authentifié ou non disponible`));
         console.log(chalk.gray(`   Pour vous connecter, exécutez: ${chalk.cyan(loginCmd)}`));
+        if (selectedPlatform === 'claude') {
+          console.log(chalk.gray(`   Alternative: ${chalk.cyan('export ANTHROPIC_API_KEY=sk-ant-...')}`));
+          console.log(chalk.gray(`   Ou dans Claude Code: ${chalk.cyan('/login')}`));
+        }
         console.log('');
         
         const { continueAnyway } = await inquirer.prompt([{
@@ -766,13 +791,13 @@ async function install() {
         }]);
         
         if (useFallback) {
-          phase2Results = generateDefaultConfig(interviewAnswers, detectedPlatforms);
+          phase2Results = generateDefaultConfig(interviewAnswers, detectedPlatforms, selectedPlatform);
         }
       }
     } else if (enterPhase2 === 'auto') {
       // Use default configuration
       const autoSpinner = ora('Generating default configuration...').start();
-      phase2Results = generateDefaultConfig(interviewAnswers, detectedPlatforms);
+      phase2Results = generateDefaultConfig(interviewAnswers, detectedPlatforms, selectedPlatform);
       autoSpinner.succeed('Configuration generated');
     }
     
