@@ -32,6 +32,13 @@ function runCliCommand(cmd, args, cwd, stdinInput) {
   
   const res = spawnSync(cmd, args, opts);
   if (res.error) throw res.error;
+  
+  // Check for non-zero exit code with stderr
+  if (res.status !== 0 && res.stderr) {
+    const stderr = res.stderr.toString().trim();
+    if (stderr) throw new Error(stderr);
+  }
+  
   return (res.stdout || '').toString();
 }
 
@@ -185,7 +192,8 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
     if (selectedPlatform === 'copilot') {
       result = runCliCommand('copilot', ['-p', fullPrompt, '-s'], projectRoot);
     } else if (selectedPlatform === 'codex') {
-      result = runCliCommand('codex', ['exec'], projectRoot, fullPrompt);
+      // Codex takes prompt as argument to exec command
+      result = runCliCommand('codex', ['exec', fullPrompt], projectRoot);
     } else if (selectedPlatform === 'claude') {
       result = runCliCommand('claude', ['-p', fullPrompt], projectRoot);
     } else {

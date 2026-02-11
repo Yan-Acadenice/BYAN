@@ -498,7 +498,7 @@ async function install() {
             '-s'
           ], spawnOpts);
         } else if (detectedPlatforms.codex) {
-          res = spawnSync('codex', ['exec'], { ...spawnOpts, input: promptContent });
+          res = spawnSync('codex', ['exec', promptContent], spawnOpts);
         } else if (detectedPlatforms.claude) {
           res = spawnSync('claude', ['-p', promptContent], spawnOpts);
         }
