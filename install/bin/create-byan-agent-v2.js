@@ -710,6 +710,23 @@ async function install() {
     
     console.log('');
     
+    // Phase 1.5: User configuration (needed for Phase 2)
+    const config = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'userName',
+        message: 'Your name:',
+        default: 'Developer'
+      },
+      {
+        type: 'list',
+        name: 'language',
+        message: 'Communication language:',
+        choices: ['Francais', 'English'],
+        default: installMode === 'custom' && interviewResults ? 'Francais' : 'English'
+      }
+    ]);
+    
     // Phase 2: Interactive Chat with Yanstaller Agent
     // Ask user if they want to enter Phase 2 conversation
     const { enterPhase2 } = await inquirer.prompt([{
@@ -810,23 +827,6 @@ async function install() {
       message: installMode === 'custom' ? 'Confirmer la plateforme (recommandation ci-dessus):' : 'Select platform to install for:',
       choices: platformChoices,
       default: defaultPlatform
-    }
-  ]);
-  
-  // Step 4: User configuration
-  const config = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'userName',
-      message: 'Your name:',
-      default: 'Developer'
-    },
-    {
-      type: 'list',
-      name: 'language',
-      message: 'Communication language:',
-      choices: ['Francais', 'English'],
-      default: installMode === 'custom' && interviewResults ? 'Francais' : 'English'
     }
   ]);
   
