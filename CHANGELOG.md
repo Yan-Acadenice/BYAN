@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.8] - 2026-02-11
+
+### 🐛 Fixed - Windows 11 + Claude Code Compatibility
+
+**Cross-Platform CLI Execution:**
+- Replaced `execSync` with `spawnSync` in Phase 2 chat (no shell = no character interpretation)
+- On Unix: args passed directly (no `@`, `$`, `%` interpretation)
+- On Windows: `shell: true` for `.cmd` file support, stdin for long prompts
+- Removed all bash-only syntax: `$(cat ...)`, `2>/dev/null`, single-quote escaping
+
+**Version Display Fix:**
+- `BYAN_VERSION` now reads from `package.json` (was hardcoded as `2.3.0`)
+- Banner now shows correct installed version
+
+**Claude-Aware Model Selection:**
+- When Claude platform selected, model switches from `gpt-5-mini` to `claude-haiku-4.5`
+- `generateDefaultConfig()` now accepts `selectedPlatform` parameter
+- Display: "Model adapte: claude-haiku-4.5 (plateforme: Claude)"
+
+**Claude Auth Improvements:**
+- Login command fixed: `claude login` (was `claude auth`)
+- Shows 3 connection methods on failure:
+  1. `claude login` (OAuth)
+  2. `export ANTHROPIC_API_KEY=sk-ant-...`
+  3. `/login` dans Claude Code
+- Auth error detection in Phase 2 chat with specific guidance
+
+**Files Modified:**
+- `install/lib/phase2-chat.js`: New `runCliCommand()` helper, cross-platform `sendChatMessage()`
+- `install/bin/create-byan-agent-v2.js`: `spawnSync` imports, dynamic version, platform-aware model
+
+---
+
 ## [2.3.7] - 2026-02-11
 
 ### 🐛 Fixed - Codex Prompt Escaping
