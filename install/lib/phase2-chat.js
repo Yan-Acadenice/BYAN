@@ -109,14 +109,16 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
         maxBuffer: 1024 * 1024
       });
     } else if (selectedPlatform === 'codex') {
-      result = execSync(`codex -p "${escaped}" --quiet 2>/dev/null`, {
+      // Use codex exec for non-interactive mode
+      result = execSync(`codex exec "${escaped}" 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
         maxBuffer: 1024 * 1024
       });
     } else if (selectedPlatform === 'claude') {
-      result = execSync(`claude -p "${escaped}" --no-input 2>/dev/null`, {
+      // Claude takes prompt as argument with -p flag for print mode
+      result = execSync(`claude -p "${escaped}" 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
