@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-02-11
+
+### ✨ Added - Claude Code Native Agent Integration
+
+**New Feature: BYAN agents natively integrated with Claude Code**
+
+Claude Code uses `.claude/CLAUDE.md` and `.claude/rules/*.md` for project memory.
+Yanstaller now creates this structure automatically when Claude is detected.
+
+**Files Created in User Project:**
+```
+.claude/
+  CLAUDE.md                      # Main project memory with Hermes entry point
+  rules/
+    hermes-dispatcher.md         # Hermes commands, routing rules, pipelines
+    byan-agents.md               # 35+ agents across 5 modules (tables)
+    merise-agile.md              # Methodology, mantras, dev cycle, test levels
+```
+
+**Hermes Always Included:**
+- Hermes dispatcher is the universal entry point on ALL Claude Code projects
+- `CLAUDE.md` references Hermes and links to rules via `@.claude/rules/` imports
+- Claude Code auto-loads all `.claude/rules/*.md` at session start
+
+**How It Works:**
+- User runs `npx create-byan-agent` and selects Claude Code platform
+- Yanstaller detects Claude and installs `.claude/` structure
+- Claude Code reads `CLAUDE.md` + all `rules/*.md` at every session start
+- User asks "quel agent pour mon projet?" → Claude knows Hermes and all agents
+- No MCP server needed for agent knowledge (native Claude Code memory)
+
+**Verification:**
+- Installation checks: CLAUDE.md, rules/ directory, hermes-dispatcher.md
+- Updated success message with Claude-specific activation instructions
+
+**Based on Claude Code SDK:**
+- Uses official `.claude/rules/*.md` modular rules system
+- Uses `@path` import syntax for cross-referencing
+- Rules auto-loaded per session (no manual configuration)
+
+---
+
 ## [2.3.8] - 2026-02-11
 
 ### 🐛 Fixed - Windows 11 + Claude Code Compatibility
