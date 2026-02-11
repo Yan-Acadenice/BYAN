@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/create-byan-agent.svg)](https://www.npmjs.com/package/create-byan-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-1308%2F1308-brightgreen.svg)](https://github.com/yannsix/byan-v2)
+[![Tests](https://img.shields.io/badge/tests-1308%2F1308-brightgreen.svg)](https://github.com/Yan-Acadenice/BYAN)
 [![Node](https://img.shields.io/badge/node-%3E%3D12.0.0-brightgreen.svg)](https://nodejs.org)
 
 **🏛️ Intelligent AI Agent Ecosystem** | Powered by Merise Agile + TDD + 64 Mantras
@@ -313,23 +313,23 @@ await byan.startSession();
 // ... your existing workflow
 ```
 
-To use new BMAD features, simply enable them in config. See [MIGRATION.md](https://github.com/yannsix/byan-v2/blob/main/MIGRATION-v2.0-to-v2.1.md) for details.
+To use new BMAD features, simply enable them in config. See [MIGRATION.md](https://github.com/Yan-Acadenice/BYAN/blob/main/MIGRATION-v2.0-to-v2.1.md) for details.
 
 ---
 
 ## 📖 Documentation
 
-- [Full Documentation](https://github.com/yannsix/byan-v2/blob/main/README-BYAN-V2.md)
-- [CHANGELOG v2.1.0](https://github.com/yannsix/byan-v2/blob/main/CHANGELOG-v2.1.0.md)
-- [Migration Guide](https://github.com/yannsix/byan-v2/blob/main/MIGRATION-v2.0-to-v2.1.md)
-- [Manual Testing Guide](https://github.com/yannsix/byan-v2/blob/main/BYAN-V2.1.0-MANUAL-TEST-PLAN.md)
-- [BMAD Quick Reference](https://github.com/yannsix/byan-v2/blob/main/BMAD-QUICK-REFERENCE.md)
+- [Full Documentation](https://github.com/Yan-Acadenice/BYAN/blob/main/README-BYAN-V2.md)
+- [CHANGELOG v2.1.0](https://github.com/Yan-Acadenice/BYAN/blob/main/CHANGELOG-v2.1.0.md)
+- [Migration Guide](https://github.com/Yan-Acadenice/BYAN/blob/main/MIGRATION-v2.0-to-v2.1.md)
+- [Manual Testing Guide](https://github.com/Yan-Acadenice/BYAN/blob/main/BYAN-V2.1.0-MANUAL-TEST-PLAN.md)
+- [BMAD Quick Reference](https://github.com/Yan-Acadenice/BYAN/blob/main/BMAD-QUICK-REFERENCE.md)
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! Please read our contributing guidelines and submit pull requests to our [GitHub repository](https://github.com/yannsix/byan-v2).
+Contributions welcome! Please read our contributing guidelines and submit pull requests to our [GitHub repository](https://github.com/Yan-Acadenice/BYAN).
 
 ---
 
@@ -361,8 +361,8 @@ MIT © [Yan-Acadenice](https://github.com/Yan-Acadenice)
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yannsix/byan-v2/issues)
-- **Repository**: [github.com/yannsix/byan-v2](https://github.com/yannsix/byan-v2)
+- **Issues**: [GitHub Issues](https://github.com/Yan-Acadenice/BYAN/issues)
+- **Repository**: [github.com/Yan-Acadenice/BYAN](https://github.com/Yan-Acadenice/BYAN)
 
 ---
 
