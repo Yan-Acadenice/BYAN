@@ -7,6 +7,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.7] - 2026-02-11
+
+### 🐛 Fixed - Codex Prompt Escaping
+
+**Issue:** Bash interpreted `@hermes` as shell command in Codex prompts
+- Phase 2 chat with Codex failed with `/bin/bash: ligne 1: @hermes : commande introuvable`
+- Root cause: `echo "${prompt}"` with double quotes allowed bash to interpret special characters
+- The Hermes documentation contains `@hermes` examples, which bash tried to execute
+
+**Fix:**
+- Changed `install/lib/phase2-chat.js`: Use single quotes for Codex echo command
+- Escape single quotes within content: `replace(/'/g, "'\\''")` 
+- Prevents bash from interpreting `@`, `$`, backticks, and other special chars
+- Copilot and Claude already working (direct arguments, not shell expansion)
+
+**Impact:** Yanstaller Phase 2 now works correctly with Codex platform
+
+---
+
+## [2.3.6] - 2026-02-11
+
+### ✨ Enhanced - Hermes in Yanstaller Knowledge Base
+
+**Feature:** Yanstaller Phase 2 now knows complete BYAN ecosystem
+- Added full Hermes documentation to Phase 2 system prompt (~1500 tokens)
+- Documents all 35+ agents across 5 modules (Core, BMM, BMB, CIS, TEA)
+- Includes 7 predefined workflows with agent chains
+- Explains smart routing capabilities and pipelines
+- Yanstaller recommends Hermes as universal entry point
+
+**Knowledge Expansion:**
+- Before: ~300 tokens (basic user profile)
+- After: ~1500 tokens (complete ecosystem)
+- 5x increase in contextual intelligence
+
+**Impact:** Users asking about Hermes or agents get intelligent, informed responses
+
+---
+
+## [2.3.5] - 2026-02-11
+
+### 🐛 Fixed - Multi-Platform CLI Commands
+
+**Issue:** Codex and Claude commands were incorrect
+- Codex: `codex -p "prompt"` doesn't exist (wrong flag)
+- Claude: `claude -p "prompt" --no-input` used wrong flags
+- Both failed during Phase 2 chat in Yanstaller
+
+**Fix:**
+- `install/lib/phase2-chat.js`:
+  - Codex: Changed to `codex exec` with stdin (line 175)
+  - Claude: Changed to `claude -p` print mode (line 184)
+  - Copilot: Already correct with `-p` flag
+
+**Verified:**
+- Copilot: `copilot -p "prompt" -s` ✓
+- Codex: `echo "prompt" | codex exec` ✓
+- Claude: `claude -p "prompt"` ✓
+
+---
+
+## [2.3.4] - 2026-02-11
+
+### 🐛 Fixed - Yanstaller Phase 2 Config Bug
+
+**Issue:** ReferenceError during Phase 2 chat initialization
+- Error: `Cannot access 'config' before initialization`
+- Root cause: `config` variable used at line 737 but defined at line 817
+- Phase 2 chat failed to start
+
+**Fix:**
+- `install/bin/create-byan-agent-v2.js`: Moved config prompt to Phase 1.5 (before Phase 2 chat)
+- Config now collected at lines 714-729 (userName, language)
+- Passed to `launchPhase2Chat()` as parameters
+- Removed duplicate config definition
+
+**Impact:** Yanstaller Phase 2 now starts correctly with all platforms
+
+---
+
+## [2.3.3] - 2026-02-10
+
+### 🐛 Fixed - GitHub Repository URLs
+
+**Issue:** README and package.json pointed to wrong GitHub repository
+- Old URL: `github.com/yannsix/byan-v2` (incorrect)
+- Correct URL: `github.com/Yan-Acadenice/BYAN`
+
+**Changes:**
+- `README.md`: Updated 10 GitHub link occurrences
+- `package.json`: Updated repository URLs (3 occurrences)
+  - repository.url
+  - bugs.url
+  - homepage
+
+**Impact:** Users can now find correct repository and report issues properly
+
+---
+
 ## [2.3.2] - 2026-02-10
 
 ### 🏛️ Added - Hermes Universal Dispatcher
