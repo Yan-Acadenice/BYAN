@@ -306,7 +306,7 @@ function handleSinglePlatform(platformId, choices) {
  */
 function getSpecialist(platformId) {
   const info = PLATFORM_INFO[platformId];
-  return info?.specialist || null;
+  return info ? (info.specialist || null) : null;
 }
 
 /**
@@ -317,7 +317,7 @@ function getSpecialist(platformId) {
  */
 function hasNativeIntegration(platformId) {
   const info = PLATFORM_INFO[platformId];
-  return info?.native || false;
+  return info ? (info.native || false) : false;
 }
 
 module.exports = {

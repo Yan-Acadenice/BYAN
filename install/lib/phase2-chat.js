@@ -195,7 +195,7 @@ async function launchPhase2Chat(options) {
   const spinner = ora('Yanstaller réfléchit...').start();
   let conversationHistory = '';
   
-  const initialMessage = `Commence par accueillir l'utilisateur ${context.user_name} avec un résumé de son profil (domaine: ${context.domain}, objectifs: ${context.objectives?.join(', ') || 'non spécifiés'}) et pose ta première question pour personnaliser son installation BYAN.`;
+  const initialMessage = `Commence par accueillir l'utilisateur ${context.user_name} avec un résumé de son profil (domaine: ${context.domain}, objectifs: ${context.objectives ? context.objectives.join(', ') : 'non spécifiés'}) et pose ta première question pour personnaliser son installation BYAN.`;
   
   const greeting = await sendChatMessage(initialMessage, systemContext, '', selectedPlatform, projectRoot);
   spinner.stop();

@@ -167,8 +167,8 @@ async function launch(options) {
   const args = platformConfig.args(agent, {
     prompt,
     model,
-    systemPrompt: config?.systemPrompt,
-    mcpConfig: config?.mcpConfig
+    systemPrompt: config ? config.systemPrompt : undefined,
+    mcpConfig: config ? config.mcpConfig : undefined
   });
   
   const fullCommand = `${platformConfig.command} ${args.join(' ')}`;
@@ -252,7 +252,7 @@ async function launchWithPrompt(options) {
   const args = platformConfig.args(agent, {
     prompt,
     model,
-    systemPrompt: config?.systemPrompt
+    systemPrompt: config ? config.systemPrompt : undefined
   });
   
   // Add --print flag for Claude to get output

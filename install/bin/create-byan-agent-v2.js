@@ -526,7 +526,7 @@ async function install() {
               console.log(chalk.green(`  Turbo Whisper: ${interviewResults.turboWhisper.mode} (${interviewResults.turboWhisper.reason})`));
             }
             if (interviewResults.agents) {
-              console.log(chalk.green(`  Essential agents: ${interviewResults.agents.essential?.join(', ')}`));
+              console.log(chalk.green(`  Essential agents: ${interviewResults.agents.essential ? interviewResults.agents.essential.join(', ') : 'none'}`));
             }
             if (interviewResults.modules) {
               console.log(chalk.green(`  Modules: ${interviewResults.modules.join(', ')}`));
@@ -626,7 +626,7 @@ async function install() {
     // Agents recommendation
     if (interviewResults.agents) {
       console.log(chalk.cyan(`  📦 Agents essentiels: ${(interviewResults.agents.essential || []).join(', ')}`));
-      if (interviewResults.agents.optional?.length > 0) {
+      if (interviewResults.agents.optional && interviewResults.agents.optional.length > 0) {
         console.log(chalk.gray(`  📦 Agents optionnels: ${interviewResults.agents.optional.join(', ')}`));
       }
     }
@@ -766,10 +766,10 @@ async function install() {
       if (phase2Results.coreAgents) {
         console.log(chalk.green(`  Core: ${phase2Results.coreAgents.map(a => a.name).join(', ')}`));
       }
-      if (phase2Results.agentRelationships?.length > 0) {
+      if (phase2Results.agentRelationships && phase2Results.agentRelationships.length > 0) {
         console.log(chalk.gray(`  Relations: ${phase2Results.agentRelationships.length} defined`));
       }
-      if (phase2Results.customAgentsToCreate?.length > 0) {
+      if (phase2Results.customAgentsToCreate && phase2Results.customAgentsToCreate.length > 0) {
         console.log(chalk.yellow(`  À créer: ${phase2Results.customAgentsToCreate.map(a => a.name).join(', ')}`));
       }
       console.log('');
