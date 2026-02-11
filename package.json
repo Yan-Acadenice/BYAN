@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "BYAN v2.3.2 - Intelligent AI agent ecosystem with Hermes universal dispatcher + Multi-platform support (Copilot CLI, Claude, Codex) + Automatic LLM cost optimization (87.5% savings) + Node 12+ compatible",
   "main": "src/index.js",
   "bin": {
