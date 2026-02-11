@@ -333,9 +333,29 @@ Contributions welcome! Please read our contributing guidelines and submit pull r
 
 ---
 
+## 👥 Contributors
+
+### Core Team
+- **[Yan-Acadenice](https://github.com/Yan-Acadenice)** - Creator & Lead Developer
+
+### Special Contributors
+- **[Wazadriano](https://github.com/Wazadriano)** - Hermes Universal Dispatcher (v2.3.2)
+  - Designed and documented the Hermes agent architecture
+  - Smart routing rules and multi-agent pipelines
+  - Complete integration with BYAN ecosystem
+
+---
+
+## 💝 Credits
+
+**Créé avec passion par [Yan-Acadenice](https://github.com/Yan-Acadenice)**  
+Pour la communauté [Acadenice](https://acadenice.fr/)
+
+---
+
 ## 📄 License
 
-MIT © Yan
+MIT © [Yan-Acadenice](https://github.com/Yan-Acadenice)
 
 ---
 
