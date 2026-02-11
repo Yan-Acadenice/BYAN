@@ -83,5 +83,8 @@
         "statements": 80
       }
     }
+  },
+  "optionalDependencies": {
+    "byan-copilot-router": "^1.0.1"
   }
 }
