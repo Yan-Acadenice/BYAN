@@ -426,6 +426,12 @@ async function install() {
         name: 'quality',
         message: '10. Niveau qualité?',
         choices: ['mvp (speed)', 'balanced', 'production', 'critical']
+      },
+      {
+        type: 'confirm',
+        name: 'costOptimizer',
+        message: '11. Optimiser coûts LLM automatiquement? (Économise ~54%)',
+        default: true
       }
     ]);
     
@@ -856,6 +862,24 @@ async function install() {
       console.log(chalk.green(`  ✓ Agents: ${agentsSource} → ${agentsDest}`));
     } else {
       copySpinner.warn(`⚠ Agent source not found: ${agentsSource}`);
+    }
+    
+    // Copy cost optimizer worker if enabled
+    if (interviewAnswers && interviewAnswers.costOptimizer) {
+      const workersDir = path.join(byanDir, 'workers');
+      await fs.ensureDir(workersDir);
+      
+      const workerSource = path.join(templateDir, 'workers', 'cost-optimizer.js');
+      const workerDest = path.join(workersDir, 'cost-optimizer.js');
+      
+      if (await fs.pathExists(workerSource)) {
+        await fs.copy(workerSource, workerDest, { overwrite: true });
+        copySpinner.text = 'Copied cost optimizer worker...';
+        console.log(chalk.green(`  ✓ Cost Optimizer: ${workerSource} → ${workerDest}`));
+        console.log(chalk.cyan('    💰 Automatic LLM cost optimization enabled (~54% savings)'));
+      } else {
+        copySpinner.warn(`⚠ Cost optimizer source not found: ${workerSource}`);
+      }
     }
     
     // Copy workflow files
