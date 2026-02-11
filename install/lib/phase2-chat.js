@@ -172,7 +172,9 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
       });
     } else if (selectedPlatform === 'codex') {
       // Use codex exec with stdin for long prompts (avoids escaping issues)
-      result = execSync(`echo "${escaped}" | codex exec 2>/dev/null`, {
+      // Use single quotes to prevent bash interpretation of @ and other special chars
+      const singleQuoteEscaped = fullPrompt.replace(/'/g, "'\\''");
+      result = execSync(`echo '${singleQuoteEscaped}' | codex exec 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
