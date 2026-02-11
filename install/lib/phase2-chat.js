@@ -77,11 +77,11 @@ Quand l'utilisateur dit "finaliser", "terminer" ou "c'est bon", génère la conf
  * @param {string} message User message
  * @param {string} systemContext System context/preprompt
  * @param {string} conversationHistory Previous conversation
- * @param {Object} detectedPlatforms Available AI platforms
+ * @param {string} selectedPlatform Selected AI platform
  * @param {string} projectRoot Project root directory
  * @returns {Promise<string>} AI response
  */
-async function sendChatMessage(message, systemContext, conversationHistory, detectedPlatforms, projectRoot) {
+async function sendChatMessage(message, systemContext, conversationHistory, selectedPlatform, projectRoot) {
   // Build the full prompt with context and history
   const fullPrompt = `${systemContext}
 
@@ -98,34 +98,36 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
   let result = '';
   
   try {
-    if (detectedPlatforms.copilot) {
+    const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    
+    if (selectedPlatform === 'copilot') {
       // Use copilot with single prompt mode (-s for silent, no interactive)
-      const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
       result = execSync(`copilot -p "${escaped}" -s 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
         maxBuffer: 1024 * 1024
       });
-    } else if (detectedPlatforms.codex) {
-      const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    } else if (selectedPlatform === 'codex') {
       result = execSync(`codex -p "${escaped}" --quiet 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
         maxBuffer: 1024 * 1024
       });
-    } else if (detectedPlatforms.claude) {
-      const escaped = fullPrompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    } else if (selectedPlatform === 'claude') {
       result = execSync(`claude -p "${escaped}" --no-input 2>/dev/null`, {
         encoding: 'utf8',
         cwd: projectRoot,
         timeout: 60000,
         maxBuffer: 1024 * 1024
       });
+    } else {
+      throw new Error(`Platform not supported: ${selectedPlatform}`);
     }
   } catch (error) {
-    result = `Désolé, erreur de communication. Réessayez ou tapez "skip".`;
+    console.error(chalk.red(`\n❌ Erreur ${selectedPlatform}: ${error.message}`));
+    result = `Désolé, erreur de communication avec ${selectedPlatform}. Réessayez ou tapez "skip".`;
   }
   
   // Clean up the response (remove ANSI codes, extra whitespace)
@@ -140,6 +142,7 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
  * @param {Object} options Configuration options
  * @param {Object} options.interviewAnswers Phase 1 answers
  * @param {Object} options.detectedPlatforms Detected AI platforms
+ * @param {string} options.selectedPlatform Selected AI platform to use
  * @param {string} options.projectRoot Project root directory
  * @param {string} options.templateDir Templates directory
  * @param {string} options.userName User name
@@ -150,6 +153,7 @@ async function launchPhase2Chat(options) {
   const {
     interviewAnswers,
     detectedPlatforms,
+    selectedPlatform,
     projectRoot,
     templateDir,
     userName,
@@ -193,7 +197,7 @@ async function launchPhase2Chat(options) {
   
   const initialMessage = `Commence par accueillir l'utilisateur ${context.user_name} avec un résumé de son profil (domaine: ${context.domain}, objectifs: ${context.objectives?.join(', ') || 'non spécifiés'}) et pose ta première question pour personnaliser son installation BYAN.`;
   
-  const greeting = await sendChatMessage(initialMessage, systemContext, '', detectedPlatforms, projectRoot);
+  const greeting = await sendChatMessage(initialMessage, systemContext, '', selectedPlatform, projectRoot);
   spinner.stop();
   
   console.log(chalk.cyan('  Yanstaller:'));
@@ -265,7 +269,7 @@ IMPORTANT: L'utilisateur veut finaliser. Génère maintenant la configuration JS
 \`\`\``;
     }
     
-    const response = await sendChatMessage(aiPrompt, systemContext, conversationHistory, detectedPlatforms, projectRoot);
+    const response = await sendChatMessage(aiPrompt, systemContext, conversationHistory, selectedPlatform, projectRoot);
     chatSpinner.stop();
     
     console.log('');

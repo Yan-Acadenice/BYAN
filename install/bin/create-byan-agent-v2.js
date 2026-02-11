@@ -638,6 +638,78 @@ async function install() {
     
     console.log('');
     
+    // NEW: Select preferred AI platform for Phase 2 conversation
+    let selectedPlatform = null;
+    const availablePlatforms = [];
+    
+    if (detectedPlatforms.copilot) availablePlatforms.push({ name: '🤖 GitHub Copilot CLI', value: 'copilot' });
+    if (detectedPlatforms.codex) availablePlatforms.push({ name: '🔷 OpenAI Codex', value: 'codex' });
+    if (detectedPlatforms.claude) availablePlatforms.push({ name: '🧠 Claude Code (Anthropic)', value: 'claude' });
+    
+    if (availablePlatforms.length > 1) {
+      const { platform } = await inquirer.prompt([{
+        type: 'list',
+        name: 'platform',
+        message: 'Quelle plateforme IA utiliser pour Phase 2?',
+        choices: availablePlatforms,
+        default: 'copilot'
+      }]);
+      selectedPlatform = platform;
+    } else if (availablePlatforms.length === 1) {
+      selectedPlatform = availablePlatforms[0].value;
+      console.log(chalk.cyan(`🤖 Plateforme détectée: ${availablePlatforms[0].name}`));
+    } else {
+      console.log(chalk.red('❌ Aucune plateforme IA détectée. Installation en mode AUTO.'));
+      installMode = 'auto';
+    }
+    
+    // NEW: Verify authentication for selected platform
+    if (selectedPlatform && installMode === 'custom') {
+      console.log('');
+      console.log(chalk.gray('🔐 Vérification de l\'authentification...'));
+      
+      try {
+        let checkCmd;
+        let loginCmd;
+        
+        if (selectedPlatform === 'copilot') {
+          checkCmd = 'copilot --version';
+          loginCmd = 'gh auth login';
+        } else if (selectedPlatform === 'codex') {
+          checkCmd = 'codex --version';
+          loginCmd = 'codex login';
+        } else if (selectedPlatform === 'claude') {
+          checkCmd = 'claude --version';
+          loginCmd = 'claude auth';
+        }
+        
+        const result = execSync(checkCmd, { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
+        console.log(chalk.green(`✓ ${selectedPlatform} disponible`));
+      } catch (error) {
+        console.log('');
+        console.log(chalk.yellow(`⚠️  ${selectedPlatform} n'est pas authentifié ou non disponible`));
+        console.log(chalk.gray(`   Pour vous connecter, exécutez: ${chalk.cyan(loginCmd)}`));
+        console.log('');
+        
+        const { continueAnyway } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'continueAnyway',
+          message: 'Continuer avec configuration AUTO (sans conversation)?',
+          default: true
+        }]);
+        
+        if (!continueAnyway) {
+          console.log(chalk.red('Installation annulée. Connectez-vous d\'abord à votre plateforme IA.'));
+          process.exit(1);
+        }
+        
+        installMode = 'auto';
+        selectedPlatform = null;
+      }
+    }
+    
+    console.log('');
+    
     // Phase 2: Interactive Chat with Yanstaller Agent
     // Ask user if they want to enter Phase 2 conversation
     const { enterPhase2 } = await inquirer.prompt([{
@@ -654,15 +726,16 @@ async function install() {
     
     let phase2Results = null;
     
-    if (enterPhase2 === 'chat') {
+    if (enterPhase2 === 'chat' && selectedPlatform) {
       // Launch interactive chat
       phase2Results = await launchPhase2Chat({
         interviewAnswers,
         detectedPlatforms,
+        selectedPlatform, // NEW: Pass selected platform
         projectRoot,
         templateDir,
-        userName: null, // Will be asked later
-        language: 'Francais'
+        userName: config.userName || null,
+        language: config.language || 'Francais'
       });
       
       // If chat returned null, offer fallback
