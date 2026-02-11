@@ -45,11 +45,13 @@
     "src/",
     "install/",
     "README.md",
+    "CHANGELOG.md",
     "CHANGELOG-v2.1.0.md",
     "MIGRATION-v2.0-to-v2.1.md",
     "README-BYAN-V2.md",
     "API-BYAN-V2.md",
     "BMAD-QUICK-REFERENCE.md",
+    "TEST-GUIDE-v2.3.2.md",
     "LICENSE"
   ],
   "dependencies": {
