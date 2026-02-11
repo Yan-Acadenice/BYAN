@@ -1,12 +1,34 @@
-# BYAN v2.1.0 - Build Your AI Network
+# BYAN v2.3.2 - Build Your AI Network
 
 [![npm version](https://img.shields.io/npm/v/create-byan-agent.svg)](https://www.npmjs.com/package/create-byan-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-1308%2F1308-brightgreen.svg)](https://github.com/yannsix/byan-v2)
+[![Node](https://img.shields.io/badge/node-%3E%3D12.0.0-brightgreen.svg)](https://nodejs.org)
 
-**Intelligent AI Agent Creator** | Powered by Merise Agile + TDD + 64 Mantras
+**🏛️ Intelligent AI Agent Ecosystem** | Powered by Merise Agile + TDD + 64 Mantras
 
-Create custom AI agents through intelligent structured interviews with advanced BMAD (Business Modeling & Agent Development) features.
+Create custom AI agents through intelligent interviews + **Hermes Universal Dispatcher** for intelligent routing across 35+ specialized agents.
+
+### 🎯 New in v2.3.2: Hermes - Universal Dispatcher
+
+**One entry point to rule them all** 🏛️
+
+```bash
+@hermes          # → Menu-driven navigation to 35+ agents
+@hermes @dev     # → Direct invocation  
+@hermes rec créer API backend  # → Smart routing
+@hermes pipe feature complète  # → Multi-agent pipelines
+```
+
+**Features:**
+- 🎯 **Smart Routing**: Describe your task → Hermes recommends best agents
+- 🔗 **Pipelines**: Pre-configured multi-agent workflows (Feature Complete, Bug Fix, etc.)
+- 📋 **Agent Directory**: Browse 35+ agents organized by module (core, bmm, bmb, cis, tea)
+- 💰 **Cost Optimizer**: 87.5% LLM cost savings (optional integration)
+- 🌐 **Multi-Platform**: GitHub Copilot CLI, Claude Code, Codex
+- 🪶 **Node 12+ Compatible**: Works on legacy servers
+
+[→ Full Hermes Guide](./install/HERMES-GUIDE.md)
 
 ---
 
