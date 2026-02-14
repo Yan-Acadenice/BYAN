@@ -62,8 +62,10 @@ async function analyzePackageJson(packageJsonPath) {
  * @returns {string[]}
  */
 function getAgentList(mode, customAgents = []) {
-  const MINIMAL_AGENTS = ['byan', 'rachid', 'marc', 'patnote', 'carmack'];
+  const MINIMAL_AGENTS = ['hermes', 'byan', 'rachid', 'marc', 'patnote', 'carmack'];
   const FULL_AGENTS = [
+    // Dispatcher (1)
+    'hermes',
     // Core (5)
     'byan', 'rachid', 'marc', 'patnote', 'carmack',
     // BMM (9)
@@ -85,7 +87,9 @@ function getAgentList(mode, customAgents = []) {
     case 'minimal':
       return MINIMAL_AGENTS;
     case 'custom':
-      return customAgents;
+    case 'manual':
+      // Ensure hermes is always included
+      return [...new Set(['hermes', ...customAgents])];
     default:
       return MINIMAL_AGENTS;
   }

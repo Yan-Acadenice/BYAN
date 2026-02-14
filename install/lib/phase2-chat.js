@@ -7,6 +7,7 @@
 
 const { spawnSync } = require('child_process');
 const path = require('path');
+const os = require('os');
 const fs = require('fs-extra');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
@@ -193,9 +194,22 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
       result = runCliCommand('copilot', ['-p', fullPrompt, '-s'], projectRoot);
     } else if (selectedPlatform === 'codex') {
       // Codex takes prompt as argument to exec command
-      result = runCliCommand('codex', ['exec', fullPrompt], projectRoot);
+      // --skip-git-repo-check needed when not in a trusted git repo
+      result = runCliCommand('codex', ['exec', '--skip-git-repo-check', fullPrompt], projectRoot);
     } else if (selectedPlatform === 'claude') {
-      result = runCliCommand('claude', ['-p', fullPrompt], projectRoot);
+      // Claude: separate system prompt from user query
+      // -p treats arg as user query; system context goes via --append-system-prompt-file
+      const claudeSystemCtx = `${systemContext}\n\n## Historique de conversation:\n${conversationHistory}\n\n## Instructions:\nRéponds de manière concise et naturelle. Si l'utilisateur dit "finaliser", génère le JSON de configuration.\nContinue la conversation pour comprendre le projet et personnaliser les agents.`;
+      const tmpFile = path.join(os.tmpdir(), `byan-claude-ctx-${Date.now()}.txt`);
+      fs.writeFileSync(tmpFile, claudeSystemCtx, 'utf8');
+      try {
+        result = runCliCommand('claude', [
+          '-p', message,
+          '--append-system-prompt-file', tmpFile
+        ], projectRoot);
+      } finally {
+        try { fs.unlinkSync(tmpFile); } catch(e) {}
+      }
     } else {
       throw new Error(`Platform not supported: ${selectedPlatform}`);
     }
@@ -211,7 +225,7 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
       console.log(chalk.gray('     2. ou: export ANTHROPIC_API_KEY=sk-ant-...'));
       console.log(chalk.gray('     3. ou dans Claude Code: /login'));
     } else if (selectedPlatform === 'copilot') {
-      console.log(chalk.gray('     → gh auth login'));
+      console.log(chalk.gray('     → copilot auth'));
     } else if (selectedPlatform === 'codex') {
       console.log(chalk.gray('     → codex login'));
     }

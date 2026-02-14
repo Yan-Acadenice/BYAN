@@ -327,23 +327,157 @@ async function install() {
   console.log('');
   
   // Step 2.8: Installation mode selection
-  const { installMode } = await inquirer.prompt([
+  const { installMode: initialInstallMode } = await inquirer.prompt([
     {
       type: 'list',
       name: 'installMode',
       message: 'Choose installation mode:',
       choices: [
         { name: '🚀 AUTO - Quick install with smart defaults (Recommended)', value: 'auto' },
-        { name: '🎯 CUSTOM - Guided interview with personalized recommendations', value: 'custom' }
+        { name: '🎯 CUSTOM - Guided interview with personalized recommendations', value: 'custom' },
+        { name: '📋 MANUAL - Choose agents individually from the full catalog', value: 'manual' }
       ],
       default: 'auto'
     }
   ]);
 
+  let installMode = initialInstallMode;
+
   let interviewResults = null;
   let interviewAnswers = null;
+  let manualSelection = null;
 
-  // Step 2.9: Intelligent Interview (if CUSTOM mode) - Delegate to Yanstaller Agent
+  // Step 2.9a: MANUAL mode - Full agent catalog selection by platform
+  if (installMode === 'manual') {
+    console.log('');
+    console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
+    console.log(chalk.blue('║                                                            ║'));
+    console.log(chalk.blue('║   📋 MANUAL MODE - Agent Catalog Selection                 ║'));
+    console.log(chalk.blue('║   Choose your agents from the full BYAN catalog             ║'));
+    console.log(chalk.blue('║                                                            ║'));
+    console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
+    console.log('');
+
+    // Step 1: Select target platform(s)
+    const availableManualPlatforms = [];
+    if (detectedPlatforms.copilot) availableManualPlatforms.push({ name: '🤖 GitHub Copilot CLI (agents: .github/agents/)', value: 'copilot' });
+    if (detectedPlatforms.codex) availableManualPlatforms.push({ name: '🔷 OpenAI Codex (skills: .codex/prompts/)', value: 'codex' });
+    if (detectedPlatforms.claude) availableManualPlatforms.push({ name: '🧠 Claude Code (rules: .claude/)', value: 'claude' });
+
+    // Always allow manual selection even if not detected
+    if (!detectedPlatforms.copilot) availableManualPlatforms.push({ name: '🤖 GitHub Copilot CLI (not detected)', value: 'copilot' });
+    if (!detectedPlatforms.codex) availableManualPlatforms.push({ name: '🔷 OpenAI Codex (not detected)', value: 'codex' });
+    if (!detectedPlatforms.claude) availableManualPlatforms.push({ name: '🧠 Claude Code (not detected)', value: 'claude' });
+
+    const { manualPlatforms } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'manualPlatforms',
+      message: 'Select target platform(s):',
+      choices: availableManualPlatforms,
+      validate: (a) => a.length > 0 ? true : 'Select at least one platform'
+    }]);
+
+    // Step 2: Show agent catalog grouped by category (module + role)
+    console.log('');
+    console.log(chalk.cyan('📦 Agent Catalog'));
+    console.log(chalk.gray('  Hermes (dispatcher) is always installed - it routes tasks to the right agent.'));
+    console.log(chalk.gray('  Agents are organized by role: Workflow, Context, and Worker.'));
+    console.log('');
+
+    // Agent catalog with categories and roles
+    const AGENT_CATALOG = {
+      'Core - Dispatcher (always installed)': [
+        { name: 'hermes', label: 'Hermes - Universal Dispatcher (routes all tasks)', checked: true, disabled: 'required' }
+      ],
+      'Core - Platform Specialists': (() => {
+        const specialists = [];
+        if (manualPlatforms.includes('copilot')) specialists.push({ name: 'marc', label: 'Marc - GitHub Copilot CLI Specialist [workflow agent]', checked: true });
+        if (manualPlatforms.includes('claude')) specialists.push({ name: 'claude', label: 'Claude - Claude Code Integration Specialist [workflow agent]', checked: true });
+        if (manualPlatforms.includes('codex')) specialists.push({ name: 'codex', label: 'Codex - OpenCode/Codex Integration Specialist [workflow agent]', checked: true });
+        return specialists;
+      })(),
+      'Core - System Agents': [
+        { name: 'bmad-master', label: 'BMad Master - Platform Orchestrator [context agent]', checked: false },
+        { name: 'expert-merise-agile', label: 'Expert Merise Agile - Conception & Modeling [context agent]', checked: false }
+      ],
+      'BMB - Builder Agents (meta-system)': [
+        { name: 'byan', label: 'BYAN - Agent Creator (intelligent interview) [workflow agent]', checked: false },
+        { name: 'agent-builder', label: 'Bond - Agent Architecture Specialist [worker]', checked: false },
+        { name: 'module-builder', label: 'Morgan - Module Creation Master [worker]', checked: false },
+        { name: 'workflow-builder', label: 'Wendy - Workflow Building Master [worker]', checked: false },
+        { name: 'rachid', label: 'Rachid - NPM/NPX Deployment Expert [worker]', checked: false },
+        { name: 'drawio', label: 'DrawIO - Technical Diagrams Expert [worker]', checked: false },
+        { name: 'turbo-whisper-integration', label: 'Turbo Whisper - Voice Dictation Integration [worker]', checked: false }
+      ],
+      'BMM - Software Development Lifecycle': [
+        { name: 'analyst', label: 'Mary - Business Analyst [workflow agent]', checked: false },
+        { name: 'pm', label: 'John - Product Manager [workflow agent]', checked: false },
+        { name: 'architect', label: 'Winston - System Architect [workflow agent]', checked: false },
+        { name: 'dev', label: 'Amelia - Developer Agent [worker]', checked: false },
+        { name: 'sm', label: 'Bob - Scrum Master [workflow agent]', checked: false },
+        { name: 'quinn', label: 'Quinn - QA Engineer [worker]', checked: false },
+        { name: 'ux-designer', label: 'Sally - UX Designer [context agent]', checked: false },
+        { name: 'tech-writer', label: 'Paige - Technical Writer [worker]', checked: false },
+        { name: 'quick-flow-solo-dev', label: 'Barry - Quick Flow Solo Dev [workflow agent]', checked: false }
+      ],
+      'TEA - Test Architecture': [
+        { name: 'tea', label: 'Murat - Master Test Architect [workflow agent]', checked: false }
+      ],
+      'CIS - Creative Innovation & Strategy': [
+        { name: 'brainstorming-coach', label: 'Carson - Brainstorming Coach [workflow agent]', checked: false },
+        { name: 'creative-problem-solver', label: 'Dr. Quinn - Problem Solver [workflow agent]', checked: false },
+        { name: 'design-thinking-coach', label: 'Maya - Design Thinking Coach [workflow agent]', checked: false },
+        { name: 'innovation-strategist', label: 'Victor - Innovation Strategist [context agent]', checked: false },
+        { name: 'presentation-master', label: 'Caravaggio - Presentation Expert [worker]', checked: false },
+        { name: 'storyteller', label: 'Sophia - Master Storyteller [worker]', checked: false }
+      ],
+      'Utility Agents': [
+        { name: 'patnote', label: 'Patnote - Update Manager & Conflict Resolution [worker]', checked: false },
+        { name: 'carmack', label: 'Carmack - Token Optimizer [worker]', checked: false }
+      ]
+    };
+
+    // Build inquirer choices from catalog
+    const agentChoices = [];
+    for (const [category, agents] of Object.entries(AGENT_CATALOG)) {
+      if (agents.length === 0) continue;
+      agentChoices.push(new inquirer.Separator(`\n  --- ${category} ---`));
+      for (const agent of agents) {
+        agentChoices.push({
+          name: `${agent.label}`,
+          value: agent.name,
+          checked: agent.checked,
+          disabled: agent.disabled || false
+        });
+      }
+    }
+
+    const { selectedAgents } = await inquirer.prompt([{
+      type: 'checkbox',
+      name: 'selectedAgents',
+      message: 'Select agents to install (space to toggle, enter to confirm):',
+      choices: agentChoices,
+      pageSize: 30,
+      validate: (a) => a.length > 0 ? true : 'Select at least one agent'
+    }]);
+
+    // Ensure hermes is always included
+    const finalAgents = [...new Set(['hermes', ...selectedAgents])];
+
+    manualSelection = {
+      platforms: manualPlatforms,
+      agents: finalAgents
+    };
+
+    console.log('');
+    console.log(chalk.cyan('📋 Manual Selection Summary:'));
+    console.log(chalk.green(`  Platforms: ${manualPlatforms.join(', ')}`));
+    console.log(chalk.green(`  Agents (${finalAgents.length}): ${finalAgents.join(', ')}`));
+    console.log(chalk.gray(`  Roles: dispatcher=hermes, workflow/context/worker agents selected`));
+    console.log('');
+  }
+
+  // Step 2.9b: Intelligent Interview (if CUSTOM mode) - Delegate to Yanstaller Agent
   if (installMode === 'custom') {
     console.log('');
     console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
@@ -604,6 +738,23 @@ async function install() {
     console.log('');
   }
   
+  // User configuration (needed for config.yaml) - Asked for ALL modes, BEFORE conditional blocks
+  const config = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'userName',
+      message: 'Your name:',
+      default: 'Developer'
+    },
+    {
+      type: 'list',
+      name: 'language',
+      message: 'Communication language:',
+      choices: ['Francais', 'English'],
+      default: 'Francais'
+    }
+  ]);
+  
   // Step 3: Platform selection (with interview recommendations if CUSTOM mode)
   let recommendedPlatforms = [];
   let recommendedTurboWhisper = 'skip';
@@ -684,73 +835,106 @@ async function install() {
       }
     }
     
-    // NEW: Verify authentication for selected platform
+    // Verify authentication for selected platform
     if (selectedPlatform && installMode === 'custom') {
       console.log('');
       console.log(chalk.gray('🔐 Vérification de l\'authentification...'));
       
-      try {
-        let checkCmd;
-        let loginCmd;
-        
-        if (selectedPlatform === 'copilot') {
-          checkCmd = 'copilot --version';
-          loginCmd = 'gh auth login';
-        } else if (selectedPlatform === 'codex') {
-          checkCmd = 'codex --version';
-          loginCmd = 'codex login';
-        } else if (selectedPlatform === 'claude') {
-          checkCmd = 'claude --version';
-          loginCmd = 'claude login';
+      let isAuthenticated = false;
+      
+      while (!isAuthenticated) {
+        try {
+          let authCheckCmd, authCheckArgs, loginInstructions;
+          const isWindows = process.platform === 'win32';
+          const spawnOpts = { encoding: 'utf8', timeout: 15000, stdio: 'pipe' };
+          if (isWindows) spawnOpts.shell = true;
+          
+          if (selectedPlatform === 'copilot') {
+            // copilot --version to check if CLI is available
+            authCheckCmd = 'copilot';
+            authCheckArgs = ['--version'];
+            loginInstructions = [
+              `${chalk.cyan('copilot auth')}`
+            ];
+          } else if (selectedPlatform === 'codex') {
+            // codex --version as basic check (no auth status command available)
+            authCheckCmd = 'codex';
+            authCheckArgs = ['--version'];
+            loginInstructions = [
+              `${chalk.cyan('codex login')}`
+            ];
+          } else if (selectedPlatform === 'claude') {
+            // claude --version checks install; auth errors surface during -p calls
+            // Use 'claude -p "test" --max-turns 1' for real auth check
+            authCheckCmd = 'claude';
+            authCheckArgs = ['-p', 'reply OK', '--max-turns', '1'];
+            loginInstructions = [
+              `${chalk.cyan('claude login')}`,
+              `${chalk.gray('ou:')} ${chalk.cyan('export ANTHROPIC_API_KEY=sk-ant-...')}`,
+              `${chalk.gray('ou dans Claude Code:')} ${chalk.cyan('/login')}`
+            ];
+          }
+          
+          const res = spawnSync(authCheckCmd, authCheckArgs, spawnOpts);
+          
+          if (res.error) throw res.error;
+          if (res.status !== 0) {
+            const stderr = (res.stderr || '').toString().trim();
+            throw new Error(stderr || `${selectedPlatform} returned exit code ${res.status}`);
+          }
+          
+          isAuthenticated = true;
+          console.log(chalk.green(`✓ ${selectedPlatform} authentifié et disponible`));
+          
+        } catch (error) {
+          console.log('');
+          console.log(chalk.yellow(`⚠️  ${selectedPlatform} n'est pas authentifié ou non disponible`));
+          console.log(chalk.gray(`   Erreur: ${(error.message || '').substring(0, 120)}`));
+          console.log('');
+          console.log(chalk.bold('   Pour vous connecter:'));
+          
+          let loginInstructions;
+          if (selectedPlatform === 'copilot') {
+            loginInstructions = [`${chalk.cyan('copilot auth')}`];
+          } else if (selectedPlatform === 'codex') {
+            loginInstructions = [`${chalk.cyan('codex login')}`];
+          } else if (selectedPlatform === 'claude') {
+            loginInstructions = [
+              `${chalk.cyan('claude login')}`,
+              `${chalk.gray('ou:')} ${chalk.cyan('export ANTHROPIC_API_KEY=sk-ant-...')}`,
+              `${chalk.gray('ou dans Claude Code:')} ${chalk.cyan('/login')}`
+            ];
+          }
+          loginInstructions.forEach((inst, i) => console.log(`   ${i + 1}. ${inst}`));
+          console.log('');
+          
+          const { authAction } = await inquirer.prompt([{
+            type: 'list',
+            name: 'authAction',
+            message: 'Que souhaitez-vous faire?',
+            choices: [
+              { name: '🔄 Réessayer (après connexion dans un autre terminal)', value: 'retry' },
+              { name: '⚡ Continuer en mode AUTO (sans conversation IA)', value: 'auto' },
+              { name: '❌ Annuler l\'installation', value: 'cancel' }
+            ]
+          }]);
+          
+          if (authAction === 'retry') {
+            console.log(chalk.gray('\n🔐 Nouvelle vérification...'));
+            continue;
+          } else if (authAction === 'auto') {
+            installMode = 'auto';
+            selectedPlatform = null;
+            isAuthenticated = true; // exit loop
+          } else {
+            console.log(chalk.red('Installation annulée. Connectez-vous d\'abord à votre plateforme IA.'));
+            process.exit(1);
+          }
         }
-        
-        const result = execSync(checkCmd, { encoding: 'utf8', timeout: 5000, stdio: 'pipe' });
-        console.log(chalk.green(`✓ ${selectedPlatform} disponible`));
-      } catch (error) {
-        console.log('');
-        console.log(chalk.yellow(`⚠️  ${selectedPlatform} n'est pas authentifié ou non disponible`));
-        console.log(chalk.gray(`   Pour vous connecter, exécutez: ${chalk.cyan(loginCmd)}`));
-        if (selectedPlatform === 'claude') {
-          console.log(chalk.gray(`   Alternative: ${chalk.cyan('export ANTHROPIC_API_KEY=sk-ant-...')}`));
-          console.log(chalk.gray(`   Ou dans Claude Code: ${chalk.cyan('/login')}`));
-        }
-        console.log('');
-        
-        const { continueAnyway } = await inquirer.prompt([{
-          type: 'confirm',
-          name: 'continueAnyway',
-          message: 'Continuer avec configuration AUTO (sans conversation)?',
-          default: true
-        }]);
-        
-        if (!continueAnyway) {
-          console.log(chalk.red('Installation annulée. Connectez-vous d\'abord à votre plateforme IA.'));
-          process.exit(1);
-        }
-        
-        installMode = 'auto';
-        selectedPlatform = null;
       }
     }
     
     console.log('');
-    
-    // Phase 1.5: User configuration (needed for Phase 2)
-    const config = await inquirer.prompt([
-      {
-        type: 'input',
-        name: 'userName',
-        message: 'Your name:',
-        default: 'Developer'
-      },
-      {
-        type: 'list',
-        name: 'language',
-        message: 'Communication language:',
-        choices: ['Francais', 'English'],
-        default: installMode === 'custom' && interviewResults ? 'Francais' : 'English'
-      }
-    ]);
     
     // Phase 2: Interactive Chat with Yanstaller Agent
     // Ask user if they want to enter Phase 2 conversation
@@ -830,30 +1014,41 @@ async function install() {
     autoSelectPlatform = recommendedPlatforms[0] || 'copilot';
   }
   
-  // Step 3: Platform selection (pre-select detected platforms)
-  const platformChoices = [
-    { name: `GitHub Copilot CLI ${detectedPlatforms.copilot ? chalk.green('(✓ Detected)') : ''}`, value: 'copilot' },
-    { name: `VSCode`, value: 'vscode' },
-    { name: `Claude Code ${detectedPlatforms.claude ? chalk.green('(✓ Detected)') : ''}`, value: 'claude' },
-    { name: `Codex ${detectedPlatforms.codex ? chalk.green('(✓ Detected)') : ''}`, value: 'codex' },
-    { name: 'All platforms', value: 'all' }
-  ];
+  // Step 3: Platform selection (skip in MANUAL mode - already selected)
+  let platform;
   
-  // Auto-select first detected platform as default (or use interview recommendation)
-  const defaultPlatform = (installMode === 'custom' && autoSelectPlatform) ? autoSelectPlatform :
-                          (detectedPlatforms.copilot ? 'copilot' :
-                           detectedPlatforms.codex ? 'codex' :
-                           detectedPlatforms.claude ? 'claude' : 'copilot');
-  
-  const { platform } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'platform',
-      message: installMode === 'custom' ? 'Confirmer la plateforme (recommandation ci-dessus):' : 'Select platform to install for:',
-      choices: platformChoices,
-      default: defaultPlatform
-    }
-  ]);
+  if (installMode === 'manual' && manualSelection) {
+    // In MANUAL mode, use the first selected platform as primary
+    // (all selected platforms will be used for stub generation)
+    platform = manualSelection.platforms.length === 1 ? manualSelection.platforms[0] : 'all';
+    console.log(chalk.cyan(`📦 Platform(s): ${manualSelection.platforms.join(', ')} (from manual selection)`));
+    console.log('');
+  } else {
+    const platformChoices = [
+      { name: `GitHub Copilot CLI ${detectedPlatforms.copilot ? chalk.green('(✓ Detected)') : ''}`, value: 'copilot' },
+      { name: `VSCode`, value: 'vscode' },
+      { name: `Claude Code ${detectedPlatforms.claude ? chalk.green('(✓ Detected)') : ''}`, value: 'claude' },
+      { name: `Codex ${detectedPlatforms.codex ? chalk.green('(✓ Detected)') : ''}`, value: 'codex' },
+      { name: 'All platforms', value: 'all' }
+    ];
+    
+    // Auto-select first detected platform as default (or use interview recommendation)
+    const defaultPlatform = (installMode === 'custom' && autoSelectPlatform) ? autoSelectPlatform :
+                            (detectedPlatforms.copilot ? 'copilot' :
+                             detectedPlatforms.codex ? 'codex' :
+                             detectedPlatforms.claude ? 'claude' : 'copilot');
+    
+    const platformAnswer = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'platform',
+        message: installMode === 'custom' ? 'Confirmer la plateforme (recommandation ci-dessus):' : 'Select platform to install for:',
+        choices: platformChoices,
+        default: defaultPlatform
+      }
+    ]);
+    platform = platformAnswer.platform;
+  }
   
   // Step 5: Install v2.0 structure (if available)
   let v2Installed = false;
@@ -933,6 +1128,8 @@ async function install() {
   const byanDir = path.join(projectRoot, '_byan');
   const bmbDir = path.join(byanDir, 'bmb');
   const githubAgentsDir = path.join(projectRoot, '.github', 'agents');
+  const isManual = installMode === 'manual' && manualSelection;
+  const manualPlatformList = isManual ? manualSelection.platforms : [];
   
   await fs.ensureDir(path.join(byanDir, 'bmb', 'agents'));
   await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'steps'));
@@ -942,10 +1139,15 @@ async function install() {
   await fs.ensureDir(path.join(byanDir, '_config'));
   await fs.ensureDir(path.join(byanDir, '_memory'));
   await fs.ensureDir(path.join(byanDir, '_output'));
-  await fs.ensureDir(githubAgentsDir);
-  if (detectedPlatforms.claude || platform === 'claude' || platform === 'all') {
-    await fs.ensureDir(path.join(projectRoot, '.claude', 'rules'));
-  }
+  
+  // Create platform directories based on selection
+  const needsCopilot = isManual ? manualPlatformList.includes('copilot') : true;
+  const needsClaude = isManual ? manualPlatformList.includes('claude') : (detectedPlatforms.claude || platform === 'claude' || platform === 'all');
+  const needsCodex = isManual ? manualPlatformList.includes('codex') : (detectedPlatforms.codex || platform === 'codex' || platform === 'all');
+  
+  if (needsCopilot) await fs.ensureDir(githubAgentsDir);
+  if (needsClaude) await fs.ensureDir(path.join(projectRoot, '.claude', 'rules'));
+  if (needsCodex) await fs.ensureDir(path.join(projectRoot, '.codex', 'prompts'));
   
   installSpinner.succeed('Directory structure created');
   
@@ -953,7 +1155,7 @@ async function install() {
   const copySpinner = ora('Installing BYAN platform files...').start();
   
   try {
-    // Copy agent files
+    // Copy agent files (core agent definitions)
     const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
     const agentsDest = path.join(bmbDir, 'agents');
     
@@ -995,27 +1197,130 @@ async function install() {
       copySpinner.warn(`⚠ Workflow source not found: ${workflowsSource}`);
     }
     
-    // Copy .github/agents files
-    const githubAgentsSource = path.join(templateDir, '.github', 'agents');
-    
-    if (await fs.pathExists(githubAgentsSource)) {
-      await fs.copy(githubAgentsSource, githubAgentsDir, { overwrite: true });
-      copySpinner.text = 'Copied Copilot CLI agent stubs...';
-      console.log(chalk.green(`  ✓ GitHub agents: ${githubAgentsSource} → ${githubAgentsDir}`));
-    } else {
-      copySpinner.warn(`⚠ GitHub agents source not found: ${githubAgentsSource}`);
-    }
-    
-    // Copy .claude/ files for Claude Code integration (always includes Hermes)
-    if (detectedPlatforms.claude || platform === 'claude' || platform === 'all') {
-      const claudeSource = path.join(templateDir, '.claude');
-      const claudeDest = path.join(projectRoot, '.claude');
+    // MANUAL mode: Generate stubs only for selected agents on each selected platform
+    if (isManual && manualSelection) {
+      const selectedAgents = manualSelection.agents;
       
-      if (await fs.pathExists(claudeSource)) {
-        await fs.ensureDir(path.join(claudeDest, 'rules'));
-        await fs.copy(claudeSource, claudeDest, { overwrite: true });
-        copySpinner.text = 'Copied Claude Code rules + Hermes dispatcher...';
-        console.log(chalk.green(`  ✓ Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
+      // Agent name to stub filename mapping (must match existing templates)
+      const AGENT_STUB_MAP = {
+        'hermes': 'hermes',
+        'franck': 'franck',
+        'expert-merise-agile': 'expert-merise-agile',
+        'bmad-master': 'bmad-agent-bmad-master',
+        // BMB agents
+        'byan': 'bmad-agent-byan',
+        'agent-builder': 'bmad-agent-bmb-agent-builder',
+        'module-builder': 'bmad-agent-bmb-module-builder',
+        'workflow-builder': 'bmad-agent-bmb-workflow-builder',
+        'marc': 'bmad-agent-marc',
+        'rachid': 'bmad-agent-rachid',
+        'claude': 'bmad-agent-claude',
+        'codex': 'bmad-agent-codex',
+        'drawio': 'bmad-agent-drawio',
+        'turbo-whisper-integration': 'bmad-agent-turbo-whisper-integration',
+        'patnote': 'bmad-agent-patnote',
+        'carmack': 'bmad-agent-carmack',
+        // BMM agents
+        'analyst': 'bmad-agent-bmm-analyst',
+        'pm': 'bmad-agent-bmm-pm',
+        'architect': 'bmad-agent-bmm-architect',
+        'dev': 'bmad-agent-bmm-dev',
+        'sm': 'bmad-agent-bmm-sm',
+        'quinn': 'bmad-agent-bmm-quinn',
+        'ux-designer': 'bmad-agent-bmm-ux-designer',
+        'tech-writer': 'bmad-agent-bmm-tech-writer',
+        'quick-flow-solo-dev': 'bmad-agent-bmm-quick-flow-solo-dev',
+        // TEA
+        'tea': 'bmad-agent-tea-tea',
+        // CIS agents
+        'brainstorming-coach': 'bmad-agent-cis-brainstorming-coach',
+        'creative-problem-solver': 'bmad-agent-cis-creative-problem-solver',
+        'design-thinking-coach': 'bmad-agent-cis-design-thinking-coach',
+        'innovation-strategist': 'bmad-agent-cis-innovation-strategist',
+        'presentation-master': 'bmad-agent-cis-presentation-master',
+        'storyteller': 'bmad-agent-cis-storyteller'
+      };
+      const agentToStubName = (agentName) => AGENT_STUB_MAP[agentName] || `bmad-agent-${agentName}`;
+      
+      // --- COPILOT: Copy matching .github/agents/ stubs ---
+      if (manualPlatformList.includes('copilot')) {
+        const githubAgentsSource = path.join(templateDir, '.github', 'agents');
+        let copilotCount = 0;
+        
+        if (await fs.pathExists(githubAgentsSource)) {
+          for (const agentName of selectedAgents) {
+            const stubName = agentToStubName(agentName);
+            const sourceFile = path.join(githubAgentsSource, `${stubName}.md`);
+            const destFile = path.join(githubAgentsDir, `${stubName}.md`);
+            
+            if (await fs.pathExists(sourceFile)) {
+              await fs.copy(sourceFile, destFile, { overwrite: true });
+              copilotCount++;
+            } else {
+              // Generate stub if no template exists
+              const stubContent = `---\nname: "${stubName}"\ndescription: "${agentName} agent from BYAN platform"\n---\n\nYou must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.\n\n<agent-activation CRITICAL="TRUE">\n1. LOAD the FULL agent file from {project-root}/_bmad/*/agents/${agentName}.md\n2. READ its entire contents - this contains the complete agent persona, menu, and instructions\n3. FOLLOW every step in the <activation> section precisely\n4. DISPLAY the welcome/greeting as instructed\n5. PRESENT the numbered menu\n6. WAIT for user input before proceeding\n</agent-activation>\n`;
+              await fs.writeFile(destFile, stubContent, 'utf8');
+              copilotCount++;
+            }
+          }
+          console.log(chalk.green(`  ✓ Copilot CLI: ${copilotCount} agent stubs → .github/agents/`));
+        }
+      }
+      
+      // --- CODEX: Generate .codex/prompts/ skills ---
+      if (manualPlatformList.includes('codex')) {
+        const codexPromptsDir = path.join(projectRoot, '.codex', 'prompts');
+        let codexCount = 0;
+        
+        for (const agentName of selectedAgents) {
+          const skillName = agentName === 'hermes' ? 'hermes' : `bmad-${agentName}`;
+          const skillPath = path.join(codexPromptsDir, `${skillName}.md`);
+          const skillContent = `# ${agentName} Skill\n\nYou must fully embody this agent's persona and follow all activation instructions exactly as specified.\n\n<agent-activation CRITICAL="TRUE">\n1. LOAD the FULL agent file from {project-root}/_bmad/*/agents/${agentName}.md\n2. READ its entire contents - this contains the complete agent persona, menu, and instructions\n3. FOLLOW every step in the <activation> section precisely\n4. DISPLAY the welcome/greeting as instructed\n5. PRESENT the numbered menu\n6. WAIT for user input before proceeding\n</agent-activation>\n\n## Usage\ncodex skill ${skillName} [prompt]\n\n## Examples\n- codex skill ${skillName}\n- codex skill ${skillName} "help me with my project"\n`;
+          await fs.writeFile(skillPath, skillContent, 'utf8');
+          codexCount++;
+        }
+        console.log(chalk.green(`  ✓ Codex: ${codexCount} skills → .codex/prompts/`));
+      }
+      
+      // --- CLAUDE: Copy rules + generate agent rules ---
+      if (manualPlatformList.includes('claude')) {
+        const claudeSource = path.join(templateDir, '.claude');
+        const claudeDest = path.join(projectRoot, '.claude');
+        
+        if (await fs.pathExists(claudeSource)) {
+          await fs.ensureDir(path.join(claudeDest, 'rules'));
+          await fs.copy(claudeSource, claudeDest, { overwrite: true });
+          console.log(chalk.green(`  ✓ Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
+        }
+      }
+      
+      console.log(chalk.gray(`  ℹ Agent roles: dispatcher(hermes), workflow agents, context agents, workers`));
+      
+    } else {
+      // AUTO/CUSTOM mode: Copy all platform stubs (existing behavior)
+      
+      // Copy .github/agents files
+      const githubAgentsSource = path.join(templateDir, '.github', 'agents');
+      
+      if (await fs.pathExists(githubAgentsSource)) {
+        await fs.copy(githubAgentsSource, githubAgentsDir, { overwrite: true });
+        copySpinner.text = 'Copied Copilot CLI agent stubs...';
+        console.log(chalk.green(`  ✓ GitHub agents: ${githubAgentsSource} → ${githubAgentsDir}`));
+      } else {
+        copySpinner.warn(`⚠ GitHub agents source not found: ${githubAgentsSource}`);
+      }
+      
+      // Copy .claude/ files for Claude Code integration (always includes Hermes)
+      if (needsClaude) {
+        const claudeSource = path.join(templateDir, '.claude');
+        const claudeDest = path.join(projectRoot, '.claude');
+        
+        if (await fs.pathExists(claudeSource)) {
+          await fs.ensureDir(path.join(claudeDest, 'rules'));
+          await fs.copy(claudeSource, claudeDest, { overwrite: true });
+          copySpinner.text = 'Copied Claude Code rules + Hermes dispatcher...';
+          console.log(chalk.green(`  ✓ Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
+        }
       }
     }
     
@@ -1035,9 +1340,15 @@ async function install() {
     communication_language: config.language,
     document_output_language: config.language,
     output_folder: "{project-root}/_byan-output",
-    platform: platform,
+    platform: isManual ? manualSelection.platforms.join(',') : platform,
+    install_mode: installMode,
     byan_version: v2Installed ? '2.0.0-alpha.1' : '1.0.0'
   };
+  
+  // Add installed agents list for MANUAL mode
+  if (isManual && manualSelection) {
+    configContent.installed_agents = manualSelection.agents;
+  }
   
   const configPath = path.join(bmbDir, 'config.yaml');
   await fs.writeFile(configPath, yaml.dump(configContent), 'utf8');
@@ -1070,17 +1381,37 @@ async function install() {
     { name: 'Agents directory', path: path.join(bmbDir, 'agents') },
     { name: 'BYAN agent', path: path.join(bmbDir, 'agents', 'byan.md') },
     { name: 'Workflows', path: path.join(bmbDir, 'workflows', 'byan') },
-    { name: 'Config', path: configPath },
-    { name: 'GitHub agents dir', path: githubAgentsDir }
+    { name: 'Config', path: configPath }
   ];
   
-  // Add Claude Code checks if installed
-  if (detectedPlatforms.claude || platform === 'claude' || platform === 'all') {
-    checks.push(
-      { name: 'Claude CLAUDE.md', path: path.join(projectRoot, '.claude', 'CLAUDE.md') },
-      { name: 'Claude rules/', path: path.join(projectRoot, '.claude', 'rules') },
-      { name: 'Hermes dispatcher rule', path: path.join(projectRoot, '.claude', 'rules', 'hermes-dispatcher.md') }
-    );
+  // Platform-specific checks based on installation mode
+  if (isManual) {
+    if (manualPlatformList.includes('copilot')) {
+      checks.push({ name: 'Copilot agents dir', path: githubAgentsDir });
+      checks.push({ name: 'Hermes (Copilot)', path: path.join(githubAgentsDir, 'hermes.md') });
+    }
+    if (manualPlatformList.includes('codex')) {
+      checks.push({ name: 'Codex prompts dir', path: path.join(projectRoot, '.codex', 'prompts') });
+      checks.push({ name: 'Hermes (Codex)', path: path.join(projectRoot, '.codex', 'prompts', 'hermes.md') });
+    }
+    if (manualPlatformList.includes('claude')) {
+      checks.push(
+        { name: 'Claude CLAUDE.md', path: path.join(projectRoot, '.claude', 'CLAUDE.md') },
+        { name: 'Claude rules/', path: path.join(projectRoot, '.claude', 'rules') },
+        { name: 'Hermes dispatcher rule', path: path.join(projectRoot, '.claude', 'rules', 'hermes-dispatcher.md') }
+      );
+    }
+  } else {
+    checks.push({ name: 'GitHub agents dir', path: githubAgentsDir });
+    
+    // Add Claude Code checks if installed
+    if (needsClaude) {
+      checks.push(
+        { name: 'Claude CLAUDE.md', path: path.join(projectRoot, '.claude', 'CLAUDE.md') },
+        { name: 'Claude rules/', path: path.join(projectRoot, '.claude', 'rules') },
+        { name: 'Hermes dispatcher rule', path: path.join(projectRoot, '.claude', 'rules', 'hermes-dispatcher.md') }
+      );
+    }
   }
   
   // Add v2.0 checks if installed
@@ -1123,7 +1454,8 @@ async function install() {
   console.log('');
   
   console.log(chalk.bold('Installation Summary:'));
-  console.log(`  • Platform: ${chalk.cyan(platform)}`);
+  console.log(`  • Mode: ${chalk.cyan(installMode.toUpperCase())}`);
+  console.log(`  • Platform: ${chalk.cyan(isManual ? manualSelection.platforms.join(', ') : platform)}`);
   console.log(`  • Version: ${chalk.cyan(v2Installed ? 'v2.2.0 (Runtime + Platform + Model Selector)' : 'v2.2.0 (Platform only)')}`);
   console.log(`  • Installation Directory: ${chalk.cyan(bmbDir)}`);
   console.log(`  • Configuration: ${chalk.cyan(configPath)}`);
@@ -1132,6 +1464,14 @@ async function install() {
   console.log(`  • Turbo Whisper: ${chalk.cyan(turboWhisperInstalled ? `Installed (${turboWhisperMode} mode)` : 'Not installed')}`);
   console.log(`  • Model Selector: ${chalk.cyan('Integrated (Auto cost optimization)')}`);
   
+  if (isManual && manualSelection) {
+    console.log(chalk.cyan(`\n  Agents Installed (${manualSelection.agents.length}):`));
+    console.log(chalk.cyan(`  ✓ Dispatcher: hermes (always installed)`));
+    const otherAgents = manualSelection.agents.filter(a => a !== 'hermes');
+    if (otherAgents.length > 0) {
+      console.log(chalk.cyan(`  ✓ Selected: ${otherAgents.join(', ')}`));
+    }
+  }
   if (v2Installed) {
     console.log(chalk.cyan('\n  v2.2 Components Installed:'));
     console.log(chalk.cyan('  ✓ Core: Context, Cache, Dispatcher, Worker Pool, Workflow'));

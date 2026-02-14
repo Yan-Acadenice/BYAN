@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.5] - 2026-02-12
+
+### 🐛 Fixed - Copilot CLI Auth Command
+
+**Problem:** Auth check used `gh auth status` instead of `copilot --version`. GitHub CLI (gh) is separate from Copilot CLI.
+
+**Fix:** 
+- Auth check: `gh` → `copilot --version`
+- Login instruction: `gh auth login` → `copilot auth`
+
+---
+
+## [2.4.4] - 2026-02-11
+
+### 🐛 Fixed - Config Prompt Scope Bug
+
+**Problem:** `config.userName` was undefined when user skipped interview or Turbo Whisper installation, causing crashes.
+
+**Root Cause:** The `const config = await inquirer.prompt(...)` was inside the `if (installMode === 'custom' && interviewResults)` conditional block. Users taking other paths never got prompted for their name.
+
+**Fix:** Moved user config prompt (name + language) BEFORE the conditional block so it's asked for ALL installation modes.
+
+```javascript
+// Before: config defined inside conditional (bug)
+if (installMode === 'custom' && interviewResults) {
+  const config = await inquirer.prompt(...); // Only for custom mode!
+  ...
+}
+// config.userName → undefined for auto/express modes
+
+// After: config defined before conditional (fixed)
+const config = await inquirer.prompt([...]); // Asked for ALL modes
+if (installMode === 'custom' && interviewResults) {
+  // config available here
+}
+// config.userName → always defined
+```
+
+---
+
+## [2.4.3] - 2026-02-11
+
+### 🐛 Fixed - Codex Trusted Directory + Auth Loop
+
+**Codex Fix:** Added `--skip-git-repo-check` to `codex exec` command to allow Phase 2 chat when not inside a trusted git repository.
+
+**Auth Flow Improvement:** Replaced simple version check with real authentication verification:
+- **Copilot**: `gh auth status` (actual login check)
+- **Claude**: `claude -p "reply OK" --max-turns 1` (real API call)
+- **Codex**: version check (no auth status command available)
+
+If not authenticated, user gets 3 choices: Retry (loop), Auto mode (skip AI chat), or Cancel. No more silent bypass.
+
+---
+
+## [2.4.2] - 2026-02-11
+
+### 🐛 Fixed - Claude Phase 2 System Prompt Separation
+
+**Problem:** On Windows 11, Claude Code Phase 2 chat responded with generic "How can I help you today?" instead of acting as Yanstaller persona.
+
+**Root Cause:** `claude -p "entire_blob"` treats the argument as a user query, not system instructions. The entire system context (Hermes docs, agent catalog, conversation history, instructions) was passed as `-p` argument. Claude ignored it and responded with its default greeting.
+
+**Fix:** Split system prompt from user message using proper Claude Code CLI flags:
+- System context → `--append-system-prompt-file` (temp file, auto-cleaned)
+- User message → `-p` (just the actual user query)
+
+```javascript
+// Before (broken): everything as -p argument
+runCliCommand('claude', ['-p', fullPrompt], projectRoot);
+
+// After (fixed): proper separation
+runCliCommand('claude', [
+  '-p', message,                          // user query only
+  '--append-system-prompt-file', tmpFile   // system context in file
+], projectRoot);
+```
+
+**Impact:** Claude Code Phase 2 now correctly receives Yanstaller persona, Hermes knowledge, and conversation history as system instructions while treating user input as the actual query.
+
+---
+
 ## [2.4.0] - 2026-02-11
 
 ### ✨ Added - Claude Code Native Agent Integration

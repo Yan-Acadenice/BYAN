@@ -1,5 +1,5 @@
 ---
-name: "bmad-agent-drawio"
+name: "drawio"
 description: "Expert diagrammes techniques avec draw.io via MCP server"
 ---
 
