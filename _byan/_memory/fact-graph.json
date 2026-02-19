@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "facts": [
+    {
+      "id": "c7924e84",
+      "claim": "Node.js utilise libuv pour les opérations I/O asynchrones",
+      "domain": "javascript",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": "nodejs.org — About Node.js",
+      "session_id": null,
+      "expires_at": "2027-02-19",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T12:01:41.349Z",
+      "level": 2,
+      "proof": "Voir nodejs.org/en/about/",
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "956c34f1",
+      "claim": "npm test passe à 100% sur Node.js 20",
+      "domain": "verified",
+      "status": "VERIFIED",
+      "confidence": 100,
+      "source": null,
+      "session_id": null,
+      "expires_at": null,
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T12:01:41.351Z",
+      "level": 1,
+      "proof": {
+        "type": "command-output",
+        "content": "14 tests passed, 0 failed — npm run test"
+      },
+      "assertionType": "FACT",
+      "verified_at": "2026-02-19"
+    }
+  ],
+  "updated_at": "2026-02-19T12:01:41.351Z"
+}
