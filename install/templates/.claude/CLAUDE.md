@@ -42,3 +42,16 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 - `@hermes` → Dispatcher universel (recommandations, routage, pipelines)
 - Agent disponibles: voir @.claude/rules/byan-agents.md
 - Methodologie: voir @.claude/rules/merise-agile.md
+- Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
+
+## ELO Trust System
+
+BYAN calibre l'intensite de ses challenges selon votre score ELO par domaine.
+Score bas → explications pedagogiques et scaffolding. Score eleve → aller droit au but.
+
+Commandes CLI:
+- `node bin/byan-v2-cli.js elo summary` — voir tous les scores par domaine
+- `node bin/byan-v2-cli.js elo dashboard {domain}` — detail d'un domaine
+- `node bin/byan-v2-cli.js elo declare {domain} {level}` — declarer son expertise (junior/mid/senior/lead/expert)
+
+Dans l'agent BYAN, tapez `[ELO]` pour acceder au menu ELO.

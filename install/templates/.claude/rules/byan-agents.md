@@ -63,6 +63,7 @@
 | `code-review` | Revoir du code |
 | `quick-spec` | Spec rapide conversationnelle |
 | `quick-dev` | Dev rapide (brownfield) |
+| `elo-workflow` | Consulter et gerer le score ELO (via menu [ELO] du BYAN) |
 
 ## Comment Invoquer un Agent
 
