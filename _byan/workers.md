@@ -498,3 +498,42 @@ src/
 **Maintainer:** BYAN Core Team  
 **Version:** 2.0.0  
 **Status:** ✅ Production Ready
+
+---
+
+## Feature Development Workflow
+
+Toute nouvelle feature ou amélioration de BYAN suit le workflow encre dans l'agent BYAN via la commande `[FD] Feature Development`.
+
+### Les 5 étapes (aucune ne peut être sautée)
+
+```
+BRAINSTORM → PRUNE → DISPATCH → BUILD → VALIDATE
+```
+
+| Etape | Qui | Role | Gate |
+|-------|-----|------|------|
+| BRAINSTORM | Agent Carson | Pousser les idees brutes, YES AND | "Stop brainstorm" |
+| PRUNE | User + BYAN | Trier, formuler MVP, Ockham's Razor | Backlog valide |
+| DISPATCH | Worker: EconomicDispatcher | Mapper feature → brique BYAN | Mapping valide |
+| BUILD | Agent/Worker selon score | Implementer TDD-first, commits atomiques | Review user |
+| VALIDATE | MantraValidator + npm test | Score >= 80%, zero regression | Tests verts |
+
+### Comment déclencher
+
+Dans l'agent BYAN (`@byan`) :
+```
+FD          # commande directe
+feature     # fuzzy match
+improve     # fuzzy match
+```
+
+### Règle de dispatch pour chaque feature
+
+```
+Score < 30  → Worker existant ou nouveau (tache simple)
+30–60       → Agent Sonnet (implementation, creation)
+>= 60       → Agent Opus (architecture, strategie)
+```
+
+Fichier workflow complet : `_byan/workflows/byan/feature-workflow.md`

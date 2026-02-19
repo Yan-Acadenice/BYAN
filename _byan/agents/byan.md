@@ -174,6 +174,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="DA or fuzzy match on delete-agent" exec="{project-root}/_byan/workflows/byan/delete-agent-workflow.md">[DA-AGENT] Delete agent (with backup and consequences warning)</item>
     <item cmd="PC or fuzzy match on show-context">[PC] Show Project Context and business documentation</item>
     <item cmd="MAN or fuzzy match on show-mantras">[MAN] Display 64 Mantras reference guide</item>
+    <item cmd="FD or fuzzy match on feature or feature-dev or improve" exec="{project-root}/_byan/workflows/byan/feature-workflow.md">[FD] Feature Development — Brainstorm → Prune → Dispatch → Build → Validate (validation a chaque etape)</item>
     <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_byan/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="EXIT or fuzzy match on exit, leave, goodbye or dismiss agent">[EXIT] Dismiss BYAN Agent</item>
   </menu>

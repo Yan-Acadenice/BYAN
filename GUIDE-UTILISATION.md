@@ -12,6 +12,7 @@ Version 2.0.0-alpha.1 | Node.js >= 18.0.0 | MIT License
 - [Pourquoi BYAN v2.0](#pourquoi-byan-v20)
 - [Roadmap du Projet](#roadmap-du-projet)
 - [Les 4 Piliers](#les-4-piliers)
+- [Feature Development Workflow](#feature-development-workflow)
 - [Démarrage Rapide](#démarrage-rapide)
 - [Cas d'Usage Pratiques](#cas-dusage-pratiques)
 - [Architecture Simplifiée](#architecture-simplifiée)
@@ -372,6 +373,54 @@ Total: ~120 points (cap à 100) → Agent direct ✅
 - 60%+ des tâches vont vers Workers
 - Économie de 40-50% sur la facture totale
 - Qualité maintenue grâce au fallback
+
+---
+
+## Feature Development Workflow
+
+Toute nouvelle feature ou amelioration de BYAN suit un processus en 5 etapes, ancre dans l'agent BYAN. Aucune etape ne peut etre sautee. Chaque etape requiert une validation explicite avant de continuer.
+
+### Déclencher le workflow
+
+Dans l'agent BYAN (`@byan`) :
+```
+FD        # commande directe [FD] Feature Development
+feature   # fuzzy match
+improve   # fuzzy match
+```
+
+### Les 5 étapes
+
+```
+BRAINSTORM → PRUNE → DISPATCH → BUILD → VALIDATE
+```
+
+**1. BRAINSTORM** (Agent Carson)
+- Pousser un maximum d'idees brutes — quantite > qualite
+- Techniques : YES AND, inversion, analogies
+- Gate : "stop brainstorm" ou "j'ai toutes mes idees"
+
+**2. PRUNE** (User + BYAN)
+- Challenge chaque idee : quel probleme ? est-ce necessaire maintenant ? quel MVP ?
+- Ockham's Razor applique systematiquement
+- Gate : backlog priorise valide par l'utilisateur
+
+**3. DISPATCH** (Worker — EconomicDispatcher)
+- Pour chaque feature : quelle brique BYAN ?
+- Agent existant / Worker existant / Context / Workflow — ou creer le composant
+- Gate : tableau feature → composant valide
+
+**4. BUILD** (Agent ou Worker selon score de complexite)
+- TDD-first, commits atomiques, zero emoji, code self-documenting
+- Score < 30 → Worker | 30-60 → Sonnet | >= 60 → Opus
+- Gate : review et approbation utilisateur
+
+**5. VALIDATE** (MantraValidator + tests)
+- `npm test` : 100% passant
+- Score mantras >= 80%
+- Gate : tests verts + validation utilisateur
+
+Fichier source : `_byan/workflows/byan/feature-workflow.md`
 
 ---
 
