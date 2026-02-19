@@ -1,7 +1,86 @@
 # Backlog — Fact-Check Scientifique
 
 **Document vivant** — mise a jour a chaque sprint
-**Derniere mise a jour :** 2026-02-19
+**Derniere mise a jour :** 2026-02-21
+
+---
+
+## P1 — MVP (COMPLET)
+
+| ID | Item | Statut |
+|----|------|--------|
+| A1 | Structure d'un Fact | DONE |
+| A2 | 4 types d'assertions | DONE |
+| A3 | 5 niveaux de preuve | DONE |
+| A4 | Regle no-URL | DONE |
+| A5 | Auto-trigger patterns | DONE |
+| B1 | Module FactChecker injectable | DONE |
+| B2 | Context Layer `facts` | DONE |
+| B3 | Integration config.yaml | DONE |
+| B4 | Knowledge base sources.md | DONE |
+| B5 | Axiomes axioms.md | DONE |
+| C1 | Fact Sheet output | DONE |
+| D1 | Integration GlossaryBuilder | DONE |
+| D3 | Integration FiveWhysAnalyzer | DONE |
+
+---
+
+## P2 — Renforcement (COMPLET)
+
+| ID | Item | Statut | Notes |
+|----|------|--------|-------|
+| C2 | Propagation d'incertitude dans les chaines | DONE | `chain()` — warning si >3 etapes ou <60% |
+| D2 | Mantras sources (mantras-sources.md) | DONE | 64 mantras avec origines |
+| E1 | Sprint planning gate | DONE | Regle encodee dans byan.md |
+| E2 | Code review : challenge claims | DONE | Regle encodee dans byan.md |
+| F4 | Expiration des facts par domaine | DONE | `expiresAt()` + `checkExpiration()` + half_lives config |
+| F8 | Blacklist de sources (blacklisted-sources.md) | DONE | Sources obsoletes/biaisees avec pedagogie |
+| E3 | TEA / CI → invalide les facts | PENDING | Feedback loop pipeline CI → registre |
+| F7 | Mode online (API externe) | PENDING | Perplexity / Brave Search — opt-in, requiert cle API |
+
+---
+
+## P3 — Vision long terme
+
+| ID | Item | Notes |
+|----|------|-------|
+| F3 | Knowledge graph persistant entre sessions | Via `_byan/_memory/` — complexite elevee |
+| C3 | Badge Trust Score sur les artifacts | `Documentation Trust Score: 94%` |
+| D4 | Active Listener : reformulations ancrees dans glossaire source | |
+| F1 | Agent Skeptic | Agent dedie a trouver les failles dans les claims |
+| F2 | Peer review entre agents | Cross-validation automatique des claims critiques |
+| F5 | Fact packs communautaires | Thematiques : Node.js perf, securite web, etc. |
+| F6 | Gamification | Fact Score A/B/C/D par session |
+
+---
+
+## Archive — Items evalues et rejetes
+
+| Item | Raison |
+|------|--------|
+| Voix / Turbo Whisper integration | Hors scope pour cette feature, traite separement |
+| Dashboard observability integration | P3 minimum — P1 d'abord |
+
+---
+
+## Definition of Done
+
+- [x] `FactChecker` classe avec tests unitaires
+- [x] 4 types d'assertions visibles dans les outputs agents
+- [x] 5 niveaux de preuve definis et documentes
+- [x] `_byan/knowledge/sources.md` seede avec 25+ sources
+- [x] `_byan/knowledge/axioms.md` avec 15 axiomes
+- [x] `_byan/knowledge/mantras-sources.md` 64 mantras sources
+- [x] `_byan/knowledge/blacklisted-sources.md` pedagogique
+- [x] `config.yaml` section `fact_check` + `half_lives`
+- [x] Context Layer `facts` operationnel
+- [x] Fact Sheet genere en fin de session
+- [x] GlossaryBuilder appelle FactChecker
+- [x] FiveWhysAnalyzer produit des claims sources
+- [x] Expiration par domaine avec warning
+- [x] Propagation d'incertitude en chaine
+- [x] Sprint gate + Code review gate dans byan.md
+
 
 ---
 
