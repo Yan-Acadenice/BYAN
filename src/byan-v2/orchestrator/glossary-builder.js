@@ -6,11 +6,13 @@
  */
 
 const Logger = require('../observability/logger');
+const FactChecker = require('../fact-check/index');
 
 class GlossaryBuilder {
-  constructor(sessionState, logger = null) {
+  constructor(sessionState, logger = null, factChecker = null) {
     this.sessionState = sessionState;
     this.logger = logger || new Logger('glossary-builder');
+    this.factChecker = factChecker || new FactChecker({ output_fact_sheet: false }, sessionState);
     this.concepts = [];
     this.minConcepts = 5;
     this.minDefinitionLength = 20;
@@ -64,6 +66,11 @@ class GlossaryBuilder {
 
     this.concepts.push(concept);
     this.logger.info('Concept added', { name: concept.name, clarityScore: concept.clarityScore });
+
+    const factCheck = this.factChecker.parse(definition);
+    if (factCheck.length > 0) {
+      this.logger.info('Fact-check triggered on definition', { name, patterns: factCheck.map(f => f.matched) });
+    }
 
     const suggestions = this.suggestRelatedConcepts(this.concepts);
 

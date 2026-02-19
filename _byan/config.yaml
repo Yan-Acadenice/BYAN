@@ -68,6 +68,26 @@ bmad_features:
       - merise-agile
       - ia
 
+  # FactCheck: Scientific fact-checking — demonstrable, quantifiable, reproducible
+  fact_check:
+    enabled: true
+    mode: offline             # offline | online (P2) | hybrid (P2)
+    min_level: 3              # claims below this level -> marked OPINION
+    strict_domains:           # level < 2 blocks emission in these domains
+      - security
+      - performance
+      - compliance
+    auto_trigger_patterns:    # regex -> auto fact-check trigger
+      - "toujours|jamais|forcement|evidemment|clairement"
+      - "plus rapide|plus sur|mieux|optimal|meilleur|superieur"
+      - "il est bien connu que|tout le monde sait|generalement accepte"
+      - "bonne pratique|best practice|standard de facto"
+      - "prouve que|demontre que|il est clair que"
+    output_fact_sheet: true
+    fact_sheet_path: "_byan-output/fact-sheets/"
+    knowledge_base: "_byan/knowledge/sources.md"
+    axioms: "_byan/knowledge/axioms.md"
+
   # VoiceIntegration: Turbo Whisper voice input for hands-free interaction
   voice_integration:
     enabled: true

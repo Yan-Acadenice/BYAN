@@ -13,9 +13,10 @@
 const Logger = require('../observability/logger');
 
 class FiveWhysAnalyzer {
-  constructor(sessionState, logger) {
+  constructor(sessionState, logger, factChecker = null) {
     this.sessionState = sessionState;
     this.logger = logger || new Logger({ logDir: 'logs', logFile: 'five-whys.log' });
+    this.factChecker = factChecker;
     
     this.depth = 0;
     this.maxDepth = 5;
@@ -123,8 +124,16 @@ class FiveWhysAnalyzer {
       depth: this.depth,
       question: `Why #${this.depth}`,
       answer: answer.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      assertionType: 'HYPOTHESIS'
     });
+
+    if (this.factChecker) {
+      const claims = this.factChecker.parse(answer);
+      if (claims.length > 0) {
+        this.logger.info('Fact-check triggered on WHY answer', { depth: this.depth, patterns: claims.map(c => c.matched) });
+      }
+    }
 
     const rootCauseAnalysis = this._analyzeForRootCause(answer);
     

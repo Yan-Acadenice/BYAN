@@ -9,6 +9,7 @@ class SessionState {
     this.analysisResults = {};
     this.agentProfileDraft = {};
     this.context = {};
+    this.facts = { verified: [], claims: [], disputed: [], opinions: [] };
   }
 
   addQuestion(question) {
@@ -24,6 +25,19 @@ class SessionState {
       response,
       timestamp: Date.now()
     });
+  }
+
+  addFact(fact) {
+    if (!this.facts.claims) this.facts = { verified: [], claims: [], disputed: [], opinions: [] };
+    const target = fact.status === 'VERIFIED' ? 'verified'
+      : fact.status === 'DISPUTED' ? 'disputed'
+      : fact.status === 'OPINION' || fact.status === 'HYPOTHESIS' ? 'opinions'
+      : 'claims';
+    this.facts[target].push({ ...fact, session: this.sessionId, created_at: Date.now() });
+  }
+
+  getFacts() {
+    return JSON.parse(JSON.stringify(this.facts));
   }
 
   setAnalysisResults(data) {
@@ -78,7 +92,8 @@ class SessionState {
       userResponses: this.userResponses,
       analysisResults: this.analysisResults,
       agentProfileDraft: this.agentProfileDraft,
-      context: this.context
+      context: this.context,
+      facts: this.facts
     };
   }
 
@@ -91,6 +106,7 @@ class SessionState {
     state.analysisResults = data.analysisResults || {};
     state.agentProfileDraft = data.agentProfileDraft || {};
     state.context = data.context || {};
+    state.facts = data.facts || { verified: [], claims: [], disputed: [], opinions: [] };
     return state;
   }
 }
