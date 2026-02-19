@@ -13,6 +13,7 @@ const FiveWhysAnalyzer = require('./dispatcher/five-whys-analyzer');
 const ActiveListener = require('./orchestrator/active-listener');
 const MantraValidator = require('./generation/mantra-validator');
 const VoiceIntegration = require('./integration/voice-integration');
+const EloEngine = require('./elo/index');
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -119,6 +120,14 @@ class ByanV2 {
       }
     }
 
+    // EloEngine
+    if (bmadConfig.elo?.enabled !== false) {
+      this.eloEngine = new EloEngine({
+        storagePath: bmadConfig.elo?.storage_path
+      });
+      this.logger.info('[ByanV2] ELO trust system enabled');
+    }
+
     // VoiceIntegration
     if (bmadConfig.voice_integration?.enabled !== false) {
       this.voiceIntegration = new VoiceIntegration(this.sessionState, this.logger);
@@ -169,6 +178,10 @@ class ByanV2 {
     });
 
     this.metrics.increment('sessionsStarted');
+
+    if (this.eloEngine) {
+      this.eloEngine.applyIdleDecay();
+    }
 
     await this.stateMachine.transition('INTERVIEW');
 
@@ -640,12 +653,83 @@ class ByanV2 {
   }
 
   async getSessionSummary() {
-    return {
+    const summary = {
       sessionId: this.sessionState.sessionId,
       questionsAsked: this.sessionState.userResponses.length,
       state: this.stateMachine.getCurrentState().name,
       timestamp: new Date().toISOString()
     };
+
+    if (this.eloEngine) {
+      summary.elo = this.eloEngine.getSummary();
+      summary.recommendedModel = this.eloEngine.routeLLM().model;
+    }
+
+    return summary;
+  }
+
+  // ========================================
+  // ELO Trust System Methods
+  // ========================================
+
+  /**
+   * Get challenge configuration for the LLM before evaluating a claim.
+   * @param {string} domain
+   * @returns {ChallengeContext}
+   */
+  getClaimContext(domain) {
+    if (!this.eloEngine) throw new Error('ELO system not enabled');
+    return this.eloEngine.evaluateContext(domain);
+  }
+
+  /**
+   * Record the result of a claim evaluation and update ELO.
+   * @param {string} domain
+   * @param {'VALIDATED'|'BLOCKED'|'PARTIALLY_VALID'} result
+   * @param {object} opts - { blockedReason, claimExcerpt }
+   * @returns {{ newRating, delta, tiltDetected, interventionMode, message }}
+   */
+  recordClaimResult(domain, result, opts = {}) {
+    if (!this.eloEngine) throw new Error('ELO system not enabled');
+    return this.eloEngine.recordResult(domain, result, opts);
+  }
+
+  /**
+   * Declare user expertise for a domain (sets provisional ELO).
+   * @param {string} domain
+   * @param {'beginner'|'intermediate'|'advanced'|'expert'|'principal'} level
+   */
+  declareExpertise(domain, level) {
+    if (!this.eloEngine) throw new Error('ELO system not enabled');
+    return this.eloEngine.declareExpertise(domain, level);
+  }
+
+  /**
+   * Get the [ELO] dashboard for a domain: why + how to progress.
+   * @param {string} domain
+   * @returns {string}
+   */
+  getEloDashboard(domain) {
+    if (!this.eloEngine) throw new Error('ELO system not enabled');
+    return this.eloEngine.getDashboard(domain);
+  }
+
+  /**
+   * Get ELO summary across all domains.
+   * @returns {Array}
+   */
+  getEloSummary() {
+    if (!this.eloEngine) return [];
+    return this.eloEngine.getSummary();
+  }
+
+  /**
+   * Get LLM model recommendation based on ELO profile.
+   * @returns {{ model, label, reason, maxRating }}
+   */
+  routeLLM() {
+    if (!this.eloEngine) return { model: 'claude-sonnet-4.5', label: 'default', reason: 'ELO not enabled' };
+    return this.eloEngine.routeLLM();
   }
 }
 
