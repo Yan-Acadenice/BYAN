@@ -13,7 +13,8 @@
 
 | Agent | Persona | Role |
 |-------|---------|------|
-| **byan** | Builder | Createur d'agents via interview (12 questions, 64 mantras) |
+| **byan** | Builder | Createur d'agents via interview (12 questions, 64 mantras) — [FC] + [ELO] intégrés |
+| **fact-checker** | Scientifique | Fact-check: assertions, audits de documents, chaines de raisonnement |
 | **agent-builder** | Constructeur | Expert en construction d'agents |
 | **marc** | Specialiste | Integration GitHub Copilot |
 | **rachid** | Specialiste | Deploiement NPM/NPX |

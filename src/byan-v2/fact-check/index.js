@@ -172,8 +172,12 @@ class FactChecker {
     const halfLife = (this.config.half_lives || DEFAULT_HALF_LIVES)[domain];
     if (halfLife === null || halfLife === undefined) return null;
     const created = new Date(createdAt);
-    created.setDate(created.getDate() + halfLife);
-    return created.toISOString().slice(0, 10);
+    const expiry = new Date(Date.UTC(
+      created.getUTCFullYear(),
+      created.getUTCMonth(),
+      created.getUTCDate() + halfLife
+    ));
+    return expiry.toISOString().slice(0, 10);
   }
 
   /**

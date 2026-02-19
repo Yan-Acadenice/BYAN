@@ -36,6 +36,9 @@ class ByanCLI {
 
         case 'elo':
           return await this.handleElo(args);
+
+        case 'fc':
+          return await this.handleFc(args);
         
         case 'help':
         default:
@@ -251,6 +254,77 @@ class ByanCLI {
     }
   }
 
+  async handleFc(args) {
+    const FactChecker = require(path.join(__dirname, '../src/byan-v2/fact-check/index'));
+    const checker = new FactChecker();
+    const [sub, ...rest] = args;
+
+    switch (sub) {
+      case 'check': {
+        const claim = rest.join(' ');
+        if (!claim) { console.error('Usage: fc check <claim text>'); process.exit(1); }
+        const result = checker.check(claim);
+        console.log(JSON.stringify(result, null, 2));
+        break;
+      }
+
+      case 'parse': {
+        const text = rest.join(' ');
+        if (!text) { console.error('Usage: fc parse <text to analyze>'); process.exit(1); }
+        const claims = checker.parse(text);
+        if (!claims.length) {
+          console.log('No implicit claims detected.');
+        } else {
+          console.log(`${claims.length} claim(s) detected:`);
+          claims.forEach((c, i) => console.log(`  [${i + 1}] "${c.matched}" at position ${c.position}\n      Context: ...${c.excerpt}...`));
+        }
+        break;
+      }
+
+      case 'verify': {
+        const [claim, ...proofParts] = rest;
+        const proof = proofParts.join(' ');
+        if (!claim || !proof) { console.error('Usage: fc verify "<claim>" "<proof artifact>"'); process.exit(1); }
+        const result = checker.verify(claim, proof);
+        console.log(`[FACT USER-VERIFIED] ${result.claim}`);
+        console.log(`Stored with id: ${result.id}`);
+        break;
+      }
+
+      case 'graph': {
+        const graph = checker.graph.load();
+        if (!graph.facts.length) { console.log('Knowledge graph is empty.'); break; }
+        console.log(`${graph.facts.length} fact(s) in graph:`);
+        graph.facts.forEach(f => {
+          const exp = f.expires_at ? ` (expires ${f.expires_at})` : '';
+          console.log(`  [${f.status}] [${f.domain}] ${f.claim}${exp}`);
+        });
+        break;
+      }
+
+      case 'sheet': {
+        const sessionId = rest[0] || new Date().toISOString().slice(0, 10);
+        const graph = checker.graph.load();
+        const facts = graph.facts.reduce((acc, f) => {
+          const bucket = f.status === 'VERIFIED' ? 'verified' :
+                         f.status === 'DISPUTED' ? 'disputed' :
+                         f.status === 'OPINION'  ? 'opinions' : 'claims';
+          acc[bucket] = acc[bucket] || [];
+          acc[bucket].push(f);
+          return acc;
+        }, {});
+        const result = checker.generateFactSheet(sessionId, facts, true);
+        console.log(result.content);
+        if (result.path) console.log(`\nSaved to: ${result.path}`);
+        break;
+      }
+
+      default:
+        console.error('Unknown FC subcommand. Use: check | parse | verify | graph | sheet');
+        process.exit(1);
+    }
+  }
+
   showHelp() {
     console.log(`
 BYAN v2.0 - Builder of YAN
@@ -263,6 +337,7 @@ COMMANDS:
   status                 Show current session status
   validate <file>        Validate existing agent profile
   elo <subcommand>       ELO trust system operations (see below)
+  fc <subcommand>        Fact-check operations (see below)
   help                   Show this help
 
 ELO SUBCOMMANDS:
@@ -288,6 +363,17 @@ EXAMPLES:
   @byan-v2 elo dashboard security
   @byan-v2 elo summary
   @byan-v2 elo declare security expert
+  @byan-v2 fc check "Redis is always faster than PostgreSQL"
+  @byan-v2 fc parse "This is obviously the best approach"
+  @byan-v2 fc graph
+  @byan-v2 fc sheet 2026-02-19
+
+FC SUBCOMMANDS:
+  fc check <claim>               Evaluate a claim (assertion type + confidence)
+  fc parse <text>                Auto-detect implicit claims in text
+  fc verify "<claim>" "<proof>"  Mark a claim as user-verified
+  fc graph                       Show all facts in knowledge graph
+  fc sheet [session-id]          Generate Markdown fact sheet
 
 Full docs: README-BYAN-V2.md
 `);

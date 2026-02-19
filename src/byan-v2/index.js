@@ -14,6 +14,7 @@ const ActiveListener = require('./orchestrator/active-listener');
 const MantraValidator = require('./generation/mantra-validator');
 const VoiceIntegration = require('./integration/voice-integration');
 const EloEngine = require('./elo/index');
+const FactChecker = require('./fact-check/index');
 
 const crypto = require('crypto');
 const fs = require('fs');
@@ -126,6 +127,15 @@ class ByanV2 {
         storagePath: bmadConfig.elo?.storage_path
       });
       this.logger.info('[ByanV2] ELO trust system enabled');
+    }
+
+    // FactChecker
+    if (bmadConfig.fact_check?.enabled !== false) {
+      this.factChecker = new FactChecker({
+        ...bmadConfig.fact_check,
+        graph_path: bmadConfig.fact_check?.graph_path || '_byan/_memory/fact-graph.json'
+      }, this.sessionState);
+      this.logger.info('[ByanV2] Fact-check system enabled');
     }
 
     // VoiceIntegration
@@ -665,6 +675,10 @@ class ByanV2 {
       summary.recommendedModel = this.eloEngine.routeLLM().model;
     }
 
+    if (this.factChecker) {
+      summary.factCheck = { enabled: true, mode: this.factChecker.config.mode };
+    }
+
     return summary;
   }
 
@@ -730,6 +744,62 @@ class ByanV2 {
   routeLLM() {
     if (!this.eloEngine) return { model: 'claude-sonnet-4.5', label: 'default', reason: 'ELO not enabled' };
     return this.eloEngine.routeLLM();
+  }
+
+  // ========================================
+  // Fact-Check Methods
+  // ========================================
+
+  /**
+   * Check a claim against the knowledge base.
+   * @param {string} claim
+   * @param {object} opts - { domain, level, source, proof }
+   * @returns {{ assertionType, level, score, status, source, proof, warning }}
+   */
+  checkClaim(claim, opts = {}) {
+    if (!this.factChecker) throw new Error('Fact-check system not enabled');
+    return this.factChecker.check(claim, opts);
+  }
+
+  /**
+   * Parse text and auto-detect implicit claims using trigger patterns.
+   * @param {string} text
+   * @returns {Array<{ pattern, matched, position, excerpt }>}
+   */
+  parseClaims(text) {
+    if (!this.factChecker) throw new Error('Fact-check system not enabled');
+    return this.factChecker.parse(text);
+  }
+
+  /**
+   * Mark a claim as user-verified with a proof artifact.
+   * @param {string} claim
+   * @param {string} proof
+   * @returns {{ id, status, claim }}
+   */
+  verifyFact(claim, proof) {
+    if (!this.factChecker) throw new Error('Fact-check system not enabled');
+    return this.factChecker.verify(claim, proof);
+  }
+
+  /**
+   * Generate a Markdown fact sheet for the session.
+   * @param {string} sessionId
+   * @param {object} facts - { verified, claims, disputed, opinions }
+   * @returns {{ content, path }}
+   */
+  generateFactSheet(sessionId, facts, save = true) {
+    if (!this.factChecker) throw new Error('Fact-check system not enabled');
+    return this.factChecker.generateFactSheet(sessionId, facts, save);
+  }
+
+  /**
+   * Get all facts from the persistent knowledge graph.
+   * @returns {Array<object>}
+   */
+  getKnowledgeGraph() {
+    if (!this.factChecker) return [];
+    return this.factChecker.graph.load().facts;
   }
 }
 

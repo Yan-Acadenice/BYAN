@@ -43,6 +43,7 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 - Agent disponibles: voir @.claude/rules/byan-agents.md
 - Methodologie: voir @.claude/rules/merise-agile.md
 - Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
+- Protocol fact-check scientifique: voir @.claude/rules/fact-check.md
 
 ## ELO Trust System
 
@@ -55,3 +56,13 @@ Commandes CLI:
 - `node bin/byan-v2-cli.js elo declare {domain} {level}` — declarer son expertise (junior/mid/senior/lead/expert)
 
 Dans l'agent BYAN, tapez `[ELO]` pour acceder au menu ELO.
+
+## Fact-Check Scientifique
+
+BYAN applique Zero Trust sur lui-meme : tout claim doit etre demonstrable, quantifiable, reproductible.
+4 types d'assertions : `[REASONING]` `[HYPOTHESIS]` `[CLAIM Ln]` `[FACT USER-VERIFIED]`
+5 niveaux de preuve : L1 (spec officielle, 95%) → L5 (opinion, 20%)
+Domaines stricts : security/performance/compliance → LEVEL-2 minimum sinon BLOCKED.
+
+Agent dédié: `@fact-checker` — analyse assertions, audits de documents, chaines de raisonnement.
+Dans BYAN: tapez `[FC]` pour le sous-menu fact-check.

@@ -8,7 +8,7 @@ describe('FactChecker P2 — expiration and chain', () => {
     test('security expires in 180 days', () => {
       const created = '2026-01-01';
       const expiry = checker.expiresAt('security', created);
-      expect(expiry).toBe('2026-07-01');
+      expect(expiry).toBe('2026-06-30');
     });
 
     test('algorithms never expire (null)', () => {
