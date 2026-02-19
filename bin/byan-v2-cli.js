@@ -10,8 +10,15 @@ const ByanV2 = require(path.join(__dirname, '../src/byan-v2'));
 
 class ByanCLI {
   constructor() {
-    this.byan = new ByanV2();
+    this._byan = null;
     this.currentQuestion = null;
+  }
+
+  get byan() {
+    if (!this._byan) {
+      this._byan = new ByanV2();
+    }
+    return this._byan;
   }
 
   async handleCommand(command, args) {
@@ -26,6 +33,9 @@ class ByanCLI {
         
         case 'validate':
           return await this.validateAgent(args[0]);
+
+        case 'elo':
+          return await this.handleElo(args);
         
         case 'help':
         default:
@@ -151,6 +161,96 @@ class ByanCLI {
     return result;
   }
 
+  /**
+   * ELO trust system CLI operations.
+   * @param {string[]} args - [subcommand, ...params]
+   */
+  async handleElo(args) {
+    const EloEngine = require(path.join(__dirname, '../src/byan-v2/elo/index'));
+    const engine = new EloEngine();
+    const [sub, domain, ...rest] = args;
+
+    switch (sub) {
+      case 'context': {
+        if (!domain) { console.error('Usage: elo context <domain>'); process.exit(1); }
+        const ctx = engine.evaluateContext(domain);
+        console.log(JSON.stringify({
+          domain:             ctx.domain,
+          rating:             ctx.rating,
+          rd:                 ctx.rd,
+          firstBlood:         ctx.firstBlood,
+          tiltDetected:       ctx.tiltDetected,
+          inDeadZone:         ctx.inDeadZone,
+          shouldSoftChallenge:ctx.shouldSoftChallenge,
+          scaffoldLevel:      ctx.scaffoldLevel,
+          challengeStyle:     ctx.challengeStyle
+        }, null, 2));
+        console.log('\n--- PROMPT INSTRUCTIONS ---\n' + ctx.promptInstructions);
+        break;
+      }
+
+      case 'record': {
+        if (!domain || !rest[0]) {
+          console.error('Usage: elo record <domain> <VALIDATED|BLOCKED|PARTIAL> [blocked_reason]');
+          process.exit(1);
+        }
+        const result     = rest[0].toUpperCase().replace('PARTIAL', 'PARTIALLY_VALID');
+        const blockedReason = rest[1] || null;
+        const res = engine.recordResult(domain, result, { blockedReason });
+        console.log(`[${domain}] ${result} → rating ${res.newRating} (${res.delta >= 0 ? '+' : ''}${res.delta})`);
+        console.log('\n' + res.message);
+        break;
+      }
+
+      case 'dashboard': {
+        const target = domain || null;
+        if (target) {
+          console.log(engine.getDashboard(target));
+        } else {
+          const summary = engine.getSummary();
+          if (!summary.length) { console.log('No ELO data yet.'); break; }
+          const header = 'Domaine'.padEnd(16) + 'ELO '.padStart(5) + '  RD '.padStart(5) + '  Tendance'.padStart(10) + '  Derniere activite';
+          console.log(header);
+          console.log('-'.repeat(header.length));
+          for (const d of summary) {
+            const trend = d.trend === 'up' ? `↑ +${d.trend_delta}` : d.trend === 'down' ? `↓ ${d.trend_delta}` : `→ ${d.trend_delta >= 0 ? '+' : ''}${d.trend_delta}`;
+            console.log(
+              d.domain.padEnd(16) +
+              String(d.rating).padStart(5) +
+              String(d.rd).padStart(6) +
+              trend.padStart(11) +
+              '  ' + (d.last_active || 'jamais')
+            );
+          }
+        }
+        break;
+      }
+
+      case 'summary': {
+        const summary = engine.getSummary();
+        if (!summary.length) { console.log('No ELO data yet.'); break; }
+        console.log(JSON.stringify(summary, null, 2));
+        const routing = engine.routeLLM();
+        console.log(`\nRecommended model: ${routing.model} (${routing.label}) — ${routing.reason}`);
+        break;
+      }
+
+      case 'declare': {
+        if (!domain || !rest[0]) {
+          console.error('Usage: elo declare <domain> <beginner|intermediate|advanced|expert|principal>');
+          process.exit(1);
+        }
+        const res = engine.declareExpertise(domain, rest[0]);
+        console.log(`[${domain}] Expertise declared: ${res.level} → provisional rating ${res.provisionalRating}`);
+        break;
+      }
+
+      default:
+        console.error('Unknown ELO subcommand. Use: context | record | dashboard | summary | declare');
+        process.exit(1);
+    }
+  }
+
   showHelp() {
     console.log(`
 BYAN v2.0 - Builder of YAN
@@ -162,7 +262,15 @@ COMMANDS:
   create, start          Start intelligent interview (12 questions)
   status                 Show current session status
   validate <file>        Validate existing agent profile
+  elo <subcommand>       ELO trust system operations (see below)
   help                   Show this help
+
+ELO SUBCOMMANDS:
+  elo context <domain>             Challenge context for a domain
+  elo record <domain> <result> [reason]  Record claim result (VALIDATED|BLOCKED|PARTIAL)
+  elo dashboard [domain]           Why+how dashboard for a domain
+  elo summary                      All domains overview
+  elo declare <domain> <level>     Declare expertise (beginner|intermediate|advanced|expert|principal)
 
 INTERVIEW PHASES:
   1. CONTEXT (3Q)        Project goals & tech stack
@@ -174,16 +282,14 @@ EXAMPLES:
   @byan-v2 create agent
   @byan-v2 status
   @byan-v2 validate .github/copilot/agents/my-agent.md
-
-ARCHITECTURE:
-  src/byan-v2/
-  ├── context/           SessionState, CopilotContext
-  ├── orchestrator/      StateMachine, InterviewState
-  ├── generation/        ProfileTemplate, Validator
-  └── observability/     Logger, Metrics, ErrorTracker
+  @byan-v2 elo context security
+  @byan-v2 elo record javascript VALIDATED
+  @byan-v2 elo record security BLOCKED terminology_gap
+  @byan-v2 elo dashboard security
+  @byan-v2 elo summary
+  @byan-v2 elo declare security expert
 
 Full docs: README-BYAN-V2.md
-Tests: 881/881 passing (100%)
 `);
   }
 }
