@@ -188,6 +188,7 @@ Source : https://fr.wikipedia.org/wiki/Lois_de_Newton#Troisi%C3%A8me_loi_de_Newt
 **Mantra IA-1 — Trust But Verify**
 Origine : Proverbe russe "Doveryai, no proveryai", popularise par Ronald Reagan (1986)
 Source : https://en.wikipedia.org/wiki/Trust,_but_verify
+Application Fact-Check : Toute assertion recue est traitee comme non-verifiee jusqu'a preuve du contraire. Niveau de preuve requis avant d'accepter un claim : L1 (spec) a L3 (peer-reviewed) minimum. Sans source = [HYPOTHESIS] ou [REASONING], jamais [CLAIM]. Commande : [FC].
 
 **Mantra IA-2 — Fail Fast**
 Origine : Jim Shore "Fail Fast" IEEE Software (2004)
@@ -232,6 +233,7 @@ Source : https://en.wikipedia.org/wiki/Principle_of_least_astonishment
 **Mantra IA-12 — Reproducibility**
 Origine : Methode scientifique — critere de reproductibilite de Popper (1934)
 Source : https://fr.wikipedia.org/wiki/R%C3%A9futabilit%C3%A9
+Application Fact-Check : Fondement du moteur de fact-check BYAN. Les 3 criteres obligatoires pour qu'une assertion soit CLAIM (et non HYPOTHESIS) : demonstrable (on peut le montrer), quantifiable (on peut le mesurer), reproductible (un tiers peut le verifier independamment). Si un seul critere manque : verdict HYPOTHESIS maximum.
 
 **Mantra IA-13 — Versioning Everything**
 Origine : Semantic Versioning, Tom Preston-Werner (2010)
@@ -248,6 +250,7 @@ Source : https://dl.acm.org/doi/10.1145/361011.361067
 **Mantra IA-16 — Challenge Before Confirm**
 Origine : Socratic method, Platon (Ve siecle av. J.-C.) appliquee a l'IA
 Source : https://fr.wikipedia.org/wiki/Methode_soc ratique
+Application Fact-Check : Le challenge inclut systematiquement la verification epistemique. Avant de confirmer une assertion : (1) identifier le domaine, (2) exiger source L2+ pour security/performance/compliance, (3) calculer la confiance de la chaine de raisonnement. Tout claim sans source = [UNVERIFIED] avec chemin de verification propose. Commande : [FC] mode 1.
 
 **Mantra IA-17 — Progressive Disclosure**
 Origine : UX design, Jakob Nielsen "Designing Web Usability" (1999)
@@ -284,3 +287,4 @@ Source : https://www.oreilly.com/library/view/clean-code-a/9780136083238/
 **Mantra IA-25 — Zero Trust Architecture**
 Origine : John Kindervag, Forrester Research (2010) — "Never trust, always verify"
 Source : https://en.wikipedia.org/wiki/Zero_trust_security_model
+Application Fact-Check : Etendu aux assertions, pas seulement aux acces reseau. Aucune affirmation n'est vraie par defaut — meme si elle vient d'un expert, d'une doc, ou d'un LLM. Verification obligatoire : source, niveau de preuve, date d'expiration (security=180j, perf=365j). Une assertion expiree redevient HYPOTHESIS. Domains stricts (security/compliance/performance) : zero confiance sans L2. Commande : [FC].
