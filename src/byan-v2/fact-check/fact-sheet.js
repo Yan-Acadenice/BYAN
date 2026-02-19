@@ -18,12 +18,13 @@ class FactSheet {
     const total = verified.length + claims.length + disputed.length + opinions.length;
     const sourced = verified.length + claims.length;
     const trustScore = total > 0 ? Math.round((sourced / total) * 100) : 100;
+    const badge = FactSheet.trustBadge(trustScore);
 
     const date = new Date().toISOString().slice(0, 10);
     const lines = [
       `# Fact Sheet — Session ${sessionId}`,
       `**Date :** ${date}`,
-      `**Truth Score :** ${trustScore}% (${sourced}/${total} claims sourced)`,
+      `**Truth Score :** ${trustScore}% (${sourced}/${total} claims sourced)  ${badge}`,
       ''
     ];
 
@@ -65,6 +66,19 @@ class FactSheet {
     }
 
     return lines.join('\n');
+  }
+
+  /**
+   * Returns a text badge representing the trust level
+   * @param {number} score - 0 to 100
+   * @returns {string}
+   */
+  static trustBadge(score) {
+    if (score >= 90) return '[Trust: A — Excellent]';
+    if (score >= 75) return '[Trust: B — Bon]';
+    if (score >= 60) return '[Trust: C — Acceptable]';
+    if (score >= 40) return '[Trust: D — Faible]';
+    return '[Trust: F — Non-source]';
   }
 
   save(sessionId, facts) {

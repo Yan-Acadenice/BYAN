@@ -1,0 +1,33 @@
+name: Fact-Check Audit
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'   # every Monday at 08:00 UTC
+  push:
+    paths:
+      - '_byan/_memory/fact-graph.json'
+  workflow_dispatch:
+
+jobs:
+  fact-check-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Run fact-check audit
+        run: node scripts/fact-check-ci.js
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fact-check-report
+          path: |
+            _byan-output/fact-sheets/

@@ -13,6 +13,7 @@ const path = require('path');
 const LevelScorer = require('./level-scorer');
 const ClaimParser = require('./claim-parser');
 const FactSheet = require('./fact-sheet');
+const KnowledgeGraph = require('./knowledge-graph');
 
 const ASSERTION_TYPES = ['REASONING', 'HYPOTHESIS', 'CLAIM', 'FACT'];
 
@@ -41,6 +42,7 @@ class FactChecker {
       ...config
     };
     this.sessionState = sessionState;
+    this.graph = new KnowledgeGraph(this.config.graph_path || '_byan/_memory/fact-graph.json');
     this.scorer = new LevelScorer();
     this.parser = new ClaimParser(config.auto_trigger_patterns || []);
     this.sheet = new FactSheet(this.config.fact_sheet_path);
@@ -94,6 +96,7 @@ class FactChecker {
     };
 
     if (this.sessionState) this.sessionState.addFact(fact);
+    this.graph.add({ ...fact, domain: domain || 'general', expires_at: this.expiresAt(domain || 'general') });
 
     return {
       status: 'CLAIM',
@@ -126,6 +129,7 @@ class FactChecker {
     };
 
     if (this.sessionState) this.sessionState.addFact(fact);
+    this.graph.add({ ...fact, domain: 'verified', expires_at: null });
 
     return {
       status: 'VERIFIED',
