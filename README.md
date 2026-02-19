@@ -1,4 +1,4 @@
-# BYAN v2.3.2 - Build Your AI Network
+# BYAN v2.5.0 - Build Your AI Network
 
 [![npm version](https://img.shields.io/npm/v/create-byan-agent.svg)](https://www.npmjs.com/package/create-byan-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,7 +9,7 @@
 
 Create custom AI agents through intelligent interviews + **Hermes Universal Dispatcher** for intelligent routing across 35+ specialized agents.
 
-### 🎯 New in v2.3.2: Hermes - Universal Dispatcher
+### 🎯 New in v2.5.0: Hermes - Universal Dispatcher
 
 **One entry point to rule them all** 🏛️
 

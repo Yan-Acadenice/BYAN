@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.5.0] - 2026-02-19
+
+### 🔄 Version Update
+
+**Minor version bump to 2.5.0**
+
+- Updated package version from 2.4.6 to 2.5.0
+- Synchronized version references in README.md and package.json description
+- Preparation for new features and improvements
+
+---
+
 ## [2.4.5] - 2026-02-12
 
 ### 🐛 Fixed - Copilot CLI Auth Command
