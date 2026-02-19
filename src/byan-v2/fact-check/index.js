@@ -16,6 +16,16 @@ const FactSheet = require('./fact-sheet');
 
 const ASSERTION_TYPES = ['REASONING', 'HYPOTHESIS', 'CLAIM', 'FACT'];
 
+// Fact half-lives in days by domain (null = never expires)
+const DEFAULT_HALF_LIVES = {
+  security:    180,   // 6 months — CVEs and vulns change fast
+  performance: 365,   // 1 year — benchmarks depend on versions
+  compliance:  180,   // 6 months — regulations evolve
+  javascript:  365,   // 1 year — ecosystem moves fast
+  general:     730,   // 2 years — general tech claims
+  algorithms:  null   // never — Big O does not change
+};
+
 class FactChecker {
   constructor(config = {}, sessionState = null) {
     this.config = {
@@ -27,6 +37,7 @@ class FactChecker {
       fact_sheet_path: '_byan-output/fact-sheets',
       knowledge_base: '_byan/knowledge/sources.md',
       axioms: '_byan/knowledge/axioms.md',
+      half_lives: DEFAULT_HALF_LIVES,
       ...config
     };
     this.sessionState = sessionState;
@@ -145,6 +156,75 @@ class FactChecker {
       filePath = this.sheet.save(sessionId, facts);
     }
     return { content, filePath };
+  }
+
+  /**
+   * Calculate expiry date for a fact based on its domain
+   * @param {string} domain
+   * @param {string} createdAt - ISO date string
+   * @returns {string|null} ISO expiry date or null if never expires
+   */
+  expiresAt(domain, createdAt = new Date().toISOString()) {
+    const halfLife = (this.config.half_lives || DEFAULT_HALF_LIVES)[domain];
+    if (halfLife === null || halfLife === undefined) return null;
+    const created = new Date(createdAt);
+    created.setDate(created.getDate() + halfLife);
+    return created.toISOString().slice(0, 10);
+  }
+
+  /**
+   * Check if a stored fact has expired
+   * @param {object} fact - must have created_at and domain
+   * @returns {{ expired: boolean, daysLeft: number|null, warning: string|null }}
+   */
+  checkExpiration(fact) {
+    if (!fact || !fact.created_at) throw new Error('fact.created_at is required');
+    const domain = fact.domain || 'general';
+    const expiry = this.expiresAt(domain, fact.created_at);
+
+    if (!expiry) return { expired: false, daysLeft: null, warning: null };
+
+    const now = new Date();
+    const expiryDate = new Date(expiry);
+    const daysLeft = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+
+    if (daysLeft <= 0) {
+      return { expired: true, daysLeft: 0, warning: `[EXPIRED] This fact (domain: ${domain}) is ${Math.abs(daysLeft)} days past its expiry date. Re-verify before using.` };
+    }
+    if (daysLeft <= 30) {
+      return { expired: false, daysLeft, warning: `[EXPIRING SOON] This fact expires in ${daysLeft} days. Consider re-verifying.` };
+    }
+    return { expired: false, daysLeft, warning: null };
+  }
+
+  /**
+   * Calculate confidence propagation through a reasoning chain
+   * Confidence degrades multiplicatively: 80% x 80% x 80% = 51%
+   * @param {Array<number>} scores - confidence scores for each chain step (0-100)
+   * @returns {{ finalScore: number, warning: string|null, steps: number }}
+   */
+  chain(scores) {
+    if (!Array.isArray(scores) || scores.length === 0) {
+      throw new Error('scores must be a non-empty array of numbers');
+    }
+    for (const s of scores) {
+      if (typeof s !== 'number' || s < 0 || s > 100) {
+        throw new Error('Each score must be a number between 0 and 100');
+      }
+    }
+
+    const finalScore = Math.round(
+      scores.reduce((acc, s) => acc * (s / 100), 1) * 100
+    );
+
+    let warning = null;
+    if (scores.length > 3) {
+      warning = `Chain of ${scores.length} steps detected. Confidence degraded to ${finalScore}% (${scores.join('% x ')}%). Consider finding a direct source instead of a long deduction chain.`;
+    } else if (finalScore < 60) {
+      warning = `Chain confidence is ${finalScore}% — below 60% threshold. This conclusion should not be presented as a firm recommendation.`;
+    }
+
+    return { finalScore, steps: scores.length, warning };
   }
 
   _loadKnowledgeBase() {

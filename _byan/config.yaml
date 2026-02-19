@@ -87,6 +87,14 @@ bmad_features:
     fact_sheet_path: "_byan-output/fact-sheets/"
     knowledge_base: "_byan/knowledge/sources.md"
     axioms: "_byan/knowledge/axioms.md"
+    blacklist: "_byan/knowledge/blacklisted-sources.md"
+    half_lives:                 # fact expiry in days by domain (null = never)
+      security: 180
+      performance: 365
+      compliance: 180
+      javascript: 365
+      general: 730
+      algorithms: null
 
   # VoiceIntegration: Turbo Whisper voice input for hands-free interaction
   voice_integration:
