@@ -1346,7 +1346,7 @@ async function install() {
     output_folder: "{project-root}/_byan-output",
     platform: isManual ? manualSelection.platforms.join(',') : platform,
     install_mode: installMode,
-    byan_version: v2Installed ? '2.0.0-alpha.1' : '1.0.0'
+    byan_version: BYAN_VERSION
   };
   
   // Add installed agents list for MANUAL mode

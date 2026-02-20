@@ -4,4 +4,4 @@ communication_language: Francais
 document_output_language: Francais
 output_folder: '{project-root}/_byan-output'
 platform: copilot
-byan_version: 1.0.0
+byan_version: 2.6.1
