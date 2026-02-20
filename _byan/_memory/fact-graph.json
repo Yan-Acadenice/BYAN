@@ -34,7 +34,105 @@
       },
       "assertionType": "FACT",
       "verified_at": "2026-02-19"
+    },
+    {
+      "id": "ca3c1a3f",
+      "claim": "Redis > 100k ops/sec",
+      "domain": "general",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": "redis.io/benchmarks",
+      "session_id": null,
+      "expires_at": "2028-02-19",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T18:56:21.889Z",
+      "level": 2,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "905363a4",
+      "claim": "JWT uses RSA-256",
+      "domain": "security",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": "rfc7519",
+      "session_id": null,
+      "expires_at": "2026-08-18",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T18:56:21.892Z",
+      "level": 2,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "472563b3",
+      "claim": "Node.js is single-threaded",
+      "domain": "general",
+      "status": "CLAIM",
+      "confidence": 95,
+      "source": "nodejs.org/api",
+      "session_id": null,
+      "expires_at": "2028-02-19",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T18:56:21.893Z",
+      "level": 1,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "ee1351bb",
+      "claim": "test claim",
+      "domain": "general",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": null,
+      "session_id": null,
+      "expires_at": "2028-02-19",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T18:56:21.896Z",
+      "level": 2,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "d7d4fd6d",
+      "claim": "Redis > 100k ops/sec",
+      "domain": "verified",
+      "status": "VERIFIED",
+      "confidence": 100,
+      "source": null,
+      "session_id": null,
+      "expires_at": null,
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T18:56:21.900Z",
+      "level": 1,
+      "proof": {
+        "type": "user-provided",
+        "content": "redis-benchmark output: 120000 ops/sec"
+      },
+      "assertionType": "FACT",
+      "verified_at": "2026-02-19"
+    },
+    {
+      "id": "a19ae1be",
+      "claim": "X is true",
+      "domain": "verified",
+      "status": "VERIFIED",
+      "confidence": 100,
+      "source": null,
+      "session_id": null,
+      "expires_at": null,
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T18:56:21.901Z",
+      "level": 1,
+      "proof": {
+        "type": "user-provided",
+        "content": "proof here"
+      },
+      "assertionType": "FACT",
+      "verified_at": "2026-02-19"
     }
   ],
-  "updated_at": "2026-02-19T12:01:41.351Z"
+  "updated_at": "2026-02-19T18:56:21.901Z"
 }

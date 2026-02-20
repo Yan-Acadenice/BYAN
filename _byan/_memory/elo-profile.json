@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "updated_at": "2026-02-19T18:56:39.820Z",
+  "domains": {
+    "javascript": {
+      "rating": 711,
+      "rd": 191,
+      "history": [
+        {
+          "date": "2026-02-19",
+          "result": "VALIDATED",
+          "delta": 61,
+          "blocked_reason": null,
+          "excerpt": ""
+        }
+      ],
+      "blocked_streak": 0,
+      "consecutive_correct": 1,
+      "first_claim_made": true,
+      "session_count": 0,
+      "last_active": "2026-02-19",
+      "provisional_rating": 650
+    },
+    "security": {
+      "rating": 0,
+      "rd": 210,
+      "history": [
+        {
+          "date": "2026-02-19",
+          "result": "BLOCKED",
+          "delta": 0,
+          "blocked_reason": "terminology_gap",
+          "excerpt": ""
+        }
+      ],
+      "blocked_streak": 1,
+      "consecutive_correct": 0,
+      "first_claim_made": true,
+      "session_count": 0,
+      "last_active": "2026-02-19",
+      "provisional_rating": null
+    }
+  }
+}
