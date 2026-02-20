@@ -81,18 +81,15 @@
         <mxCell id="e-user-hermes" value="@hermes" style="endArrow=classic;html=1;strokeColor=#B8860B;strokeWidth=2;fontSize=9;fontColor=#B8860B;" edge="1" parent="1" source="user" target="hermes">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <!-- Hermes → BYAN (création) -->
+        <!-- Hermes → BYAN (création agents) -->
         <mxCell id="e-hermes-byan" value="création" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#b85450;" edge="1" parent="1" source="hermes" target="byan">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <!-- Hermes → Agent (utilisation directe) -->
+        <!-- Hermes → Agent (dispatch utilisation) -->
         <mxCell id="e-hermes-agent" value="dispatch" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=9;fontColor=#6c8ebf;" edge="1" parent="1" source="hermes" target="agent">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <!-- Hermes → Workflow (lancement direct) -->
-        <mxCell id="e-hermes-wf" value="" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=1;fontSize=9;dashed=1;" edge="1" parent="1" source="hermes" target="workflow">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
+        <!-- NOTE: Hermes ne lance PAS de Workflow directement — un Agent exécute les Workflows -->
         <mxCell id="e-byan-agent" value="crée" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;fontSize=9;fontColor=#6c8ebf;" edge="1" parent="1" source="byan" target="agent">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -109,7 +106,7 @@
         <mxCell id="mod-bmm" value="&lt;b&gt;BMM&lt;/b&gt;  —  SDLC complet&lt;br&gt;Analyst · PM · Architect · Dev · SM · QA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1020" y="280" width="240" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="mod-bmb" value="&lt;b&gt;BMB&lt;/b&gt;  —  Meta-builder&lt;br&gt;BYAN · Agent-Builder · Workflow-Builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="mod-bmb" value="&lt;b&gt;BMB&lt;/b&gt;  —  Meta-builder&lt;br&gt;BYAN · Agent-Builder · Module-Builder · Workflow-Builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="1020" y="342" width="240" height="50" as="geometry" />
         </mxCell>
         <mxCell id="mod-tea" value="&lt;b&gt;TEA&lt;/b&gt;  —  Test Architecture&lt;br&gt;ATDD · Automate · CI/CD · NFR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
@@ -153,6 +150,9 @@
         <mxCell id="w-cost" value="&lt;b&gt;Cost Optimizer&lt;/b&gt;&lt;br&gt;LLM Router&lt;br&gt;——————&lt;br&gt;ELO 0-200 → Opus&lt;br&gt;ELO 201-600 → Sonnet&lt;br&gt;ELO 601+ → Haiku&lt;br&gt;~54% économies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=center;" vertex="1" parent="1">
           <mxGeometry x="680" y="640" width="180" height="115" as="geometry" />
         </mxCell>
+        <mxCell id="w-voice" value="&lt;b&gt;Turbo-Whisper&lt;/b&gt;&lt;br&gt;Voice Input&lt;br&gt;——————&lt;br&gt;Whisper · Auto-GPU&lt;br&gt;Wayland support&lt;br&gt;FR/EN/multi-lang&lt;br&gt;npm-installable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0e6ff;strokeColor=#7B52AB;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="875" y="640" width="180" height="115" as="geometry" />
+        </mxCell>
         <mxCell id="e-byan-elo" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="byan" target="w-elo">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -162,13 +162,13 @@
         <mxCell id="e-agent-cost" value="" style="endArrow=classic;html=1;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="agent" target="w-cost">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-elo-ctx" value="persiste" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=9;fontColor=#d79b00;" edge="1" parent="1" source="w-elo" target="context">
+        <mxCell id="e-elo-ctx" value="lit/écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=9;fontColor=#d79b00;" edge="1" parent="1" source="w-elo" target="context">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-fc-ctx" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="w-fc" target="context">
+        <mxCell id="e-fc-ctx" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="w-fc" target="context">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-cost-ctx" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="w-cost" target="context">
+        <mxCell id="e-cost-ctx" value="" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="w-cost" target="context">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
