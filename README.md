@@ -328,8 +328,8 @@ VOUS  →  @hermes "je veux créer un agent"
 
 Pour une visualisation plus détaillée, ouvrez ces fichiers avec draw.io :
 
-- **Architecture globale BYAN** : [byan-architecture.drawio](./byan-architecture.drawio)
-- **Concept Workflow/Context/Agent/Worker** : [byan-wcaw-concept.drawio](./byan-wcaw-concept.drawio)
+- **Architecture globale BYAN** : [byan-architecture.drawio](https://github.com/Yan-Acadenice/BYAN/blob/main/byan-architecture.drawio)
+- **Concept Workflow/Context/Agent/Worker** : [byan-wcaw-concept.drawio](https://github.com/Yan-Acadenice/BYAN/blob/main/byan-wcaw-concept.drawio)
 
 ---
 
