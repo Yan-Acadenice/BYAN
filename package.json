@@ -1,11 +1,12 @@
 {
   "name": "create-byan-agent",
-  "version": "2.6.0",
-  "description": "BYAN v2.6.0 - Intelligent AI agent creator with ELO trust system + scientific fact-check + Hermes universal dispatcher. Multi-platform (Copilot CLI, Claude Code, Codex). Merise Agile + TDD + 64 Mantras. ~54% LLM cost savings.",
+  "version": "2.6.1",
+  "description": "BYAN v2.6.1 - Intelligent AI agent creator with ELO trust system + scientific fact-check + Hermes universal dispatcher. Multi-platform (Copilot CLI, Claude Code, Codex). Merise Agile + TDD + 64 Mantras. ~54% LLM cost savings.",
   "main": "src/index.js",
   "bin": {
     "create-byan-agent": "./install/bin/create-byan-agent-v2.js",
-    "byan-v2": "./install/bin/create-byan-agent-v2.js"
+    "byan-v2": "./install/bin/create-byan-agent-v2.js",
+    "update-byan-agent": "./update-byan-agent/bin/update-byan-agent.js"
   },
   "scripts": {
     "test": "jest",

@@ -434,6 +434,10 @@ async function install() {
       'Utility Agents': [
         { name: 'patnote', label: 'Patnote - Update Manager & Conflict Resolution [worker]', checked: false },
         { name: 'carmack', label: 'Carmack - Token Optimizer [worker]', checked: false }
+      ],
+      'Custom Agents': [
+        { name: 'jimmy', label: 'Jimmy - Technical Documentation Specialist (Runbooks, Infra, Deploy, Web — Outline Wiki) [worker]', checked: false },
+        { name: 'mike', label: 'Mike - Project Manager Specialist (Projects, Tasks, Sprints, Milestones — Leantime) [worker]', checked: false }
       ]
     };
 
@@ -1549,5 +1553,231 @@ program
   .description('Install BYAN v2.2.0 - Builder of YAN with Model Selector and multi-platform support')
   .version(BYAN_VERSION)
   .action(install);
+
+// Update Command
+program
+  .command('update')
+  .description('Mettre a jour BYAN vers la derniere version npm')
+  .option('--dry-run', 'Analyser sans appliquer les changements')
+  .option('--force', 'Forcer la mise a jour meme si deja a jour')
+  .action(async (options) => {
+    const installPath = process.cwd();
+    
+    // Import update modules
+    const Analyzer = require('../../update-byan-agent/lib/analyzer');
+    const Backup = require('../../update-byan-agent/lib/backup');
+    const CustomizationDetector = require('../../update-byan-agent/lib/customization-detector');
+    
+    try {
+      // Step 1: Check version
+      const spinner = ora('Verification version...').start();
+      const analyzer = new Analyzer(installPath);
+      const versionInfo = await analyzer.checkVersion();
+      spinner.succeed(`Version actuelle: ${versionInfo.current}, npm: ${versionInfo.latest}`);
+      
+      if (versionInfo.upToDate && !options.force) {
+        console.log(chalk.green('\nBYAN est deja a jour!'));
+        console.log(chalk.gray(`  Version actuelle: ${versionInfo.current}`));
+        return;
+      }
+      
+      if (options.dryRun) {
+        console.log(chalk.cyan('\nMode dry-run: Aucune modification appliquee'));
+        console.log(chalk.gray(`  Mise a jour disponible: ${versionInfo.current} -> ${versionInfo.latest}`));
+        return;
+      }
+      
+      // Step 2: Confirm update
+      const { confirmUpdate } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'confirmUpdate',
+        message: `Mettre a jour BYAN ${versionInfo.current} -> ${versionInfo.latest}?`,
+        default: true
+      }]);
+      
+      if (!confirmUpdate) {
+        console.log(chalk.yellow('Mise a jour annulee'));
+        return;
+      }
+      
+      // Step 3: Detect customizations
+      const detectorSpinner = ora('Detection des personnalisations...').start();
+      const detector = new CustomizationDetector(installPath);
+      const customizations = await detector.detectCustomizations();
+      detectorSpinner.succeed(`${customizations.length} fichiers a preserver detectes`);
+      
+      // Step 4: Create backup
+      const backupSpinner = ora('Creation backup...').start();
+      const backup = new Backup(installPath);
+      const backupPath = await backup.create();
+      backupSpinner.succeed(`Backup cree: ${path.basename(backupPath)}`);
+      
+      // Step 5: Preserve customizations
+      const preserveSpinner = ora('Sauvegarde des personnalisations...').start();
+      const tempDir = path.join(installPath, '.byan-update-temp');
+      if (fs.existsSync(tempDir)) {
+        await fs.remove(tempDir);
+      }
+      await fs.ensureDir(tempDir);
+      
+      for (const custom of customizations) {
+        if (await fs.pathExists(custom.path)) {
+          const relativePath = path.relative(installPath, custom.path);
+          const tempPath = path.join(tempDir, relativePath);
+          const tempParent = path.dirname(tempPath);
+          
+          await fs.ensureDir(tempParent);
+          await fs.copy(custom.path, tempPath);
+        }
+      }
+      preserveSpinner.succeed('Personnalisations sauvegardees');
+      
+      // Step 6: Download and install latest version
+      const updateSpinner = ora('Telechargement derniere version...').start();
+      try {
+        // Remove current _byan directory
+        const byanDir = path.join(installPath, '_byan');
+        if (await fs.pathExists(byanDir)) {
+          await fs.remove(byanDir);
+        }
+        
+        // Run npm install to get latest create-byan-agent
+        execSync('npm install --no-save create-byan-agent@latest', {
+          cwd: installPath,
+          stdio: 'pipe'
+        });
+        
+        // Copy _byan from node_modules to project root
+        const nodeModulesByan = path.join(installPath, 'node_modules', 'create-byan-agent', '_byan');
+        if (await fs.pathExists(nodeModulesByan)) {
+          await fs.copy(nodeModulesByan, byanDir);
+        } else {
+          throw new Error('_byan directory not found in npm package');
+        }
+        
+        updateSpinner.succeed('Derniere version installee');
+      } catch (error) {
+        updateSpinner.fail('Erreur installation');
+        
+        // Rollback
+        const rollbackSpinner = ora('Restauration backup...').start();
+        await backup.restore(backupPath);
+        rollbackSpinner.succeed('Backup restaure');
+        
+        throw error;
+      }
+      
+      // Step 7: Restore customizations
+      const restoreSpinner = ora('Restauration personnalisations...').start();
+      for (const custom of customizations) {
+        const relativePath = path.relative(installPath, custom.path);
+        const tempPath = path.join(tempDir, relativePath);
+        
+        if (await fs.pathExists(tempPath)) {
+          const targetParent = path.dirname(custom.path);
+          await fs.ensureDir(targetParent);
+          await fs.copy(tempPath, custom.path);
+        }
+      }
+      restoreSpinner.succeed('Personnalisations restaurees');
+      
+      // Cleanup temp directory
+      if (await fs.pathExists(tempDir)) {
+        await fs.remove(tempDir);
+      }
+      
+      // Update version in config.yaml
+      const configPath = path.join(installPath, '_byan', 'bmb', 'config.yaml');
+      if (await fs.pathExists(configPath)) {
+        const configContent = await fs.readFile(configPath, 'utf8');
+        const config = yaml.load(configContent);
+        config.byan_version = versionInfo.latest;
+        await fs.writeFile(configPath, yaml.dump(config), 'utf8');
+      }
+      
+      console.log('');
+      console.log(chalk.green.bold('Mise a jour terminee avec succes!'));
+      console.log(chalk.gray(`  ${versionInfo.current} -> ${versionInfo.latest}`));
+      console.log('');
+      console.log(chalk.cyan('Fichiers preserves:'));
+      customizations.forEach(c => {
+        console.log(chalk.gray(`  ✓ ${path.relative(installPath, c.path)}`));
+      });
+      console.log('');
+      
+    } catch (error) {
+      console.error('');
+      console.error(chalk.red.bold('Erreur lors de la mise a jour:'));
+      console.error(chalk.red(`  ${error.message}`));
+      console.error('');
+      console.error(chalk.yellow('Le backup est disponible dans _byan.backup/'));
+      console.error(chalk.gray('Restaurer avec: npx create-byan-agent restore'));
+      process.exit(1);
+    }
+  });
+
+// Restore Command
+program
+  .command('restore')
+  .description('Restaurer BYAN depuis backup')
+  .option('-p, --path <path>', 'Chemin du backup (dernier par defaut)')
+  .action(async (options) => {
+    const Backup = require('../../update-byan-agent/lib/backup');
+    const spinner = ora('Restauration backup...').start();
+    
+    try {
+      const installPath = process.cwd();
+      const backup = new Backup(installPath);
+      
+      await backup.restore(options.path);
+      
+      spinner.succeed('Backup restaure avec succes');
+      console.log(chalk.green('\nBYAN restaure depuis backup'));
+      
+    } catch (error) {
+      spinner.fail('Erreur restauration backup');
+      console.error(chalk.red(`  ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Check Version Command
+program
+  .command('check')
+  .description('Verifier version actuelle vs derniere version npm')
+  .action(async () => {
+    const Analyzer = require('../../update-byan-agent/lib/analyzer');
+    const spinner = ora('Verification version BYAN...').start();
+    
+    try {
+      const installPath = process.cwd();
+      const analyzer = new Analyzer(installPath);
+      
+      const versionInfo = await analyzer.checkVersion();
+      
+      spinner.succeed('Verification terminee');
+      
+      console.log('');
+      console.log(chalk.bold('Informations de version:'));
+      console.log(chalk.gray('  Version actuelle: ') + chalk.cyan(versionInfo.current));
+      console.log(chalk.gray('  Version npm:      ') + chalk.cyan(versionInfo.latest));
+      console.log('');
+      
+      if (versionInfo.upToDate) {
+        console.log(chalk.green('  ✓ BYAN est a jour!'));
+      } else if (versionInfo.needsUpdate) {
+        console.log(chalk.yellow('  → Une mise a jour est disponible'));
+        console.log(chalk.gray('  Executer: npx create-byan-agent update'));
+      } else if (versionInfo.ahead) {
+        console.log(chalk.blue('  → Version dev en avance sur npm'));
+      }
+      console.log('');
+      
+    } catch (error) {
+      spinner.fail('Erreur verification version');
+      console.error(chalk.red(`  ${error.message}`));
+      process.exit(1);
+    }
+  });
 
 program.parse(process.argv);
