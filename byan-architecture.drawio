@@ -1,129 +1,200 @@
-<mxfile host="Electron" modified="2026-02-04T10:00:00.000Z" agent="Draw.io" version="22.1.11">
-  <diagram name="BYAN Architecture" id="byan-arch">
-    <mxGraphModel dx="1422" dy="844" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Copilot" modified="2026-02-20T06:55:00.000Z" agent="BYAN" version="21.0.0" etag="byan-arch-v260">
+  <diagram name="BYAN v2.6.0 Architecture" id="diagram-byan-arch-v260">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" background="#ffffff" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         
-        <!-- USER -->
-        <mxCell id="user" value="USER" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="380" width="40" height="80" as="geometry" />
+
+        <!-- ================================================================ -->
+        <!-- TITLE BAR -->
+        <!-- ================================================================ -->
+        <mxCell id="title-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1580" height="65" as="geometry" />
         </mxCell>
-        
-        <!-- BYAN META-AGENT (Center - Red) -->
-        <mxCell id="byan" value="&lt;b&gt;BYAN&lt;/b&gt;&lt;br&gt;Meta-Agent&lt;br&gt;&lt;br&gt;Interview intelligente&lt;br&gt;Création d'agents&lt;br&gt;12 questions / 15 min" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="240" y="350" width="180" height="140" as="geometry" />
+        <mxCell id="title-text" value="&lt;b&gt;BYAN v2.6.0 — Build Your AI Network&lt;/b&gt;     |     Workflow · Context · Agent · Worker     |     Merise Agile + TDD + 64 Mantras" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1580" height="65" as="geometry" />
         </mxCell>
-        
-        <!-- AGENT (Blue) -->
-        <mxCell id="agent" value="&lt;b&gt;AGENT&lt;/b&gt;&lt;br&gt;Spécialiste IA&lt;br&gt;&lt;br&gt;• Persona&lt;br&gt;• Menu&lt;br&gt;• Rules&lt;br&gt;• Capabilities" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="520" y="340" width="160" height="160" as="geometry" />
+
+        <!-- ================================================================ -->
+        <!-- INSTALLATION (left column) -->
+        <!-- ================================================================ -->
+        <mxCell id="sec-install-label" value="INSTALLATION" style="text;html=1;align=center;fontStyle=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="210" height="20" as="geometry" />
         </mxCell>
-        
-        <!-- WORKFLOW (Green) -->
-        <mxCell id="workflow" value="&lt;b&gt;WORKFLOW&lt;/b&gt;&lt;br&gt;Séquence guidée&lt;br&gt;&lt;br&gt;• Steps&lt;br&gt;• Conditions&lt;br&gt;• Outputs&lt;br&gt;• Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="780" y="340" width="160" height="160" as="geometry" />
+        <mxCell id="npx" value="&lt;b&gt;npx create-byan-agent&lt;/b&gt;&lt;br&gt;npm install -g create-byan-agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontColor=#333333;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="105" width="210" height="55" as="geometry" />
         </mxCell>
-        
-        <!-- CONTEXT LAYER (Orange) -->
-        <mxCell id="context" value="&lt;b&gt;CONTEXT LAYER&lt;/b&gt;&lt;br&gt;Mémoire partagée&lt;br&gt;&lt;br&gt;• config.yaml&lt;br&gt;• session state&lt;br&gt;• elo-profile.json&lt;br&gt;• fact-graph.json" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="520" y="600" width="420" height="140" as="geometry" />
+        <mxCell id="yanstaller" value="&lt;b&gt;Yanstaller&lt;/b&gt;&lt;br&gt;Assistant interactif&lt;br&gt;Langue · Plateforme · ELO · FC&lt;br&gt;Copilot / Claude / Codex" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#555555;fontColor=#333333;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="190" width="210" height="75" as="geometry" />
         </mxCell>
-        
-        <!-- WORKER (Purple) -->
-        <mxCell id="worker" value="&lt;b&gt;WORKER&lt;/b&gt;&lt;br&gt;Module utilitaire&lt;br&gt;&lt;br&gt;• fact-check-worker&lt;br&gt;• cost-optimizer&lt;br&gt;• elo-engine&lt;br&gt;&lt;br&gt;npm-installable" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;align=left;verticalAlign=top;spacingLeft=10;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="240" y="600" width="180" height="140" as="geometry" />
-        </mxCell>
-        
-        <!-- RELATIONS -->
-        
-        <!-- User -> BYAN -->
-        <mxCell id="rel1" value="interagit" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=11;fontColor=#b85450;" edge="1" parent="1" source="user" target="byan">
+        <mxCell id="e-npx-yan" value="lance" style="endArrow=classic;html=1;strokeColor=#555555;fontSize=9;" edge="1" parent="1" source="npx" target="yanstaller">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- User -> Agent -->
-        <mxCell id="rel2" value="interagit" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=11;fontColor=#b85450;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="user" target="agent">
+
+        <!-- ================================================================ -->
+        <!-- PLATFORMS (top right) -->
+        <!-- ================================================================ -->
+        <mxCell id="sec-plat-label" value="PLATEFORMES SUPPORTEES" style="text;html=1;align=center;fontStyle=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="780" y="80" width="580" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="plat-copilot" value="&lt;b&gt;GitHub Copilot CLI&lt;/b&gt;&lt;br&gt;.github/agents/*.md&lt;br&gt;@bmad-agent-*" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#23445D;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="785" y="105" width="160" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="plat-claude" value="&lt;b&gt;Claude Code&lt;/b&gt;&lt;br&gt;.claude/rules/*.md&lt;br&gt;CLAUDE.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=#6D4C00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="960" y="105" width="160" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="plat-codex" value="&lt;b&gt;Codex / OpenCode&lt;/b&gt;&lt;br&gt;.codex/prompts/*.md&lt;br&gt;codex.md" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#2D5016;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="105" width="160" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="e-yan-cop" value="déploie" style="endArrow=classic;html=1;strokeColor=#6c8ebf;fontSize=9;dashed=1;" edge="1" parent="1" source="yanstaller" target="plat-copilot">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- BYAN -> Agent -->
-        <mxCell id="rel3" value="crée" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;fontSize=11;fontColor=#6c8ebf;" edge="1" parent="1" source="byan" target="agent">
+        <mxCell id="e-yan-cla" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;dashed=1;" edge="1" parent="1" source="yanstaller" target="plat-claude">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- Agent -> Workflow -->
-        <mxCell id="rel4" value="exécute" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=11;fontColor=#82b366;" edge="1" parent="1" source="agent" target="workflow">
+        <mxCell id="e-yan-cod" value="" style="endArrow=classic;html=1;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="yanstaller" target="plat-codex">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- Workflow -> Context -->
-        <mxCell id="rel5" value="lit / écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#d79b00;" edge="1" parent="1" source="workflow" target="context">
+
+        <!-- ================================================================ -->
+        <!-- CORE: USER + BYAN + AGENT + WORKFLOW -->
+        <!-- ================================================================ -->
+        <mxCell id="user" value="USER" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="350" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="byan" value="&lt;b&gt;BYAN&lt;/b&gt;&lt;br&gt;Meta-Agent Créateur&lt;br&gt;&lt;br&gt;Interview 12 questions&lt;br&gt;15 min → agent personnalisé&lt;br&gt;Valide · Edite · Crée" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="175" y="295" width="210" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="agent" value="&lt;b&gt;AGENT&lt;/b&gt;&lt;br&gt;Spécialiste IA&lt;br&gt;——————&lt;br&gt;Persona&lt;br&gt;Menu&lt;br&gt;Rules&lt;br&gt;Capabilities&lt;br&gt;Knowledge Base" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="480" y="275" width="185" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="workflow" value="&lt;b&gt;WORKFLOW&lt;/b&gt;&lt;br&gt;Séquence guidée&lt;br&gt;——————&lt;br&gt;Steps&lt;br&gt;Conditions&lt;br&gt;Outputs&lt;br&gt;Validation&lt;br&gt;Multi-phases" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="745" y="275" width="185" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-byan" value="interagit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#b85450;" edge="1" parent="1" source="user" target="byan">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- Agent -> Context -->
-        <mxCell id="rel6" value="accède" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#d79b00;" edge="1" parent="1" source="agent" target="context">
+        <mxCell id="e-user-agent" value="utilise" style="endArrow=classic;html=1;strokeColor=#6c8ebf;fontSize=9;fontColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="user" target="agent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="415" />
+              <mxPoint x="572" y="415" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-byan-agent" value="crée" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;fontSize=9;fontColor=#6c8ebf;" edge="1" parent="1" source="byan" target="agent">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- Agent -> Worker -->
-        <mxCell id="rel7" value="utilise" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;fontSize=11;fontColor=#9673a6;exitX=0;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="agent" target="worker">
+        <mxCell id="e-agent-wf" value="exécute" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=9;fontColor=#82b366;" edge="1" parent="1" source="agent" target="workflow">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- Worker -> Context -->
-        <mxCell id="rel8" value="persiste" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=11;fontColor=#d79b00;" edge="1" parent="1" source="worker" target="context">
+
+        <!-- ================================================================ -->
+        <!-- MODULES (right side) -->
+        <!-- ================================================================ -->
+        <mxCell id="sec-mod-label" value="MODULES BYAN" style="text;html=1;align=center;fontStyle=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="255" width="175" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-bmm" value="&lt;b&gt;BMM&lt;/b&gt;  —  SDLC complet&lt;br&gt;Analyst · PM · Architect · Dev · SM · QA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="280" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-bmb" value="&lt;b&gt;BMB&lt;/b&gt;  —  Meta-builder&lt;br&gt;BYAN · Agent-Builder · Workflow-Builder" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="342" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-tea" value="&lt;b&gt;TEA&lt;/b&gt;  —  Test Architecture&lt;br&gt;ATDD · Automate · CI/CD · NFR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="404" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-cis" value="&lt;b&gt;CIS&lt;/b&gt;  —  Innovation &amp;amp; Créativité&lt;br&gt;Design Thinking · Storytelling" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="466" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mod-core" value="&lt;b&gt;CORE&lt;/b&gt;  —  Fondation&lt;br&gt;Brainstorming · Party mode · Tasks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="528" width="240" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agent-mods" value="active" style="endArrow=classic;html=1;strokeColor=#999999;fontSize=9;dashed=1;" edge="1" parent="1" source="agent" target="mod-bmm">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- LEGEND -->
-        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="80" y="600" width="120" height="160" as="geometry" />
+
+        <!-- ================================================================ -->
+        <!-- CONTEXT LAYER -->
+        <!-- ================================================================ -->
+        <mxCell id="context" value="&lt;b&gt;CONTEXT LAYER&lt;/b&gt;   —   Mémoire partagée entre tous les agents et workers&lt;br&gt;config.yaml  ·  elo-profile.json  ·  fact-graph.json  ·  session-state  ·  sprint-status.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="175" y="525" width="755" height="75" as="geometry" />
         </mxCell>
-        
-        <mxCell id="legend-title" value="&lt;b&gt;LÉGENDE&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="610" width="120" height="20" as="geometry" />
+        <mxCell id="e-agent-ctx" value="lit/écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=9;fontColor=#d79b00;" edge="1" parent="1" source="agent" target="context">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <mxCell id="legend-user" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="90" y="640" width="100" height="20" as="geometry" />
+        <mxCell id="e-wf-ctx" value="lit/écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=9;fontColor=#d79b00;" edge="1" parent="1" source="workflow" target="context">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <mxCell id="legend-agent" value="Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="90" y="665" width="100" height="20" as="geometry" />
+
+        <!-- ================================================================ -->
+        <!-- WORKERS -->
+        <!-- ================================================================ -->
+        <mxCell id="sec-worker-label" value="WORKERS  (npm-installable)" style="text;html=1;align=center;fontStyle=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="175" y="615" width="755" height="20" as="geometry" />
         </mxCell>
-        
-        <mxCell id="legend-workflow" value="Workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="90" y="690" width="100" height="20" as="geometry" />
+        <mxCell id="w-elo" value="&lt;b&gt;ELO Engine&lt;/b&gt;&lt;br&gt;Trust System&lt;br&gt;——————&lt;br&gt;Score · Domaines&lt;br&gt;Challenge · K-factor&lt;br&gt;Tilt · Hot hand&lt;br&gt;Zone morte 450-550" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="175" y="640" width="180" height="115" as="geometry" />
         </mxCell>
-        
-        <mxCell id="legend-context" value="Context" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="90" y="715" width="100" height="20" as="geometry" />
+        <mxCell id="w-fc" value="&lt;b&gt;Fact-Checker&lt;/b&gt;&lt;br&gt;Epistemic Guard&lt;br&gt;——————&lt;br&gt;CLAIM · FACT · HYPO&lt;br&gt;L1-L5 proof levels&lt;br&gt;Strict domains&lt;br&gt;Knowledge graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="385" y="640" width="180" height="115" as="geometry" />
         </mxCell>
-        
-        <mxCell id="legend-worker" value="Worker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
-          <mxGeometry x="90" y="740" width="100" height="20" as="geometry" />
+        <mxCell id="w-cost" value="&lt;b&gt;Cost Optimizer&lt;/b&gt;&lt;br&gt;LLM Router&lt;br&gt;——————&lt;br&gt;ELO 0-200 → Opus&lt;br&gt;ELO 201-600 → Sonnet&lt;br&gt;ELO 601+ → Haiku&lt;br&gt;~54% économies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="595" y="640" width="180" height="115" as="geometry" />
         </mxCell>
-        
-        <!-- TITLE -->
-        <mxCell id="title" value="&lt;b&gt;ARCHITECTURE BYAN&lt;/b&gt;&lt;br&gt;Workflow / Context / Agent / Worker" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="240" y="80" width="700" height="60" as="geometry" />
+        <mxCell id="e-byan-elo" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="byan" target="w-elo">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <!-- ANNOTATIONS -->
-        <mxCell id="note1" value="Interview de 12 questions&lt;br&gt;pour créer un agent&lt;br&gt;personnalisé en 15 min" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;align=left;" vertex="1" parent="1">
-          <mxGeometry x="240" y="200" width="120" height="80" as="geometry" />
+        <mxCell id="e-agent-fc" value="" style="endArrow=classic;html=1;strokeColor=#82b366;dashed=1;" edge="1" parent="1" source="agent" target="w-fc">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <mxCell id="note2" value="Chaque agent possède&lt;br&gt;une personnalité, des&lt;br&gt;règles et des capacités&lt;br&gt;spécifiques" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;align=left;" vertex="1" parent="1">
-          <mxGeometry x="560" y="200" width="120" height="80" as="geometry" />
+        <mxCell id="e-agent-cost" value="" style="endArrow=classic;html=1;strokeColor=#d6b656;dashed=1;" edge="1" parent="1" source="agent" target="w-cost">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
-        <mxCell id="note3" value="Configuration partagée&lt;br&gt;entre tous les agents&lt;br&gt;et workflows du système" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;align=left;" vertex="1" parent="1">
-          <mxGeometry x="820" y="760" width="120" height="80" as="geometry" />
+        <mxCell id="e-elo-ctx" value="persiste" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=9;fontColor=#d79b00;" edge="1" parent="1" source="w-elo" target="context">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        
+        <mxCell id="e-fc-ctx" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="w-fc" target="context">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-cost-ctx" value="" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="w-cost" target="context">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ================================================================ -->
+        <!-- 64 MANTRAS NOTE + LEGEND -->
+        <!-- ================================================================ -->
+        <mxCell id="note-mantras" value="&lt;b&gt;64 Mantras appliqués&lt;/b&gt;&lt;br&gt;#37  Ockham's Razor&lt;br&gt;#39  Conséquences&lt;br&gt;IA-1  Trust But Verify&lt;br&gt;IA-16  Challenge Before Confirm&lt;br&gt;IA-23  No Emoji Pollution&lt;br&gt;IA-24  Clean Code" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#e8f4fd;strokeColor=#3498db;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="600" width="175" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#cccccc;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="120" height="185" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;LEGENDE&lt;/b&gt;" style="text;html=1;align=center;fontSize=10;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="635" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-byan" value="BYAN (Createur)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="658" width="104" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-agent" value="Agent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="683" width="104" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-wf" value="Workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="708" width="104" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-ctx" value="Context" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="733" width="104" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-worker" value="Worker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="758" width="104" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-install" value="Installation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="783" width="104" height="20" as="geometry" />
+        </mxCell>
+
       </root>
     </mxGraphModel>
   </diagram>
