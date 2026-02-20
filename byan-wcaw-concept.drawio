@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Copilot" modified="2026-02-20T07:03:00.000Z" agent="BYAN" version="21.0.0" etag="byan-wcaw-concept">
+  <diagram name="BYAN WCAW Concept" id="diagram-byan-wcaw">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1169" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="title" value="&lt;b&gt;BYAN — Workflow · Context · Agent · Worker&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=15;fontStyle=1;fontColor=#ffffff;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1169" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- USER (left) -->
+        <!-- ============================================================ -->
+        <mxCell id="user" value="VOUS" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="370" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- HERMES (entry point) -->
+        <!-- ============================================================ -->
+        <mxCell id="hermes" value="&lt;b&gt;HERMES&lt;/b&gt;&lt;br&gt;Dispatcher&lt;br&gt;@hermes ma requete" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD700;strokeColor=#B8860B;fontColor=#333300;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="55" y="520" width="165" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="e-user-hermes" value="" style="endArrow=classic;html=1;strokeColor=#B8860B;strokeWidth=2;" edge="1" parent="1" source="user" target="hermes">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- AGENT (top center) -->
+        <!-- ============================================================ -->
+        <mxCell id="agent-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="80" width="570" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-label" value="&lt;b&gt;AGENT&lt;/b&gt;" style="text;html=1;align=left;fontStyle=1;fontSize=14;fontColor=#23445D;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="315" y="88" width="120" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="agent-desc" value="L'agent est un spécialiste IA avec une identité définie.&lt;br&gt;Il possède une &lt;b&gt;persona&lt;/b&gt; (qui il est), un &lt;b&gt;menu&lt;/b&gt; (ce qu'il sait faire),&lt;br&gt;des &lt;b&gt;rules&lt;/b&gt; (ses contraintes) et des &lt;b&gt;capabilities&lt;/b&gt; (ses compétences).&lt;br&gt;&lt;br&gt;Il lit le &lt;b&gt;Context&lt;/b&gt; pour personnaliser ses réponses,&lt;br&gt;appelle des &lt;b&gt;Workers&lt;/b&gt; pour les tâches utilitaires,&lt;br&gt;et déclenche des &lt;b&gt;Workflows&lt;/b&gt; pour les séquences guidées." style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#23445D;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="315" y="115" width="540" height="145" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- WORKFLOW (center-left) -->
+        <!-- ============================================================ -->
+        <mxCell id="wf-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="320" width="250" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-label" value="&lt;b&gt;WORKFLOW&lt;/b&gt;" style="text;html=1;align=left;fontStyle=1;fontSize=14;fontColor=#2D5016;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="315" y="328" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="wf-desc" value="Séquence d'étapes guidées et structurées.&lt;br&gt;&lt;br&gt;Un workflow orchestre plusieurs agents&lt;br&gt;dans un ordre défini pour produire&lt;br&gt;un artifact reproductible :&lt;br&gt;&lt;br&gt;PRD → Architecture → Epics → Stories&lt;br&gt;Chaque step a des inputs, conditions&lt;br&gt;et outputs vérifiés." style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#2D5016;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="315" y="355" width="225" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- CONTEXT (center, horizontal bar at middle) -->
+        <!-- ============================================================ -->
+        <mxCell id="ctx-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="300" y="570" width="570" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-label" value="&lt;b&gt;CONTEXT&lt;/b&gt;" style="text;html=1;align=left;fontStyle=1;fontSize=14;fontColor=#6D4C00;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="315" y="578" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="ctx-desc" value="Mémoire partagée et persistante entre tous les composants.&lt;br&gt;&lt;br&gt;Le Context stocke : &lt;b&gt;qui tu es&lt;/b&gt; (config.yaml, user_name, langue),&lt;br&gt;&lt;b&gt;ce que tu sais&lt;/b&gt; (elo-profile.json, knowledge/),&lt;br&gt;&lt;b&gt;ce que tu as fait&lt;/b&gt; (session-state, sprint-status, fact-graph).&lt;br&gt;&lt;br&gt;Sans Context, chaque interaction repart de zéro.&lt;br&gt;Avec Context, BYAN se souvient, apprend et s'adapte." style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#6D4C00;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="315" y="605" width="540" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- WORKER (center-right) -->
+        <!-- ============================================================ -->
+        <mxCell id="wk-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="620" y="320" width="250" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="wk-label" value="&lt;b&gt;WORKER&lt;/b&gt;" style="text;html=1;align=left;fontStyle=1;fontSize=14;fontColor=#4D2F6D;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="635" y="328" width="200" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="wk-desc" value="Module utilitaire npm-installable.&lt;br&gt;&lt;br&gt;Un Worker fait &lt;b&gt;une seule chose&lt;/b&gt;, bien :&lt;br&gt;&lt;br&gt;• &lt;b&gt;ELO Engine&lt;/b&gt; : confiance et challenge&lt;br&gt;• &lt;b&gt;Fact-Checker&lt;/b&gt; : vérification épistémique&lt;br&gt;• &lt;b&gt;Cost Optimizer&lt;/b&gt; : routage LLM&lt;br&gt;&lt;br&gt;Il reçoit des données, les traite,&lt;br&gt;et persiste le résultat dans le Context." style="text;html=1;align=left;verticalAlign=top;fontSize=11;fontColor=#4D2F6D;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="635" y="355" width="225" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ============================================================ -->
+        <!-- ARROWS (interactions) -->
+        <!-- ============================================================ -->
+        <!-- Hermes → Agent -->
+        <mxCell id="e-h-agent" value="dispatch" style="endArrow=classic;html=1;strokeColor=#B8860B;strokeWidth=2;fontSize=10;fontColor=#B8860B;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="hermes" target="agent-bg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Agent → Workflow (triggers) -->
+        <mxCell id="e-a-wf" value="déclenche" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=10;fontColor=#82b366;" edge="1" parent="1" source="agent-bg" target="wf-bg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Agent → Worker (calls) -->
+        <mxCell id="e-a-wk" value="appelle" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;fontSize=10;fontColor=#9673a6;" edge="1" parent="1" source="agent-bg" target="wk-bg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Agent ↔ Context -->
+        <mxCell id="e-a-ctx" value="lit / écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=10;fontColor=#d79b00;" edge="1" parent="1" source="agent-bg" target="ctx-bg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Workflow ↔ Context -->
+        <mxCell id="e-wf-ctx" value="lit / écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=10;fontColor=#d79b00;" edge="1" parent="1" source="wf-bg" target="ctx-bg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Worker → Context (persists) -->
+        <mxCell id="e-wk-ctx" value="persiste" style="endArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=10;fontColor=#d79b00;" edge="1" parent="1" source="wk-bg" target="ctx-bg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

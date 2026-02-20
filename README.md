@@ -199,33 +199,36 @@ fc.parse("C'est évidemment la meilleure approche pour la sécurité");
 
 ### Schéma de fonctionnement
 
+Le diagramme conceptuel ci-dessous montre comment les quatre composants interagissent. **Hermes** est le point d'entrée universel : il reçoit votre requête et la route vers le bon agent.
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        UTILISATEUR                          │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ @agent ou commande
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   AGENT (spécialiste IA)                    │
-│  Persona + Menu + Rules (64 mantras) + Capabilities         │
-└────────────┬──────────────────────────────┬─────────────────┘
-             │ exécute                       │ utilise
-             ▼                               ▼
-┌────────────────────────┐    ┌──────────────────────────────┐
-│       WORKFLOW         │    │          WORKER               │
-│  Steps guidés          │    │  fact-check / cost-optimizer  │
-│  Artefacts générés     │    │  ELO engine                   │
-└────────────┬───────────┘    └──────────────┬───────────────┘
-             │ lit/écrit                      │ persiste
-             ▼                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     CONTEXT LAYER                           │
-│  config.yaml · elo-profile.json · fact-graph.json           │
-│  _byan-output/ · _byan/knowledge/ · session state           │
-└─────────────────────────────────────────────────────────────┘
+VOUS  →  @hermes "je veux créer un agent"
+              │
+              ▼
+    ┌─────────────────────────────────────────────────────────┐
+    │                  AGENT (spécialiste IA)                  │
+    │    Persona · Menu · Rules (64 mantras) · Capabilities    │
+    └────────────┬─────────────────────────┬───────────────────┘
+                 │ déclenche               │ appelle
+                 ▼                         ▼
+    ┌────────────────────┐    ┌─────────────────────────────┐
+    │     WORKFLOW       │    │          WORKER              │
+    │  Steps guidés      │    │  ELO Engine                 │
+    │  Artifacts générés │    │  Fact-Checker               │
+    │  Validation steps  │    │  Cost Optimizer             │
+    └────────┬───────────┘    └─────────────┬───────────────┘
+             │ lit/écrit                    │ persiste
+             ▼                              ▼
+    ┌─────────────────────────────────────────────────────────┐
+    │                    CONTEXT LAYER                         │
+    │  config.yaml · elo-profile.json · fact-graph.json        │
+    │  _byan-output/ · _byan/knowledge/ · session-state        │
+    └─────────────────────────────────────────────────────────┘
 ```
 
-> Le diagramme interactif draw.io est disponible dans [byan-architecture.drawio](./byan-architecture.drawio).
+> Diagrammes interactifs draw.io :
+> - Architecture globale BYAN : [byan-architecture.drawio](./byan-architecture.drawio)
+> - Concept Workflow/Context/Agent/Worker : [byan-wcaw-concept.drawio](./byan-wcaw-concept.drawio)
 
 ---
 

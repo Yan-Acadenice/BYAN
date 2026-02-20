@@ -62,27 +62,36 @@
         <!-- CORE: USER + BYAN + AGENT + WORKFLOW -->
         <!-- ================================================================ -->
         <mxCell id="user" value="USER" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="60" y="350" width="40" height="80" as="geometry" />
+          <mxGeometry x="60" y="310" width="40" height="80" as="geometry" />
+        </mxCell>
+        <!-- HERMES - Universal Dispatcher (entry point) -->
+        <mxCell id="hermes" value="&lt;b&gt;HERMES&lt;/b&gt;&lt;br&gt;Dispatcher Universel&lt;br&gt;——————&lt;br&gt;Point d'entrée unique&lt;br&gt;Route → agent optimal&lt;br&gt;@hermes [requete]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD700;strokeColor=#B8860B;fontColor=#333300;fontSize=10;align=center;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="165" height="105" as="geometry" />
         </mxCell>
         <mxCell id="byan" value="&lt;b&gt;BYAN&lt;/b&gt;&lt;br&gt;Meta-Agent Créateur&lt;br&gt;&lt;br&gt;Interview 12 questions&lt;br&gt;15 min → agent personnalisé&lt;br&gt;Valide · Edite · Crée" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="175" y="295" width="210" height="155" as="geometry" />
+          <mxGeometry x="260" y="280" width="210" height="155" as="geometry" />
         </mxCell>
         <mxCell id="agent" value="&lt;b&gt;AGENT&lt;/b&gt;&lt;br&gt;Spécialiste IA&lt;br&gt;——————&lt;br&gt;Persona&lt;br&gt;Menu&lt;br&gt;Rules&lt;br&gt;Capabilities&lt;br&gt;Knowledge Base" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=center;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="480" y="275" width="185" height="185" as="geometry" />
+          <mxGeometry x="560" y="265" width="185" height="185" as="geometry" />
         </mxCell>
         <mxCell id="workflow" value="&lt;b&gt;WORKFLOW&lt;/b&gt;&lt;br&gt;Séquence guidée&lt;br&gt;——————&lt;br&gt;Steps&lt;br&gt;Conditions&lt;br&gt;Outputs&lt;br&gt;Validation&lt;br&gt;Multi-phases" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=center;verticalAlign=top;spacingTop=5;" vertex="1" parent="1">
-          <mxGeometry x="745" y="275" width="185" height="185" as="geometry" />
+          <mxGeometry x="820" y="265" width="185" height="185" as="geometry" />
         </mxCell>
-        <mxCell id="e-user-byan" value="interagit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#b85450;" edge="1" parent="1" source="user" target="byan">
+        <!-- User → Hermes (entry point) -->
+        <mxCell id="e-user-hermes" value="@hermes" style="endArrow=classic;html=1;strokeColor=#B8860B;strokeWidth=2;fontSize=9;fontColor=#B8860B;" edge="1" parent="1" source="user" target="hermes">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="e-user-agent" value="utilise" style="endArrow=classic;html=1;strokeColor=#6c8ebf;fontSize=9;fontColor=#6c8ebf;dashed=1;" edge="1" parent="1" source="user" target="agent">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="80" y="415" />
-              <mxPoint x="572" y="415" />
-            </Array>
-          </mxGeometry>
+        <!-- Hermes → BYAN (création) -->
+        <mxCell id="e-hermes-byan" value="création" style="endArrow=classic;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#b85450;" edge="1" parent="1" source="hermes" target="byan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Hermes → Agent (utilisation directe) -->
+        <mxCell id="e-hermes-agent" value="dispatch" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=9;fontColor=#6c8ebf;" edge="1" parent="1" source="hermes" target="agent">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <!-- Hermes → Workflow (lancement direct) -->
+        <mxCell id="e-hermes-wf" value="" style="endArrow=classic;html=1;strokeColor=#82b366;strokeWidth=1;fontSize=9;dashed=1;" edge="1" parent="1" source="hermes" target="workflow">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e-byan-agent" value="crée" style="endArrow=classic;html=1;strokeColor=#6c8ebf;strokeWidth=3;fontSize=9;fontColor=#6c8ebf;" edge="1" parent="1" source="byan" target="agent">
           <mxGeometry relative="1" as="geometry" />
@@ -120,7 +129,7 @@
         <!-- CONTEXT LAYER -->
         <!-- ================================================================ -->
         <mxCell id="context" value="&lt;b&gt;CONTEXT LAYER&lt;/b&gt;   —   Mémoire partagée entre tous les agents et workers&lt;br&gt;config.yaml  ·  elo-profile.json  ·  fact-graph.json  ·  session-state  ·  sprint-status.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="175" y="525" width="755" height="75" as="geometry" />
+          <mxGeometry x="260" y="525" width="755" height="75" as="geometry" />
         </mxCell>
         <mxCell id="e-agent-ctx" value="lit/écrit" style="endArrow=classic;startArrow=classic;html=1;strokeColor=#d79b00;strokeWidth=2;fontSize=9;fontColor=#d79b00;" edge="1" parent="1" source="agent" target="context">
           <mxGeometry relative="1" as="geometry" />
@@ -133,16 +142,16 @@
         <!-- WORKERS -->
         <!-- ================================================================ -->
         <mxCell id="sec-worker-label" value="WORKERS  (npm-installable)" style="text;html=1;align=center;fontStyle=1;fontSize=10;fillColor=none;strokeColor=none;fontColor=#999999;" vertex="1" parent="1">
-          <mxGeometry x="175" y="615" width="755" height="20" as="geometry" />
+          <mxGeometry x="260" y="615" width="755" height="20" as="geometry" />
         </mxCell>
         <mxCell id="w-elo" value="&lt;b&gt;ELO Engine&lt;/b&gt;&lt;br&gt;Trust System&lt;br&gt;——————&lt;br&gt;Score · Domaines&lt;br&gt;Challenge · K-factor&lt;br&gt;Tilt · Hot hand&lt;br&gt;Zone morte 450-550" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;align=center;" vertex="1" parent="1">
-          <mxGeometry x="175" y="640" width="180" height="115" as="geometry" />
+          <mxGeometry x="260" y="640" width="180" height="115" as="geometry" />
         </mxCell>
         <mxCell id="w-fc" value="&lt;b&gt;Fact-Checker&lt;/b&gt;&lt;br&gt;Epistemic Guard&lt;br&gt;——————&lt;br&gt;CLAIM · FACT · HYPO&lt;br&gt;L1-L5 proof levels&lt;br&gt;Strict domains&lt;br&gt;Knowledge graph" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;align=center;" vertex="1" parent="1">
-          <mxGeometry x="385" y="640" width="180" height="115" as="geometry" />
+          <mxGeometry x="470" y="640" width="180" height="115" as="geometry" />
         </mxCell>
         <mxCell id="w-cost" value="&lt;b&gt;Cost Optimizer&lt;/b&gt;&lt;br&gt;LLM Router&lt;br&gt;——————&lt;br&gt;ELO 0-200 → Opus&lt;br&gt;ELO 201-600 → Sonnet&lt;br&gt;ELO 601+ → Haiku&lt;br&gt;~54% économies" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;align=center;" vertex="1" parent="1">
-          <mxGeometry x="595" y="640" width="180" height="115" as="geometry" />
+          <mxGeometry x="680" y="640" width="180" height="115" as="geometry" />
         </mxCell>
         <mxCell id="e-byan-elo" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;dashed=1;" edge="1" parent="1" source="byan" target="w-elo">
           <mxGeometry relative="1" as="geometry" />
@@ -193,6 +202,9 @@
         </mxCell>
         <mxCell id="leg-install" value="Installation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#555555;fontSize=9;" vertex="1" parent="1">
           <mxGeometry x="48" y="783" width="104" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-hermes" value="Hermes (Dispatcher)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFD700;strokeColor=#B8860B;fontColor=#333300;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="48" y="808" width="104" height="20" as="geometry" />
         </mxCell>
 
       </root>
