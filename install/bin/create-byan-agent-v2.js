@@ -1159,17 +1159,32 @@ async function install() {
   const copySpinner = ora('Installing BYAN platform files...').start();
   
   try {
-    // Copy agent files (core agent definitions)
-    const agentsSource = path.join(templateDir, '_byan', 'bmb', 'agents');
-    const agentsDest = path.join(bmbDir, 'agents');
+    // Copy the entire _byan/ structure (all modules, agents, configs, activation)
+    const byanSource = path.join(templateDir, '_byan');
     
-    if (await fs.pathExists(agentsSource)) {
-      await fs.copy(agentsSource, agentsDest, { overwrite: true });
-      copySpinner.text = 'Copied agent files...';
-      console.log(chalk.green(`  ✓ Agents: ${agentsSource} → ${agentsDest}`));
-    } else {
-      copySpinner.warn(`⚠ Agent source not found: ${agentsSource}`);
+    // Core directories to copy from templates/_byan/ → project/_byan/
+    const byanDirs = ['agents', 'core', 'bmb', 'bmm', 'tea', 'cis', '_config', '_memory', 'data'];
+    
+    for (const dir of byanDirs) {
+      const source = path.join(byanSource, dir);
+      const dest = path.join(byanDir, dir);
+      if (await fs.pathExists(source)) {
+        await fs.copy(source, dest, { overwrite: true });
+      }
     }
+    
+    // Copy root-level files (config.yaml, workers.md, etc.)
+    const rootFiles = await fs.readdir(byanSource);
+    for (const file of rootFiles) {
+      const fullPath = path.join(byanSource, file);
+      const stat = await fs.stat(fullPath);
+      if (stat.isFile()) {
+        await fs.copy(fullPath, path.join(byanDir, file), { overwrite: true });
+      }
+    }
+    
+    copySpinner.text = 'Copied platform files...';
+    console.log(chalk.green(`  ✓ Platform: _byan/ (agents, core, bmb, bmm, tea, cis, config)`));
     
     // Copy cost optimizer worker if enabled
     if (interviewAnswers && interviewAnswers.costOptimizer) {
@@ -1189,17 +1204,7 @@ async function install() {
       }
     }
     
-    // Copy workflow files
-    const workflowsSource = path.join(templateDir, '_byan', 'bmb', 'workflows', 'byan');
-    const workflowsDest = path.join(bmbDir, 'workflows', 'byan');
-    
-    if (await fs.pathExists(workflowsSource)) {
-      await fs.copy(workflowsSource, workflowsDest, { overwrite: true });
-      copySpinner.text = 'Copied workflow files...';
-      console.log(chalk.green(`  ✓ Workflows: ${workflowsSource} → ${workflowsDest}`));
-    } else {
-      copySpinner.warn(`⚠ Workflow source not found: ${workflowsSource}`);
-    }
+    // Workflow files already copied with full _byan/ structure above
     
     // MANUAL mode: Generate stubs only for selected agents on each selected platform
     if (isManual && manualSelection) {
