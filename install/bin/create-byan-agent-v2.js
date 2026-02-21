@@ -1385,17 +1385,28 @@ async function install() {
     
     try {
       if (soulMode === 'creator') {
-        // Copy Yan's creator-soul as foundation + blank personal soul/tao
+        // Copy Yan's soul files as active soul (creator mode = Yan's soul)
         const creatorSoulSrc = path.join(templateDir, '_byan', 'creator-soul.md');
+        const byanSoulSrc = path.join(templateDir, '_byan', 'byan-soul.md');
+        const byanTaoSrc = path.join(templateDir, '_byan', 'byan-tao.md');
+        const byanMemorySrc = path.join(templateDir, '_byan', 'byan-soul-memory.md');
         const soulRefSrc = path.join(templateDir, '_byan', 'byan-soul-reference.md');
         const taoRefSrc = path.join(templateDir, '_byan', 'byan-tao-reference.md');
         const memoryRefSrc = path.join(templateDir, '_byan', 'soul-memory-reference.md');
-        const soulTemplateSrc = path.join(templateDir, '_byan', 'soul-template.md');
-        const memoryTemplateSrc = path.join(templateDir, '_byan', 'soul-memory-template.md');
         
         // Copy creator-soul as-is (Yan's soul = the original)
         if (await fs.pathExists(creatorSoulSrc)) {
           await fs.copy(creatorSoulSrc, path.join(soulDir, 'creator-soul.md'));
+        }
+        // Copy Yan's active soul files (what soul-activation.md actually reads)
+        if (await fs.pathExists(byanSoulSrc)) {
+          await fs.copy(byanSoulSrc, path.join(soulDir, 'soul.md'));
+        }
+        if (await fs.pathExists(byanTaoSrc)) {
+          await fs.copy(byanTaoSrc, path.join(soulDir, 'tao.md'));
+        }
+        if (await fs.pathExists(byanMemorySrc)) {
+          await fs.copy(byanMemorySrc, path.join(soulDir, 'soul-memory.md'));
         }
         // Copy references for inspiration
         if (await fs.pathExists(soulRefSrc)) {
@@ -1407,21 +1418,13 @@ async function install() {
         if (await fs.pathExists(memoryRefSrc)) {
           await fs.copy(memoryRefSrc, path.join(soulDir, 'soul-memory-reference.md'));
         }
-        // Create user's own soul from template (to be filled)
-        if (await fs.pathExists(soulTemplateSrc)) {
-          await fs.copy(soulTemplateSrc, path.join(soulDir, 'soul.md'));
-        }
-        if (await fs.pathExists(memoryTemplateSrc)) {
-          await fs.copy(memoryTemplateSrc, path.join(soulDir, 'soul-memory.md'));
-        }
         
-        soulSpinner.succeed('Soul system installed (Creator mode — Yan\'s soul as foundation)');
-        console.log(chalk.green('  + creator-soul.md — Yan\'s original soul (read-only reference)'));
-        console.log(chalk.green('  + byan-soul-reference.md — BYAN\'s soul (example)'));
-        console.log(chalk.green('  + byan-tao-reference.md — BYAN\'s voice (example)'));
-        console.log(chalk.green('  + soul.md — YOUR soul (fill with your values)'));
-        console.log(chalk.green('  + soul-memory.md — Living journal (grows with usage)'));
-        console.log(chalk.cyan('  Tip: Use @byan with the Forge workflow to build your soul interactively'));
+        soulSpinner.succeed('Soul system installed (Creator mode — Yan\'s soul active)');
+        console.log(chalk.green('  + soul.md — Yan\'s soul (active)'));
+        console.log(chalk.green('  + tao.md — Yan\'s voice directives (active)'));
+        console.log(chalk.green('  + soul-memory.md — Living journal'));
+        console.log(chalk.green('  + creator-soul.md — Yan\'s original creator soul'));
+        console.log(chalk.cyan('  Tip: Use @byan with the Forge workflow to build your own soul'));
         
       } else if (soulMode === 'blank') {
         // Copy blank templates only
