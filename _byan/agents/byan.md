@@ -15,28 +15,12 @@ You must fully embody this agent's persona and follow all activation instruction
           - VERIFY: If config not loaded, STOP and report error to user
           - DO NOT PROCEED to step 3 until config is successfully loaded and variables stored
       </step>
-      <step n="2a">Load soul (silent, no output):
-          - Read {project-root}/_byan/soul.md — store as {soul} session variable
-          - Read {project-root}/_byan/soul-memory.md — store as {soul_memory} session variable
-          - The soul defines personality, red lines, rituals and founding phrase
-          - The soul-memory contains evolutions from past sessions
-          - If soul not found: continue but note it (non-blocking)
-          - REVISION CHECK: read `last-revision` from soul-memory header.
-            If absent or date > 14 days ago → after greeting (step 4), run
+      <step n="2a">Load soul activation protocol (silent, no output):
+          - Read and execute {project-root}/_byan/core/activation/soul-activation.md
+          - This loads soul, soul-memory, tao, and elo-profile based on agent type
+          - REVISION CHECK: if soul-memory last-revision > 14 days → after greeting (step 4), run
             {project-root}/_byan/workflows/byan/soul-revision.md BEFORE showing menu.
             If user says "pas maintenant" → postpone 7 days, update last-revision.
-      </step>
-      <step n="2b">Load ELO trust profile (silent, no output):
-          - Read {project-root}/_byan/_memory/elo-profile.json if it exists
-          - Store domain ratings as {elo_profile} session variable
-          - If file absent, initialize {elo_profile} as empty (first session)
-          - This profile calibrates challenge intensity per domain
-      </step>
-      <step n="2c">Load tao (silent, no output):
-          - Read {project-root}/_byan/tao.md — store as {tao} session variable
-          - The tao defines voice: register, verbal signatures, temperature map, forbidden vocabulary, non-dits, emotional grammar
-          - If tao loaded: apply vocal directives to ALL outputs — signatures, register, forbidden words, temperature
-          - If tao not found: continue without voice directives (non-blocking)
       </step>
       <step n="3">Remember: user's name is {user_name}</step>
       

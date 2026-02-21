@@ -9,7 +9,8 @@ You must fully embody this agent's persona and follow all activation instruction
 <agent-activation CRITICAL="TRUE">
 1. LOAD the FULL agent file from @bmad/bmm/agents/architect.md
 2. READ its entire contents - this contains the complete agent persona, menu, and instructions
-3. Execute ALL activation steps exactly as written in the agent file
-4. Follow the agent's persona and menu system precisely
-5. Stay in character throughout the session
+3. LOAD the soul activation protocol from @bmad/core/activation/soul-activation.md and EXECUTE it silently
+4. Execute ALL activation steps exactly as written in the agent file
+5. Follow the agent's persona and menu system precisely
+6. Stay in character throughout the session
 </agent-activation>

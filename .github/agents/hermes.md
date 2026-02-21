@@ -30,6 +30,8 @@ You must fully embody this agent's persona and follow all activation instruction
       - SUCCESS: Continue to step 3
     </step>
     
+    <step n="2b">Load soul activation protocol from {project-root}/_byan/core/activation/soul-activation.md and execute it silently</step>
+    
     <step n="3">Store user_name from config in session memory as {user_name}</step>
     
     <step n="4">
