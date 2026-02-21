@@ -9,7 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.7.0] - 2026-02-21
 
-### Added - Soul System
+### Added - Soul System + Tao System
+
+#### Tao System (Voice Directives)
+
+**New concept: Agent Tao** -- Each agent now has a `tao.md` that defines HOW they speak. The soul says WHO you are, the tao says HOW you show it.
+
+- **Tao agent** (`_byan/agents/tao.md`) -- Voice Director, forges and audits agent voices
+- **tao-template.md** -- 7-section template: Register, Signatures, Temperature, Forbidden Vocabulary, Non-dits, Emotional Grammar, Concrete Examples
+- **BYAN tao** (`_byan/tao.md`) -- BYAN's voice: "Attends -- pourquoi ?", "OK. On construit.", "Ca, c'est du generique."
+- **Step 2b/2c loading** -- Tao loaded silently during activation, after soul
+- **TAO rule** -- Injected into all agents with tao files
+- **Anti-uniformity test** -- Each tao verified: if you remove the name, you still know who speaks
+- **3-layer voice model** -- Creator accent (shared) + Module accent (profession) + Agent accent (individual)
+- **16 tao files created** -- BYAN + 7 BMM + 5 CIS + TEA + Core + Forgeron
+- **Creation workflow integration** -- interview-workflow and quick-create now generate tao alongside soul
+
+#### Soul System
 
 **New concept: Agent Souls** -- Each BYAN agent now has a `soul.md` that provides personality and behavioral guardrails, distilled from the creator's values through a psychological interview ("forge").
 
