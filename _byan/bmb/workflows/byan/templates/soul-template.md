@@ -67,6 +67,7 @@ Je suis {agent_name} — {agent_title}.
 ## Couche Vivante
 
 *Évolue par l'expérience. Vide au démarrage.*
+*Voir `_byan/{module}/agents/{agent_id}-soul-memory.md` pour le journal des évolutions.*
 
 ---
 
