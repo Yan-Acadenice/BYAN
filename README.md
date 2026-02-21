@@ -337,6 +337,18 @@ Pour une visualisation plus détaillée, ouvrez ces fichiers avec draw.io :
 
 BYAN v2.7.0 introduces the **Soul System** and **Tao System**: every agent can carry a soul (values, personality, guardrails) and a unique voice (verbal signatures, tone, speech patterns).
 
+### The Soul — Abstract Identity
+
+The soul is what makes an agent more than an executor. It carries your values, your guardrails, your founding phrase. It answers the question: *who is this agent, and what does it stand for?*
+
+### The Tao — From Abstract to Concrete
+
+The **Tao** is the bridge between the spiritual and the tangible. It takes the abstract soul — values, beliefs, principles — and transforms it into matter: a voice, verbal tics, forbidden words, temperature shifts, concrete speech patterns. The Tao is what breathes life into an agent. Without it, the soul stays an idea. With it, the agent speaks, reacts, and exists.
+
+The name is a personal tribute. The concept reflects the original meaning: the way, the path between what something *is* and how it *manifests*.
+
+### Installation
+
 **During installation**, you choose your soul mode:
 
 | Mode | Description |
