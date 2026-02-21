@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "facts": [
+    {
+      "id": "c7924e84",
+      "claim": "Node.js utilise libuv pour les opérations I/O asynchrones",
+      "domain": "javascript",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": "nodejs.org — About Node.js",
+      "session_id": null,
+      "expires_at": "2027-02-19",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T12:01:41.349Z",
+      "level": 2,
+      "proof": "Voir nodejs.org/en/about/",
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "956c34f1",
+      "claim": "npm test passe à 100% sur Node.js 20",
+      "domain": "verified",
+      "status": "VERIFIED",
+      "confidence": 100,
+      "source": null,
+      "session_id": null,
+      "expires_at": null,
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-19T12:01:41.351Z",
+      "level": 1,
+      "proof": {
+        "type": "command-output",
+        "content": "14 tests passed, 0 failed — npm run test"
+      },
+      "assertionType": "FACT",
+      "verified_at": "2026-02-19"
+    },
+    {
+      "id": "ca3c1a3f",
+      "claim": "Redis > 100k ops/sec",
+      "domain": "general",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": "redis.io/benchmarks",
+      "session_id": null,
+      "expires_at": "2028-02-21",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-21T13:52:35.456Z",
+      "level": 2,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "905363a4",
+      "claim": "JWT uses RSA-256",
+      "domain": "security",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": "rfc7519",
+      "session_id": null,
+      "expires_at": "2026-08-20",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-21T13:52:35.459Z",
+      "level": 2,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "472563b3",
+      "claim": "Node.js is single-threaded",
+      "domain": "general",
+      "status": "CLAIM",
+      "confidence": 95,
+      "source": "nodejs.org/api",
+      "session_id": null,
+      "expires_at": "2028-02-21",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-21T13:52:35.460Z",
+      "level": 1,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "ee1351bb",
+      "claim": "test claim",
+      "domain": "general",
+      "status": "CLAIM",
+      "confidence": 80,
+      "source": null,
+      "session_id": null,
+      "expires_at": "2028-02-21",
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-21T13:52:35.465Z",
+      "level": 2,
+      "proof": null,
+      "assertionType": "CLAIM"
+    },
+    {
+      "id": "d7d4fd6d",
+      "claim": "Redis > 100k ops/sec",
+      "domain": "verified",
+      "status": "VERIFIED",
+      "confidence": 100,
+      "source": null,
+      "session_id": null,
+      "expires_at": null,
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-21T13:52:35.470Z",
+      "level": 1,
+      "proof": {
+        "type": "user-provided",
+        "content": "redis-benchmark output: 120000 ops/sec"
+      },
+      "assertionType": "FACT",
+      "verified_at": "2026-02-21"
+    },
+    {
+      "id": "a19ae1be",
+      "claim": "X is true",
+      "domain": "verified",
+      "status": "VERIFIED",
+      "confidence": 100,
+      "source": null,
+      "session_id": null,
+      "expires_at": null,
+      "created_at": "2026-02-19",
+      "updated_at": "2026-02-21T13:52:35.472Z",
+      "level": 1,
+      "proof": {
+        "type": "user-provided",
+        "content": "proof here"
+      },
+      "assertionType": "FACT",
+      "verified_at": "2026-02-21"
+    }
+  ],
+  "updated_at": "2026-02-21T13:52:35.472Z"
+}

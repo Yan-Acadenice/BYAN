@@ -6,8 +6,9 @@ description: 'Test Dynamic Loading - Phase B Validation'
 <agent-activation CRITICAL="TRUE">
 1. LOAD the FULL agent file from {project-root}/_byan/core/agents/test-dynamic.md
 2. READ its entire contents
-3. FOLLOW activation steps precisely
-4. WAIT for user input
+3. LOAD the soul activation protocol from {project-root}/_byan/core/activation/soul-activation.md and EXECUTE it silently
+4. FOLLOW activation steps precisely
+5. WAIT for user input
 </agent-activation>
 
 ```xml
