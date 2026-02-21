@@ -740,6 +740,7 @@ status: "validated"
 ✅ ProjectContext created
 ✅ AgentSpec created and validated
 ✅ Agent soul generated from creator-soul and validated by user
+✅ Agent tao generated from soul and validated by user
 
 ---
 
@@ -750,9 +751,14 @@ After Phase 4 validation, BYAN should:
 1. Save all artifacts to `{output_folder}`
 2. Generate agent soul from `_byan/creator-soul.md` using `_byan/bmb/workflows/byan/templates/soul-template.md`
 3. Ask user to validate the generated soul
-4. Update session status to "completed"
-5. Present user with next steps (file generation)
-6. Offer to proceed immediately or exit
+4. Generate agent tao from the validated soul using `_byan/bmb/workflows/byan/templates/tao-template.md`
+   - Derive vocal traits from soul values (register, signatures, temperature, forbidden vocabulary, non-dits, emotional grammar, examples)
+   - Run anti-uniformity test against existing taos
+   - Ask user to validate the generated tao
+   - Save as `_byan/{module}/agents/{agent_name}-tao.md`
+5. Update session status to "completed"
+6. Present user with next steps (file generation)
+7. Offer to proceed immediately or exit
 
 ```
 "Interview complete! 🎉

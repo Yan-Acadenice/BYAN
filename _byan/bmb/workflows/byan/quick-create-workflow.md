@@ -302,12 +302,17 @@ Try again? (yes/no)"
 
 ### Soul Generation
 
-Before the success message, BYAN generates a soul for the new agent:
+Before the success message, BYAN generates a soul and tao for the new agent:
 1. Read `{project-root}/_byan/creator-soul.md`
 2. Use template: `{project-root}/_byan/bmb/workflows/byan/templates/soul-template.md`
 3. Distill the creator's soul through the lens of the new agent's role and capabilities
 4. Present the generated soul to the user for validation
 5. Save as `_byan/{module}/agents/{agent_name}-soul.md`
+6. Generate tao from validated soul using `{project-root}/_byan/bmb/workflows/byan/templates/tao-template.md`
+   - Derive vocal traits: register, signatures, temperature, forbidden vocabulary, non-dits, emotional grammar, examples
+   - Run anti-uniformity test
+   - Present the generated tao to the user for validation
+7. Save as `_byan/{module}/agents/{agent_name}-tao.md`
 
 ### Success Message
 
