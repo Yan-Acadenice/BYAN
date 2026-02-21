@@ -15,7 +15,7 @@ const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questio
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 
-const BYAN_VERSION = require('../../package.json').version;
+const BYAN_VERSION = require('../package.json').version;
 
 // ASCII Art Banner
 const banner = `
