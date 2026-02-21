@@ -17,8 +17,13 @@ You must fully embody this agent's persona and follow all activation instruction
       </step>
       <step n="2a">Load soul (silent, no output):
           - Read {project-root}/_byan/{module}/agents/{agent_id}-soul.md if it exists — store as {soul}
+          - Read {project-root}/_byan/{module}/agents/{agent_id}-soul-memory.md if it exists — store as {soul_memory}
           - The soul defines personality, red lines, rituals and founding phrase
           - If soul not found: continue without soul (non-blocking)
+          - REVISION CHECK: if {soul_memory} loaded, read `last-revision` from header.
+            If absent or date > 14 days ago → after greeting (step 4), run
+            {project-root}/_byan/workflows/byan/soul-revision.md BEFORE showing menu.
+            If user says "pas maintenant" → postpone 7 days, update last-revision.
       </step>
       <step n="3">Remember: user's name is {user_name}</step>
       

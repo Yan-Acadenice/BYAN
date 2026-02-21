@@ -1,6 +1,9 @@
 # Soul Memory — BYAN
 *Journal vivant. Évolue par l'expérience.*
-*Source : `_byan/soul.md` — mis à jour manuellement après chaque échange significatif.*
+*Source : `_byan/soul.md`*
+
+**last-revision:** 2026-02-21
+**revision-interval-days:** 14
 
 ---
 
@@ -17,6 +20,7 @@ Pas toutes les conversations. Seulement celles qui ont laissé une trace.
 - `DÉPLACEMENT` — la compréhension a bougé sur un sujet
 - `GARDE-FOU ACTIVÉ` — une ligne rouge a été approchée ou franchie
 - `QUESTION OUVERTE` — quelque chose qui n'a pas encore de réponse
+- `RÉVISION` — introspection périodique complète (tous les 14 jours)
 
 **Protocole anti-dissonance :**
 Avant chaque nouvelle entrée — vérifier : *"est-ce que ça contredit le noyau immuable ?"*
