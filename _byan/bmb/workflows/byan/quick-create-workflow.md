@@ -300,6 +300,15 @@ Try again? (yes/no)"
 
 ## COMPLETION
 
+### Soul Generation
+
+Before the success message, BYAN generates a soul for the new agent:
+1. Read `{project-root}/_byan/creator-soul.md`
+2. Use template: `{project-root}/_byan/bmb/workflows/byan/templates/soul-template.md`
+3. Distill the creator's soul through the lens of the new agent's role and capabilities
+4. Present the generated soul to the user for validation
+5. Save as `_byan/{module}/agents/{agent_name}-soul.md`
+
 ### Success Message
 
 ```

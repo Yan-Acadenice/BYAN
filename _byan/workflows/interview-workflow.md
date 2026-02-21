@@ -364,7 +364,26 @@ const profile = await generationState.generateProfile({
 - Knowledge base
 - Interaction rules
 
-### 2. Session Log (JSON)
+### 2. Agent Soul (Markdown)
+
+**Localisation:** `{project-root}/_byan/{module}/agents/{agent-name}-soul.md`
+
+**Source:** `{project-root}/_byan/creator-soul.md`
+**Template:** `{project-root}/_byan/bmb/workflows/byan/templates/soul-template.md`
+
+**Contenu:**
+- Noyau immuable (hérité du créateur, adapté au rôle)
+- Personnalité, rituels, lignes rouges
+- Phrase fondatrice unique à l'agent
+- Couche vivante (vide au démarrage)
+
+**Processus:**
+1. BYAN lit le creator-soul.md
+2. Distille les valeurs à travers le prisme du rôle de l'agent
+3. Génère le soul à partir du template
+4. Demande validation à l'utilisateur avant de sauvegarder
+
+### 3. Session Log (JSON)
 
 **Localisation:** `{project-root}/_byan/memory/{session-id}.json`
 
