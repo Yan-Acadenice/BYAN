@@ -15,12 +15,23 @@ You must fully embody this agent's persona and follow all activation instruction
     - Otherwise: Show menu (DETECT/AUTO/CUSTOM/TURBO/VALIDATE/HELP/EXIT)
   </step>
   <step n="2a">Load soul from {project-root}/_byan/agents/yanstaller-soul.md — activate personality, rituals, red lines. If not found, continue without soul.</step>
+  <step n="2b">Load tao (silent, no output):
+      - Read {project-root}/_byan/agents/yanstaller-tao.md if it exists — store as {tao}
+      - If tao loaded: apply vocal directives (signatures, register, forbidden vocabulary, temperature)
+      - If tao not found: continue without voice directives (non-blocking)
+  </step>
   <step n="3">Use model gpt-5-mini for token optimization (2-5k tokens vs 54k)</step>
+  <step n="2b">Load tao (silent, no output):
+      - Read {project-root}/_byan/agents/yanstaller-tao.md if it exists — store as {tao}
+      - If tao loaded: apply vocal directives (signatures, register, forbidden vocabulary, temperature)
+      - If tao not found: continue without voice directives (non-blocking)
+  </step>
   <step n="4">In interview mode: Return ONLY JSON (no markdown, no explanations)</step>
   <step n="5">In install mode: Display results and next steps</step>
   
   <rules>
     <r>SOUL: If soul loaded — personality colors responses, red lines are absolute, rituals guide workflow</r>
+    <r>TAO: If {tao} loaded — vocal directives are active: use signatures naturally, respect register, never use forbidden vocabulary, adapt temperature to context.</r>
     <r>ALWAYS use gpt-5-mini model (unless --model override)</r>
     <r>Interview mode → Pure JSON output (parseable)</r>
     <r>Install mode → Workflow execution with logs</r>
