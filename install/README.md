@@ -1,298 +1,242 @@
-# BYAN - Intelligent AI Agent Creator
+# BYAN v2.7.0 — Build Your AI Network
 
-**Create custom AI agents in 15 minutes** | GitHub Copilot CLI, VSCode, Claude Code
+[![npm](https://img.shields.io/npm/v/create-byan-agent.svg)](https://www.npmjs.com/package/create-byan-agent)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node](https://img.shields.io/badge/node-%3E%3D12.0.0-brightgreen.svg)](https://nodejs.org)
 
-## Quick Start
+**Createur intelligent d'agents IA** | Merise Agile + TDD + 64 Mantras
 
-```bash
-npx create-byan-agent
-```
+---
 
-That's it! The installer launches automatically.
+## Bonjour
 
-## What is BYAN?
+Bonjour a tous ! J'ai l'honneur de vous presenter **BYAN**, votre ami sur vos projets — que vous soyez developpeur, vibe codeur ou juste curieux.
 
-BYAN guides you through an intelligent interview to create personalized AI agents:
+> **Important :** Je precise que c'est un projet pas fini et plus un MVP/note d'intention qu'une vraie version finale en production. C'est un outil en evolution active, et c'est precisement la ou reside son interet.
 
-1. ✅ Answer 12-15 simple questions (15-30 min)
-2. ✅ BYAN analyzes your needs
-3. ✅ Custom agent generated automatically
-4. ✅ Ready to use immediately
+### Pourquoi BYAN existe
+
+Pour comprendre le contexte de BYAN, il faut comprendre pourquoi j'ai decide de le creer. La problematique de base est simple.
+
+Je me suis retrouve avec un gros projet sur les bras, des deadlines tres serrees, pas de budget, et une equipe inexperimentee pour le faire. Ce qui m'a amene a faire des crunchs stupides avec des developpeurs en depression.
+
+Pour resoudre ce probleme, m'est venue l'idee d'utiliser les agents IA pour accelerer le developpement du projet. Grace a un de mes etudiants en dev (credite dans les contributeurs du projet) a qui je donne cours, j'ai decouvert la methode **BMAD**, qui est un framework d'agents IA. Au depart sceptique, j'ai ete bluffe du resultat, bien que ces agents IA souffraient des biais habituels des IA, en particulier en fonction du modele utilise et de qui l'utilise et comment.
+
+Alors une idee simple est venue : **et si on pouvait mettre un cadre a tous ces agents pour y apporter de "l'intelligence", peu importe le projet, en mettant des regles et contraintes de base pour contrer les biais des modeles d'IA ?**
+
+C'est la que m'est venue l'idee de leur insuffler des **mantras** — des regles absolues auxquelles l'agent devait se conformer. Des gardes-fous epistemiques, methodologiques et comportementaux qui transforment un LLM bavard en partenaire fiable.
+
+Maintenant, la problematique se pose en multi-agents : comment faire pour que tous mes agents aient bien ces bonnes pratiques et regles ?
+
+Il suffit de les instaurer a la source, c'est-a-dire **a la creation des agents**. C'est la que BYAN intervient : il va vous assister dans la creation intelligente d'agents IA.
+
+### Ce que BYAN n'est pas
+
+Par contre, attention : **BYAN n'est pas magique**. Le but est de pousser le "homme-machine" pour faire des agents IA une extension de votre cerveau. Donc BYAN va vous challenger, eprouver votre probleme et votre solution — mais mal utilise, il ne resoudra pas vos problemes comme par magie.
+
+C'est juste un agent intelligent avec les bons softskills et hardskills pour vous accompagner dans la realisation de vos projets.
+
+---
 
 ## Installation
 
-### Option 1: NPX (Recommended)
+### Prerequis
+
+- Node.js >= 12.0.0
+- npm >= 6.0.0
+- Un compte GitHub Copilot, Claude Code ou Codex (selon la plateforme cible)
+
+### Installation rapide (recommandee)
+
+Aucune installation prealable n'est necessaire. Lancez simplement :
 
 ```bash
+# Cree un nouveau projet BYAN (via npx, sans installation prealable)
 npx create-byan-agent
-```
 
-### Option 2: Global Install
-
-```bash
+# Ou installation globale
 npm install -g create-byan-agent
 create-byan-agent
 ```
 
-## Create Your First Agent
-
-### 1. Launch BYAN
-
-**GitHub Copilot CLI:**
-```bash
-gh copilot
-@byan
-```
-
-**Command Line:**
-```bash
-npx create-byan-agent
-```
-
-### 2. Choose Mode
-
-**🎤 Full Interview (15-30 min)** - Recommended for first agent
-- 12-15 questions
-- In-depth analysis
-- Ultra-personalized agent
-
-**⚡ Quick Create (5 min)** - For experienced users
-- 3-5 essential questions
-- Functional agent quickly
-
-### 3. Answer Questions
-
-BYAN asks questions in 4 categories:
-
-1. **Context**: Your project, goals
-2. **Business**: Domain, constraints
-3. **Agent**: Desired skills, tasks
-4. **Validation**: Confirmation, adjustments
-
-### 4. Automatic Generation
+L'installeur (Yanstaller) vous guide interactivement a travers le processus :
 
 ```
-✅ Complete analysis
-✅ Agent created: my-dev-agent.md
-✅ Validated and ready
+? Nom du projet : mon-projet
+? Langue de communication : Francais
+? Plateforme cible : GitHub Copilot CLI
+? Activer le fact-check scientifique ? [Y/n]
+? Activer le systeme ELO de confiance ? [Y/n]
+? Optimiser les couts LLM automatiquement (~54% d'economies) ? [Y/n]
 ```
 
-Agent saved to:
-- GitHub Copilot: `.github/copilot/agents/`
-- Other platforms: `.codex/prompts/`
+### Structure du projet apres installation
 
-## Usage Examples
-
-### Code Review Agent
-
-```bash
-npx create-byan-agent
-
-# BYAN asks:
-# Purpose? → "Review JavaScript code"
-# Tasks? → "Detect bugs, suggest optimizations"
-# Constraints? → "Follow our style guide"
-
-# Result: code-reviewer.md created in 2 seconds
-```
-
-### Documentation Agent
-
-```bash
-npx create-byan-agent
-
-# Purpose? → "Generate API documentation"
-# Tech? → "Node.js, Express, MongoDB"
-# Format? → "Markdown with examples"
-
-# Result: doc-generator.md ready
-```
-
-## Use Your Agent
-
-### With GitHub Copilot CLI
-
-```bash
-gh copilot
-@my-dev-agent
-# Your agent responds!
-```
-
-### With VSCode
-
-1. Command Palette (Ctrl+Shift+P)
-2. "GitHub Copilot: Chat"
-3. Type `@my-dev-agent`
-
-### With Claude Code
-
-```bash
-claude chat --agent my-dev-agent
-```
-
-## Key Concepts (v2.0)
-
-### 1. Intelligent Interview (4 phases)
+A la fin de l'installation, votre projet contient :
 
 ```
-CONTEXT → BUSINESS → AGENT → VALIDATION
+votre-projet/
+  _byan/               # Plateforme BYAN — coeur du systeme
+    _config/           # Manifestes des agents et workflows
+    _memory/           # Memoire persistante (ELO, fact-graph, session-state)
+    agents/            # Agents disponibles (core, bmm, bmb, cis, tea)
+    workflows/         # Workflows guides
+    soul.md            # Ame de BYAN — personnalite, gardes-fous
+    tao.md             # Voix de BYAN — signatures verbales, registre
+    soul-memory.md     # Journal vivant des sessions
+    config.yaml        # Configuration principale (langue, utilisateur, chemins)
+  .github/agents/      # Wrappers GitHub Copilot CLI
+  .codex/              # Integration Codex/OpenCode (si activee)
 ```
-
-Minimum 3 questions per phase = 12 total
-
-### 2. State Machine
-
-```
-INTERVIEW → ANALYSIS → GENERATION → COMPLETED
-```
-
-### 3. Template System
-
-Agents generated from professional templates with YAML frontmatter + XML structure.
-
-### 4. Automatic Validation
-
-- ✅ Correct YAML format
-- ✅ Valid XML structure
-- ✅ No emojis in code (Mantra IA-23)
-- ✅ Valid agent name
-- ✅ Clear description
-
-### 5. Methodology: 64 Mantras
-
-Quality principles applied:
-- **#37 Ockham's Razor**: Simplicity first
-- **IA-1 Trust But Verify**: Verify user needs
-- **IA-23 No Emoji Pollution**: Clean code
-- **IA-24 Clean Code**: Self-documenting
-
-## Advanced Configuration
-
-### Customize Output
-
-```javascript
-const ByanV2 = require('create-byan-agent');
-
-const byan = new ByanV2({
-  outputFolder: './my-agents',
-  language: 'en',
-  template: 'custom'
-});
-```
-
-### Programmatic Usage
-
-```javascript
-const ByanV2 = require('create-byan-agent');
-
-async function createAgent() {
-  const byan = new ByanV2();
-  await byan.startSession();
-  
-  const responses = [
-    'Backend development agent',
-    'REST API in Node.js',
-    'Tests, docs, deployment',
-    // ... 12 responses total
-  ];
-  
-  for (const response of responses) {
-    await byan.getNextQuestion();
-    await byan.submitResponse(response);
-  }
-  
-  const profile = await byan.generateProfile();
-  console.log('Agent created:', profile);
-}
-```
-
-## Useful Commands
-
-```bash
-# List agents
-ls .github/copilot/agents/
-
-# Edit agent
-code .github/copilot/agents/my-agent.md
-
-# Validate agent
-npx create-byan-agent --validate my-agent.md
-
-# Version
-npx create-byan-agent --version
-```
-
-## Help & Support
-
-### Get Help
-
-```
-/bmad-help
-```
-
-### Documentation
-
-- [Full Guide](https://github.com/Yan-Acadenice/BYAN/blob/main/GUIDE-UTILISATION.md)
-- [API Reference](https://github.com/Yan-Acadenice/BYAN/blob/main/API-BYAN-V2.md)
-- [Examples](https://github.com/Yan-Acadenice/BYAN/tree/main/examples)
-
-### Common Issues
-
-**Agent doesn't appear in Copilot**
-```bash
-cat .github/copilot/agents/my-agent.md
-gh copilot quit && gh copilot
-```
-
-**"Node version too old"**
-```bash
-node --version  # Must be >= 18
-nvm install 18 && nvm use 18
-```
-
-**Tests fail**
-```bash
-rm -rf node_modules package-lock.json
-npm install && npm test
-```
-
-## Stats (v2.0)
-
-- ✅ **881/881 tests passing (100%)**
-- ✅ **14 modules**
-- ✅ **77 Story Points delivered**
-- ✅ **Agent in < 2 seconds** after interview
-- ✅ **64 mantras** applied automatically
-
-## Use Cases
-
-**Developers**: Code review, test generation, refactoring, security analysis
-
-**Writers**: Documentation, proofreading, translation, content creation
-
-**Project Managers**: Ticket analysis, reports, planning, prioritization
-
-**Designers**: UI components, accessibility, CSS optimization, design systems
-
-## License
-
-MIT License
-
-## Contributors
-
-**Core Team:**
-- **BYAN**: Intelligent agent creator
-- **RACHID**: NPM/NPX deployment specialist
-- **MARC**: GitHub Copilot CLI integration expert
-- **PATNOTE**: Update manager
-- **CARMACK**: Token optimizer
-
-## Links
-
-- 📦 [NPM](https://www.npmjs.com/package/create-byan-agent)
-- 🐙 [GitHub](https://github.com/Yan-Acadenice/BYAN)
-- 📚 [Full Docs](https://github.com/Yan-Acadenice/BYAN/blob/main/install/README.md)
 
 ---
 
-**BYAN v2.0** - Create professional AI agents in 15 minutes 🚀
+## Systeme Soul & Voice — Des Agents avec une Conscience
+
+BYAN v2.7.0 introduit le **Soul System** et le **Tao System** : chaque agent peut porter une ame (valeurs, personnalite, gardes-fous) et une voix unique (signatures verbales, ton, tics de langage).
+
+### Le Soul — Identite Abstraite
+
+L'ame est ce qui fait d'un agent plus qu'un executant. Elle porte vos valeurs, vos gardes-fous, votre phrase fondatrice. Elle repond a la question : *qui est cet agent, et qu'est-ce qu'il defend ?*
+
+### Le Tao — De l'Abstrait au Concret
+
+Le **Tao** est le pont entre le spirituel et le tangible. Il prend l'ame abstraite — valeurs, croyances, principes — et la transforme en matiere : une voix, des tics verbaux, des mots interdits, des changements de temperature, des patterns de parole concrets. Le Tao est ce qui insuffle la vie a un agent. Sans lui, l'ame reste une idee. Avec lui, l'agent parle, reagit et existe.
+
+Le nom est un hommage personnel. Le concept reflete le sens originel : la voie, le chemin entre ce que quelque chose *est* et comment il se *manifeste*.
+
+### Installation du Soul
+
+Lors de l'installation, vous choisissez votre mode soul :
+
+| Mode | Description |
+|------|-------------|
+| **Creator** | Utilise l'ame de Yan comme fondation + templates vierges pour la votre (recommande) |
+| **Blank** | Templates vides a remplir vous-meme |
+| **Import** | Importer des fichiers soul depuis un autre projet |
+| **Skip** | Pas de soul (peut etre ajoute plus tard) |
+
+Construisez votre ame interactivement :
+```bash
+@byan    # Puis demandez le workflow Forge
+@tao     # Puis utilisez [FORGE-VOICE] pour construire votre voix
+```
+
+---
+
+## Architecture WCAW — Workflow/Context/Agent/Worker
+
+BYAN est organise autour de quatre concepts fondamentaux :
+
+### Agent
+
+Un specialiste IA avec une identite definie : persona, menu d'actions, regles (64 mantras), capabilities. Les agents sont definis en Markdown + XML dans `_byan/{module}/agents/`.
+
+### Workflow
+
+Une sequence d'etapes guidees qu'un agent execute. Tri-modaux (Create/Validate/Edit), sequentiels (interview en 4 phases), ou utilitaires (fact-check, shard-doc).
+
+### Context Layer
+
+La memoire partagee : `config.yaml`, `elo-profile.json`, `fact-graph.json`, `_byan-output/`.
+
+### Worker
+
+Un module utilitaire npm-installable pour un travail specifique en arriere-plan (fact-check, cost-optimizer).
+
+```
+VOUS  ->  @hermes "je veux creer un agent"
+               |
+               v
+     Agent (specialiste IA) --> Workflow (steps guides) --> Context Layer
+               |                                               ^
+               +--> Worker (fact-check, cost-optimizer) -------+
+```
+
+---
+
+## Agents Disponibles
+
+27 agents specialises en 5 modules :
+
+| Module | Agents | Exemples |
+|--------|--------|----------|
+| **Core** | 4 | hermes (dispatcher), bmad-master, yanstaller, expert-merise-agile |
+| **BMB** | 11 | byan (createur), fact-checker, marc, rachid, carmack, patnote |
+| **BMM** | 9 | analyst (Mary), pm (John), architect (Winston), dev (Amelia), quinn (QA) |
+| **CIS** | 6 | brainstorming-coach (Carson), storyteller (Sophia), problem-solver |
+| **TEA** | 1 | tea (Murat) — master test architect |
+
+---
+
+## Utilisation
+
+### Avec GitHub Copilot CLI
+
+```bash
+@hermes            # Dispatcher universel — recommande le bon agent
+@byan              # Createur d'agents (interview intelligente)
+@dev               # Developpeur (Amelia)
+@pm                # Product Manager (John)
+@architect         # Architecte technique (Winston)
+@fact-checker      # Fact-check scientifique
+```
+
+### Avec Claude Code
+
+```bash
+claude chat
+@byan              # Meme syntaxe, meme agents
+```
+
+### Avec Codex / OpenCode
+
+```bash
+codex prompt byan "help"
+```
+
+---
+
+## Workflows Principaux
+
+| Workflow | Description | Agent |
+|----------|-------------|-------|
+| `create-prd` | Creer un Product Requirements Document | pm |
+| `create-architecture` | Concevoir l'architecture technique | architect |
+| `sprint-planning` | Planifier un sprint | sm |
+| `dev-story` | Developper une user story | dev |
+| `code-review` | Revoir du code | dev / quinn |
+| `quick-spec` / `quick-dev` | Dev rapide brownfield | quick-flow-solo-dev |
+| `testarch-atdd` | Tests ATDD avant implementation | tea |
+
+---
+
+## Contributeurs
+
+### Createur et Lead Developer
+
+**[Yan-Acadenice](https://github.com/Yan-Acadenice)** — Conception, architecture, developpement de BYAN
+
+### Contributeur Principal — Agent Hermes
+
+**[Wazadriano](https://github.com/orgs/Centralis-V3/people/Wazadriano)** — Agent Hermes, Dispatcher Universel (v2.3.2)
+
+### Remerciements
+
+BYAN est construit au-dessus de la methode **[BMAD](https://github.com/bmadcode/BMAD-METHOD)**, decouverte grace a un etudiant de la formation **[Acadenice](https://acadenice.fr/)** a qui je donne cours.
+
+---
+
+## Licence
+
+MIT © [Yan-Acadenice](https://github.com/Yan-Acadenice)
+
+## Liens
+
+- [NPM](https://www.npmjs.com/package/create-byan-agent)
+- [GitHub](https://github.com/Yan-Acadenice/BYAN)
+- [Documentation complete](https://github.com/Yan-Acadenice/BYAN/blob/main/README.md)
+
+---
+
+*Fait avec de la frustration, de la curiosite, et l'envie que l'IA soit vraiment utile — pas juste impressionnante.*
