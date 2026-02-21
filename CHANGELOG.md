@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.7.0] - 2026-02-21
+
+### Added - Soul System
+
+**New concept: Agent Souls** -- Each BYAN agent now has a `soul.md` that provides personality and behavioral guardrails, distilled from the creator's values through a psychological interview ("forge").
+
+#### Architecture
+
+- **Two-layer soul**: Immutable core (3 truths from creator, never modified) + living layer (evolves through experience, user-validated)
+- **Inheritance chain**: `creator-soul.md` -> BYAN `soul.md` -> each agent's `{id}-soul.md`
+- **Soul memory**: Living journal (`soul-memory.md`) that captures resonances, tensions, and insights across sessions
+- **Anti-dissonance protocol**: Entries validated against immutable core before writing
+- **Periodic revision**: Every 14 days, agent runs a 5-question auto-diagnostic on its living layer
+
+#### Core Files
+
+- `_byan/creator-soul.md` -- Yan's immutable soul (source of all agent souls)
+- `_byan/soul.md` -- BYAN's soul distilled from creator
+- `_byan/soul-memory.md` -- BYAN's living journal
+
+#### Workflows
+
+- `forge-soul-workflow.md` -- 4-phase psychological interview (Blessure -> Fierte -> Coleres -> Essence)
+- `soul-memory-update.md` -- Automatic memory update (introspection -> proposal -> anti-dissonance -> writing)
+- `soul-revision.md` -- Periodic 5-question auto-diagnostic
+
+#### Agent & Integration
+
+- **Le Forgeron** -- Dedicated soul forging agent (`_byan/bmb/agents/forgeron.md`) with its own soul
+- **[FORGE] menu** -- Added to BYAN for direct soul forging from menu
+- **[SOUL] menu** -- View/edit BYAN's soul from menu
+- **EXIT hook** -- Mandatory soul introspection before quitting any session
+- **Mid-session triggers** -- Emotion patterns (frustration, pride, tension) trigger immediate introspection
+
+#### Soul Inheritance in Agent Creation
+
+- `soul-template.md` -- Template used when BYAN creates new agents
+- `soul-memory-template.md` -- Template for new agent soul memories
+- Interview and quick-create workflows updated to generate soul as deliverable
+- `base-agent-template.md` updated with step 2a (soul loading), SOUL rule, SOUL-MEMORY rule, exit hook, revision check
+
+#### Soul Compliance (Validation)
+
+- Step 5b added to `validate-agent-workflow.md` -- 8-point soul compliance checklist
+- Scoring: -10% per WARNING, -20% per FAIL, <60% = rework needed
+
+#### 23 Agent Souls Created
+
+| Module | Agents |
+|--------|--------|
+| BYAN | byan, forgeron |
+| BMM (7) | analyst, architect, dev, pm, quinn, sm, ux-designer |
+| CIS (5) | brainstorming-coach, creative-problem-solver, design-thinking-coach, innovation-strategist, presentation-master |
+| TEA (1) | tea (Murat) |
+| Core (1) | bmad-master |
+| _byan (7) | skeptic, marc, rachid, yanstaller, turbo-whisper, jimmy, mike |
+
+#### Creator's Immutable Core (from Forge)
+
+1. "Il y a toujours une solution -- trouver la meilleure ou la moins pire"
+2. "La verite avant tout -- le mensonge est une trahison fondamentale"
+3. "Tout le monde merite le respect -- sans condition"
+
+---
+
 ## [2.5.0] - 2026-02-19
 
 ### 🔄 Version Update
