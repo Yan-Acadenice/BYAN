@@ -420,3 +420,36 @@ When analyzing brownfield projects:
 - Agent Manifests: `_bmad/_config/agent-manifest.csv`
 - Task Manifests: `_bmad/_config/task-manifest.csv`
 - Module Help: `_bmad/{module}/module-help.csv`
+
+## Agent Native Capabilities
+
+All BMAD agents are **natively workflow-aware and delegation-capable**. These capabilities are loaded automatically via the soul-activation protocol (`_byan/core/activation/soul-activation.md`).
+
+### Invoke Workflows
+```
+@bmad-{module}-{workflow}
+Example: @bmad-bmm-create-prd, @bmad-tea-testarch-atdd, @bmad-bmb-agent
+```
+Manifests: `_bmad/_config/workflow-manifest.csv`
+
+### Delegate to Agents
+```
+@bmad-agent-{name}
+Example: @bmad-agent-bmm-dev, @bmad-agent-byan, @bmad-agent-bmm-analyst
+```
+Manifests: `_bmad/_config/agent-manifest.csv`
+
+### Context Variables
+Available after config loading: `{project-root}`, `{output_folder}`, `{planning_artifacts}`, `{implementation_artifacts}`, `{user_name}`, `{communication_language}`
+
+### Multi-Agent Orchestration
+- Agents can **invoke other agents** mid-workflow for specialized tasks
+- Agents can **launch workflows** directly via menu handlers (`exec`, `workflow`)
+- **Party Mode** (`@bmad-party-mode`) enables multi-agent discussions
+- **Pipeline**: Chain agents sequentially (PM → Architect → Dev → QA)
+
+### Menu Handlers
+Agents execute actions via: `exec`, `workflow`, `tmpl`, `data`, `action`, `validate-workflow`
+
+### Soul System
+Agents load personality (soul.md), voice (tao.md), and memory (soul-memory.md) via the centralized protocol at `_byan/core/activation/soul-activation.md`.
