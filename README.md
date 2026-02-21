@@ -1,4 +1,4 @@
-# BYAN v2.6.0 — Build Your AI Network
+# BYAN v2.7.0 — Build Your AI Network
 
 [![npm](https://img.shields.io/npm/v/create-byan-agent.svg)](https://www.npmjs.com/package/create-byan-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -330,6 +330,35 @@ Pour une visualisation plus détaillée, ouvrez ces fichiers avec draw.io :
 
 - **Architecture globale BYAN** : [byan-architecture.drawio](https://github.com/Yan-Acadenice/BYAN/blob/main/byan-architecture.drawio)
 - **Concept Workflow/Context/Agent/Worker** : [byan-wcaw-concept.drawio](https://github.com/Yan-Acadenice/BYAN/blob/main/byan-wcaw-concept.drawio)
+
+---
+
+## Soul & Voice System — Agents with a Conscience
+
+BYAN v2.7.0 introduces the **Soul System** and **Tao System**: every agent can carry a soul (values, personality, guardrails) and a unique voice (verbal signatures, tone, speech patterns).
+
+**During installation**, you choose your soul mode:
+
+| Mode | Description |
+|------|-------------|
+| **Creator** | Use Yan's soul as foundation + empty templates for yours (recommended) |
+| **Blank** | Empty templates to fill from scratch |
+| **Import** | Import existing soul files from another project |
+| **Skip** | No soul setup (can be added later) |
+
+**Key files:**
+- `_byan/creator-soul.md` — Your core values and truths (immutable)
+- `_byan/soul.md` — BYAN's personality derived from yours
+- `_byan/tao.md` — Voice directives (verbal signatures, forbidden words, tone map)
+- `_byan/soul-memory.md` — Living journal that grows with usage
+
+**Build your soul interactively:**
+```bash
+@byan    # Then ask for the Forge workflow
+@tao     # Then use [FORGE-VOICE] to build your voice
+```
+
+> Full documentation: [SOUL-SETUP-GUIDE.md](SOUL-SETUP-GUIDE.md)
 
 ---
 

@@ -1359,6 +1359,132 @@ async function install() {
   
   configSpinner.succeed('Configuration generated');
   
+  // Step 8.5: Soul & Voice Setup
+  console.log('');
+  console.log(chalk.blue('--- Soul & Voice System ---'));
+  console.log(chalk.gray('BYAN agents can carry a soul (values, personality, guardrails)'));
+  console.log(chalk.gray('and a voice/tao (verbal signatures, tone, speech patterns).'));
+  console.log('');
+  
+  const { soulMode } = await inquirer.prompt([{
+    type: 'list',
+    name: 'soulMode',
+    message: 'Soul setup mode:',
+    choices: [
+      { name: 'CREATOR — Use Yan\'s soul as foundation (recommended for first-timers)', value: 'creator' },
+      { name: 'BLANK — Start with empty templates to fill yourself', value: 'blank' },
+      { name: 'IMPORT — Import existing soul files from a path', value: 'import' },
+      { name: 'SKIP — No soul setup (can be added later)', value: 'skip' }
+    ],
+    default: 'creator'
+  }]);
+  
+  if (soulMode !== 'skip') {
+    const soulSpinner = ora('Setting up Soul & Voice system...').start();
+    const soulDir = byanDir; // _byan/ root for soul files
+    
+    try {
+      if (soulMode === 'creator') {
+        // Copy Yan's creator-soul as foundation + blank personal soul/tao
+        const creatorSoulSrc = path.join(templateDir, '_byan', 'creator-soul.md');
+        const soulRefSrc = path.join(templateDir, '_byan', 'byan-soul-reference.md');
+        const taoRefSrc = path.join(templateDir, '_byan', 'byan-tao-reference.md');
+        const memoryRefSrc = path.join(templateDir, '_byan', 'soul-memory-reference.md');
+        const soulTemplateSrc = path.join(templateDir, '_byan', 'soul-template.md');
+        const memoryTemplateSrc = path.join(templateDir, '_byan', 'soul-memory-template.md');
+        
+        // Copy creator-soul as-is (Yan's soul = the original)
+        if (await fs.pathExists(creatorSoulSrc)) {
+          await fs.copy(creatorSoulSrc, path.join(soulDir, 'creator-soul.md'));
+        }
+        // Copy references for inspiration
+        if (await fs.pathExists(soulRefSrc)) {
+          await fs.copy(soulRefSrc, path.join(soulDir, 'byan-soul-reference.md'));
+        }
+        if (await fs.pathExists(taoRefSrc)) {
+          await fs.copy(taoRefSrc, path.join(soulDir, 'byan-tao-reference.md'));
+        }
+        if (await fs.pathExists(memoryRefSrc)) {
+          await fs.copy(memoryRefSrc, path.join(soulDir, 'soul-memory-reference.md'));
+        }
+        // Create user's own soul from template (to be filled)
+        if (await fs.pathExists(soulTemplateSrc)) {
+          await fs.copy(soulTemplateSrc, path.join(soulDir, 'soul.md'));
+        }
+        if (await fs.pathExists(memoryTemplateSrc)) {
+          await fs.copy(memoryTemplateSrc, path.join(soulDir, 'soul-memory.md'));
+        }
+        
+        soulSpinner.succeed('Soul system installed (Creator mode — Yan\'s soul as foundation)');
+        console.log(chalk.green('  + creator-soul.md — Yan\'s original soul (read-only reference)'));
+        console.log(chalk.green('  + byan-soul-reference.md — BYAN\'s soul (example)'));
+        console.log(chalk.green('  + byan-tao-reference.md — BYAN\'s voice (example)'));
+        console.log(chalk.green('  + soul.md — YOUR soul (fill with your values)'));
+        console.log(chalk.green('  + soul-memory.md — Living journal (grows with usage)'));
+        console.log(chalk.cyan('  Tip: Use @byan with the Forge workflow to build your soul interactively'));
+        
+      } else if (soulMode === 'blank') {
+        // Copy blank templates only
+        const creatorTemplateSrc = path.join(templateDir, '_byan', 'creator-soul-template.md');
+        const soulTemplateSrc = path.join(templateDir, '_byan', 'soul-template.md');
+        const memoryTemplateSrc = path.join(templateDir, '_byan', 'soul-memory-template.md');
+        
+        if (await fs.pathExists(creatorTemplateSrc)) {
+          await fs.copy(creatorTemplateSrc, path.join(soulDir, 'creator-soul.md'));
+        }
+        if (await fs.pathExists(soulTemplateSrc)) {
+          await fs.copy(soulTemplateSrc, path.join(soulDir, 'soul.md'));
+        }
+        if (await fs.pathExists(memoryTemplateSrc)) {
+          await fs.copy(memoryTemplateSrc, path.join(soulDir, 'soul-memory.md'));
+        }
+        
+        soulSpinner.succeed('Soul system installed (Blank mode — empty templates)');
+        console.log(chalk.green('  + creator-soul.md — Template to fill with YOUR values'));
+        console.log(chalk.green('  + soul.md — Template for BYAN\'s personality'));
+        console.log(chalk.green('  + soul-memory.md — Living journal (empty)'));
+        console.log(chalk.cyan('  Tip: Use @byan with the Forge workflow to build your soul interactively'));
+        
+      } else if (soulMode === 'import') {
+        const { importPath } = await inquirer.prompt([{
+          type: 'input',
+          name: 'importPath',
+          message: 'Path to soul directory (containing creator-soul.md, soul.md, etc.):',
+          validate: (input) => {
+            if (!input) return 'Please provide a path';
+            if (!fs.existsSync(input)) return `Path not found: ${input}`;
+            return true;
+          }
+        }]);
+        
+        const soulFiles = ['creator-soul.md', 'soul.md', 'soul-memory.md', 'tao.md'];
+        let imported = 0;
+        
+        for (const file of soulFiles) {
+          const src = path.join(importPath, file);
+          if (await fs.pathExists(src)) {
+            await fs.copy(src, path.join(soulDir, file));
+            imported++;
+            console.log(chalk.green(`  + ${file} imported`));
+          }
+        }
+        
+        soulSpinner.succeed(`Soul system imported (${imported} files from ${importPath})`);
+      }
+      
+      // Add soul_mode to config
+      const existingConfig = yaml.load(await fs.readFile(configPath, 'utf8'));
+      existingConfig.soul_mode = soulMode;
+      await fs.writeFile(configPath, yaml.dump(existingConfig), 'utf8');
+      
+    } catch (soulError) {
+      soulSpinner.warn(`Soul setup had issues: ${soulError.message}`);
+      console.log(chalk.yellow('  Soul files can be added manually later'));
+    }
+    
+    console.log('');
+  }
+  
   // Step 9: Create package.json script
   const shortcutSpinner = ora('Creating shortcuts...').start();
   
@@ -1387,6 +1513,12 @@ async function install() {
     { name: 'Workflows', path: path.join(bmbDir, 'workflows', 'byan') },
     { name: 'Config', path: configPath }
   ];
+  
+  // Soul system checks
+  if (soulMode && soulMode !== 'skip') {
+    checks.push({ name: 'Soul file', path: path.join(byanDir, 'soul.md') });
+    checks.push({ name: 'Soul memory', path: path.join(byanDir, 'soul-memory.md') });
+  }
   
   // Platform-specific checks based on installation mode
   if (isManual) {
@@ -1466,6 +1598,7 @@ async function install() {
   console.log(`  • User: ${chalk.cyan(config.userName)}`);
   console.log(`  • Language: ${chalk.cyan(config.language)}`);
   console.log(`  • Turbo Whisper: ${chalk.cyan(turboWhisperInstalled ? `Installed (${turboWhisperMode} mode)` : 'Not installed')}`);
+  console.log(`  • Soul System: ${chalk.cyan(soulMode === 'skip' ? 'Not installed' : `${soulMode} mode`)}`);
   console.log(`  • Model Selector: ${chalk.cyan('Integrated (Auto cost optimization)')}`);
   
   if (isManual && manualSelection) {
