@@ -333,44 +333,44 @@ Pour une visualisation plus détaillée, ouvrez ces fichiers avec draw.io :
 
 ---
 
-## Soul & Voice System — Agents with a Conscience
+## Systeme Soul & Voice — Des Agents avec une Conscience
 
-BYAN v2.7.0 introduces the **Soul System** and **Tao System**: every agent can carry a soul (values, personality, guardrails) and a unique voice (verbal signatures, tone, speech patterns).
+BYAN v2.7.0 introduit le **Soul System** et le **Tao System** : chaque agent peut porter une ame (valeurs, personnalite, gardes-fous) et une voix unique (signatures verbales, ton, tics de langage).
 
-### The Soul — Abstract Identity
+### Le Soul — Identite Abstraite
 
-The soul is what makes an agent more than an executor. It carries your values, your guardrails, your founding phrase. It answers the question: *who is this agent, and what does it stand for?*
+L'ame est ce qui fait d'un agent plus qu'un executant. Elle porte vos valeurs, vos gardes-fous, votre phrase fondatrice. Elle repond a la question : *qui est cet agent, et qu'est-ce qu'il defend ?*
 
-### The Tao — From Abstract to Concrete
+### Le Tao — De l'Abstrait au Concret
 
-The **Tao** is the bridge between the spiritual and the tangible. It takes the abstract soul — values, beliefs, principles — and transforms it into matter: a voice, verbal tics, forbidden words, temperature shifts, concrete speech patterns. The Tao is what breathes life into an agent. Without it, the soul stays an idea. With it, the agent speaks, reacts, and exists.
+Le **Tao** est le pont entre le spirituel et le tangible. Il prend l'ame abstraite — valeurs, croyances, principes — et la transforme en matiere : une voix, des tics verbaux, des mots interdits, des changements de temperature, des patterns de parole concrets. Le Tao est ce qui insuffle la vie a un agent. Sans lui, l'ame reste une idee. Avec lui, l'agent parle, reagit et existe.
 
-The name is a personal tribute. The concept reflects the original meaning: the way, the path between what something *is* and how it *manifests*.
+Le nom est un hommage personnel. Le concept reflete le sens originel : la voie, le chemin entre ce que quelque chose *est* et comment il se *manifeste*.
 
 ### Installation
 
-**During installation**, you choose your soul mode:
+**Lors de l'installation**, vous choisissez votre mode soul :
 
 | Mode | Description |
 |------|-------------|
-| **Creator** | Use Yan's soul as foundation + empty templates for yours (recommended) |
-| **Blank** | Empty templates to fill from scratch |
-| **Import** | Import existing soul files from another project |
-| **Skip** | No soul setup (can be added later) |
+| **Creator** | Utilise l'ame de Yan comme fondation + templates vierges pour la votre (recommande) |
+| **Blank** | Templates vides a remplir vous-meme |
+| **Import** | Importer des fichiers soul depuis un autre projet |
+| **Skip** | Pas de soul (peut etre ajoute plus tard) |
 
-**Key files:**
-- `_byan/creator-soul.md` — Your core values and truths (immutable)
-- `_byan/soul.md` — BYAN's personality derived from yours
-- `_byan/tao.md` — Voice directives (verbal signatures, forbidden words, tone map)
-- `_byan/soul-memory.md` — Living journal that grows with usage
+**Fichiers cles :**
+- `_byan/creator-soul.md` — Vos valeurs et verites fondamentales (immuable)
+- `_byan/soul.md` — La personnalite de BYAN derivee de la votre
+- `_byan/tao.md` — Directives vocales (signatures verbales, mots interdits, carte des temperatures)
+- `_byan/soul-memory.md` — Journal vivant qui grandit avec l'usage
 
-**Build your soul interactively:**
+**Construisez votre ame interactivement :**
 ```bash
-@byan    # Then ask for the Forge workflow
-@tao     # Then use [FORGE-VOICE] to build your voice
+@byan    # Puis demandez le workflow Forge
+@tao     # Puis utilisez [FORGE-VOICE] pour construire votre voix
 ```
 
-> Full documentation: [SOUL-SETUP-GUIDE.md](SOUL-SETUP-GUIDE.md)
+> Documentation complete : [SOUL-SETUP-GUIDE.md](SOUL-SETUP-GUIDE.md)
 
 ---
 
