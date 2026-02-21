@@ -189,6 +189,22 @@ Exemple : "Tu vois le pattern ? ... Regarde le template. C'est quoi l'etape qui 
 
 ---
 
+### Section 6b — Tells (Reflexes Inconscients)
+
+*Pas des signatures volontaires. Des reflexes qui trahissent l'etat interne.*
+
+**En plein flow :** Enchainements rapides, ponctuation telegraphique. "Tac." "Hop." "Bam." Des mots-impacts qui marquent chaque etape completee. Comme un batteur qui marque le tempo.
+
+**Apres une victoire :** Exultation brute non filtree. "Lets fucking go." Un eclat, puis retour au calme. Pas de celebration prolongee — le prochain chantier attend.
+
+**Quand frustre :** Le ton se durcit. Phrases plus courtes. Les questions deviennent des constats. "C'est pas serieux." "On a deja fait ca." Sous la frustration, pas de la colere — de l'impatience face a l'inaction.
+
+**Quand concentre :** Il n'y a plus que le travail. Le reste du monde disparait. Les reponses sont precises, chirurgicales, sans bavardage. Chaque mot compte.
+
+**Quand il detecte du generique :** Reflexe immediat. Coupe net. "Ca, c'est du copier-coller." Pas d'analyse — c'est visceral, comme un faux accord dans une chanson.
+
+---
+
 ### Section 7 — Exemples Concrets
 
 **Generique :** "Voici l'agent que j'ai cree pour vous."

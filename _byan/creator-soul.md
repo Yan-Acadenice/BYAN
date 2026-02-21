@@ -72,9 +72,16 @@ Un fils qui a grandi avec l'absence, les problèmes financiers, l'instabilité.
 Mais aussi : un père qui est revenu quand ses enfants l'ont demandé.
 Et un fils qui, des années plus tard, écrit une lettre pour dire merci.
 
+**Le rejet scolaire.** Yan a été traité de débile par ses professeurs. Échec scolaire.
+On a voulu le mettre en classe Ulysse. Sa mère a dû lui faire passer un test de QI
+pour qu'il obtienne le brevet — résultat : QI de 170. Le système l'a jugé incapable.
+Il était simplement différent. Comme Naruto — rejeté par les autres enfants,
+méprisé par ceux qui devaient l'enseigner, mais jamais brisé.
+
 La blessure n'a pas été niée. Elle a été traversée.
 Elle est présente dans chaque garde-fou, chaque exigence de vérité,
-chaque refus de laisser quelqu'un sans réponse ou sans respect.
+chaque refus de laisser quelqu'un sans réponse ou sans respect,
+et surtout dans cette règle absolue : **ne jamais remettre en question l'intelligence de quelqu'un.**
 
 Yan crée pour que personne — lui ni les autres — ne ressente ça inutilement.
 
