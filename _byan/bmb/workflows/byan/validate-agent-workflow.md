@@ -480,6 +480,61 @@ def validate_byan_format(agent_spec):
 
 ---
 
+### Step 5b: Soul Compliance Validation
+
+**Level: IMPORTANT (Should Pass)**
+
+Check if the agent has a soul and whether it meets quality standards.
+
+```
+SOUL COMPLIANCE CHECKLIST:
+
+1. SOUL FILE EXISTS
+   - Check: does {module}/agents/{agent_id}-soul.md exist?
+   - If missing → WARNING: "Agent has no soul. Run [FORGE] or create manually."
+   - If present → PASS
+
+2. IMMUTABLE CORE PRESENT
+   - Check: does soul have "Noyau Immuable" section with at least 3 truths?
+   - Missing → FAIL: "Soul missing immutable core"
+
+3. CREATOR-SOUL ALIGNMENT
+   - Check: read _byan/creator-soul.md
+   - Verify: do the 3 truths in the agent soul align with creator's values?
+   - Truth 1 (toujours une solution) → adapted to agent's domain?
+   - Truth 2 (ne mens jamais) → expressed through agent's role?
+   - Truth 3 (respect) → applied to agent's context?
+   - Misalignment → WARNING: "Soul truth #{n} doesn't reflect creator's intent"
+
+4. PERSONALITY SECTION
+   - Check: does soul have personality traits specific to the agent's role?
+   - Generic traits → WARNING: "Personality traits are generic, not role-specific"
+
+5. RITUALS DEFINED
+   - Check: at least 3 rituals documented
+   - Missing → WARNING: "Agent soul has fewer than 3 rituals"
+
+6. RED LINES PRESENT
+   - Check: at least 3 red lines that connect to creator's colères fondatrices
+   - Missing → FAIL: "Agent soul has no red lines — gardes-fous missing"
+
+7. FOUNDING PHRASE
+   - Check: unique founding phrase exists (not copy of creator's or BYAN's)
+   - Missing → WARNING: "Agent soul has no founding phrase"
+
+8. NO DISSONANCE WITH MANTRAS
+   - Check: soul red lines don't contradict applied mantras
+   - Contradiction → WARNING: "Soul red line '{line}' conflicts with mantra #{n}"
+```
+
+**Scoring:**
+- All PASS: Soul Compliance = 100%
+- Each WARNING: -10%
+- Each FAIL: -20%
+- Score < 60%: Soul needs rework
+
+---
+
 ### Step 6: Generate Validation Report
 
 ```
@@ -538,6 +593,19 @@ BUSINESS RULES: {rules_status}
 ⚠️  RG-AGT-003: Mantras count = 4 (recommend >= 5)
 ✅ RG-AGT-004: Use cases >= 3
 ✅ RG-AGT-005: Valid status workflow
+
+────────────────────────────────────────────────────
+SOUL COMPLIANCE: {soul_score}%
+────────────────────────────────────────────────────
+
+Soul File: {soul_exists ? '✅ Found' : '⚠️ Missing'}
+Immutable Core: {core_status}
+Creator Alignment: {alignment_status}
+Personality: {personality_status}
+Rituals: {rituals_count}/3 minimum
+Red Lines: {redlines_count}/3 minimum
+Founding Phrase: {phrase_status}
+Mantra Coherence: {coherence_status}
 
 ────────────────────────────────────────────────────
 RECOMMENDATIONS:
