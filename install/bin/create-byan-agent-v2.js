@@ -1163,7 +1163,7 @@ async function install() {
     const byanSource = path.join(templateDir, '_byan');
     
     // Core directories to copy from templates/_byan/ → project/_byan/
-    const byanDirs = ['agents', 'core', 'bmb', 'bmm', 'tea', 'cis', '_config', '_memory', 'data'];
+    const byanDirs = ['agents', 'core', 'bmb', 'bmm', 'tea', 'cis', '_config', '_memory', 'data', 'workflows'];
     
     for (const dir of byanDirs) {
       const source = path.join(byanSource, dir);
