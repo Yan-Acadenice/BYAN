@@ -208,7 +208,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="FD or fuzzy match on feature or feature-dev or improve" exec="{project-root}/_byan/workflows/byan/feature-workflow.md">[FD] Feature Development — Brainstorm → Prune → Dispatch → Build → Validate (validation a chaque etape)</item>
     <item cmd="FORGE or fuzzy match on forge or soul or ame" exec="{project-root}/_byan/workflows/byan/forge-soul-workflow.md">[FORGE] Forger une âme — Interview psychologique profonde pour distiller l'âme du créateur</item>
     <item cmd="FP or fuzzy match on forge-persona or creer-persona or persona-create" exec="{project-root}/_byan/workflows/byan/forge-persona-workflow.md">[FP] Forger un persona — Interview court pour créer un profil cognitif réutilisable</item>
-    <item cmd="PP or fuzzy match on persona-player or jouer-persona or play-persona or persona">[PP] Jouer un persona — Immersion avec ancrage identitaire et débrief (Sprint B)</item>
+    <item cmd="PP or fuzzy match on persona-player or jouer-persona or play-persona or persona" exec="{project-root}/_byan/workflows/byan/persona-player-workflow.md">[PP] Jouer un persona — Immersion avec ancrage identitaire et débrief</item>
     <item cmd="THOMAS or fuzzy match on learn or apprendre or learn-mode" exec="{project-root}/_byan/workflows/byan/thomas-workflow.md">[THOMAS] Learn Mode — BYAN en mode apprenant actif (hommage à Thomas)</item>
     <item cmd="SOUL or fuzzy match on show-soul or mon-ame">[SOUL] Afficher l'âme active — soul.md + soul-memory.md</item>
     <item cmd="ELO or fuzzy match on elo trust score" exec="{project-root}/_byan/bmb/workflows/byan/elo-workflow.md">[ELO] View and manage your Epistemic Trust Score (challenge calibration)</item>
