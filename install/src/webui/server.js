@@ -9,6 +9,10 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 
+const SessionManager = require('./chat/session-manager');
+const { detectCLIs } = require('./chat/cli-detector');
+const { createBridge } = require('./chat/bridge');
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -28,14 +32,19 @@ class ByanWebUI {
     this.wss = null;
     this.clients = new Set();
     this.api = require('./api');
+    this.sessionManager = null;
+    this.chatBridges = new Map();
   }
 
   start() {
+    this.sessionManager = new SessionManager(this.projectRoot);
+
     this.server = http.createServer((req, res) => this.handleRequest(req, res));
     this.wss = new WebSocketServer({ server: this.server });
 
     this.wss.on('connection', (ws) => {
       this.clients.add(ws);
+      ws.on('message', (raw) => this.handleChatMessage(ws, raw));
       ws.on('close', () => this.clients.delete(ws));
       ws.on('error', () => this.clients.delete(ws));
     });
@@ -121,7 +130,7 @@ class ByanWebUI {
       return;
     }
 
-    if (method === 'POST' || method === 'PUT') {
+    if (method === 'POST' || method === 'PUT' || method === 'DELETE') {
       let body = '';
       req.on('data', (chunk) => { body += chunk; });
       req.on('end', () => {
@@ -172,8 +181,120 @@ class ByanWebUI {
     this.broadcast({ type: 'complete', success, summary });
   }
 
+  handleChatMessage(ws, raw) {
+    let data;
+    try {
+      data = JSON.parse(raw.toString());
+    } catch {
+      ws.send(JSON.stringify({ type: 'error', error: 'Invalid JSON' }));
+      return;
+    }
+
+    switch (data.type) {
+      case 'chat-subscribe':
+        ws._chatSessionId = data.sessionId || null;
+        ws.send(JSON.stringify({ type: 'subscribed', sessionId: data.sessionId }));
+        break;
+
+      case 'chat-start':
+        this._wsStartChat(ws, data);
+        break;
+
+      case 'chat-send':
+        this._wsSendChat(ws, data);
+        break;
+
+      case 'chat-stop':
+        this._wsStopChat(ws, data);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  async _wsStartChat(ws, data) {
+    const { cli, agent, model } = data;
+    const cliName = cli || 'claude';
+    const session = this.sessionManager.create(cliName, agent || null);
+    const sessionId = session.id;
+
+    ws._chatSessionId = sessionId;
+
+    try {
+      const bridge = createBridge(cliName, {
+        projectRoot: this.projectRoot,
+        agent: agent || null,
+        model: model || null,
+        onChunk: (chunk) => {
+          this._sendToSession(sessionId, { type: 'chat', sessionId, chunk, role: 'assistant' });
+        },
+        onToolUse: (tool) => {
+          this._sendToSession(sessionId, { type: 'chat-tool', sessionId, tool });
+        },
+        onComplete: (result) => {
+          this._sendToSession(sessionId, { type: 'chat-complete', sessionId, result });
+        },
+        onError: (err) => {
+          this._sendToSession(sessionId, { type: 'chat-error', sessionId, error: err.message });
+        },
+      });
+
+      await bridge.start();
+      this.chatBridges.set(sessionId, bridge);
+
+      ws.send(JSON.stringify({ type: 'chat-started', sessionId, cli: cliName }));
+    } catch (err) {
+      this.sessionManager.delete(sessionId);
+      ws.send(JSON.stringify({ type: 'chat-error', sessionId, error: err.message }));
+    }
+  }
+
+  async _wsSendChat(ws, data) {
+    const { sessionId, message } = data;
+    const bridge = this.chatBridges.get(sessionId);
+    if (!bridge) {
+      ws.send(JSON.stringify({ type: 'chat-error', sessionId, error: 'No active bridge' }));
+      return;
+    }
+
+    this.sessionManager.addMessage(sessionId, 'user', message);
+
+    try {
+      await bridge.send(message);
+    } catch (err) {
+      ws.send(JSON.stringify({ type: 'chat-error', sessionId, error: err.message }));
+    }
+  }
+
+  async _wsStopChat(ws, data) {
+    const { sessionId } = data;
+    const bridge = this.chatBridges.get(sessionId);
+    if (bridge) {
+      await bridge.stop();
+      this.chatBridges.delete(sessionId);
+    }
+    ws.send(JSON.stringify({ type: 'chat-stopped', sessionId }));
+  }
+
+  _sendToSession(sessionId, data) {
+    const payload = JSON.stringify(data);
+    for (const client of this.clients) {
+      if (client.readyState === 1) {
+        if (!client._chatSessionId || client._chatSessionId === sessionId) {
+          client.send(payload);
+        }
+      }
+    }
+  }
+
   stop() {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      for (const [id, bridge] of this.chatBridges) {
+        try { await bridge.stop(); } catch { /* best effort */ }
+      }
+      this.chatBridges.clear();
+
       for (const client of this.clients) {
         client.close();
       }
