@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BYAN Chat — AI Agent Interface</title>
+  <link rel="stylesheet" href="chat.css">
+</head>
+<body>
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn sidebar-toggle" id="btn-sidebar" title="Toggle sidebar" aria-label="Toggle sidebar">&#9776;</button>
+      <h1 class="logo">BYAN</h1>
+      <span class="label">Chat</span>
+    </div>
+    <div class="topbar-center">
+      <div class="agent-indicator" id="agent-indicator">
+        <span class="agent-icon" id="active-agent-icon"></span>
+        <span class="agent-name" id="active-agent-name">No agent</span>
+      </div>
+      <select id="model-select" class="model-select" aria-label="Select model">
+        <option value="">Default model</option>
+        <option value="sonnet">Claude Sonnet</option>
+        <option value="opus">Claude Opus</option>
+        <option value="gpt-5.4">GPT-5.4</option>
+      </select>
+    </div>
+    <div class="topbar-right">
+      <button class="icon-btn" id="btn-split" title="Split view" aria-label="Toggle split view">&#9707;</button>
+      <button class="icon-btn" id="btn-export" title="Export conversation" aria-label="Export conversation">&#8681;</button>
+      <button class="icon-btn" id="btn-settings" title="Settings" aria-label="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- Left Sidebar: Agent Gallery -->
+    <aside class="sidebar" id="sidebar" role="complementary" aria-label="Agent sidebar">
+      <div class="sidebar-header">
+        <h2>Agents</h2>
+        <button class="icon-btn" id="btn-import-agent" title="Import agent" aria-label="Import agent">+</button>
+      </div>
+
+      <!-- CLI Status -->
+      <div class="cli-status" id="cli-status" aria-label="CLI availability">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Agent List (grouped by module) -->
+      <div class="agent-list" id="agent-list" role="list" aria-label="Available agents">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Session History -->
+      <div class="session-history">
+        <h3>History</h3>
+        <div id="session-list" role="list" aria-label="Conversation history">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </aside>
+
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+
+    <!-- Chat Area -->
+    <main class="chat-area" role="main">
+      <!-- Messages -->
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-label="Chat messages">
+        <!-- Welcome message when empty -->
+        <div class="welcome-screen" id="welcome-screen">
+          <h2>BYAN Chat</h2>
+          <p>Select an agent from the sidebar or start typing.</p>
+          <div class="quick-agents" id="quick-agents">
+            <!-- Top 4 agents as quick-start cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool Approval Banner -->
+      <div class="tool-approval hidden" id="tool-approval" role="alert">
+        <div class="tool-info">
+          <span class="tool-label">Tool request:</span>
+          <span class="tool-name" id="tool-name"></span>
+          <code class="tool-command" id="tool-command"></code>
+        </div>
+        <div class="tool-actions">
+          <button class="btn-approve" onclick="chat.approveTool()" aria-label="Approve tool">Approve</button>
+          <button class="btn-deny" onclick="chat.denyTool()" aria-label="Deny tool">Deny</button>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <div class="input-row">
+          <button class="icon-btn" id="btn-attach" title="Attach file" aria-label="Attach file">&#128206;</button>
+          <button class="icon-btn" id="btn-voice" title="Voice input" aria-label="Voice input">&#127908;</button>
+          <textarea id="message-input" placeholder="Message BYAN..." rows="1" autofocus aria-label="Message input"></textarea>
+          <button class="btn-send" id="btn-send" title="Send message" aria-label="Send message">&#10148;</button>
+        </div>
+        <div class="input-meta">
+          <span id="cli-label" class="cli-badge">claude</span>
+          <span id="typing-indicator" class="typing hidden">Agent is thinking...</span>
+          <span id="char-count" class="char-count"></span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel: Split View (hidden by default) -->
+    <aside class="split-panel hidden" id="split-panel" role="complementary" aria-label="Raw CLI output">
+      <div class="split-header">
+        <h3>Raw CLI Output</h3>
+        <button class="icon-btn" onclick="chat.closeSplit()" aria-label="Close split view">&#10005;</button>
+      </div>
+      <pre class="split-content" id="split-content"></pre>
+    </aside>
+  </div>
+
+  <!-- Modal: Import Agent -->
+  <div class="modal hidden" id="modal-import" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <div class="modal-content">
+      <h2 id="import-title">Import Agent</h2>
+      <div class="drop-zone" id="drop-zone">
+        <p>Drop a .byan-agent file here</p>
+        <p class="drop-or">or</p>
+        <input type="file" id="file-input" accept=".byan-agent,.zip,.md" class="sr-only">
+        <button class="btn-secondary" onclick="document.getElementById('file-input').click()">Browse</button>
+      </div>
+      <div class="import-url">
+        <input type="text" id="import-url" placeholder="Or paste a URL / Gist link..." aria-label="Import URL">
+        <button class="btn-primary" onclick="chat.importFromURL()">Import</button>
+      </div>
+      <button class="btn-close" onclick="chat.closeModal('modal-import')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Modal: Export Conversation -->
+  <div class="modal hidden" id="modal-export" role="dialog" aria-modal="true" aria-labelledby="export-title">
+    <div class="modal-content">
+      <h2 id="export-title">Export Conversation</h2>
+      <div class="export-options">
+        <button class="card" onclick="chat.exportAs('json')">
+          <h3>JSON</h3>
+          <p>Full data, importable</p>
+        </button>
+        <button class="card" onclick="chat.exportAs('markdown')">
+          <h3>Markdown</h3>
+          <p>Human-readable</p>
+        </button>
+        <button class="card" onclick="chat.exportAs('template')">
+          <h3>Template</h3>
+          <p>Prompts only, no responses</p>
+        </button>
+      </div>
+      <button class="btn-close" onclick="chat.closeModal('modal-export')">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Modal: File Attachment Preview -->
+  <div class="modal hidden" id="modal-attach" role="dialog" aria-modal="true" aria-labelledby="attach-title">
+    <div class="modal-content">
+      <h2 id="attach-title">Attach File</h2>
+      <input type="file" id="attach-input" multiple>
+      <div id="attach-preview"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="chat.closeModal('modal-attach')">Cancel</button>
+        <button class="btn-primary" onclick="chat.confirmAttach()">Attach</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Settings -->
+  <div class="modal hidden" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-content">
+      <h2 id="settings-title">Settings</h2>
+      <div class="settings-group">
+        <label for="setting-cli">Preferred CLI</label>
+        <select id="setting-cli">
+          <option value="auto">Auto-detect</option>
+          <option value="claude">Claude Code</option>
+          <option value="copilot">GitHub Copilot</option>
+          <option value="codex">OpenCode/Codex</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label for="setting-theme">Theme</label>
+        <select id="setting-theme">
+          <option value="dark">Dark</option>
+          <option value="light">Light (coming soon)</option>
+        </select>
+      </div>
+      <div class="settings-group">
+        <label for="setting-stream">Stream responses</label>
+        <input type="checkbox" id="setting-stream" checked>
+      </div>
+      <button class="btn-close" onclick="chat.closeModal('modal-settings')">Close</button>
+    </div>
+  </div>
+
+  <script src="chat.js"></script>
+</body>
+</html>
