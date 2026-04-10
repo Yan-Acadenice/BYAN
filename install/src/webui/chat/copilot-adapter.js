@@ -18,10 +18,8 @@ class CopilotAdapter extends Bridge {
     const args = [];
 
     if (this.agent) {
-      const agentPath = this.resolveAgent(this.agent);
-      if (agentPath) {
-        args.push(`--agent=${agentPath}`);
-      }
+      // Copilot CLI expects agent name, not file path
+      args.push(`--agent=${this.agent}`);
     }
 
     args.push('--prompt', message);

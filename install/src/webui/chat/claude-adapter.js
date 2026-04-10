@@ -22,10 +22,8 @@ class ClaudeAdapter extends Bridge {
     ];
 
     if (this.agent) {
-      const agentPath = this.resolveAgent(this.agent);
-      if (agentPath) {
-        args.push('--agent', agentPath);
-      }
+      // Claude Code expects agent name, not file path
+      args.push('--agent', this.agent);
     }
 
     if (this.model) {
