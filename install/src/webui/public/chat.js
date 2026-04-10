@@ -62,6 +62,7 @@ class ByanChat {
       agentList: document.getElementById('agent-list'),
       sessionList: document.getElementById('session-list'),
       cliStatus: document.getElementById('cli-status'),
+      cliSelect: document.getElementById('cli-select'),
       modelSelect: document.getElementById('model-select'),
       agentIndicator: document.getElementById('agent-indicator'),
       activeAgentIcon: document.getElementById('active-agent-icon'),
@@ -136,9 +137,12 @@ class ByanChat {
       case 'tool-approval':
         this.showToolApproval(data.tool, data.command);
         break;
+      case 'chat-error':
       case 'error':
-        this.showToast(data.message || 'An error occurred', 'error');
-        this.finishStreaming(this.streamingContent);
+        this.handleChatError(data);
+        break;
+      case 'chat-tool':
+        this.showToolUsage(data.tool);
         break;
       case 'raw-output':
         this.appendRawOutput(data.content);
@@ -148,6 +152,19 @@ class ByanChat {
     }
   }
 
+  handleChatError(data) {
+    const errorMsg = data.error || data.message || 'An error occurred';
+    this.showToast(errorMsg, 'error');
+    this.addMessage('system', `Error: ${errorMsg}`, { agent: 'System' });
+    this.finishStreaming(this.streamingContent);
+  }
+
+  showToolUsage(tool) {
+    if (!tool) return;
+    const name = typeof tool === 'string' ? tool : tool.name || 'unknown tool';
+    this.appendChunk(`\n> Using tool: **${name}**\n`);
+  }
+
   // ============================================================
   // CLI Detection
   // ============================================================
@@ -155,7 +172,7 @@ class ByanChat {
   async detectCLIs() {
     const knownCLIs = [
       { id: 'claude', name: 'Claude Code', cmd: 'claude' },
-      { id: 'copilot', name: 'GitHub Copilot', cmd: 'gh copilot' },
+      { id: 'copilot', name: 'GitHub Copilot', cmd: 'copilot' },
       { id: 'codex', name: 'OpenCode', cmd: 'codex' }
     ];
 
@@ -184,31 +201,48 @@ class ByanChat {
   renderCLIStatus() {
     this.dom.cliStatus.innerHTML = '';
     for (const cli of this.clis) {
+      const cliId = cli.id || cli.name;
       const el = document.createElement('div');
-      el.className = 'cli-item' + (cli.available ? ' available' : '') + (this.currentCLI === cli.id ? ' active' : '');
+      el.className = 'cli-item' + (cli.available ? ' available' : '') + (this.currentCLI === cliId ? ' active' : '');
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');
       el.setAttribute('aria-label', `${cli.name}: ${cli.available ? 'available' : 'not detected'}`);
       el.innerHTML = `<span class="cli-dot"></span>${this.escapeHtml(cli.name)}`;
-      el.addEventListener('click', () => this.selectCLI(cli.id));
-      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.selectCLI(cli.id); });
+      el.addEventListener('click', () => this.selectCLI(cliId));
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.selectCLI(cliId); });
       this.dom.cliStatus.appendChild(el);
     }
+    this.renderCLISelect();
+  }
+
+  renderCLISelect() {
+    if (!this.dom.cliSelect) return;
+    this.dom.cliSelect.innerHTML = '';
+    for (const cli of this.clis) {
+      const cliId = cli.id || cli.name;
+      const opt = document.createElement('option');
+      opt.value = cliId;
+      opt.textContent = cli.name + (cli.available ? '' : ' (not detected)');
+      opt.disabled = !cli.available;
+      this.dom.cliSelect.appendChild(opt);
+    }
+    if (this.currentCLI) this.dom.cliSelect.value = this.currentCLI;
   }
 
   pickDefaultCLI() {
     const available = this.clis.filter(c => c.available);
     if (available.length > 0) {
-      this.selectCLI(available[0].id);
+      this.selectCLI(available[0].id || available[0].name);
     } else if (this.clis.length > 0) {
-      this.selectCLI(this.clis[0].id);
+      this.selectCLI(this.clis[0].id || this.clis[0].name);
     }
   }
 
   selectCLI(id) {
     this.currentCLI = id;
-    const cli = this.clis.find(c => c.id === id);
-    this.dom.cliLabel.textContent = cli ? cli.name : id;
+    const cli = this.clis.find(c => (c.id || c.name) === id);
+    if (this.dom.cliLabel) this.dom.cliLabel.textContent = cli ? cli.name : id;
+    if (this.dom.cliSelect) this.dom.cliSelect.value = id;
     this.renderCLIStatus();
     this.saveState();
   }
@@ -417,6 +451,7 @@ class ByanChat {
 
   async startSession() {
     const agentName = this.currentAgent ? this.currentAgent.name : null;
+    let bridgeOk = false;
 
     try {
       const res = await fetch('/api/chat/start', {
@@ -427,10 +462,15 @@ class ByanChat {
       if (res.ok) {
         const data = await res.json();
         this.sessionId = data.sessionId || data.id || this.generateId();
+        bridgeOk = true;
       } else {
+        const err = await res.json().catch(() => ({}));
+        const errMsg = err.error || `CLI bridge failed (${this.currentCLI || 'unknown'})`;
+        this.showToast(errMsg, 'error');
         this.sessionId = this.generateId();
       }
-    } catch {
+    } catch (e) {
+      this.showToast(`Cannot reach server: ${e.message || 'network error'}`, 'error');
       this.sessionId = this.generateId();
     }
 
@@ -450,7 +490,10 @@ class ByanChat {
     this.renderSessions();
 
     if (this.currentAgent) {
-      this.addMessage('system', `Session started with ${this.currentAgent.title || this.currentAgent.name}`);
+      this.addMessage('system', `Session started with ${this.currentAgent.title || this.currentAgent.name}` +
+        (bridgeOk ? ` via ${this.currentCLI || 'default CLI'}` : ' (offline mode — CLI bridge unavailable)'));
+    } else if (!bridgeOk) {
+      this.addMessage('system', 'Session started in offline mode — CLI bridge could not be initialized');
     }
 
     this.wsSend({ type: 'join', sessionId: this.sessionId });
@@ -1323,6 +1366,11 @@ class ByanChat {
 
     // Model select
     this.dom.modelSelect.addEventListener('change', (e) => this.switchModel(e.target.value));
+
+    // CLI select
+    if (this.dom.cliSelect) {
+      this.dom.cliSelect.addEventListener('change', (e) => this.selectCLI(e.target.value));
+    }
 
     // Sidebar overlay (close on click)
     this.dom.sidebarOverlay.addEventListener('click', () => this.closeSidebar());

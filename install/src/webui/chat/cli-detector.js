@@ -50,6 +50,7 @@ async function detectCLIs() {
     const cmdPath = whichSync(def.command);
     if (!cmdPath) {
       results.push({
+        id: def.name,
         name: def.name,
         path: null,
         version: null,
@@ -63,6 +64,7 @@ async function detectCLIs() {
     const version = versionResult.ok ? parseVersion(versionResult.output) : null;
 
     results.push({
+      id: def.name,
       name: def.name,
       path: cmdPath,
       version,
