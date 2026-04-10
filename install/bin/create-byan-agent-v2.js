@@ -1695,227 +1695,162 @@ program
   .version(BYAN_VERSION)
   .action(install);
 
-// Update Command
+// Update Command (Yanstaller v3)
 program
   .command('update')
-  .description('Mettre a jour BYAN vers la derniere version npm')
-  .option('--dry-run', 'Analyser sans appliquer les changements')
-  .option('--force', 'Forcer la mise a jour meme si deja a jour')
+  .description('Update BYAN to the latest npm version')
+  .option('--preview', 'Show what would change without applying')
+  .option('--force', 'Force update even if already up to date')
   .action(async (options) => {
-    const installPath = process.cwd();
-    
-    // Import update modules
-    const Analyzer = require('../../update-byan-agent/lib/analyzer');
-    const Backup = require('../../update-byan-agent/lib/backup');
-    const CustomizationDetector = require('../../update-byan-agent/lib/customization-detector');
-    
+    const yanstaller = require('../lib/yanstaller');
+    const projectRoot = process.cwd();
+
     try {
-      // Step 1: Check version
-      const spinner = ora('Verification version...').start();
-      const analyzer = new Analyzer(installPath);
-      const versionInfo = await analyzer.checkVersion();
-      spinner.succeed(`Version actuelle: ${versionInfo.current}, npm: ${versionInfo.latest}`);
-      
-      if (versionInfo.upToDate && !options.force) {
-        console.log(chalk.green('\nBYAN est deja a jour!'));
-        console.log(chalk.gray(`  Version actuelle: ${versionInfo.current}`));
+      if (options.preview) {
+        const spinner = ora('Analyzing update...').start();
+        const { diff, userModified, installed, latest } = await yanstaller.updater.preview(projectRoot);
+        spinner.succeed('Analysis complete');
+
+        console.log('');
+        console.log(chalk.bold(`Version: ${installed} -> ${latest}`));
+        console.log('');
+
+        if (diff.toUpdate.length) {
+          console.log(chalk.yellow(`  Updated files (${diff.toUpdate.length}):`));
+          diff.toUpdate.forEach(f => {
+            const tag = userModified.includes(f) ? chalk.red(' [user-modified, will skip]') : '';
+            console.log(chalk.gray(`    ~ ${f}${tag}`));
+          });
+        }
+        if (diff.toAdd.length) {
+          console.log(chalk.green(`  New files (${diff.toAdd.length}):`));
+          diff.toAdd.forEach(f => console.log(chalk.gray(`    + ${f}`)));
+        }
+        if (diff.toKeep.length) {
+          console.log(chalk.blue(`  User files kept (${diff.toKeep.length}):`));
+          diff.toKeep.forEach(f => console.log(chalk.gray(`    = ${f}`)));
+        }
+        if (diff.toSkip.length) {
+          console.log(chalk.gray(`  Unchanged: ${diff.toSkip.length} files`));
+        }
+        console.log('');
         return;
       }
-      
-      if (options.dryRun) {
-        console.log(chalk.cyan('\nMode dry-run: Aucune modification appliquee'));
-        console.log(chalk.gray(`  Mise a jour disponible: ${versionInfo.current} -> ${versionInfo.latest}`));
+
+      const checkSpinner = ora('Checking for updates...').start();
+      const check = await yanstaller.updater.checkForUpdate(projectRoot);
+
+      if (!check.updateAvailable && !options.force) {
+        checkSpinner.succeed(`Already up to date (${check.installed})`);
         return;
       }
-      
-      // Step 2: Confirm update
-      const { confirmUpdate } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'confirmUpdate',
-        message: `Mettre a jour BYAN ${versionInfo.current} -> ${versionInfo.latest}?`,
-        default: true
-      }]);
-      
-      if (!confirmUpdate) {
-        console.log(chalk.yellow('Mise a jour annulee'));
-        return;
-      }
-      
-      // Step 3: Detect customizations
-      const detectorSpinner = ora('Detection des personnalisations...').start();
-      const detector = new CustomizationDetector(installPath);
-      const customizations = await detector.detectCustomizations();
-      detectorSpinner.succeed(`${customizations.length} fichiers a preserver detectes`);
-      
-      // Step 4: Create backup
-      const backupSpinner = ora('Creation backup...').start();
-      const backup = new Backup(installPath);
-      const backupPath = await backup.create();
-      backupSpinner.succeed(`Backup cree: ${path.basename(backupPath)}`);
-      
-      // Step 5: Preserve customizations
-      const preserveSpinner = ora('Sauvegarde des personnalisations...').start();
-      const tempDir = path.join(installPath, '.byan-update-temp');
-      if (fs.existsSync(tempDir)) {
-        await fs.remove(tempDir);
-      }
-      await fs.ensureDir(tempDir);
-      
-      for (const custom of customizations) {
-        if (await fs.pathExists(custom.path)) {
-          const relativePath = path.relative(installPath, custom.path);
-          const tempPath = path.join(tempDir, relativePath);
-          const tempParent = path.dirname(tempPath);
-          
-          await fs.ensureDir(tempParent);
-          await fs.copy(custom.path, tempPath);
-        }
-      }
-      preserveSpinner.succeed('Personnalisations sauvegardees');
-      
-      // Step 6: Download and install latest version
-      const updateSpinner = ora('Telechargement derniere version...').start();
-      try {
-        // Remove current _byan directory
-        const byanDir = path.join(installPath, '_byan');
-        if (await fs.pathExists(byanDir)) {
-          await fs.remove(byanDir);
-        }
-        
-        // Run npm install to get latest create-byan-agent
-        execSync('npm install --no-save create-byan-agent@latest', {
-          cwd: installPath,
-          stdio: 'pipe'
-        });
-        
-        // Copy _byan from node_modules to project root
-        const nodeModulesByan = path.join(installPath, 'node_modules', 'create-byan-agent', '_byan');
-        if (await fs.pathExists(nodeModulesByan)) {
-          await fs.copy(nodeModulesByan, byanDir);
-        } else {
-          throw new Error('_byan directory not found in npm package');
-        }
-        
-        updateSpinner.succeed('Derniere version installee');
-      } catch (error) {
-        updateSpinner.fail('Erreur installation');
-        
-        // Rollback
-        const rollbackSpinner = ora('Restauration backup...').start();
-        await backup.restore(backupPath);
-        rollbackSpinner.succeed('Backup restaure');
-        
-        throw error;
-      }
-      
-      // Step 7: Restore customizations
-      const restoreSpinner = ora('Restauration personnalisations...').start();
-      for (const custom of customizations) {
-        const relativePath = path.relative(installPath, custom.path);
-        const tempPath = path.join(tempDir, relativePath);
-        
-        if (await fs.pathExists(tempPath)) {
-          const targetParent = path.dirname(custom.path);
-          await fs.ensureDir(targetParent);
-          await fs.copy(tempPath, custom.path);
-        }
-      }
-      restoreSpinner.succeed('Personnalisations restaurees');
-      
-      // Cleanup temp directory
-      if (await fs.pathExists(tempDir)) {
-        await fs.remove(tempDir);
-      }
-      
-      // Update version in config.yaml
-      const configPath = path.join(installPath, '_byan', 'bmb', 'config.yaml');
-      if (await fs.pathExists(configPath)) {
-        const configContent = await fs.readFile(configPath, 'utf8');
-        const config = yaml.load(configContent);
-        config.byan_version = versionInfo.latest;
-        await fs.writeFile(configPath, yaml.dump(config), 'utf8');
-      }
-      
+      checkSpinner.succeed(`Update available: ${check.installed} -> ${check.latest}`);
+
+      const updateSpinner = ora('Updating BYAN...').start();
+      const result = await yanstaller.update(projectRoot, { force: options.force });
+      updateSpinner.succeed('Update complete');
+
       console.log('');
-      console.log(chalk.green.bold('Mise a jour terminee avec succes!'));
-      console.log(chalk.gray(`  ${versionInfo.current} -> ${versionInfo.latest}`));
+      console.log(chalk.green.bold(`Updated: ${result.previousVersion} -> ${result.newVersion}`));
+      console.log(chalk.gray(`  Files updated: ${result.filesUpdated}`));
+      console.log(chalk.gray(`  Files added:   ${result.filesAdded}`));
+      if (result.filesSkipped > 0) {
+        console.log(chalk.yellow(`  Files skipped: ${result.filesSkipped} (user-modified)`));
+      }
+      if (result.backupPath) {
+        console.log(chalk.gray(`  Backup: ${path.basename(result.backupPath)}`));
+      }
       console.log('');
-      console.log(chalk.cyan('Fichiers preserves:'));
-      customizations.forEach(c => {
-        console.log(chalk.gray(`  ✓ ${path.relative(installPath, c.path)}`));
-      });
-      console.log('');
-      
     } catch (error) {
       console.error('');
-      console.error(chalk.red.bold('Erreur lors de la mise a jour:'));
+      console.error(chalk.red.bold('Update failed:'));
       console.error(chalk.red(`  ${error.message}`));
       console.error('');
-      console.error(chalk.yellow('Le backup est disponible dans _byan.backup/'));
-      console.error(chalk.gray('Restaurer avec: npx create-byan-agent restore'));
+      console.error(chalk.yellow('Restore with: npx create-byan-agent rollback'));
       process.exit(1);
     }
   });
 
-// Restore Command
+// Rollback Command (Yanstaller v3)
 program
-  .command('restore')
-  .description('Restaurer BYAN depuis backup')
-  .option('-p, --path <path>', 'Chemin du backup (dernier par defaut)')
-  .action(async (options) => {
-    const Backup = require('../../update-byan-agent/lib/backup');
-    const spinner = ora('Restauration backup...').start();
-    
+  .command('rollback')
+  .description('Restore BYAN from the most recent backup')
+  .action(async () => {
+    const yanstaller = require('../lib/yanstaller');
+    const projectRoot = process.cwd();
+    const spinner = ora('Restoring from backup...').start();
+
     try {
-      const installPath = process.cwd();
-      const backup = new Backup(installPath);
-      
-      await backup.restore(options.path);
-      
-      spinner.succeed('Backup restaure avec succes');
-      console.log(chalk.green('\nBYAN restaure depuis backup'));
-      
+      await yanstaller.rollback(projectRoot);
+      spinner.succeed('Rollback complete');
+      console.log(chalk.green('\nBYAN restored from latest backup'));
     } catch (error) {
-      spinner.fail('Erreur restauration backup');
+      spinner.fail('Rollback failed');
       console.error(chalk.red(`  ${error.message}`));
       process.exit(1);
     }
   });
 
-// Check Version Command
+// Backups Command (Yanstaller v3)
+program
+  .command('backups')
+  .description('List available BYAN backups')
+  .action(async () => {
+    const yanstaller = require('../lib/yanstaller');
+    const projectRoot = process.cwd();
+
+    try {
+      const backups = await yanstaller.listBackups(projectRoot);
+
+      if (backups.length === 0) {
+        console.log(chalk.yellow('No backups found.'));
+        return;
+      }
+
+      console.log(chalk.bold(`\nAvailable backups (${backups.length}):\n`));
+      for (const backupPath of backups) {
+        const name = path.basename(backupPath);
+        const timestamp = parseInt(name.replace('_byan.backup-', ''), 10);
+        const date = new Date(timestamp).toLocaleString();
+        const size = await yanstaller.backuper.getBackupSize(backupPath);
+        const sizeKB = (size / 1024).toFixed(1);
+        console.log(chalk.gray(`  ${name}  ${date}  (${sizeKB} KB)`));
+      }
+      console.log('');
+    } catch (error) {
+      console.error(chalk.red(`  ${error.message}`));
+      process.exit(1);
+    }
+  });
+
+// Check Version Command (Yanstaller v3)
 program
   .command('check')
-  .description('Verifier version actuelle vs derniere version npm')
+  .description('Check installed version vs latest npm version')
   .action(async () => {
-    const Analyzer = require('../../update-byan-agent/lib/analyzer');
-    const spinner = ora('Verification version BYAN...').start();
-    
+    const yanstaller = require('../lib/yanstaller');
+    const projectRoot = process.cwd();
+    const spinner = ora('Checking BYAN version...').start();
+
     try {
-      const installPath = process.cwd();
-      const analyzer = new Analyzer(installPath);
-      
-      const versionInfo = await analyzer.checkVersion();
-      
-      spinner.succeed('Verification terminee');
-      
+      const check = await yanstaller.updater.checkForUpdate(projectRoot);
+      spinner.succeed('Check complete');
+
       console.log('');
-      console.log(chalk.bold('Informations de version:'));
-      console.log(chalk.gray('  Version actuelle: ') + chalk.cyan(versionInfo.current));
-      console.log(chalk.gray('  Version npm:      ') + chalk.cyan(versionInfo.latest));
+      console.log(chalk.bold('Version info:'));
+      console.log(chalk.gray('  Installed: ') + chalk.cyan(check.installed));
+      console.log(chalk.gray('  Latest:    ') + chalk.cyan(check.latest));
       console.log('');
-      
-      if (versionInfo.upToDate) {
-        console.log(chalk.green('  ✓ BYAN est a jour!'));
-      } else if (versionInfo.needsUpdate) {
-        console.log(chalk.yellow('  → Une mise a jour est disponible'));
-        console.log(chalk.gray('  Executer: npx create-byan-agent update'));
-      } else if (versionInfo.ahead) {
-        console.log(chalk.blue('  → Version dev en avance sur npm'));
+
+      if (check.updateAvailable) {
+        console.log(chalk.yellow(`  Update available (${check.changes.length} files changed)`));
+        console.log(chalk.gray('  Run: npx create-byan-agent update'));
+      } else {
+        console.log(chalk.green('  Up to date'));
       }
       console.log('');
-      
     } catch (error) {
-      spinner.fail('Erreur verification version');
+      spinner.fail('Version check failed');
       console.error(chalk.red(`  ${error.message}`));
       process.exit(1);
     }

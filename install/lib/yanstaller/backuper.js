@@ -1,15 +1,15 @@
 /**
  * BACKUPER Module
- * 
- * Backs up and restores _bmad/ directory.
- * 
- * Phase 6: 24h development
- * 
+ *
+ * Backs up and restores _byan/ directory with timestamp-based snapshots.
+ *
  * @module yanstaller/backuper
  */
 
+const fs = require('fs-extra');
 const path = require('path');
-const fileUtils = require('../utils/file-utils');
+
+const BACKUP_PREFIX = '_byan.backup-';
 
 /**
  * @typedef {Object} BackupResult
@@ -20,75 +20,130 @@ const fileUtils = require('../utils/file-utils');
  */
 
 /**
- * Backup _bmad/ directory
- * 
- * @param {string} bmadPath - Path to _bmad/ directory
+ * Recursively count files and total size in a directory.
+ *
+ * @param {string} dir - Directory to measure
+ * @returns {Promise<{count: number, size: number}>}
+ */
+async function measureDir(dir) {
+  let count = 0;
+  let size = 0;
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const sub = await measureDir(fullPath);
+      count += sub.count;
+      size += sub.size;
+    } else if (entry.isFile()) {
+      const stat = await fs.stat(fullPath);
+      count++;
+      size += stat.size;
+    }
+  }
+
+  return { count, size };
+}
+
+/**
+ * Backup _byan/ directory to a timestamped snapshot.
+ *
+ * @param {string} byanPath - Absolute path to _byan/ directory
  * @returns {Promise<BackupResult>}
  */
-async function backup(bmadPath) {
+async function backup(byanPath) {
+  if (!await fs.pathExists(byanPath)) {
+    throw new BackupError(`Source directory does not exist: ${byanPath}`);
+  }
+
   const timestamp = Date.now();
-  const backupPath = `${bmadPath}.backup-${timestamp}`;
-  
+  const backupPath = path.join(path.dirname(byanPath), `${BACKUP_PREFIX}${timestamp}`);
+
   try {
-    // TODO: Copy entire _bmad/ to backup path
-    // await fileUtils.copy(bmadPath, backupPath);
-    
+    await fs.copy(byanPath, backupPath);
+    const { count, size } = await measureDir(backupPath);
+
     return {
       success: true,
       backupPath,
-      filesBackedUp: 0,
-      size: 0
+      filesBackedUp: count,
+      size
     };
   } catch (error) {
-    throw new BackupError(`Failed to backup ${bmadPath}`, { cause: error });
+    throw new BackupError(`Failed to backup ${byanPath}`, { cause: error });
   }
 }
 
 /**
- * Restore from backup
- * 
- * @param {string} backupPath - Path to backup directory
- * @param {string} targetPath - Target restoration path
+ * Restore from a backup, replacing the current _byan/ directory.
+ *
+ * @param {string} backupPath - Absolute path to the backup directory
+ * @param {string} targetPath - Absolute path to restore into (e.g., _byan/)
  * @returns {Promise<void>}
  */
 async function restore(backupPath, targetPath) {
-  // TODO: Remove current _bmad/, copy backup to target
-  // await fileUtils.remove(targetPath);
-  // await fileUtils.copy(backupPath, targetPath);
+  if (!await fs.pathExists(backupPath)) {
+    throw new BackupError(`Backup not found: ${backupPath}`);
+  }
+
+  await fs.remove(targetPath);
+  await fs.copy(backupPath, targetPath);
 }
 
 /**
- * List available backups
- * 
+ * List available backup directories sorted by timestamp (newest first).
+ *
  * @param {string} projectRoot - Project root directory
- * @returns {Promise<string[]>} - Array of backup paths
+ * @returns {Promise<string[]>} Absolute paths to backup directories
  */
 async function listBackups(projectRoot) {
-  // TODO: Find all _bmad.backup-* directories
-  return [];
+  if (!await fs.pathExists(projectRoot)) return [];
+
+  const entries = await fs.readdir(projectRoot, { withFileTypes: true });
+  const backups = entries
+    .filter(e => e.isDirectory() && e.name.startsWith(BACKUP_PREFIX))
+    .map(e => ({
+      name: e.name,
+      timestamp: parseInt(e.name.slice(BACKUP_PREFIX.length), 10),
+      path: path.join(projectRoot, e.name)
+    }))
+    .filter(b => !isNaN(b.timestamp))
+    .sort((a, b) => b.timestamp - a.timestamp);
+
+  return backups.map(b => b.path);
 }
 
 /**
- * Clean old backups (keep last N)
- * 
+ * Prune old backups, keeping only the N most recent.
+ *
  * @param {string} projectRoot - Project root directory
- * @param {number} keep - Number of backups to keep
- * @returns {Promise<number>} - Number of backups deleted
+ * @param {number} [maxBackups=3] - Number of backups to keep
+ * @returns {Promise<number>} Number of backups deleted
  */
-async function cleanOldBackups(projectRoot, keep = 3) {
-  // TODO: Sort by timestamp, delete oldest
-  return 0;
+async function pruneBackups(projectRoot, maxBackups = 3) {
+  const all = await listBackups(projectRoot);
+
+  if (all.length <= maxBackups) return 0;
+
+  const toDelete = all.slice(maxBackups);
+  for (const backupPath of toDelete) {
+    await fs.remove(backupPath);
+  }
+
+  return toDelete.length;
 }
 
 /**
- * Get backup size
- * 
- * @param {string} backupPath - Path to backup directory
- * @returns {Promise<number>} - Size in bytes
+ * Get total size of a backup directory in bytes.
+ *
+ * @param {string} backupPath - Absolute path to backup directory
+ * @returns {Promise<number>} Size in bytes
  */
 async function getBackupSize(backupPath) {
-  // TODO: Recursively calculate directory size
-  return 0;
+  if (!await fs.pathExists(backupPath)) return 0;
+  const { size } = await measureDir(backupPath);
+  return size;
 }
 
 class BackupError extends Error {
@@ -102,7 +157,8 @@ module.exports = {
   backup,
   restore,
   listBackups,
-  cleanOldBackups,
+  pruneBackups,
   getBackupSize,
-  BackupError
+  BackupError,
+  BACKUP_PREFIX
 };

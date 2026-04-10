@@ -6,6 +6,7 @@
  * @module yanstaller
  */
 
+const path = require('path');
 const detector = require('./detector');
 const recommender = require('./recommender');
 const installer = require('./installer');
@@ -13,6 +14,7 @@ const validator = require('./validator');
 const troubleshooter = require('./troubleshooter');
 const interviewer = require('./interviewer');
 const backuper = require('./backuper');
+const updater = require('./updater');
 const wizard = require('./wizard');
 const platformSelector = require('./platform-selector');
 const logger = require('../utils/logger');
@@ -122,18 +124,53 @@ async function uninstall() {
 /**
  * Update existing BYAN installation
  * 
- * @param {string} version - Target version
+ * @param {string} projectRoot - Project root directory
+ * @param {Object} [options={}] - Update options
+ * @param {boolean} [options.force] - Force update even if same version
+ * @param {boolean} [options.preview] - Show diff without applying
+ * @returns {Promise<import('./updater').UpdateResult>}
+ */
+async function update(projectRoot, options = {}) {
+  return updater.update(projectRoot, options);
+}
+
+/**
+ * Rollback to the most recent backup.
+ *
+ * @param {string} projectRoot - Project root directory
  * @returns {Promise<void>}
  */
-async function update(version) {
-  // TODO: Backup → Update agents → Merge configs
+async function rollback(projectRoot) {
+  const backups = await backuper.listBackups(projectRoot);
+  if (backups.length === 0) {
+    throw new Error('No backups found to restore from.');
+  }
+
+  const latestBackup = backups[0];
+  const targetPath = path.join(projectRoot, '_byan');
+  logger.info(`Restoring from ${path.basename(latestBackup)}...`);
+  await backuper.restore(latestBackup, targetPath);
+}
+
+/**
+ * List all available BYAN backups.
+ *
+ * @param {string} projectRoot - Project root directory
+ * @returns {Promise<string[]>} Absolute paths, newest first
+ */
+async function listBackups(projectRoot) {
+  return backuper.listBackups(projectRoot);
 }
 
 module.exports = {
   install,
   uninstall,
   update,
+  rollback,
+  listBackups,
   // Expose for testing
   detector,
-  platformSelector
+  platformSelector,
+  updater,
+  backuper
 };
