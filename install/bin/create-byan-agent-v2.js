@@ -1856,4 +1856,20 @@ program
     }
   });
 
+program
+  .command('web')
+  .description('Launch BYAN WebUI installer in the browser')
+  .option('-p, --port <port>', 'Port number', '3000')
+  .action(async (options) => {
+    const ByanWebUI = require('../src/webui/server');
+    const port = parseInt(options.port, 10);
+    const projectRoot = process.cwd();
+
+    console.log(chalk.cyan.bold('\n  BYAN WebUI\n'));
+    const server = new ByanWebUI({ port, projectRoot });
+    server.start();
+    console.log(chalk.green(`  Server running at http://localhost:${port}`));
+    console.log(chalk.gray('  Press Ctrl+C to stop\n'));
+  });
+
 program.parse(process.argv);
