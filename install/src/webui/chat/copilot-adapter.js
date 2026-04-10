@@ -42,7 +42,10 @@ class CopilotAdapter extends Bridge {
 
     this.process.stderr.on('data', (data) => {
       const text = data.toString().trim();
-      if (text) this.onError(new Error(`copilot stderr: ${text}`));
+      if (!text) return;
+      // Copilot dumps usage stats to stderr — not errors
+      if (/^(Total usage|API time|Total session|Total code|Breakdown by|claude-|gpt-|o[1-4]|Est\.|Premium request)/m.test(text)) return;
+      this.onError(new Error(`copilot stderr: ${text}`));
     });
 
     this.process.on('error', (err) => {

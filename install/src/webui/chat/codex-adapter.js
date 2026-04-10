@@ -32,7 +32,10 @@ class CodexAdapter extends Bridge {
 
     this.process.stderr.on('data', (data) => {
       const text = data.toString().trim();
-      if (text) this.onError(new Error(`codex stderr: ${text}`));
+      if (!text) return;
+      // Codex dumps progress/usage info to stderr
+      if (/^(Running|Executing|Model:|Tokens|Cost)/m.test(text)) return;
+      this.onError(new Error(`codex stderr: ${text}`));
     });
 
     this.process.on('error', (err) => {

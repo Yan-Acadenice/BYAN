@@ -99,9 +99,10 @@ class ClaudeAdapter extends Bridge {
 
   _handleStderr(data) {
     const text = data.toString().trim();
-    if (text) {
-      this.onError(new Error(`claude stderr: ${text}`));
-    }
+    if (!text) return;
+    // Claude dumps progress/status info to stderr — not errors
+    if (/^(Initializing|Loading|Connected|Session|Warming|Cost:|Token)/m.test(text)) return;
+    this.onError(new Error(`claude stderr: ${text}`));
   }
 
   _parseLine(line) {
