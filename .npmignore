@@ -37,3 +37,6 @@ install/BUGFIX-*.md
 !LICENSE
 !API-BYAN-V2.md
 !BMAD-QUICK-REFERENCE.md
+
+# BYAN API (local only, never published)
+api/
