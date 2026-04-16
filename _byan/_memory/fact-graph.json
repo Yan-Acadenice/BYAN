@@ -43,9 +43,9 @@
       "confidence": 80,
       "source": "redis.io/benchmarks",
       "session_id": null,
-      "expires_at": "2028-02-19",
+      "expires_at": "2028-04-12",
       "created_at": "2026-02-19",
-      "updated_at": "2026-02-19T18:56:21.889Z",
+      "updated_at": "2026-04-13T17:26:28.070Z",
       "level": 2,
       "proof": null,
       "assertionType": "CLAIM"
@@ -58,9 +58,9 @@
       "confidence": 80,
       "source": "rfc7519",
       "session_id": null,
-      "expires_at": "2026-08-18",
+      "expires_at": "2026-10-10",
       "created_at": "2026-02-19",
-      "updated_at": "2026-02-19T18:56:21.892Z",
+      "updated_at": "2026-04-13T17:26:28.073Z",
       "level": 2,
       "proof": null,
       "assertionType": "CLAIM"
@@ -73,9 +73,9 @@
       "confidence": 95,
       "source": "nodejs.org/api",
       "session_id": null,
-      "expires_at": "2028-02-19",
+      "expires_at": "2028-04-12",
       "created_at": "2026-02-19",
-      "updated_at": "2026-02-19T18:56:21.893Z",
+      "updated_at": "2026-04-13T17:26:28.073Z",
       "level": 1,
       "proof": null,
       "assertionType": "CLAIM"
@@ -88,9 +88,9 @@
       "confidence": 80,
       "source": null,
       "session_id": null,
-      "expires_at": "2028-02-19",
+      "expires_at": "2028-04-12",
       "created_at": "2026-02-19",
-      "updated_at": "2026-02-19T18:56:21.896Z",
+      "updated_at": "2026-04-13T17:26:28.076Z",
       "level": 2,
       "proof": null,
       "assertionType": "CLAIM"
@@ -105,14 +105,14 @@
       "session_id": null,
       "expires_at": null,
       "created_at": "2026-02-19",
-      "updated_at": "2026-02-19T18:56:21.900Z",
+      "updated_at": "2026-04-13T17:26:28.081Z",
       "level": 1,
       "proof": {
         "type": "user-provided",
         "content": "redis-benchmark output: 120000 ops/sec"
       },
       "assertionType": "FACT",
-      "verified_at": "2026-02-19"
+      "verified_at": "2026-04-13"
     },
     {
       "id": "a19ae1be",
@@ -124,15 +124,15 @@
       "session_id": null,
       "expires_at": null,
       "created_at": "2026-02-19",
-      "updated_at": "2026-02-19T18:56:21.901Z",
+      "updated_at": "2026-04-13T17:26:28.082Z",
       "level": 1,
       "proof": {
         "type": "user-provided",
         "content": "proof here"
       },
       "assertionType": "FACT",
-      "verified_at": "2026-02-19"
+      "verified_at": "2026-04-13"
     }
   ],
-  "updated_at": "2026-02-19T18:56:21.901Z"
+  "updated_at": "2026-04-13T17:26:28.082Z"
 }

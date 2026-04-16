@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "updated_at": "2026-02-19T18:56:39.820Z",
+  "updated_at": "2026-04-13T17:26:31.571Z",
   "domains": {
     "javascript": {
       "rating": 711,
-      "rd": 191,
+      "rd": 200,
       "history": [
         {
           "date": "2026-02-19",
@@ -23,7 +23,7 @@
     },
     "security": {
       "rating": 0,
-      "rd": 210,
+      "rd": 200,
       "history": [
         {
           "date": "2026-02-19",
