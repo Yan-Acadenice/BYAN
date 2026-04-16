@@ -8,8 +8,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - byan-data:/app/data
+      - /home/yan/.copilot/config.json:/root/.copilot/config.json:ro
     networks:
       proxy:
         ipv4_address: ${BYAN_API_IP:-172.100.10.40}
