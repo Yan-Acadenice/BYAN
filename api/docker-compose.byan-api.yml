@@ -1,0 +1,57 @@
+services:
+  byan-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: byan-api:latest
+    container_name: byan-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - byan-data:/app/data
+    networks:
+      proxy:
+        ipv4_address: ${BYAN_API_IP:-172.100.10.40}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3737/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${TRAEFIK_NETWORK:-proxy}"
+
+      # --- Route 1: API programmatique (pas de SSO, JWT auth) ---
+      # byan-api.stark.a3n.fr — acces Copilot CLI, Claude Code, Codex, curl
+      - "traefik.http.routers.byan-api-secure.entrypoints=websecure"
+      - "traefik.http.routers.byan-api-secure.rule=Host(`${BYAN_API_HOST:-byan-api}.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.byan-api-secure.service=byan-svc"
+      - "traefik.http.routers.byan-api-secure.tls=true"
+      - "traefik.http.routers.byan-api-secure.tls.certresolver=letsencrypt"
+
+      # --- Route 2: WebUI + API navigateur (Authentik SSO) ---
+      # byan.stark.a3n.fr — acces navigateur avec SSO
+      - "traefik.http.routers.byan-ui-secure.entrypoints=websecure"
+      - "traefik.http.routers.byan-ui-secure.rule=Host(`${BYAN_UI_HOST:-byan}.${DOMAIN_NAME}`)"
+      - "traefik.http.routers.byan-ui-secure.service=byan-svc"
+      - "traefik.http.routers.byan-ui-secure.middlewares=authentik-byan@docker"
+      - "traefik.http.routers.byan-ui-secure.tls=true"
+      - "traefik.http.routers.byan-ui-secure.tls.certresolver=letsencrypt"
+
+      # --- Authentik forwardAuth middleware ---
+      - "traefik.http.middlewares.authentik-byan.forwardauth.address=http://acadenice-authentik-outpost:9000/outpost.goauthentik.io/auth/traefik"
+      - "traefik.http.middlewares.authentik-byan.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.authentik-byan.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-name,X-authentik-uid"
+
+      # --- Service commun ---
+      - "traefik.http.services.byan-svc.loadbalancer.server.port=3737"
+
+volumes:
+  byan-data:
+    driver: local
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-admin_proxy}

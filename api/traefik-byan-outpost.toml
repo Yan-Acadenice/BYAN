@@ -1,0 +1,15 @@
+# BYAN WebUI — Authentik outpost callback route
+# Required for SSO flow on byan.stark.a3n.fr
+# Placed in Traefik dynamic config directory
+
+[http.routers.byan-outpost]
+  entryPoints = ["websecure"]
+  rule = "Host(`byan.stark.a3n.fr`) && PathPrefix(`/outpost.goauthentik.io/`)"
+  service = "byan-outpost-svc"
+  priority = 150
+  [http.routers.byan-outpost.tls]
+    certResolver = "letsencrypt"
+
+[http.services.byan-outpost-svc.loadBalancer]
+  [[http.services.byan-outpost-svc.loadBalancer.servers]]
+    url = "http://172.100.10.33:9000"
