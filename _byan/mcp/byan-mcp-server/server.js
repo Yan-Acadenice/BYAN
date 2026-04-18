@@ -6,6 +6,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { dispatch } from './lib/dispatch.js';
+import { readSoul, appendSoulMemory } from './lib/soul.js';
 
 const BYAN_API_URL = process.env.BYAN_API_URL || 'http://localhost:3737';
 const BYAN_API_TOKEN = process.env.BYAN_API_TOKEN || '';
@@ -107,6 +108,39 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'byan_soul_read',
+    description:
+      'Read the BYAN soul/tao/soul-memory files from the current project. No auth. Useful when the agent needs to reference the current soul configuration mid-session without relying solely on the SessionStart hook injection.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        which: {
+          type: 'string',
+          enum: ['soul', 'tao', 'soul-memory', 'all'],
+          description: 'Which file to read. Default: all.',
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_soul_memory_append',
+    description:
+      'Append a validated entry to _byan/soul-memory.md. Requires validated=true — the caller must have explicit user confirmation before invoking this tool (per BYAN rule: never write silently to soul-memory).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entry: { type: 'string', description: 'The entry text (markdown allowed).' },
+        validated: {
+          type: 'boolean',
+          description: 'Must be true. Confirms the entry was validated by the user.',
+        },
+      },
+      required: ['entry', 'validated'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const server = new Server(
@@ -182,6 +216,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === 'byan_dispatch') {
       const result = dispatch(args);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
+    if (name === 'byan_soul_read') {
+      const result = readSoul({ which: args.which || 'all' });
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    }
+
+    if (name === 'byan_soul_memory_append') {
+      const result = appendSoulMemory({
+        entry: args.entry,
+        validated: args.validated === true,
+      });
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
