@@ -260,7 +260,7 @@ function calculateComplexity(task) {
 }
 ```
 
-### Routing Logic
+### Routing Logic (legacy, score-only)
 
 ```javascript
 const score = calculateComplexity(task);
@@ -279,6 +279,37 @@ if (score < 30) {
   await agent.execute(task);
 }
 ```
+
+### Routing Logic v2 (parallelizable-aware)
+
+Score alone is insufficient : two tasks with the same complexity can have
+very different optimal targets depending on whether they run **alongside
+siblings** (parallel) or **in sequence**. The v2 router adds a
+`parallelizable` axis and emits an **execution strategy**, not a model.
+
+Implementation : `src/core/dispatcher/execution-router.js` and the MCP
+tool `byan_dispatch` (both share the same table).
+
+```
+score < 15                           → main-thread
+score 15-39 + parallelizable: true   → agent-subagent-worktree
+score 15-39 + parallelizable: false  → mcp-worker-haiku
+score >= 40                          → main-thread-opus
+```
+
+Rationale :
+
+| Strategy | When | Why |
+|---|---|---|
+| `main-thread` | Trivial task | Spawning anything costs more than solving inline. |
+| `agent-subagent-worktree` | Medium parallel | Claude Code Agent tool with `isolation: "worktree"` amortizes boot cost across the wall-clock savings. |
+| `mcp-worker-haiku` | Medium sequential | Delegate to a lightweight Haiku via MCP tool — no subagent boot, cheaper than main thread. |
+| `main-thread-opus` | Complex | Reasoning depth needed; subagent boot + context handoff would waste more than the delegation saves. |
+
+The score threshold of 15 is where Claude Code `Agent` tool boot overhead
+(~5-10k tokens for system prompt + tools) stops being worth it for
+in-thread alternatives. The 40 cutoff is where Opus reasoning depth starts
+to dominate decision value over delegation savings.
 
 ---
 
