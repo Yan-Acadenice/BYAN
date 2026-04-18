@@ -104,14 +104,21 @@ INIT
 
 ## Étape 4 : BUILD
 
-**Qui :** Agent (Sonnet/Opus) ou Worker selon score dispatch
+**Qui :** byan-hermes-dispatch skill route chaque feature au specialiste + modele optimal.
 **Rôle :** Implémenter la feature — code, agent, workflow, ou context.
 
+**Protocole de dispatch (CEO + Dispatcher model) :**
+1. BYAN passe la spec feature au skill `byan-hermes-dispatch`
+2. Hermes resolve le specialiste via sa routing table (architect, dev, pm, tea, etc.)
+3. Hermes appelle `byan_dispatch` (MCP) pour la strategie d'execution
+4. Hermes spawn l'agent cible via Agent tool (ou execute inline selon strategie)
+5. Si aucun specialiste ne matche → Hermes signale le gap → BYAN propose INT (recruitment)
+
 **Règles BUILD :**
-- Une feature à la fois — pas de batch
+- Une feature à la fois par specialiste — pas de batch mais parallelisation legitime si N specialistes differents sur N features differentes (via party-mode-native)
 - TDD : tests conceptuels définis AVANT l'implémentation
 - Commits atomiques avec message clair (type: description, no emoji)
-- Si nouveau Agent → suivre interview-workflow.md
+- Si nouveau Agent requis → BYAN execute interview-workflow.md (scope BYAN)
 - Si nouveau Worker → suivre workers.md template
 - Si nouveau Workflow → suivre structure de ce fichier comme modèle
 
