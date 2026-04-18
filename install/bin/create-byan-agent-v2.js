@@ -14,6 +14,7 @@ const yaml = require('js-yaml');
 const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questions');
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
+const { setupByanWebIntegration } = require('../lib/byan-web-integration');
 
 const BYAN_VERSION = require('../package.json').version;
 
@@ -1339,7 +1340,17 @@ async function install() {
     console.error(chalk.red('Details:'), error.message);
     console.error(chalk.red('Stack:'), error.stack);
   }
-  
+
+  if (needsClaude) {
+    console.log();
+    console.log(chalk.cyan('byan_web integration (optional)'));
+    try {
+      await setupByanWebIntegration(projectRoot);
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ byan_web setup skipped: ${error.message}`));
+    }
+  }
+
   // Step 8: Create config.yaml
   const configSpinner = ora('Generating configuration...').start();
   
