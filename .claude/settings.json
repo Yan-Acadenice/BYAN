@@ -5,6 +5,12 @@
         "type": "command",
         "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-soul.js"
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
+      }
     ]
   }
 }
