@@ -25,6 +25,12 @@
         "type": "command",
         "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mantra-validate.js"
       }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-failure-guard.js"
+      }
     ]
   }
 }
