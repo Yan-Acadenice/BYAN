@@ -1350,9 +1350,11 @@ async function install() {
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ Claude native setup partial: ${error.message}`));
     }
+  }
 
+  if (needsClaude || needsCopilot) {
     console.log();
-    console.log(chalk.cyan('byan_web integration (optional)'));
+    console.log(chalk.cyan('byan_web integration (optional — service payant)'));
     try {
       await setupByanWebIntegration(projectRoot);
     } catch (error) {

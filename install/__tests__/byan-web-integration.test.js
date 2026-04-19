@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const os = require('os');
 const {
   updateSettingsLocal,
+  updateDotenv,
   ensureMcpConfig,
   setupByanWebIntegration,
 } = require('../lib/byan-web-integration');
@@ -46,6 +47,40 @@ describe('byan-web-integration', () => {
     });
   });
 
+  describe('updateDotenv', () => {
+    test('creates .env with BYAN_API_TOKEN and BYAN_API_URL', async () => {
+      const filePath = await updateDotenv(tmpRoot, {
+        BYAN_API_TOKEN: 'xyz',
+        BYAN_API_URL: 'https://byan.example.com',
+      });
+      const content = await fs.readFile(filePath, 'utf8');
+      expect(content).toMatch(/BYAN_API_TOKEN=xyz/);
+      expect(content).toMatch(/BYAN_API_URL=https:\/\/byan\.example\.com/);
+    });
+
+    test('replaces existing BYAN_API_TOKEN line instead of duplicating', async () => {
+      const filePath = path.join(tmpRoot, '.env');
+      await fs.writeFile(filePath, 'OTHER=kept\nBYAN_API_TOKEN=old\n', 'utf8');
+      await updateDotenv(tmpRoot, { BYAN_API_TOKEN: 'new' });
+
+      const content = await fs.readFile(filePath, 'utf8');
+      expect(content).toMatch(/OTHER=kept/);
+      expect(content).toMatch(/BYAN_API_TOKEN=new/);
+      expect(content.match(/BYAN_API_TOKEN=/g)).toHaveLength(1);
+    });
+
+    test('preserves comments and unrelated keys', async () => {
+      const filePath = path.join(tmpRoot, '.env');
+      await fs.writeFile(filePath, '# Header comment\nDB_URL=postgres://x\n', 'utf8');
+      await updateDotenv(tmpRoot, { BYAN_API_TOKEN: 't' });
+
+      const content = await fs.readFile(filePath, 'utf8');
+      expect(content).toMatch(/# Header comment/);
+      expect(content).toMatch(/DB_URL=postgres:\/\/x/);
+      expect(content).toMatch(/BYAN_API_TOKEN=t/);
+    });
+  });
+
   describe('ensureMcpConfig', () => {
     test('creates .mcp.json with byan server config', async () => {
       const filePath = await ensureMcpConfig(tmpRoot, 'http://api.example.com');
@@ -60,9 +95,7 @@ describe('byan-web-integration', () => {
     test('preserves other MCP servers in existing config', async () => {
       const filePath = path.join(tmpRoot, '.mcp.json');
       await fs.writeJson(filePath, {
-        mcpServers: {
-          other: { command: 'python', args: ['other.py'] },
-        },
+        mcpServers: { other: { command: 'python', args: ['other.py'] } },
       });
 
       await ensureMcpConfig(tmpRoot, 'http://localhost:3737');
@@ -89,9 +122,37 @@ describe('byan-web-integration', () => {
       });
       expect(result.configured).toBe(false);
       expect(await fs.pathExists(path.join(tmpRoot, '.mcp.json'))).toBe(false);
+      expect(await fs.pathExists(path.join(tmpRoot, '.env'))).toBe(false);
       expect(
         await fs.pathExists(path.join(tmpRoot, '.claude', 'settings.local.json'))
       ).toBe(false);
+    });
+
+    test('presetInputs writes all three files', async () => {
+      const result = await setupByanWebIntegration(tmpRoot, {
+        skipPrompts: true,
+        quiet: true,
+        presetInputs: {
+          configured: true,
+          token: 'preset-token',
+          apiUrl: 'http://preset:3737',
+        },
+      });
+      expect(result.configured).toBe(true);
+      expect(result.settingsPath).toContain('.claude/settings.local.json');
+      expect(result.envPath).toContain('.env');
+      expect(result.mcpPath).toContain('.mcp.json');
+
+      const env = await fs.readFile(path.join(tmpRoot, '.env'), 'utf8');
+      expect(env).toMatch(/BYAN_API_TOKEN=preset-token/);
+
+      const settings = await fs.readJson(
+        path.join(tmpRoot, '.claude', 'settings.local.json')
+      );
+      expect(settings.env.BYAN_API_TOKEN).toBe('preset-token');
+
+      const mcp = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
+      expect(mcp.mcpServers.byan.env.BYAN_API_URL).toBe('http://preset:3737');
     });
   });
 });
