@@ -146,13 +146,38 @@ program
         });
         
         // Copy _byan from node_modules to project root
-        const nodeModulesByan = path.join(installPath, 'node_modules', 'create-byan-agent', '_byan');
+        const pkgRoot = path.join(installPath, 'node_modules', 'create-byan-agent');
+        const nodeModulesByan = path.join(pkgRoot, '_byan');
         if (fs.existsSync(nodeModulesByan)) {
           copyRecursive(nodeModulesByan, byanDir);
         } else {
           throw new Error('_byan directory not found in npm package');
         }
-        
+
+        // Also refresh .github/agents/ from templates (Copilot stubs)
+        const ghAgentsSrc = path.join(pkgRoot, 'install', 'templates', '.github', 'agents');
+        const ghAgentsDst = path.join(installPath, '.github', 'agents');
+        if (fs.existsSync(ghAgentsSrc)) {
+          if (fs.existsSync(ghAgentsDst)) {
+            fs.rmSync(ghAgentsDst, { recursive: true, force: true });
+          }
+          fs.mkdirSync(path.dirname(ghAgentsDst), { recursive: true });
+          copyRecursive(ghAgentsSrc, ghAgentsDst);
+        }
+
+        // Refresh Claude Code native (.claude/hooks, .claude/skills,
+        // .claude/agents, .claude/settings.json, .mcp.json, _byan/mcp/)
+        try {
+          const setupModule = path.join(pkgRoot, 'install', 'lib', 'claude-native-setup.js');
+          if (fs.existsSync(setupModule)) {
+            // eslint-disable-next-line import/no-dynamic-require, global-require
+            const { setupClaudeNative } = require(setupModule);
+            await setupClaudeNative(installPath, { installDeps: true, quiet: false });
+          }
+        } catch (e) {
+          console.warn(chalk.yellow(`  ⚠ Claude native refresh skipped: ${e.message}`));
+        }
+
         updateSpinner.succeed('Derniere version installee');
       } catch (error) {
         updateSpinner.fail('Erreur installation');
