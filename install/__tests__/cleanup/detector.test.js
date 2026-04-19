@@ -63,10 +63,26 @@ describe('cleanup/detector', () => {
       expect(other.reasons.some((r) => /tiny/.test(r))).toBe(true);
     });
 
-    test('preserves allowlisted skills (byan-hermes-dispatch, byan-forge, ...)', () => {
+    test('preserves allowlisted skills (byan-hermes-dispatch, byan-forge, byan-byan, ...)', () => {
       for (const keep of SKILL_ALLOWLIST) writeSkill(keep);
       const result = findStaleSkills(path.join(tmp, '.claude', 'skills'));
       expect(result).toHaveLength(0);
+    });
+
+    test('NEVER flags byan-byan (core skill, always allowlisted)', () => {
+      writeSkill('byan-byan', {
+        desc: 'BYAN core agent as a Claude Code skill — the meta-agent creator invoked via @byan, interviews, creates specialized agents, applies Merise Agile + TDD + 64 mantras',
+      });
+      const result = findStaleSkills(path.join(tmp, '.claude', 'skills'));
+      expect(result.find((r) => r.name === 'byan-byan')).toBeUndefined();
+    });
+
+    test('still flags byan-byan-v2 and byan-byan-test (versioned/test variants)', () => {
+      writeSkill('byan-byan-v2');
+      writeSkill('byan-byan-test');
+      const names = findStaleSkills(path.join(tmp, '.claude', 'skills')).map((r) => r.name);
+      expect(names).toContain('byan-byan-v2');
+      expect(names).toContain('byan-byan-test');
     });
 
     test('does NOT flag a legit agent skill with long description and body', () => {

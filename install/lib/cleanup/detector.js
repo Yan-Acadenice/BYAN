@@ -22,11 +22,12 @@ const SKILL_ALLOWLIST = new Set([
   'byan-merise-agile',
   'byan-hermes-dispatch',
   'byan-forge',
+  'byan-byan', // BYAN itself as a skill — core, never flag
 ]);
 
 const SKILL_PATTERNS = [
   { re: /(^|-)test(ing|-dynamic)?$/i, reason: 'test/placeholder agent (not a real BYAN capability)' },
-  { re: /^byan-(byan|byan-v2|byan-test)$/i, reason: 'self-referential or versioned stub of BYAN itself' },
+  { re: /^byan-byan-(v2|test)$/i, reason: 'versioned or test stub of BYAN itself' },
   { re: /^byan-(claude|codex)$/i, reason: 'platform name (not an agent role)' },
   { re: /^byan-skeptic$/i, reason: 'experimental agent not wired in menus' },
 ];
