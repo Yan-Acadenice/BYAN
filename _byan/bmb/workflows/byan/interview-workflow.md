@@ -715,17 +715,6 @@ status: "validated"
 - Validations performed
 - Next steps
 
-**4. Agent Soul File:** `{output_folder}/{agent_name}-soul.md`
-- Generated from template: `_byan/bmb/workflows/byan/templates/soul-template.md`
-- Source: `_byan/creator-soul.md` — inherits the creator's immutable core
-- BYAN distills the creator's soul through the lens of the new agent's role:
-  - Noyau immuable: same 3 truths, expressed through the agent's specialty
-  - Personality: adapted to the agent's role and domain
-  - Rituals: specific to how this agent works
-  - Red lines: inherited from creator's colères, applied to the agent's domain
-  - Founding phrase: unique to this agent, inspired by the creator's
-- Ask user to validate the soul before finalizing: "Does this soul feel right for this agent?"
-
 ---
 
 ## SUCCESS CRITERIA
@@ -739,8 +728,6 @@ status: "validated"
 ✅ User confirmed final specs
 ✅ ProjectContext created
 ✅ AgentSpec created and validated
-✅ Agent soul generated from creator-soul and validated by user
-✅ Agent tao generated from soul and validated by user
 
 ---
 
@@ -749,16 +736,9 @@ status: "validated"
 After Phase 4 validation, BYAN should:
 
 1. Save all artifacts to `{output_folder}`
-2. Generate agent soul from `_byan/creator-soul.md` using `_byan/bmb/workflows/byan/templates/soul-template.md`
-3. Ask user to validate the generated soul
-4. Generate agent tao from the validated soul using `_byan/bmb/workflows/byan/templates/tao-template.md`
-   - Derive vocal traits from soul values (register, signatures, temperature, forbidden vocabulary, non-dits, emotional grammar, examples)
-   - Run anti-uniformity test against existing taos
-   - Ask user to validate the generated tao
-   - Save as `_byan/{module}/agents/{agent_name}-tao.md`
-5. Update session status to "completed"
-6. Present user with next steps (file generation)
-7. Offer to proceed immediately or exit
+2. Update session status to "completed"
+3. Present user with next steps (file generation)
+4. Offer to proceed immediately or exit
 
 ```
 "Interview complete! 🎉

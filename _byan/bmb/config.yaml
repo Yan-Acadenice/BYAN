@@ -3,5 +3,39 @@ user_name: Yan
 communication_language: Francais
 document_output_language: Francais
 output_folder: '{project-root}/_byan-output'
-platform: copilot
-byan_version: 2.6.2
+platform: claude
+install_mode: manual
+byan_version: 2.7.3
+installed_agents:
+  - hermes
+  - claude
+  - bmad-master
+  - expert-merise-agile
+  - byan
+  - agent-builder
+  - module-builder
+  - workflow-builder
+  - rachid
+  - drawio
+  - turbo-whisper-integration
+  - analyst
+  - pm
+  - architect
+  - dev
+  - sm
+  - quinn
+  - ux-designer
+  - tech-writer
+  - quick-flow-solo-dev
+  - tea
+  - brainstorming-coach
+  - creative-problem-solver
+  - design-thinking-coach
+  - innovation-strategist
+  - presentation-master
+  - storyteller
+  - patnote
+  - carmack
+  - jimmy
+  - mike
+soul_mode: creator
