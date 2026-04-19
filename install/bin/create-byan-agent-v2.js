@@ -15,6 +15,7 @@ const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questio
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 const { setupByanWebIntegration } = require('../lib/byan-web-integration');
+const { setupClaudeNative } = require('../lib/claude-native-setup');
 
 const BYAN_VERSION = require('../package.json').version;
 
@@ -1342,6 +1343,14 @@ async function install() {
   }
 
   if (needsClaude) {
+    console.log();
+    console.log(chalk.cyan('Claude Code native setup (hooks, skills, MCP server)'));
+    try {
+      await setupClaudeNative(projectRoot);
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ Claude native setup partial: ${error.message}`));
+    }
+
     console.log();
     console.log(chalk.cyan('byan_web integration (optional)'));
     try {

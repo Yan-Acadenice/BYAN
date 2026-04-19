@@ -1,0 +1,22 @@
+{
+  "name": "@byan/mcp-server",
+  "version": "0.1.0",
+  "description": "BYAN MCP server exposing byan_web REST API as Claude Code tools",
+  "main": "server.js",
+  "type": "module",
+  "bin": {
+    "byan-mcp": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["mcp", "byan", "claude-code"],
+  "license": "MIT"
+}
