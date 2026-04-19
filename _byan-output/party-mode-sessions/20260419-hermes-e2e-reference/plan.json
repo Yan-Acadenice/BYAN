@@ -1,0 +1,16 @@
+{
+  "session_id": "20260419-hermes-e2e-reference",
+  "created_at": "2026-04-19T14:18:17.847Z",
+  "task": "review the auth module of byan_web for security vulnerabilities",
+  "specialist_chosen": "quinn",
+  "matched_keyword": "review",
+  "subagent_type": "general-purpose",
+  "dispatch": {
+    "score": 6,
+    "route": "main-thread",
+    "reasoning": "Score 6 < 15. Inline in current context, no delegation overhead.",
+    "parallelizable": false
+  },
+  "executed": false,
+  "note": "Reference run of the Hermes dispatch flow. No actual subagent spawn. Use this as a template for future FD BUILD phases."
+}
