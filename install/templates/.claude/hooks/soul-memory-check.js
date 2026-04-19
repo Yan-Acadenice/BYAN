@@ -45,4 +45,8 @@ try {
   // never block
 }
 
-process.stdout.write(JSON.stringify({ hookSpecificOutput: { additionalContext } }));
+if (additionalContext) {
+  process.stdout.write(JSON.stringify({ systemMessage: additionalContext }));
+} else {
+  process.stdout.write('{}');
+}

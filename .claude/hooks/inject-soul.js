@@ -36,8 +36,8 @@ const additionalContext =
     ? `BYAN Soul System (loaded at session start):\n\n${chunks.join('\n\n')}`
     : '';
 
-process.stdout.write(
-  JSON.stringify({
-    hookSpecificOutput: { additionalContext },
-  })
-);
+if (additionalContext) {
+  process.stdout.write(JSON.stringify({ systemMessage: additionalContext }));
+} else {
+  process.stdout.write('{}');
+}

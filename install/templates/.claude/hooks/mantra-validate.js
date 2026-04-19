@@ -79,4 +79,8 @@ if (offenders.length > 0) {
   additionalContext = lines.join('\n');
 }
 
-process.stdout.write(JSON.stringify({ hookSpecificOutput: { additionalContext } }));
+if (additionalContext) {
+  process.stdout.write(JSON.stringify({ systemMessage: additionalContext, continue: true }));
+} else {
+  process.stdout.write(JSON.stringify({ continue: true }));
+}

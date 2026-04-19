@@ -69,5 +69,12 @@ function findTrigger(text) {
     // never block
   }
 
-  process.stdout.write(JSON.stringify({ hookSpecificOutput: { additionalContext } }));
+  process.stdout.write(
+    JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'UserPromptSubmit',
+        additionalContext: additionalContext || '',
+      },
+    })
+  );
 })();

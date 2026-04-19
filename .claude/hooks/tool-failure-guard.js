@@ -44,7 +44,11 @@ function readStdin() {
   const hit = detectFailure(payload);
 
   if (!hit) {
-    process.stdout.write(JSON.stringify({ hookSpecificOutput: { additionalContext: '' } }));
+    process.stdout.write(
+      JSON.stringify({
+        hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: '' },
+      })
+    );
     process.exit(0);
   }
 
@@ -69,7 +73,7 @@ function readStdin() {
       JSON.stringify({
         decision: 'block',
         reason: verdict.reason,
-        hookSpecificOutput: { additionalContext: msg },
+        hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: msg },
       })
     );
     process.exit(2);
@@ -78,6 +82,7 @@ function readStdin() {
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
         additionalContext: `Tool failure recorded (${hit.kind}). Continuing, but be explicit with the user if a retry fails.`,
       },
     })

@@ -28,6 +28,9 @@ try {
 
 process.stdout.write(
   JSON.stringify({
-    hookSpecificOutput: { additionalContext },
+    hookSpecificOutput: {
+      hookEventName: 'UserPromptSubmit',
+      additionalContext: additionalContext || '',
+    },
   })
 );
