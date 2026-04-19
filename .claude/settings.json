@@ -2,34 +2,54 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-soul.js"
-      },
-      {
-        "type": "command",
-        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-check.js"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-soul.js"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-check.js"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
-      },
-      {
-        "type": "command",
-        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-triggers.js"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-triggers.js"
+          }
+        ]
       }
     ],
     "Stop": [
       {
-        "type": "command",
-        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mantra-validate.js"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mantra-validate.js"
+          }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "type": "command",
-        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-failure-guard.js"
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-failure-guard.js"
+          }
+        ]
       }
     ]
   }
