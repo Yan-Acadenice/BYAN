@@ -19,6 +19,12 @@
         "type": "command",
         "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-triggers.js"
       }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mantra-validate.js"
+      }
     ]
   }
 }
