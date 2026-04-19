@@ -6,6 +6,7 @@
   "bin": {
     "create-byan-agent": "./install/bin/create-byan-agent-v2.js",
     "byan-v2": "./install/bin/create-byan-agent-v2.js",
+    "byan-cleanup": "./install/bin/byan-cleanup.js",
     "update-byan-agent": "./update-byan-agent/bin/update-byan-agent.js"
   },
   "scripts": {
