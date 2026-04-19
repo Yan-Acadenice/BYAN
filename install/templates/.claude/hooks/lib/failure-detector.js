@@ -80,9 +80,9 @@ function readRecent(options = {}) {
 
 function evaluate({ now = new Date(), entries, toolName }) {
   const windows = [
-    { pattern: null, toolName, seconds: 120, threshold: 3, label: `3 ${toolName} failures in 2 min` },
-    { pattern: /internal error/i, seconds: 300, threshold: 2, label: '2 internal errors in 5 min' },
-    { pattern: /tool result missing/i, seconds: 300, threshold: 2, label: '2 tool-result-missing in 5 min' },
+    { pattern: /tool result missing/i, seconds: 300, threshold: 1, label: 'tool result missing (blocking on 1st occurrence)' },
+    { pattern: /internal error/i, seconds: 300, threshold: 1, label: 'internal error (blocking on 1st occurrence)' },
+    { pattern: null, toolName, seconds: 120, threshold: 2, label: `2 ${toolName} failures in 2 min` },
   ];
 
   for (const w of windows) {

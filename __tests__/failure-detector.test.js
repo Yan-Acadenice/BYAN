@@ -49,37 +49,35 @@ describe('detectFailure', () => {
 describe('evaluate — thresholds', () => {
   const now = new Date('2026-04-19T12:00:00Z');
 
-  test('3 same-tool failures in 2 min → blocked', () => {
+  test('2 same-tool failures in 2 min → blocked (zero-starfoula mode)', () => {
     const entries = [
       { timestamp: '2026-04-19T11:59:30.000Z', tool_name: 'Bash', detail: 'x' },
       { timestamp: '2026-04-19T11:58:45.000Z', tool_name: 'Bash', detail: 'y' },
-      { timestamp: '2026-04-19T11:58:15.000Z', tool_name: 'Bash', detail: 'z' },
     ];
     const v = detector.evaluate({ now, entries, toolName: 'Bash' });
     expect(v.blocked).toBe(true);
-    expect(v.reason).toMatch(/3 Bash/);
+    expect(v.reason).toMatch(/2 Bash/);
   });
 
-  test('2 "internal error" in 5 min → blocked', () => {
+  test('first "internal error" → blocked immediately', () => {
     const entries = [
       { timestamp: '2026-04-19T11:57:00.000Z', tool_name: 'Bash', detail: 'some internal error here' },
-      { timestamp: '2026-04-19T11:55:00.000Z', tool_name: 'Write', detail: 'internal error again' },
-    ];
-    const v = detector.evaluate({ now, entries, toolName: 'Write' });
-    expect(v.blocked).toBe(true);
-    expect(v.reason).toMatch(/internal errors/);
-  });
-
-  test('2 "tool result missing" in 5 min → blocked', () => {
-    const entries = [
-      { timestamp: '2026-04-19T11:58:00.000Z', tool_name: 'Bash', detail: 'tool result missing here' },
-      { timestamp: '2026-04-19T11:56:00.000Z', tool_name: 'Bash', detail: 'tool result missing again' },
     ];
     const v = detector.evaluate({ now, entries, toolName: 'Bash' });
     expect(v.blocked).toBe(true);
+    expect(v.reason).toMatch(/internal error/);
   });
 
-  test('isolated single failure → not blocked', () => {
+  test('first "tool result missing" → blocked immediately', () => {
+    const entries = [
+      { timestamp: '2026-04-19T11:58:00.000Z', tool_name: 'Bash', detail: 'tool result missing here' },
+    ];
+    const v = detector.evaluate({ now, entries, toolName: 'Bash' });
+    expect(v.blocked).toBe(true);
+    expect(v.reason).toMatch(/tool result missing/);
+  });
+
+  test('isolated single non-pattern failure → not blocked', () => {
     const entries = [{ timestamp: '2026-04-19T11:58:00.000Z', tool_name: 'Bash', detail: 'one off' }];
     const v = detector.evaluate({ now, entries, toolName: 'Bash' });
     expect(v.blocked).toBe(false);
