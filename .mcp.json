@@ -2,7 +2,7 @@
   "mcpServers": {
     "byan": {
       "command": "node",
-      "args": ["_byan/mcp/byan-mcp-server/server.js"],
+      "args": ["${CLAUDE_PROJECT_DIR}/_byan/mcp/byan-mcp-server/server.js"],
       "env": {
         "BYAN_API_URL": "http://localhost:3737"
       }
