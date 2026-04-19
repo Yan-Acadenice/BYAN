@@ -7,6 +7,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { dispatch } from './lib/dispatch.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
+import { listSessions, readSessionEvents, searchSessions } from './lib/copilot.js';
 import {
   eloSummary,
   eloContext,
@@ -205,6 +206,58 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'byan_copilot_sessions',
+    description:
+      'List GitHub Copilot CLI sessions stored locally at ~/.copilot/session-state/. Returns sessionId, start/end time, cwd, branch, agent name, message and tool call counts. Sorted most-recent-first. Use to discover past Copilot CLI conversations for reference or import.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max sessions to return (default 20).' },
+        sinceIso: { type: 'string', description: 'ISO timestamp filter — only sessions started after this.' },
+        cwdFilter: { type: 'string', description: 'Substring match on session cwd (e.g. "byan_web").' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_copilot_session_events',
+    description:
+      'Read events of a specific Copilot CLI session (events.jsonl). Optionally filter by event type (user.message, assistant.message, tool.execution_start, etc.). Useful to inspect the flow of a past session.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'Session UUID from byan_copilot_sessions.' },
+        types: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Filter to these event types only.',
+        },
+        limit: { type: 'number', description: 'Max events (default 200).' },
+      },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_copilot_search',
+    description:
+      'Full-text search across all Copilot CLI sessions. Finds messages (user + assistant by default) containing the query string. Returns sessionId + timestamp + excerpt. Use to recall past discussions without knowing which session they were in.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Substring to search for (case-insensitive).' },
+        types: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Event types to scan (default: user.message, assistant.message).',
+        },
+        limit: { type: 'number', description: 'Max matches (default 50).' },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const server = new Server(
@@ -328,6 +381,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === 'byan_fc_parse') {
       const result = await fcParse({ text: args.text });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_copilot_sessions') {
+      const result = listSessions({
+        limit: args.limit,
+        sinceIso: args.sinceIso,
+        cwdFilter: args.cwdFilter,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_copilot_session_events') {
+      const result = readSessionEvents({
+        sessionId: args.sessionId,
+        types: args.types,
+        limit: args.limit,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_copilot_search') {
+      const result = searchSessions({
+        query: args.query,
+        types: args.types,
+        limit: args.limit,
+      });
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
 
