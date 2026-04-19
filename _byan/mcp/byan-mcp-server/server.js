@@ -7,6 +7,14 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { dispatch } from './lib/dispatch.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
+import {
+  eloSummary,
+  eloContext,
+  eloDashboard,
+  eloRecord,
+  fcCheck,
+  fcParse,
+} from './lib/cli.js';
 
 const BYAN_API_URL = process.env.BYAN_API_URL || 'http://localhost:3737';
 const BYAN_API_TOKEN = process.env.BYAN_API_TOKEN || '';
@@ -141,6 +149,62 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'byan_elo_summary',
+    description:
+      'ELO trust summary across all technical domains. Wraps `byan-v2-cli elo summary`. No auth. Returns ratings, trends, session counts.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_elo_context',
+    description:
+      'Challenge-context for a specific domain (returns promptInstructions BYAN should apply when challenging a claim). Wraps `byan-v2-cli elo context <domain>`.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        domain: { type: 'string', description: 'Domain name (security|javascript|performance|...)' },
+      },
+      required: ['domain'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_elo_record',
+    description:
+      'Record the outcome of a user claim on a domain. Wraps `byan-v2-cli elo record <domain> <VALIDATED|BLOCKED|PARTIAL>`.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        domain: { type: 'string' },
+        result: { type: 'string', enum: ['VALIDATED', 'BLOCKED', 'PARTIAL'] },
+        reason: { type: 'string' },
+      },
+      required: ['domain', 'result'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_fc_check',
+    description:
+      'Run fact-check on a claim string. Returns assertion type (REASONING|HYPOTHESIS|CLAIM L{n}|FACT), level, score. Wraps `byan-v2-cli fc check <text>`.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string', description: 'Assertion to fact-check.' } },
+      required: ['text'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_fc_parse',
+    description:
+      'Parse a text for auto-detection patterns (absolutes, superlatives, unsourced best-practice claims). Wraps `byan-v2-cli fc parse <text>`.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const server = new Server(
@@ -236,6 +300,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
+    }
+
+    if (name === 'byan_elo_summary') {
+      const result = await eloSummary();
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_elo_context') {
+      const result = await eloContext({ domain: args.domain });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_elo_record') {
+      const result = await eloRecord({
+        domain: args.domain,
+        result: args.result,
+        reason: args.reason,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_fc_check') {
+      const result = await fcCheck({ text: args.text });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_fc_parse') {
+      const result = await fcParse({ text: args.text });
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);
