@@ -55,12 +55,18 @@ function readStdin() {
   const toolName = payload.tool_name || payload.toolName || 'unknown';
   const hit = detectFailure(payload);
 
+  const respStr = JSON.stringify(
+    payload.tool_response ?? payload.toolResponse ?? payload.response ?? {}
+  );
+  const estOutputTokens = Math.ceil(respStr.length / 4);
+
   appendToolLog({
     timestamp: new Date().toISOString(),
     phase: 'post',
     tool: toolName,
     ok: !hit,
     failure_kind: hit ? hit.kind : null,
+    est_output_tokens: estOutputTokens,
   });
 
   if (!hit) {

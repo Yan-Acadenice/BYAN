@@ -69,11 +69,15 @@ function appendLog(entry) {
   const input = payload.tool_input || payload.toolInput || {};
   const summary = summarizeInput(toolName, input);
 
+  const inputStr = JSON.stringify(input || {});
+  const estInputTokens = Math.ceil(inputStr.length / 4);
+
   appendLog({
     timestamp: new Date().toISOString(),
     phase: 'pre',
     tool: toolName,
     summary,
+    est_input_tokens: estInputTokens,
   });
 
   const systemMessage = summary ? `${toolName}: ${summary}` : `${toolName}`;
