@@ -21,6 +21,18 @@ const {
   evaluate,
 } = require(path.join(__dirname, 'lib', 'failure-detector.js'));
 
+const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const TOOL_LOG_PATH = path.join(projectDir, '_byan-output', 'tool-log.jsonl');
+
+function appendToolLog(entry) {
+  try {
+    fs.mkdirSync(path.dirname(TOOL_LOG_PATH), { recursive: true });
+    fs.appendFileSync(TOOL_LOG_PATH, JSON.stringify(entry) + '\n');
+  } catch {
+    // visibility log must never block the hook
+  }
+}
+
 function readStdin() {
   return new Promise((resolve) => {
     if (process.stdin.isTTY) return resolve('');
@@ -42,6 +54,14 @@ function readStdin() {
 
   const toolName = payload.tool_name || payload.toolName || 'unknown';
   const hit = detectFailure(payload);
+
+  appendToolLog({
+    timestamp: new Date().toISOString(),
+    phase: 'post',
+    tool: toolName,
+    ok: !hit,
+    failure_kind: hit ? hit.kind : null,
+  });
 
   if (!hit) {
     process.stdout.write(

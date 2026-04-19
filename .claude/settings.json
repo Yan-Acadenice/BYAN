@@ -41,6 +41,17 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-transparency.js"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "",
