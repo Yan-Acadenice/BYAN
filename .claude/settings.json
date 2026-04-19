@@ -4,12 +4,20 @@
       {
         "type": "command",
         "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-soul.js"
+      },
+      {
+        "type": "command",
+        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-check.js"
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
         "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
+      },
+      {
+        "type": "command",
+        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-triggers.js"
       }
     ]
   }
