@@ -69,3 +69,7 @@ install/create-byan-agent-*.tgz
 
 # BYAN API (local only, never committed)
 api/
+
+# BYAN transparency logs + session-local state
+_byan-output/
+_byan/_memory/.soul-memory-nudge-sent
