@@ -17,6 +17,13 @@ import {
   ALL_PHASES as FD_PHASES,
 } from './lib/fd-state.js';
 import {
+  requestReview,
+  recordVerdict,
+  getReview,
+  listPending,
+  pickReviewer,
+} from './lib/peer-review.js';
+import {
   eloSummary,
   eloContext,
   eloDashboard,
@@ -308,6 +315,68 @@ const tools = [
     },
   },
   {
+    name: 'byan_review_request',
+    description:
+      'Open a peer review request for a task/commit. Another agent (≠ author) must subsequently call byan_review_verdict. Persists under _byan-output/reviews/<task_id>.json.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task_id: { type: 'string', description: 'Unique id (commit sha or feature id).' },
+        author: { type: 'string', description: 'Agent name that produced the artefact.' },
+        artifact_paths: { type: 'array', items: { type: 'string' } },
+        description: { type: 'string' },
+      },
+      required: ['task_id', 'author'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_review_verdict',
+    description:
+      'Record a verdict on an open review request. reviewer must differ from author (enforced). Valid verdicts : approve | changes | block.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        task_id: { type: 'string' },
+        reviewer: { type: 'string' },
+        verdict: { type: 'string', enum: ['approve', 'changes', 'block'] },
+        comments: { type: 'array', items: { type: 'string' } },
+        must_fix: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['task_id', 'reviewer', 'verdict'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_review_get',
+    description: 'Fetch the current state of a review by task_id.',
+    inputSchema: {
+      type: 'object',
+      properties: { task_id: { type: 'string' } },
+      required: ['task_id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_review_pending',
+    description: 'List all open (pending or changes_requested) reviews, newest first.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_review_pick_reviewer',
+    description:
+      'Suggest a reviewer distinct from the author. Uses domain pairs (dev↔quinn, architect↔tea, pm↔sm, ux↔pm) then falls back to the roster.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        author: { type: 'string' },
+        preferredDomain: { type: 'string' },
+      },
+      required: ['author'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'byan_copilot_search',
     description:
       'Full-text search across all Copilot CLI sessions. Finds messages (user + assistant by default) containing the query string. Returns sessionId + timestamp + excerpt. Use to recall past discussions without knowing which session they were in.',
@@ -502,6 +571,47 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'byan_fd_abort') {
       const state = fdAbort({ reason: args.reason });
       return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_review_request') {
+      const r = requestReview({
+        task_id: args.task_id,
+        author: args.author,
+        artifact_paths: args.artifact_paths,
+        description: args.description,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_review_verdict') {
+      const r = recordVerdict({
+        task_id: args.task_id,
+        reviewer: args.reviewer,
+        verdict: args.verdict,
+        comments: args.comments,
+        must_fix: args.must_fix,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_review_get') {
+      const r = getReview({ task_id: args.task_id });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_review_pending') {
+      const r = listPending();
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_review_pick_reviewer') {
+      const r = pickReviewer({
+        author: args.author,
+        preferredDomain: args.preferredDomain,
+      });
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ reviewer: r }, null, 2) }],
+      };
     }
 
     throw new Error(`Unknown tool: ${name}`);
