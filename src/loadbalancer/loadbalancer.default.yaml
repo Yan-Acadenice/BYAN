@@ -1,0 +1,58 @@
+# BYAN LoadBalancer — Default Configuration
+# Copilot CLI <-> Claude Code automatic failover
+
+providers:
+  copilot:
+    enabled: true
+    sdk: "@github/copilot-sdk"
+    transport: "json-rpc"
+    auth_env: "COPILOT_GITHUB_TOKEN"
+    models:
+      worker: "gpt-4.1-mini"
+      agent: "gpt-4.1"
+
+  claude:
+    enabled: true
+    sdk: "@anthropic-ai/claude-agent-sdk"
+    transport: "native"
+    auth_env: "ANTHROPIC_API_KEY"
+    models:
+      worker: "claude-haiku-4.5"
+      agent: "claude-sonnet-4.5"
+
+  byan_api:
+    enabled: false
+    url: "http://localhost:3737"
+    auth_env: "BYAN_API_TOKEN"
+
+primary: "claude"
+fallback_order: ["copilot", "byan_api"]
+
+rate_limits:
+  window_ms: 60000
+  max_429_in_window: 3
+  throttle_threshold: 2
+  block_threshold: 3
+  recovery_probe_interval_ms: 10000
+  half_open_max_requests: 2
+
+sessions:
+  sticky_timeout_ms: 300000
+  context_summary_max_tokens: 2000
+  auto_switch_on_rate_limit: true
+
+health_probe:
+  enabled: true
+  interval_ms: 30000
+  timeout_ms: 5000
+  cheap_model: true
+
+mcp_server:
+  transport: "http"
+  port: 3838
+  host: "127.0.0.1"
+
+logging:
+  level: "info"
+  switchover_events: true
+  rate_limit_events: true
