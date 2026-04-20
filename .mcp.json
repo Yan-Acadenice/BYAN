@@ -6,6 +6,13 @@
       "env": {
         "BYAN_API_URL": "http://localhost:3737"
       }
+    },
+    "byan-loadbalancer": {
+      "command": "node",
+      "args": ["/home/yan/BYAN/src/loadbalancer/mcp-server.js"],
+      "env": {
+        "BYAN_PROJECT_ROOT": "/home/yan/BYAN"
+      }
     }
   }
 }

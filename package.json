@@ -54,6 +54,8 @@
   ],
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.114",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^12.9.0",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
