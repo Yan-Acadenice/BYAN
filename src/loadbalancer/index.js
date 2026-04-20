@@ -19,6 +19,11 @@ const { CopilotProvider } = require('./providers/copilot-provider');
 const { ClaudeProvider } = require('./providers/claude-provider');
 const { CopilotIntegration } = require('./native/copilot-integration');
 const { ClaudeIntegration } = require('./native/claude-integration');
+const { ByanApiProvider } = require('./providers/byan-api-provider');
+const { HealthProbe } = require('./health-probe');
+const { GracefulDegradation, PRIORITY } = require('./graceful-degradation');
+const { CapabilityMatrix, DEFAULT_CAPABILITIES } = require('./capability-matrix');
+const { Metrics } = require('./metrics');
 const { startServer, VERSION } = require('./mcp-server');
 
 module.exports = {
@@ -40,10 +45,19 @@ module.exports = {
   BaseProvider,
   CopilotProvider,
   ClaudeProvider,
+  ByanApiProvider,
 
   // Native integrations
   CopilotIntegration,
   ClaudeIntegration,
+
+  // Robustness (Sprint 3)
+  HealthProbe,
+  GracefulDegradation,
+  PRIORITY,
+  CapabilityMatrix,
+  DEFAULT_CAPABILITIES,
+  Metrics,
 
   // MCP Server
   startServer,
