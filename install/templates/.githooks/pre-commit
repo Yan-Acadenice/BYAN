@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# BYAN pre-commit hook — enforce mantras score >= 80% on staged agent
+# and skill files. Blocks the commit if any file drops below the
+# threshold so the user can't accidentally push non-compliant artefacts.
+#
+# Install :
+#   git config core.hooksPath .githooks
+#
+# Bypass (emergency only) :
+#   git commit --no-verify
+#
+# Scope : only files matching
+#   _byan/bmb/agents/*.md, _byan/agents/*.md,
+#   .github/agents/*.md, .claude/skills/*/SKILL.md,
+#   .claude/agents/*.md
+# are validated. Non-agent files are ignored.
+
+set -euo pipefail
+
+THRESHOLD=80
+VALIDATOR="src/byan-v2/generation/mantra-validator.js"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "[byan pre-commit] node not found, skipping mantra check"
+  exit 0
+fi
+
+if [ ! -f "$VALIDATOR" ]; then
+  exit 0
+fi
+
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(_byan/bmb/agents/.*\.md|_byan/agents/.*\.md|\.github/agents/.*\.md|\.claude/skills/.*SKILL\.md|\.claude/agents/.*\.md)$' || true)
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+failed=0
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  [ ! -f "$file" ] && continue
+
+  score=$(node -e "
+    const V = require('./$VALIDATOR');
+    const fs = require('fs');
+    try {
+      const content = fs.readFileSync('$file', 'utf8');
+      const v = new V();
+      const res = v.validate(content);
+      const pct = Math.round((res.compliant.length / res.totalMantras) * 100);
+      process.stdout.write(String(pct));
+    } catch (e) {
+      process.stderr.write(e.message);
+      process.stdout.write('0');
+    }
+  " 2>/dev/null || echo "0")
+
+  if [ -z "$score" ] || [ "$score" = "0" ]; then
+    continue
+  fi
+
+  if [ "$score" -lt "$THRESHOLD" ]; then
+    echo "[byan pre-commit] FAIL $file : mantra score $score% < $THRESHOLD%"
+    failed=1
+  fi
+done <<< "$staged"
+
+if [ "$failed" -eq 1 ]; then
+  echo ""
+  echo "Commit blocked by BYAN mantra pre-commit hook."
+  echo "Fix the flagged files above, or bypass with 'git commit --no-verify' (emergency only)."
+  exit 1
+fi
+
+exit 0
