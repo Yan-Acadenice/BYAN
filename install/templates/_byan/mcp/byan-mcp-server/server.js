@@ -24,6 +24,17 @@ import {
   pickReviewer,
 } from './lib/peer-review.js';
 import {
+  createBoard,
+  addCard,
+  moveCard,
+  assignCard,
+  getBoard,
+  postStandup,
+  readStandups,
+  detectBlockedStreaks,
+  KANBAN_COLUMNS,
+} from './lib/kanban.js';
+import {
   eloSummary,
   eloContext,
   eloDashboard,
@@ -377,6 +388,124 @@ const tools = [
     },
   },
   {
+    name: 'byan_kanban_create',
+    description:
+      'Create (or fetch existing) kanban board for a party-mode session. Columns : todo | doing | blocked | review | done. Persisted under _byan-output/party-mode-sessions/<session_id>/kanban.json.',
+    inputSchema: {
+      type: 'object',
+      properties: { sessionId: { type: 'string' } },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_kanban_add',
+    description: 'Add a card to the kanban. card = { id, title, assignee?, priority? (P1|P2|P3), column? }.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        card: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            title: { type: 'string' },
+            assignee: { type: 'string' },
+            priority: { type: 'string' },
+            column: { type: 'string' },
+          },
+          required: ['id', 'title'],
+        },
+      },
+      required: ['sessionId', 'card'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_kanban_move',
+    description:
+      'Move a card between columns. toColumn must be one of todo | doing | blocked | review | done. Provide blocker_reason when moving to blocked.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        cardId: { type: 'string' },
+        toColumn: { type: 'string', enum: ['todo', 'doing', 'blocked', 'review', 'done'] },
+        blocker_reason: { type: 'string' },
+      },
+      required: ['sessionId', 'cardId', 'toColumn'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_kanban_assign',
+    description: 'Assign a card to an agent.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        cardId: { type: 'string' },
+        assignee: { type: 'string' },
+      },
+      required: ['sessionId', 'cardId', 'assignee'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_kanban_get',
+    description: 'Fetch the current kanban board for a session.',
+    inputSchema: {
+      type: 'object',
+      properties: { sessionId: { type: 'string' } },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_standup_post',
+    description:
+      'Append a stand-up entry to _byan-output/party-mode-sessions/<session_id>/standup.jsonl. Format : { agent, did, blockers[], next }.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        agent: { type: 'string' },
+        did: { type: 'string' },
+        blockers: { type: 'array', items: { type: 'string' } },
+        next: { type: 'string' },
+      },
+      required: ['sessionId', 'agent'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_standup_read',
+    description: 'Read the stand-up feed for a session, newest entries last.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        limit: { type: 'number' },
+      },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_standup_blocked',
+    description:
+      'Return agents with >= minStreak consecutive blocked stand-ups (default minStreak=2). Hermes uses this to trigger redispatch.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        minStreak: { type: 'number' },
+      },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'byan_copilot_search',
     description:
       'Full-text search across all Copilot CLI sessions. Finds messages (user + assistant by default) containing the query string. Returns sessionId + timestamp + excerpt. Use to recall past discussions without knowing which session they were in.',
@@ -612,6 +741,57 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [{ type: 'text', text: JSON.stringify({ reviewer: r }, null, 2) }],
       };
+    }
+
+    if (name === 'byan_kanban_create') {
+      const r = createBoard({ sessionId: args.sessionId });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_kanban_add') {
+      const r = addCard({ sessionId: args.sessionId, card: args.card });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_kanban_move') {
+      const r = moveCard({
+        sessionId: args.sessionId,
+        cardId: args.cardId,
+        toColumn: args.toColumn,
+        blocker_reason: args.blocker_reason,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_kanban_assign') {
+      const r = assignCard({
+        sessionId: args.sessionId,
+        cardId: args.cardId,
+        assignee: args.assignee,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_kanban_get') {
+      const r = getBoard({ sessionId: args.sessionId });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_standup_post') {
+      const r = postStandup({
+        sessionId: args.sessionId,
+        agent: args.agent,
+        did: args.did,
+        blockers: args.blockers,
+        next: args.next,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_standup_read') {
+      const r = readStandups({ sessionId: args.sessionId, limit: args.limit });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+    if (name === 'byan_standup_blocked') {
+      const r = detectBlockedStreaks({
+        sessionId: args.sessionId,
+        minStreak: args.minStreak,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);

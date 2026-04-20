@@ -8,6 +8,7 @@
     "byan-v2": "./install/bin/create-byan-agent-v2.js",
     "byan-cleanup": "./install/bin/byan-cleanup.js",
     "byan-ledger": "./install/bin/byan-ledger.js",
+    "byan-kanban": "./install/bin/byan-kanban.js",
     "update-byan-agent": "./update-byan-agent/bin/update-byan-agent.js"
   },
   "scripts": {
