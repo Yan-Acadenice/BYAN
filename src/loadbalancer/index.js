@@ -24,7 +24,13 @@ const { HealthProbe } = require('./health-probe');
 const { GracefulDegradation, PRIORITY } = require('./graceful-degradation');
 const { CapabilityMatrix, DEFAULT_CAPABILITIES } = require('./capability-matrix');
 const { Metrics } = require('./metrics');
-const { startServer, VERSION } = require('./mcp-server');
+
+// MCP server lazy-loaded — requires @modelcontextprotocol/sdk (optional dep)
+let _mcp = null;
+function getMcp() {
+  if (!_mcp) _mcp = require('./mcp-server');
+  return _mcp;
+}
 
 module.exports = {
   // Core
@@ -59,7 +65,7 @@ module.exports = {
   DEFAULT_CAPABILITIES,
   Metrics,
 
-  // MCP Server
-  startServer,
-  VERSION,
+  // MCP Server (lazy — requires @modelcontextprotocol/sdk)
+  get startServer() { return getMcp().startServer; },
+  get VERSION() { return getMcp().VERSION; },
 };
