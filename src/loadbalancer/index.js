@@ -24,6 +24,8 @@ const { HealthProbe } = require('./health-probe');
 const { GracefulDegradation, PRIORITY } = require('./graceful-degradation');
 const { CapabilityMatrix, DEFAULT_CAPABILITIES } = require('./capability-matrix');
 const { Metrics } = require('./metrics');
+const { VelocityEstimator, TREND } = require('./velocity-estimator');
+const { calculatePressure, formatPressureSummary, STATE_SCORES, DEFAULT_WEIGHTS } = require('./pressure-score');
 
 // MCP server lazy-loaded — requires @modelcontextprotocol/sdk (optional dep)
 let _mcp = null;
@@ -64,6 +66,14 @@ module.exports = {
   CapabilityMatrix,
   DEFAULT_CAPABILITIES,
   Metrics,
+
+  // Quota Monitoring (lb-quota-realtime)
+  VelocityEstimator,
+  TREND,
+  calculatePressure,
+  formatPressureSummary,
+  STATE_SCORES,
+  DEFAULT_WEIGHTS,
 
   // MCP Server (lazy — requires @modelcontextprotocol/sdk)
   get startServer() { return getMcp().startServer; },

@@ -101,6 +101,22 @@ function createTools(lb) {
         return { content: [{ type: 'text', text: JSON.stringify(history, null, 2) }] };
       },
     },
+    {
+      name: 'lb_quota',
+      description: 'Get real-time rate limit pressure per provider as percentage (0-100). Shows pressure score, velocity (req/min), trend, ETA to limit, and recommendation (ok/caution/switch_now).',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: async () => {
+        if (typeof lb.getQuota !== 'function') {
+          return { content: [{ type: 'text', text: 'lb_quota requires LoadBalancerLive (not stub). Upgrade mcp-server.' }] };
+        }
+        const quota = lb.getQuota();
+        const summaries = Object.values(quota).map(q => q.summary).join('\n\n');
+        return { content: [{ type: 'text', text: summaries + '\n\n' + JSON.stringify(quota, null, 2) }] };
+      },
+    },
   ];
 }
 

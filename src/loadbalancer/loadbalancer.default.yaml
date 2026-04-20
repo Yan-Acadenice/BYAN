@@ -41,6 +41,13 @@ sessions:
   context_summary_max_tokens: 2000
   auto_switch_on_rate_limit: true
 
+quota:
+  velocity_window_ms: 120000
+  warning_threshold_per_min: 10
+  max_requests_before_limit: 30
+  preemptive_threshold: 75
+  preemptive_enabled: true
+
 health_probe:
   enabled: true
   interval_ms: 30000

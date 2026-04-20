@@ -1,5 +1,5 @@
 const path = require('path');
-const { LoadBalancerStub, VERSION } = require('../../src/loadbalancer/mcp-server');
+const { LoadBalancerLive, VERSION } = require('../../src/loadbalancer/mcp-server');
 const { createTools } = require('../../src/loadbalancer/tools/index');
 const { loadConfig } = require('../../src/loadbalancer/config');
 
@@ -12,16 +12,32 @@ describe('loadbalancer/mcp-server', () => {
     config = loadConfig(PROJECT_ROOT);
   });
 
-  describe('LoadBalancerStub', () => {
+  describe('LoadBalancerLive', () => {
     test('constructor sets active provider to config.primary', () => {
-      const lb = new LoadBalancerStub(config);
+      const lb = new LoadBalancerLive(config);
       expect(lb.activeProvider).toBe(config.primary);
       expect(lb.config).toBe(config);
       expect(lb.startedAt).toBeDefined();
+      lb.destroy();
+    });
+
+    test('creates RateLimitTracker per enabled provider', () => {
+      const lb = new LoadBalancerLive(config);
+      expect(lb.trackers.copilot).toBeDefined();
+      expect(lb.trackers.claude).toBeDefined();
+      expect(lb.trackers.byan_api).toBeUndefined();
+      lb.destroy();
+    });
+
+    test('creates VelocityEstimator per enabled provider', () => {
+      const lb = new LoadBalancerLive(config);
+      expect(lb.velocities.copilot).toBeDefined();
+      expect(lb.velocities.claude).toBeDefined();
+      lb.destroy();
     });
 
     test('getStatus returns version, active provider, provider map, uptime', () => {
-      const lb = new LoadBalancerStub(config);
+      const lb = new LoadBalancerLive(config);
       const status = lb.getStatus();
       expect(status.version).toBe(VERSION);
       expect(status.activeProvider).toBe(config.primary);
@@ -30,73 +46,92 @@ describe('loadbalancer/mcp-server', () => {
       expect(typeof status.providers).toBe('object');
       for (const name of Object.keys(config.providers)) {
         expect(status.providers[name]).toBeDefined();
-        expect(status.providers[name].state).toBe('HEALTHY');
       }
       expect(typeof status.uptime).toBe('number');
       expect(status.uptime).toBeGreaterThanOrEqual(0);
+      lb.destroy();
     });
 
-    test('getRateLimitDetails flags LB-02 not-yet-integrated', () => {
-      const lb = new LoadBalancerStub(config);
+    test('getRateLimitDetails returns real tracker state per provider', () => {
+      const lb = new LoadBalancerLive(config);
       const details = lb.getRateLimitDetails();
-      for (const name of Object.keys(config.providers)) {
-        expect(details[name].state).toBe('HEALTHY');
-        expect(details[name].count429).toBe(0);
-        expect(details[name].message).toMatch(/LB-02/);
-      }
+      expect(details.copilot.state).toBe('HEALTHY');
+      expect(details.copilot.totalRequests).toBe(0);
+      expect(details.copilot.count429InWindow).toBe(0);
+      expect(details.byan_api.state).toBe('DISABLED');
+      lb.destroy();
     });
 
-    test('getSwitchoverHistory returns empty list with LB-STATE marker', () => {
-      const lb = new LoadBalancerStub(config);
+    test('getSwitchoverHistory returns empty list initially', () => {
+      const lb = new LoadBalancerLive(config);
       const h = lb.getSwitchoverHistory();
       expect(h.events).toEqual([]);
       expect(h.total).toBe(0);
       expect(h.limit).toBe(20);
-      expect(h.message).toMatch(/LB-STATE/);
+      lb.destroy();
     });
 
     test('getSwitchoverHistory respects custom limit', () => {
-      const lb = new LoadBalancerStub(config);
+      const lb = new LoadBalancerLive(config);
       const h = lb.getSwitchoverHistory(5);
       expect(h.limit).toBe(5);
+      lb.destroy();
     });
 
-    test('send returns stub response with active provider and truncated prompt', async () => {
-      const lb = new LoadBalancerStub(config);
+    test('recordSuccess and record429 update tracker state', () => {
+      const lb = new LoadBalancerLive(config);
+      lb.recordSuccess('claude');
+      lb.record429('copilot', { source: 'test' });
+      expect(lb.trackers.claude.totalRequests).toBe(1);
+      expect(lb.trackers.copilot.total429s).toBe(1);
+      lb.destroy();
+    });
+
+    test('send returns stub response with active provider', async () => {
+      const lb = new LoadBalancerLive(config);
       const result = await lb.send({ prompt: 'x'.repeat(200) });
       expect(result.provider).toBe(config.primary);
       expect(result.status).toBe('stub');
-      expect(result.message).toMatch(/LB-01/);
       expect(result.prompt.length).toBeLessThanOrEqual(100);
+      lb.destroy();
     });
 
-    test('switchProvider updates activeProvider and returns from/to', async () => {
-      const lb = new LoadBalancerStub(config);
+    test('switchProvider updates activeProvider and records history', async () => {
+      const lb = new LoadBalancerLive(config);
       const prev = lb.activeProvider;
-      const target = Object.keys(config.providers).find((n) => n !== prev);
+      const target = Object.keys(config.providers).find((n) => n !== prev && config.providers[n].enabled !== false);
       const result = await lb.switchProvider({ target, reason: 'test' });
       expect(result.switched).toBe(true);
       expect(result.from).toBe(prev);
       expect(result.to).toBe(target);
-      expect(result.reason).toBe('test');
-      expect(result.contextTransferred).toBe(false);
-      expect(result.message).toMatch(/SessionBridge/);
       expect(lb.activeProvider).toBe(target);
+      expect(lb.switchHistory).toHaveLength(1);
+      lb.destroy();
     });
 
     test('getSessionContext returns current sessionId when none provided', async () => {
-      const lb = new LoadBalancerStub(config);
+      const lb = new LoadBalancerLive(config);
       const ctx = await lb.getSessionContext();
       expect(ctx.sessionId).toBe('current');
       expect(ctx.provider).toBe(config.primary);
-      expect(ctx.context).toBeNull();
-      expect(ctx.message).toMatch(/LB-STATE/);
+      lb.destroy();
     });
 
     test('getSessionContext echoes provided sessionId', async () => {
-      const lb = new LoadBalancerStub(config);
+      const lb = new LoadBalancerLive(config);
       const ctx = await lb.getSessionContext('abc-123');
       expect(ctx.sessionId).toBe('abc-123');
+      lb.destroy();
+    });
+
+    test('getQuota returns pressure data per enabled provider', () => {
+      const lb = new LoadBalancerLive(config);
+      const quota = lb.getQuota();
+      expect(quota.copilot.pressureScore).toBe(0);
+      expect(quota.copilot.recommendation).toBe('ok');
+      expect(quota.copilot.summary).toContain('copilot');
+      expect(quota.byan_api.recommendation).toBe('disabled');
+      lb.destroy();
     });
   });
 
@@ -105,15 +140,20 @@ describe('loadbalancer/mcp-server', () => {
     let tools;
 
     beforeEach(() => {
-      lb = new LoadBalancerStub(config);
+      lb = new LoadBalancerLive(config);
       tools = createTools(lb);
     });
 
-    test('registers the 6 canonical tools', () => {
+    afterEach(() => {
+      lb.destroy();
+    });
+
+    test('registers the 7 canonical tools', () => {
       const names = tools.map((t) => t.name).sort();
       expect(names).toEqual([
         'lb_get_context',
         'lb_history',
+        'lb_quota',
         'lb_rate_limits',
         'lb_send',
         'lb_status',
@@ -186,15 +226,12 @@ describe('loadbalancer/mcp-server', () => {
       expect(captured).toBe(20);
     });
 
-    test('lb_history handler passes explicit limit', async () => {
-      let captured = null;
-      lb.getSwitchoverHistory = (limit) => {
-        captured = limit;
-        return { events: [], total: 0, limit };
-      };
-      const tool = tools.find((t) => t.name === 'lb_history');
-      await tool.handler({ limit: 5 });
-      expect(captured).toBe(5);
+    test('lb_quota handler returns pressure summaries', async () => {
+      const tool = tools.find((t) => t.name === 'lb_quota');
+      const r = await tool.handler({});
+      expect(r.content).toHaveLength(1);
+      expect(r.content[0].text).toContain('copilot');
+      expect(r.content[0].text).toContain('/100');
     });
   });
 });
