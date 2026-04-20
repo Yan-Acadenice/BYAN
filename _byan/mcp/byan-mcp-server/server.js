@@ -9,6 +9,14 @@ import { dispatch } from './lib/dispatch.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
 import { listSessions, readSessionEvents, searchSessions } from './lib/copilot.js';
 import {
+  start as fdStart,
+  status as fdStatus,
+  advance as fdAdvance,
+  update as fdUpdate,
+  abort as fdAbort,
+  ALL_PHASES as FD_PHASES,
+} from './lib/fd-state.js';
+import {
   eloSummary,
   eloContext,
   eloDashboard,
@@ -240,6 +248,66 @@ const tools = [
     },
   },
   {
+    name: 'byan_fd_start',
+    description:
+      'Start a new Feature Development (FD) cycle for BYAN. Writes _byan-output/fd-state.json with phase=BRAINSTORM. Rejects if another FD is already in progress (unless force=true).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        featureName: { type: 'string', description: 'Short slug for the feature.' },
+        force: { type: 'boolean', description: 'Overwrite an existing in-progress FD.' },
+      },
+      required: ['featureName'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_fd_status',
+    description:
+      'Return the current FD state (phase, backlog, dispatch_table, history) or { active: false } if none. Use at the start of a turn to know which phase to be in.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_fd_advance',
+    description:
+      'Transition the current FD session to another phase. Valid targets : BRAINSTORM | PRUNE | DISPATCH | BUILD | VALIDATE | COMPLETED | ABORTED. Rejects backward moves (except abort).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        to: {
+          type: 'string',
+          enum: ['BRAINSTORM', 'PRUNE', 'DISPATCH', 'BUILD', 'VALIDATE', 'COMPLETED', 'ABORTED'],
+        },
+        note: { type: 'string', description: 'Optional gate-crossing rationale.' },
+      },
+      required: ['to'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_fd_update',
+    description:
+      'Patch fields on the active FD state. Allowed keys : backlog, dispatch_table, commits, notes, feature_name. Rejects unknown keys.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        patch: { type: 'object', description: 'Partial object of allowed keys.' },
+      },
+      required: ['patch'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_fd_abort',
+    description:
+      'Abort the current FD session (phase → ABORTED). Preserves the state file for inspection.',
+    inputSchema: {
+      type: 'object',
+      properties: { reason: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'byan_copilot_search',
     description:
       'Full-text search across all Copilot CLI sessions. Finds messages (user + assistant by default) containing the query string. Returns sessionId + timestamp + excerpt. Use to recall past discussions without knowing which session they were in.',
@@ -409,6 +477,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         limit: args.limit,
       });
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+    }
+
+    if (name === 'byan_fd_start') {
+      const state = fdStart({ featureName: args.featureName, force: args.force });
+      return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_fd_status') {
+      const state = fdStatus();
+      return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_fd_advance') {
+      const state = fdAdvance({ to: args.to, note: args.note });
+      return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_fd_update') {
+      const state = fdUpdate({ patch: args.patch });
+      return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_fd_abort') {
+      const state = fdAbort({ reason: args.reason });
+      return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);
