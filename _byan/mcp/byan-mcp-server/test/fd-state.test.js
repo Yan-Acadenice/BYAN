@@ -39,12 +39,29 @@ test('start refuses to clobber an in-progress session unless force=true', () => 
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('advance moves forward through phases', () => {
+test('advance moves forward through phases (with sufficient raw_ideas)', () => {
   const root = tmpProject();
   start({ featureName: 'f', projectRoot: root });
+  update({ patch: { raw_ideas: Array.from({ length: 10 }, (_, i) => `idea ${i}`) }, projectRoot: root });
   const s = advance({ to: 'PRUNE', projectRoot: root });
   assert.equal(s.phase, 'PRUNE');
   assert.equal(s.phase_history.length, 2);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('advance from BRAINSTORM rejects when raw_ideas < 10', () => {
+  const root = tmpProject();
+  start({ featureName: 'f', projectRoot: root });
+  update({ patch: { raw_ideas: ['only three', 'too few', 'oops'] }, projectRoot: root });
+  assert.throws(() => advance({ to: 'PRUNE', projectRoot: root }), /at least 10/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('advance from BRAINSTORM allows force=true bypass', () => {
+  const root = tmpProject();
+  start({ featureName: 'f', projectRoot: root });
+  const s = advance({ to: 'PRUNE', projectRoot: root, force: true });
+  assert.equal(s.phase, 'PRUNE');
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -58,7 +75,7 @@ test('advance rejects invalid target phase', () => {
 test('advance rejects backward moves (except ABORTED/COMPLETED)', () => {
   const root = tmpProject();
   start({ featureName: 'f', projectRoot: root });
-  advance({ to: 'PRUNE', projectRoot: root });
+  advance({ to: 'PRUNE', projectRoot: root, force: true });
   advance({ to: 'DISPATCH', projectRoot: root });
   assert.throws(() => advance({ to: 'BRAINSTORM', projectRoot: root }));
   fs.rmSync(root, { recursive: true, force: true });
@@ -67,7 +84,7 @@ test('advance rejects backward moves (except ABORTED/COMPLETED)', () => {
 test('abort sets phase to ABORTED and records reason', () => {
   const root = tmpProject();
   start({ featureName: 'f', projectRoot: root });
-  advance({ to: 'PRUNE', projectRoot: root });
+  advance({ to: 'PRUNE', projectRoot: root, force: true });
   const s = abort({ reason: 'scope creep', projectRoot: root });
   assert.equal(s.phase, 'ABORTED');
   const last = s.phase_history[s.phase_history.length - 1];
@@ -92,7 +109,7 @@ test('status returns active:true when in BRAINSTORM, false after COMPLETED', () 
   const root = tmpProject();
   start({ featureName: 'f', projectRoot: root });
   assert.equal(status({ projectRoot: root }).active, true);
-  advance({ to: 'PRUNE', projectRoot: root });
+  advance({ to: 'PRUNE', projectRoot: root, force: true });
   advance({ to: 'DISPATCH', projectRoot: root });
   advance({ to: 'BUILD', projectRoot: root });
   advance({ to: 'VALIDATE', projectRoot: root });

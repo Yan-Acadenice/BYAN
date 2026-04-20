@@ -68,6 +68,7 @@ export function start({ featureName, projectRoot, now = new Date(), force = fals
     started_at: now.toISOString(),
     updated_at: now.toISOString(),
     phase_history: [{ phase: 'BRAINSTORM', entered_at: now.toISOString() }],
+    raw_ideas: [],
     backlog: [],
     dispatch_table: [],
     commits: [],
@@ -88,7 +89,9 @@ export function status({ projectRoot } = {}) {
   };
 }
 
-export function advance({ to, note, projectRoot, now = new Date() } = {}) {
+const BRAINSTORM_MIN_IDEAS = 10;
+
+export function advance({ to, note, projectRoot, now = new Date(), force = false } = {}) {
   if (!PHASES.includes(to)) {
     throw new Error(`Invalid target phase ${to}. Must be one of ${PHASES.join(', ')}`);
   }
@@ -106,6 +109,21 @@ export function advance({ to, note, projectRoot, now = new Date() } = {}) {
     );
   }
 
+  // BRAINSTORM exit gate : need >= BRAINSTORM_MIN_IDEAS raw ideas
+  if (
+    state.phase === 'BRAINSTORM' &&
+    to !== 'BRAINSTORM' &&
+    !['ABORTED'].includes(to) &&
+    !force
+  ) {
+    const n = Array.isArray(state.raw_ideas) ? state.raw_ideas.length : 0;
+    if (n < BRAINSTORM_MIN_IDEAS) {
+      throw new Error(
+        `BRAINSTORM requires at least ${BRAINSTORM_MIN_IDEAS} raw ideas before advancing (currently ${n}). Add more via update({ patch: { raw_ideas: [...] } }), or pass force=true to skip.`
+      );
+    }
+  }
+
   state.phase = to;
   state.updated_at = now.toISOString();
   state.phase_history.push({ phase: to, entered_at: now.toISOString(), note: note || null });
@@ -118,7 +136,7 @@ export function update({ patch = {}, projectRoot, now = new Date() } = {}) {
   const state = readState(projectRoot);
   if (!state) throw new Error('No active FD session.');
 
-  const allowed = ['backlog', 'dispatch_table', 'commits', 'notes', 'feature_name'];
+  const allowed = ['raw_ideas', 'backlog', 'dispatch_table', 'commits', 'notes', 'feature_name'];
   for (const key of Object.keys(patch)) {
     if (!allowed.includes(key)) {
       throw new Error(`Field "${key}" is not patchable. Allowed: ${allowed.join(', ')}`);
@@ -142,3 +160,4 @@ export function abort({ reason, projectRoot, now = new Date() } = {}) {
 }
 
 export const ALL_PHASES = PHASES;
+export const BRAINSTORM_MIN = BRAINSTORM_MIN_IDEAS;
