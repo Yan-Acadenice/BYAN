@@ -82,10 +82,10 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
     expect(r.parsed.reason).toMatch(/tool result missing/i);
   });
 
-  test('1st "internal error" → exit 2 (BLOCKING)', () => {
+  test('1st "internal error" on Bash → exit 2 (BLOCKING)', () => {
     const r = runHook(
       {
-        tool_name: 'Edit',
+        tool_name: 'Bash',
         tool_response: { content: 'internal error from the backend' },
       },
       { logPath }
@@ -94,6 +94,19 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
     expect(r.code).toBe(2);
     expect(r.parsed.decision).toBe('block');
     expect(r.parsed.reason).toMatch(/internal error/i);
+  });
+
+  test('ECHO tools (Write/Edit/Read) do NOT trigger pattern match even if content contains "internal error"', () => {
+    for (const tool of ['Write', 'Edit', 'Read']) {
+      const r = runHook(
+        {
+          tool_name: tool,
+          tool_response: { content: 'file body contains phrase internal error as doc text' },
+        },
+        { logPath: `${logPath}.${tool}` }
+      );
+      expect(r.code).toBe(0);
+    }
   });
 
   test('blocking stdout contains hookEventName and additionalContext', () => {
@@ -175,6 +188,24 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
     expect(r.parsed.reason).toMatch(/2 Bash failures/);
   });
 
+  test('Write with is_error=true STILL blocks (flag trusted even for echo tools)', () => {
+    const r = runHook(
+      {
+        tool_name: 'Write',
+        tool_response: { is_error: true, content: 'real failure' },
+      },
+      { logPath }
+    );
+    // First is_error single → no block (threshold=2 on same-tool), but IS recorded
+    expect(r.code).toBe(0);
+    const entries = fs
+      .readFileSync(logPath, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .map(JSON.parse);
+    expect(entries.some((e) => e.tool_name === 'Write' && e.kind === 'is_error')).toBe(true);
+  });
+
   test('log file appended on every detected failure', () => {
     runHook(
       {
@@ -196,7 +227,7 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
   test('blocking does NOT prevent log append (auditability)', () => {
     const r = runHook(
       {
-        tool_name: 'Write',
+        tool_name: 'Bash',
         tool_response: { content: 'internal error' },
       },
       { logPath }

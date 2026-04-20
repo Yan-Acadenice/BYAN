@@ -1,0 +1,20 @@
+{
+  "_comment": "Patch to register fact-check-absolutes under .claude/settings.json → hooks → PreToolUse. Merge the hooks array below into the existing matcher='' entry (alongside tool-transparency.js). Do NOT overwrite the transparency entry.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-transparency.js"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fact-check-absolutes.js"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# git pre-commit hook : runs mantra-validator on staged agent/skill files,
+# refuses the commit if any score is below 80%.
+# Bypass : git commit --no-verify
+# Graceful skip : if node or the validator is missing, exit 0.
+
+set -euo pipefail
+
+THRESHOLD=80
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+VALIDATOR="$REPO_ROOT/src/byan-v2/generation/mantra-validator.js"
+
+# Graceful skip paths.
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found, skipping mantra validation."
+  exit 0
+fi
+if [ ! -f "$VALIDATOR" ]; then
+  echo "pre-commit: mantra-validator.js not found, skipping."
+  exit 0
+fi
+
+# Collect staged markdown files matching the agent/skill patterns.
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(_byan/bmb/agents/[^/]+\.md|_byan/agents/[^/]+\.md|\.github/agents/[^/]+\.md|\.claude/skills/[^/]+/SKILL\.md|\.claude/agents/[^/]+\.md)$' || true)
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+FAIL=0
+while IFS= read -r FILE; do
+  [ -z "$FILE" ] && continue
+  if [ ! -f "$REPO_ROOT/$FILE" ]; then
+    continue
+  fi
+
+  SCORE=$(VALIDATOR_PATH="$VALIDATOR" FILE_PATH="$REPO_ROOT/$FILE" node -e '
+    const fs = require("fs");
+    try {
+      const V = require(process.env.VALIDATOR_PATH);
+      const Klass = V.default || V;
+      const v = new Klass();
+      const content = fs.readFileSync(process.env.FILE_PATH, "utf8");
+      v.validate(content);
+      const s = (v.results && typeof v.results.score === "number") ? v.results.score : 0;
+      process.stdout.write(String(Math.round(s)));
+    } catch (e) {
+      process.stderr.write("validator-error: " + e.message);
+      process.exit(2);
+    }
+  ' 2>/dev/null) || {
+    echo "pre-commit: validator crashed on $FILE, skipping this file."
+    continue
+  }
+
+  if ! [[ "$SCORE" =~ ^[0-9]+$ ]]; then
+    echo "pre-commit: non-numeric score for $FILE ('$SCORE'), skipping."
+    continue
+  fi
+
+  if [ "$SCORE" -lt "$THRESHOLD" ]; then
+    echo "FAIL $FILE : ${SCORE}%"
+    FAIL=1
+  else
+    echo "ok   $FILE : ${SCORE}%"
+  fi
+done <<< "$STAGED"
+
+if [ "$FAIL" -eq 1 ]; then
+  echo ""
+  echo "Commit refused : one or more agent/skill files scored below ${THRESHOLD}%."
+  echo "Fix the mantra violations or bypass with: git commit --no-verify"
+  exit 1
+fi
+
+exit 0

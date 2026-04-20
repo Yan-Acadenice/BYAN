@@ -1,0 +1,11 @@
+{
+  "files": [
+    "fact-check-absolutes.js",
+    "git-pre-commit",
+    "settings-patch.json",
+    "tests.js"
+  ],
+  "tests_passed": 10,
+  "tests_failed": 0,
+  "notes": "Hook scans Edit (old+new) and Write (content) for 13 absolutes across FR/EN with word-boundary regex, then checks a 480-char window (pm 240) for 7 source marker patterns (URL, RFC N, CVE-YYYY-N, [CLAIM L1-5], [FACT USER-VERIFIED, source:, _byan/knowledge/sources.md). Malformed/empty stdin or internal exception returns allow (never crashes). pre-commit filters staged files to 5 path patterns, runs each through mantra-validator.js and blocks on score < 80%; gracefully exits 0 if node or validator is missing. settings-patch.json preserves the existing tool-transparency.js entry by listing both hooks under the same matcher='' block. PostToolUse tool-failure-guard flagged one false positive on the initial Write (triggered by the literal 'internal error' string inside a JSDoc comment, unrelated to any actual failure) — surfaced per protocol, the Write itself succeeded."
+}

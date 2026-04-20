@@ -1,0 +1,12 @@
+{
+  "name": "e3-kanban",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "byan-kanban": "./byan-kanban-cli.js"
+  },
+  "scripts": {
+    "test": "node --test tests.js"
+  }
+}

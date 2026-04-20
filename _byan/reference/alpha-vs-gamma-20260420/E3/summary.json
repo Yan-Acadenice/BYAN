@@ -1,0 +1,62 @@
+{
+  "feature": "E3",
+  "title": "Kanban board + stand-up feed + blocked-streak detector",
+  "files": [
+    "kanban.js",
+    "byan-kanban-cli.js",
+    "mcp-tools-patch.md",
+    "tests.js",
+    "package.json",
+    "summary.json"
+  ],
+  "persistence": {
+    "kanban": "_byan-output/party-mode-sessions/<session_id>/kanban.json",
+    "standup": "_byan-output/party-mode-sessions/<session_id>/standup.jsonl"
+  },
+  "kanban_columns": ["todo", "doing", "blocked", "review", "done"],
+  "exports": [
+    "createBoard",
+    "addCard",
+    "moveCard",
+    "assignCard",
+    "getBoard",
+    "postStandup",
+    "readStandups",
+    "detectBlockedStreaks",
+    "KANBAN_COLUMNS"
+  ],
+  "mcp_tools": [
+    "byan_kanban_create",
+    "byan_kanban_add",
+    "byan_kanban_move",
+    "byan_kanban_assign",
+    "byan_kanban_get",
+    "byan_standup_post",
+    "byan_standup_read",
+    "byan_standup_blocked"
+  ],
+  "cli": {
+    "commands": ["list", "<session-id>"],
+    "flags": ["--json", "--standups-only", "--root <dir>"],
+    "column_colors": {
+      "todo": "dim",
+      "doing": "yellow",
+      "blocked": "red",
+      "review": "cyan",
+      "done": "green"
+    }
+  },
+  "tests": {
+    "runner": "node --test tests.js",
+    "total": 13,
+    "pass": 13,
+    "fail": 0,
+    "duration_ms": 117
+  },
+  "smoke_test": {
+    "list_empty_dir": "ok",
+    "create_add_move_post_standup": "ok",
+    "cli_render_colored": "ok"
+  },
+  "status": "green"
+}

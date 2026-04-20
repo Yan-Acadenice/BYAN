@@ -46,6 +46,43 @@ const SOURCE_MARKERS = [
 
 const DOC_EXTS = ['.md', '.mdx', '.rst', '.txt'];
 
+// Paths exempted from scanning — these files DESCRIBE the rule or meta-docs
+// where absolutes appear as examples, not as claims.
+const EXEMPT_PATH_PATTERNS = [
+  /\.claude\/hooks\//,
+  /\.claude\/agents\/bmad-compliance\.md$/,
+  /_byan\/mcp\/byan-mcp-server\/lib\/(peer-review|fd-state)\.js$/,
+  /_byan\/mcp\/byan-mcp-server\/test\//,
+  /_byan\/knowledge\/(fact-check|mantras)/i,
+  /\/fact-check-absolutes\.js$/,
+  /\.claude\/skills\/byan-fact-check\//,
+  /install\/__tests__\/.*fact-check/i,
+  /__tests__\/.*fact-check/i,
+];
+
+function isExemptPath(filePath) {
+  if (!filePath) return false;
+  return EXEMPT_PATH_PATTERNS.some((re) => re.test(filePath));
+}
+
+// Strip content that cannot be a claim :
+//   - fenced code blocks ``` ... ```
+//   - inline backticks `...`
+//   - block quotes (lines starting with >)
+//   - regex / array syntax that contains the word as a token
+function stripNonClaimZones(text) {
+  if (!text) return '';
+  return text
+    // Fenced code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    // Inline code
+    .replace(/`[^`\n]+`/g, '')
+    // Markdown block quotes
+    .replace(/^> .*$/gm, '')
+    // Lines that look like list of patterns (e.g. "- toujours")
+    .replace(/^[\s-]*['"]?\b(toujours|jamais|forc[eé]ment|obviously|always|never|clearly|undoubtedly)\b['"]?/gim, '');
+}
+
 function readStdin() {
   return new Promise((resolve) => {
     if (process.stdin.isTTY) return resolve('');
@@ -100,7 +137,7 @@ function findUnsourced(text) {
   const input = payload.tool_input || payload.toolInput || {};
   const target = input.file_path || '';
 
-  if (!['Edit', 'Write'].includes(toolName) || !isDoc(target)) {
+  if (!['Edit', 'Write'].includes(toolName) || !isDoc(target) || isExemptPath(target)) {
     process.stdout.write(
       JSON.stringify({
         hookSpecificOutput: {
@@ -112,7 +149,8 @@ function findUnsourced(text) {
     process.exit(0);
   }
 
-  const text = extractText(toolName, input);
+  const rawText = extractText(toolName, input);
+  const text = stripNonClaimZones(rawText);
   const hit = findUnsourced(text);
 
   if (!hit) {

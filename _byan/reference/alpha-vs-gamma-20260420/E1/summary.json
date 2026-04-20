@@ -1,0 +1,13 @@
+{
+  "files": [
+    "fd-phase-guard.js",
+    "fd-response-check.js",
+    "fd-state-patch.md",
+    "settings-patch.json",
+    "tests.js",
+    "summary.json"
+  ],
+  "tests_passed": 8,
+  "tests_failed": 0,
+  "notes": "All 8 node --test cases pass on node v24.13.1. phase-guard injects additionalContext only when _byan-output/fd-state.json has a non-terminal phase; embeds the 5 phase rules verbatim and mandates a [FD:<phase>] header. response-check parses stdin JSON (messages[] or transcript[]), handles string and array content blocks, exits 2 with decision=block+systemMessage when header missing, exits 0 with continue:true otherwise, fails open on IO/JSON errors. fd-state-patch.md documents the BRAINSTORM_MIN_IDEAS=10 gate, force bypass, raw_ideas field init, update() allowlist, and BRAINSTORM_MIN export (note: the live fd-state.js already implements most of this — the patch doc aligns with current code). settings-patch.json uses matcher+hooks nested format for UserPromptSubmit+Stop with 5s timeout each. No files outside _byan-output/alpha-experiment/E1/ were touched."
+}

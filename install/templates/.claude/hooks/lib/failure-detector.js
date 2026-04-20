@@ -10,15 +10,29 @@ const ERROR_PATTERNS = [
   /tool_use_error/i,
 ];
 
+// Tools whose response echoes user-authored or file content (Write/Edit
+// return file paths + content fragments, Read echoes file content
+// verbatim). Pattern match on their response fires false positives when
+// the file content itself contains the literal phrase "internal error"
+// (e.g. a doc about errors, a test fixture, a hook that detects errors).
+// For these, only trust the explicit is_error flag.
+const ECHO_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'Read']);
+
 function detectFailure(payload) {
   if (!payload || typeof payload !== 'object') return null;
 
   const resp = payload.tool_response ?? payload.toolResponse ?? payload.response;
+  const toolName = payload.tool_name || payload.toolName || '';
 
   if (resp && typeof resp === 'object') {
     if (resp.is_error === true || resp.isError === true) {
       return { kind: 'is_error', detail: textOf(resp) };
     }
+  }
+
+  // Do not pattern-match on echo-heavy tools — only trust is_error flag.
+  if (ECHO_TOOLS.has(toolName)) {
+    return null;
   }
 
   const combined = [

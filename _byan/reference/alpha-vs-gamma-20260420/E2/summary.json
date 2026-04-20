@@ -1,0 +1,12 @@
+{
+  "files": [
+    "bmad-compliance.md",
+    "peer-review.js",
+    "mcp-tools-patch.md",
+    "tests.js",
+    "summary.json"
+  ],
+  "tests_passed": 15,
+  "tests_failed": 0,
+  "notes": "15/15 tests green. Covers requestReview happy path, duplicate pending rejection, verdict transitions (approve/changes/block), reviewer=author hard invariant, invalid verdict rejection, listPending filtering, pickReviewer domain pairs (dev<->quinn, architect<->tea), inferred domain from author name, fallback roster, self-pair guard, and getReview null/full. Ran into fact-check hook on bmad-compliance.md (absolute-word linter fired on literal mention of 'obviously'/'always'); rewrote the file to describe the policy without using the trigger words as examples. Persistence path: _byan-output/reviews/<task_id>.json."
+}
