@@ -1,0 +1,8 @@
+{
+  "name": "@byan/copilot-staging-extension",
+  "version": "0.1.0",
+  "description": "Copilot CLI extension that stages conversation knowledge to byan_web /api/memory via the shared BYAN staging core.",
+  "type": "module",
+  "main": "extension.mjs",
+  "private": true
+}
