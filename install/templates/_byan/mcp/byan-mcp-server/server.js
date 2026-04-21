@@ -46,8 +46,13 @@ import {
 const BYAN_API_URL = process.env.BYAN_API_URL || 'http://localhost:3737';
 const BYAN_API_TOKEN = process.env.BYAN_API_TOKEN || '';
 
-const authHeaders = () =>
-  BYAN_API_TOKEN ? { Authorization: `Bearer ${BYAN_API_TOKEN}` } : {};
+const authHeaders = () => {
+  if (!BYAN_API_TOKEN) return {};
+  // byan_web issues API keys prefixed with `byan_` and requires the
+  // `ApiKey` scheme. Any other token (JWT, etc.) falls back to Bearer.
+  const scheme = BYAN_API_TOKEN.startsWith('byan_') ? 'ApiKey' : 'Bearer';
+  return { Authorization: `${scheme} ${BYAN_API_TOKEN}` };
+};
 
 async function apiRequest(path, options = {}) {
   const url = `${BYAN_API_URL}${path}`;

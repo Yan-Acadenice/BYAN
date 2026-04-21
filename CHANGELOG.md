@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.9.9] - 2026-04-21
 
+### Fixed - MCP auth scheme wrong for byan_web API keys
+
+- **`authHeaders()` in `install/templates/_byan/mcp/byan-mcp-server/server.js`** now auto-detects the auth scheme: tokens prefixed `byan_` use `Authorization: ApiKey <token>` (byan_web convention), everything else falls back to `Bearer`. Previously everything was sent as `Bearer`, which byan_web rejects with 401, and the MCP tools silently returned empty fallback payloads (`{projects: []}`).
+- **Verified** against `https://byan-api.stark.a3n.fr/api/auth/me` with a real byan_web API key → `HTTP 200`, user identified.
+
 ### Fixed - MCP copy filter broke on global npm install (root cause of 2.9.6 bug)
 
 - **`copyMcpServer` filter now resolves paths relative to the template src** — the previous filter `(s) => !s.includes('node_modules')` inspected the absolute path, so when BYAN was installed globally (e.g. `/usr/local/lib/node_modules/create-byan-agent/...`), every template file looked like it lived under `node_modules` and was silently skipped. The empty `_byan/mcp/byan-mcp-server/` dossier observed on 2.9.6/2.9.7/2.9.8 had this cause — the post-copy assertion added in 2.9.7 only surfaced the symptom.
