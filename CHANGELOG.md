@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.8] - 2026-04-21
+
+### Fixed - `update-byan-agent` CLI broken on fresh npm install
+
+- **`update-byan-agent/` added to `package.json` `files` array** — previously only `update-byan-agent/bin/` shipped (because it was listed in `bin`), but `update-byan-agent/lib/` (analyzer, backup, customization-detector) was missing. Running `update-byan-agent` crashed with `Cannot find module '../lib/analyzer'`.
+- **Observed on**: npm install 2.9.7, `cd ~/byan_web && update-byan-agent` → `MODULE_NOT_FOUND`.
+
+---
+
 ## [2.9.7] - 2026-04-21
 
 ### Fixed - MCP server empty-directory install bug
