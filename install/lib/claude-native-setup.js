@@ -50,14 +50,22 @@ async function copyClaudeSettings(projectRoot) {
   return { copied: true };
 }
 
+function makeNodeModulesFilter(srcRoot) {
+  // Checks the path RELATIVE to srcRoot: a global install path like
+  // /usr/local/lib/node_modules/create-byan-agent/... would otherwise make
+  // every file look like it lives under node_modules and get skipped.
+  return (s) => {
+    const rel = path.relative(srcRoot, s);
+    return !rel.split(path.sep).includes('node_modules');
+  };
+}
+
 async function copyMcpServer(projectRoot) {
   const src = path.join(TEMPLATE_ROOT, '_byan', 'mcp', 'byan-mcp-server');
   const dst = path.join(projectRoot, '_byan', 'mcp', 'byan-mcp-server');
   if (!(await fs.pathExists(src))) return { copied: false };
   await fs.ensureDir(dst);
-  await fs.copy(src, dst, { overwrite: true, filter: (s) => !s.includes('node_modules') });
-  // Post-copy sanity check: server.js must exist, otherwise the MCP client will
-  // fail on next Claude Code launch with "Cannot find module" (seen on 2.9.6).
+  await fs.copy(src, dst, { overwrite: true, filter: makeNodeModulesFilter(src) });
   const serverFile = path.join(dst, 'server.js');
   if (!(await fs.pathExists(serverFile))) {
     throw new Error(
@@ -179,6 +187,7 @@ module.exports = {
   copyClaudeSkills,
   copyClaudeSettings,
   copyMcpServer,
+  makeNodeModulesFilter,
   generateMcpConfig,
   installMcpDependencies,
   setupClaudeNative,

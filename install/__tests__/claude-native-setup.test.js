@@ -65,6 +65,20 @@ describe('claude-native-setup', () => {
     jest.restoreAllMocks();
   });
 
+  test('makeNodeModulesFilter ignores node_modules in ancestor path (regression 2.9.8)', () => {
+    // Global install path : /usr/local/lib/node_modules/create-byan-agent/install/templates/_byan/mcp/byan-mcp-server
+    const srcRoot =
+      '/usr/local/lib/node_modules/create-byan-agent/install/templates/_byan/mcp/byan-mcp-server';
+    const filter = setup.makeNodeModulesFilter(srcRoot);
+    // File INSIDE the template must pass, even though its absolute path contains node_modules.
+    expect(filter(path.join(srcRoot, 'server.js'))).toBe(true);
+    expect(filter(path.join(srcRoot, 'lib', 'dispatch.js'))).toBe(true);
+    // A nested node_modules dir inside the template must be skipped.
+    expect(
+      filter(path.join(srcRoot, 'node_modules', '@modelcontextprotocol', 'sdk'))
+    ).toBe(false);
+  });
+
   test('generateMcpConfig renders absolute path', async () => {
     const r = await setup.generateMcpConfig(tmpRoot);
     expect(r.path).toContain('.mcp.json');

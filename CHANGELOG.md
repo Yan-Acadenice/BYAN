@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.9] - 2026-04-21
+
+### Fixed - MCP copy filter broke on global npm install (root cause of 2.9.6 bug)
+
+- **`copyMcpServer` filter now resolves paths relative to the template src** — the previous filter `(s) => !s.includes('node_modules')` inspected the absolute path, so when BYAN was installed globally (e.g. `/usr/local/lib/node_modules/create-byan-agent/...`), every template file looked like it lived under `node_modules` and was silently skipped. The empty `_byan/mcp/byan-mcp-server/` dossier observed on 2.9.6/2.9.7/2.9.8 had this cause — the post-copy assertion added in 2.9.7 only surfaced the symptom.
+- **`makeNodeModulesFilter(srcRoot)` extracted and exported** — used by `copyMcpServer`; splits the relative path on path separators and skips any component named `node_modules`.
+- **Regression test** added that builds a filter rooted at `/usr/local/lib/node_modules/create-byan-agent/.../byan-mcp-server` and confirms `server.js` passes while a nested `node_modules/` subdir is rejected.
+- **Observed on**: `sudo npm install -g create-byan-agent@2.9.8` → `npx create-byan-agent` → `MCP server copy produced no server.js`.
+
+---
+
 ## [2.9.8] - 2026-04-21
 
 ### Fixed - `update-byan-agent` CLI broken on fresh npm install
