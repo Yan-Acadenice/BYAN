@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [2.9.9] - 2026-04-21
+## [2.9.10] - 2026-04-21
 
 ### Fixed - MCP auth scheme wrong for byan_web API keys
 
 - **`authHeaders()` in `install/templates/_byan/mcp/byan-mcp-server/server.js`** now auto-detects the auth scheme: tokens prefixed `byan_` use `Authorization: ApiKey <token>` (byan_web convention), everything else falls back to `Bearer`. Previously everything was sent as `Bearer`, which byan_web rejects with 401, and the MCP tools silently returned empty fallback payloads (`{projects: []}`).
 - **Verified** against `https://byan-api.stark.a3n.fr/api/auth/me` with a real byan_web API key → `HTTP 200`, user identified.
+
+---
+
+## [2.9.9] - 2026-04-21
 
 ### Fixed - MCP copy filter broke on global npm install (root cause of 2.9.6 bug)
 
