@@ -16,6 +16,7 @@ const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 const { setupByanWebIntegration } = require('../lib/byan-web-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
+const { setupStagingConsent } = require('../lib/staging-consent');
 
 const BYAN_VERSION = require('../package.json').version;
 
@@ -1355,10 +1356,23 @@ async function install() {
   if (needsClaude || needsCopilot) {
     console.log();
     console.log(chalk.cyan('byan_web integration (optional — service payant)'));
+    let byanWebResult = { configured: false };
     try {
-      await setupByanWebIntegration(projectRoot);
+      byanWebResult = await setupByanWebIntegration(projectRoot);
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ byan_web setup skipped: ${error.message}`));
+    }
+
+    if (byanWebResult && byanWebResult.configured) {
+      console.log();
+      console.log(chalk.cyan('byan_web memory-sync opt-in (consent)'));
+      try {
+        await setupStagingConsent(projectRoot, {
+          byanWebConfigured: true,
+        });
+      } catch (error) {
+        console.log(chalk.yellow(`  ⚠ memory-sync setup skipped: ${error.message}`));
+      }
     }
   }
 
