@@ -56,6 +56,15 @@ describe('claude-native-setup', () => {
     ).toBe(false);
   });
 
+  test('copyMcpServer throws if post-copy server.js missing (regression 2.9.6)', async () => {
+    const mockSetup = require('../lib/claude-native-setup');
+    const realCopy = fs.copy;
+    jest.spyOn(fs, 'copy').mockImplementation(async () => {});
+    await expect(mockSetup.copyMcpServer(tmpRoot)).rejects.toThrow(/server\.js/);
+    fs.copy = realCopy;
+    jest.restoreAllMocks();
+  });
+
   test('generateMcpConfig renders absolute path', async () => {
     const r = await setup.generateMcpConfig(tmpRoot);
     expect(r.path).toContain('.mcp.json');

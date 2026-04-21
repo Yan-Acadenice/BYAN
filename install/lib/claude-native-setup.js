@@ -56,6 +56,15 @@ async function copyMcpServer(projectRoot) {
   if (!(await fs.pathExists(src))) return { copied: false };
   await fs.ensureDir(dst);
   await fs.copy(src, dst, { overwrite: true, filter: (s) => !s.includes('node_modules') });
+  // Post-copy sanity check: server.js must exist, otherwise the MCP client will
+  // fail on next Claude Code launch with "Cannot find module" (seen on 2.9.6).
+  const serverFile = path.join(dst, 'server.js');
+  if (!(await fs.pathExists(serverFile))) {
+    throw new Error(
+      `MCP server copy produced no server.js at ${serverFile}. ` +
+        `Template source: ${src}. Re-run install or copy manually.`
+    );
+  }
   return { copied: true, path: dst };
 }
 

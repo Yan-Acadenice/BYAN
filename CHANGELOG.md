@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.9.7] - 2026-04-21
+
+### Fixed - MCP server empty-directory install bug
+
+- **`copyMcpServer` now asserts `server.js` exists after copy** — previously, a partial copy could leave `_byan/mcp/byan-mcp-server/` empty, causing Claude Code to fail with `Cannot find module '.../server.js'` on the next launch. The post-copy check now throws a clear error instead of silently succeeding.
+- **`create-byan-agent-v2.js` surfaces Claude native-setup failures in red** — prior behavior showed a yellow "partial" warning that users missed; now the failure is explicit and points at the MCP directory to inspect.
+- **Regression test** added in `claude-native-setup.test.js` that mocks `fs.copy` to a no-op and verifies the post-copy assertion throws.
+- **Observed on**: byan_web install with 2.9.6, dossier `_byan/mcp/byan-mcp-server/` vide, MCP failed in Claude Code.
+
+---
+
 ## [2.7.0] - 2026-02-21
 
 ### Added - Soul System + Tao System

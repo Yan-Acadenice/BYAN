@@ -1349,7 +1349,12 @@ async function install() {
     try {
       await setupClaudeNative(projectRoot);
     } catch (error) {
-      console.log(chalk.yellow(`  ⚠ Claude native setup partial: ${error.message}`));
+      console.log(chalk.red(`  ✘ Claude native setup failed: ${error.message}`));
+      console.log(
+        chalk.yellow(
+          `    → MCP, hooks or skills may be incomplete. Inspect _byan/mcp/byan-mcp-server/ and re-run if empty.`
+        )
+      );
     }
   }
 
