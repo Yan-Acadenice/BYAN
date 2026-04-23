@@ -54,6 +54,22 @@ const authHeaders = () => {
   return { Authorization: `${scheme} ${BYAN_API_TOKEN}` };
 };
 
+function buildQuery(params) {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null || v === '') continue;
+    sp.append(k, String(v));
+  }
+  const s = sp.toString();
+  return s ? `?${s}` : '';
+}
+
+function requireToken() {
+  if (!BYAN_API_TOKEN) {
+    throw new Error('BYAN_API_TOKEN env var is required for this tool.');
+  }
+}
+
 async function apiRequest(path, options = {}) {
   const url = `${BYAN_API_URL}${path}`;
   const headers = {
@@ -529,6 +545,300 @@ const tools = [
       additionalProperties: false,
     },
   },
+
+  // ─── Projects ─────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_projects_get',
+    description:
+      'Fetch a single byan_web project by id. GET /api/projects/:id. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Project id.' },
+      },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_projects_create',
+    description:
+      'Create a new byan_web project. POST /api/projects. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Project name.' },
+        type: { type: 'string', description: 'Project type (e.g. dev, training).' },
+        description: { type: 'string' },
+        visibility: { type: 'string', description: 'e.g. private | public | team.' },
+        taxonomyType: { type: 'string' },
+        seedTaxonomy: { type: 'boolean' },
+      },
+      required: ['name', 'type'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Workflows ────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_workflows_list',
+    description:
+      'List workflows, optionally filtered by scope, project, or status. GET /api/workflows. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', description: 'Filter by scope.' },
+        projectId: { type: 'string', description: 'Filter by project id.' },
+        status: { type: 'string', description: 'Filter by status.' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_workflows_get',
+    description:
+      'Fetch a single workflow by id. GET /api/workflows/:id. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Workflow id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_workflows_run',
+    description:
+      'Trigger a workflow run. POST /api/workflows/:id/run. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Workflow id.' },
+        trigger: { type: 'object', description: 'Optional trigger payload forwarded to the workflow.' },
+      },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_workflow_runs_list',
+    description:
+      'List runs of a given workflow. GET /api/workflows/:id/runs. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Workflow id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_workflow_runs_get',
+    description:
+      'Fetch a single workflow run by runId. GET /api/workflow-runs/:runId. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { runId: { type: 'string', description: 'Workflow run id.' } },
+      required: ['runId'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Knowledge ────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_knowledge_list',
+    description:
+      'List knowledge entries, optionally filtered by project, category, tags, or limit. GET /api/knowledge. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string' },
+        category: { type: 'string' },
+        tags: { type: 'string', description: 'Comma-separated tag list.' },
+        limit: { type: 'number' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_knowledge_get',
+    description:
+      'Fetch a single knowledge entry by id. GET /api/knowledge/:id. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Knowledge entry id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Memory ───────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_memory_list',
+    description:
+      'List memory entries, optionally filtered by project, category, type, or limit. GET /api/memory. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string' },
+        category: { type: 'string' },
+        type: { type: 'string' },
+        limit: { type: 'number' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_memory_search',
+    description:
+      'Full-text search across memory entries. GET /api/memory/search. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { q: { type: 'string', description: 'Search query.' } },
+      required: ['q'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Custom Agents ────────────────────────────────────────────────────
+  {
+    name: 'byan_api_custom_agents_list',
+    description:
+      'List user custom agents. GET /api/custom-agents. Requires BYAN_API_TOKEN.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_api_custom_agents_get',
+    description:
+      'Fetch a single custom agent by id. GET /api/custom-agents/:id. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Custom agent id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_custom_agents_clone_system',
+    description:
+      'Clone a system agent into the user catalog. POST /api/custom-agents/clone/:systemName. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        systemName: { type: 'string', description: 'System agent name to clone.' },
+      },
+      required: ['systemName'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Sessions ─────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_sessions_list',
+    description:
+      'List byan_web sessions, optionally filtered by project. GET /api/sessions. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { projectId: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_sessions_get',
+    description:
+      'Fetch a single session by id. GET /api/sessions/:id. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Session id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_sessions_history',
+    description:
+      'Fetch the message/event history of a session. GET /api/sessions/:id/history. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Session id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Chat ─────────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_chat_conversations_list',
+    description:
+      'List chat conversations for the authenticated user. GET /api/chat/conversations. Requires BYAN_API_TOKEN.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_api_chat_messages_list',
+    description:
+      'List messages of a chat conversation. GET /api/chat/conversations/:id/messages. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Conversation id.' } },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_chat_send',
+    description:
+      'Send a message to a chat conversation. POST /api/chat/conversations/:id/messages. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Conversation id.' },
+        content: { type: 'string', description: 'Message content.' },
+        role: { type: 'string', description: 'Optional role override (default: user).' },
+      },
+      required: ['id', 'content'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Search ───────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_search',
+    description:
+      'Cross-entity search over byan_web. GET /api/search. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        q: { type: 'string', description: 'Search query.' },
+        type: { type: 'string', description: 'Entity type filter.' },
+        projectId: { type: 'string' },
+        limit: { type: 'number' },
+      },
+      required: ['q'],
+      additionalProperties: false,
+    },
+  },
+
+  // ─── Import ───────────────────────────────────────────────────────────
+  {
+    name: 'byan_api_import_scan',
+    description:
+      'Scan a local directory and report what would be imported. POST /api/import/scan. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Absolute path to scan.' } },
+      required: ['path'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_api_import_dry_run',
+    description:
+      'Dry-run an import from a local directory (no writes). POST /api/import/dry-run. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string', description: 'Absolute path to dry-run.' } },
+      required: ['path'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const server = new Server(
@@ -797,6 +1107,211 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         minStreak: args.minStreak,
       });
       return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    // ─── byan_api_* wrappers ────────────────────────────────────────────
+    if (name === 'byan_api_projects_get') {
+      requireToken();
+      const body = await apiRequest(`/api/projects/${encodeURIComponent(args.id)}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_projects_create') {
+      requireToken();
+      const payload = {
+        name: args.name,
+        type: args.type,
+        ...(args.description !== undefined ? { description: args.description } : {}),
+        ...(args.visibility !== undefined ? { visibility: args.visibility } : {}),
+        ...(args.taxonomyType !== undefined ? { taxonomyType: args.taxonomyType } : {}),
+        ...(args.seedTaxonomy !== undefined ? { seedTaxonomy: args.seedTaxonomy } : {}),
+      };
+      const body = await apiRequest('/api/projects', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_workflows_list') {
+      requireToken();
+      const qs = buildQuery({
+        scope: args.scope,
+        project_id: args.projectId,
+        status: args.status,
+      });
+      const body = await apiRequest(`/api/workflows${qs}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_workflows_get') {
+      requireToken();
+      const body = await apiRequest(`/api/workflows/${encodeURIComponent(args.id)}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_workflows_run') {
+      requireToken();
+      const payload = args.trigger !== undefined ? { trigger: args.trigger } : {};
+      const body = await apiRequest(
+        `/api/workflows/${encodeURIComponent(args.id)}/run`,
+        { method: 'POST', body: JSON.stringify(payload) }
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_workflow_runs_list') {
+      requireToken();
+      const body = await apiRequest(
+        `/api/workflows/${encodeURIComponent(args.id)}/runs`
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_workflow_runs_get') {
+      requireToken();
+      const body = await apiRequest(
+        `/api/workflow-runs/${encodeURIComponent(args.runId)}`
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_knowledge_list') {
+      requireToken();
+      const qs = buildQuery({
+        project_id: args.projectId,
+        category: args.category,
+        tags: args.tags,
+        limit: args.limit,
+      });
+      const body = await apiRequest(`/api/knowledge${qs}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_knowledge_get') {
+      requireToken();
+      const body = await apiRequest(`/api/knowledge/${encodeURIComponent(args.id)}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_memory_list') {
+      requireToken();
+      const qs = buildQuery({
+        project_id: args.projectId,
+        category: args.category,
+        type: args.type,
+        limit: args.limit,
+      });
+      const body = await apiRequest(`/api/memory${qs}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_memory_search') {
+      requireToken();
+      const qs = buildQuery({ q: args.q });
+      const body = await apiRequest(`/api/memory/search${qs}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_custom_agents_list') {
+      requireToken();
+      const body = await apiRequest('/api/custom-agents');
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_custom_agents_get') {
+      requireToken();
+      const body = await apiRequest(
+        `/api/custom-agents/${encodeURIComponent(args.id)}`
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_custom_agents_clone_system') {
+      requireToken();
+      const body = await apiRequest(
+        `/api/custom-agents/clone/${encodeURIComponent(args.systemName)}`,
+        { method: 'POST', body: JSON.stringify({}) }
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_sessions_list') {
+      requireToken();
+      const qs = buildQuery({ project_id: args.projectId });
+      const body = await apiRequest(`/api/sessions${qs}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_sessions_get') {
+      requireToken();
+      const body = await apiRequest(`/api/sessions/${encodeURIComponent(args.id)}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_sessions_history') {
+      requireToken();
+      const body = await apiRequest(
+        `/api/sessions/${encodeURIComponent(args.id)}/history`
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_chat_conversations_list') {
+      requireToken();
+      const body = await apiRequest('/api/chat/conversations');
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_chat_messages_list') {
+      requireToken();
+      const body = await apiRequest(
+        `/api/chat/conversations/${encodeURIComponent(args.id)}/messages`
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_chat_send') {
+      requireToken();
+      const payload = {
+        content: args.content,
+        ...(args.role !== undefined ? { role: args.role } : {}),
+      };
+      const body = await apiRequest(
+        `/api/chat/conversations/${encodeURIComponent(args.id)}/messages`,
+        { method: 'POST', body: JSON.stringify(payload) }
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_search') {
+      requireToken();
+      const qs = buildQuery({
+        q: args.q,
+        type: args.type,
+        project_id: args.projectId,
+        limit: args.limit,
+      });
+      const body = await apiRequest(`/api/search${qs}`);
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_import_scan') {
+      requireToken();
+      const body = await apiRequest('/api/import/scan', {
+        method: 'POST',
+        body: JSON.stringify({ path: args.path }),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_import_dry_run') {
+      requireToken();
+      const body = await apiRequest('/api/import/dry-run', {
+        method: 'POST',
+        body: JSON.stringify({ path: args.path }),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);
