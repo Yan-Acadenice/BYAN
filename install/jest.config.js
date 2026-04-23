@@ -29,5 +29,11 @@ module.exports = {
   testMatch: [
     '**/__tests__/**/*.test.js'
   ],
+  // Nested packages (e.g. packages/platform-config) own their own jest config
+  // and test suite; install's jest must not collect them.
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/packages/'
+  ],
   verbose: true
 };

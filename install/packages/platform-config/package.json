@@ -1,0 +1,21 @@
+{
+  "name": "@byan/platform-config",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared platform config lib for BYAN install/update (.mcp.json, .env, token, validate, url)",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^8.2.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
