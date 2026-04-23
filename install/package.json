@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "description": "BYAN v2.2.2 - Intelligent AI agent installer with multi-platform native support (GitHub Copilot CLI, Claude Code, Codex/OpenCode)",
   "bin": {
     "create-byan-agent": "bin/create-byan-agent-v2.js"
@@ -42,7 +42,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@byan/platform-config": "file:./packages/platform-config",
+    "byan-platform-config": "^1.0.0",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",

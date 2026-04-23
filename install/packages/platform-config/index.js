@@ -1,10 +1,10 @@
 /**
- * @byan/platform-config — shared platform config primitives.
+ * byan-platform-config — shared platform config primitives.
  *
  * Single source of truth for .mcp.json management, .env/settings.local.json
  * manipulation, token prompting, byan_web reachability validation, and URL
  * normalization. Consumed by both install/ (create-byan-agent) and
- * update-byan-agent/ so the two CLIs never drift.
+ * update-byan-agent/ so the two CLIs do not drift.
  */
 
 module.exports = {

@@ -1,8 +1,8 @@
 /**
- * byan_web integration — thin wrapper over @byan/platform-config.
+ * byan_web integration — thin wrapper over byan-platform-config.
  *
  * Historical public surface preserved for external callers; new code
- * should import directly from @byan/platform-config.
+ * should import directly from byan-platform-config.
  */
 const path = require('path');
 const chalk = require('chalk');
@@ -11,7 +11,7 @@ const {
   envConfig: { updateSettingsLocal: sharedUpdateSettingsLocal, updateDotenv: sharedUpdateDotenv },
   tokenPrompt: { promptForToken, ENV_KEYS },
   validate: { validateByanWebReachability },
-} = require('@byan/platform-config');
+} = require('byan-platform-config');
 
 // Shared primitives return { path: string } — unwrap to plain string for
 // backwards compatibility with callers that expect a string path.

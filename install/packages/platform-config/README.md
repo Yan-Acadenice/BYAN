@@ -1,18 +1,16 @@
-# @byan/platform-config
+# byan-platform-config
 
 Shared platform config primitives for BYAN. Single source of truth for
 `.mcp.json`, `.env`, `.claude/settings.local.json`, token prompting,
 byan_web reachability validation, and URL normalization.
 
-Consumed by both `install/` (create-byan-agent) and `update-byan-agent/`
-so the two CLIs stay in sync.
+Consumed by both `create-byan-agent` (installer) and `update-byan-agent`
+(update CLI) so the two CLIs stay in sync.
 
 ## Install
 
-Local package, private. In a consumer workspace:
-
-```json
-{ "dependencies": { "@byan/platform-config": "file:../packages/platform-config" } }
+```bash
+npm install byan-platform-config
 ```
 
 ## Public API
@@ -24,7 +22,7 @@ const {
   tokenPrompt,
   validate,
   urlUtils,
-} = require('@byan/platform-config');
+} = require('byan-platform-config');
 ```
 
 ### mcpConfig — `.mcp.json` management

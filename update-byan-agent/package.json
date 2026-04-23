@@ -1,6 +1,6 @@
 {
   "name": "update-byan-agent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CLI tool for managing BYAN updates with intelligent conflict detection and customization preservation",
   "bin": {
     "update-byan-agent": "bin/update-byan-agent.js"
@@ -26,7 +26,7 @@
   "author": "Yan",
   "license": "MIT",
   "dependencies": {
-    "@byan/platform-config": "file:../install/packages/platform-config",
+    "byan-platform-config": "file:../install/packages/platform-config",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "diff": "^5.1.0",

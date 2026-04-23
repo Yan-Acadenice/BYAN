@@ -2,7 +2,7 @@
  * migrate-mcp-config — self-healing migration for pre-fix BYAN installs.
  *
  * Injects BYAN_API_TOKEN into .mcp.json env block if absent, and strips the
- * legacy /api suffix from BYAN_API_URL. Uses @byan/platform-config primitives
+ * legacy /api suffix from BYAN_API_URL. Uses byan-platform-config primitives
  * exclusively; no duplicated logic here.
  */
 
@@ -12,7 +12,7 @@ const {
   mcpConfig: { readMcpConfig, ensureMcpConfig },
   envConfig:  { readEnvToken },
   urlUtils:   { stripApiSuffix },
-} = require('@byan/platform-config');
+} = require('byan-platform-config');
 
 /**
  * @param {string} projectRoot   — absolute path to the project root
