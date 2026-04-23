@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import fsSync from 'node:fs';
+import fsPromises from 'node:fs/promises';
+import nodePath from 'node:path';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -94,6 +97,81 @@ async function apiRequest(path, options = {}) {
   return body;
 }
 
+// Default filters — skip common build/vcs artifacts that pollute payload.
+const DEFAULT_SKIP_DIRS = new Set([
+  '.git', 'node_modules', 'dist', 'build', '.next', 'coverage',
+  '__pycache__', '.venv', 'venv', '.pytest_cache', '.mypy_cache',
+  'target', 'out', '.turbo', '.cache', '.DS_Store',
+]);
+const DEFAULT_SKIP_FILE_PATTERNS = [
+  /\.log$/i, /\.sqlite$/i, /\.sqlite-journal$/i, /\.sqlite-wal$/i,
+  /\.lock$/i, /\.pid$/i,
+];
+// Heuristic: treat as binary if content has NUL byte in first 8KB.
+function looksBinary(buf) {
+  const sample = buf.subarray(0, Math.min(buf.length, 8192));
+  for (const b of sample) if (b === 0) return true;
+  return false;
+}
+
+// Hard limits — match W1's API guards so we fail fast client-side.
+const MAX_FILES = 10000;
+const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100 MB
+
+async function buildFilesPayload(absRoot, opts = {}) {
+  const skipDirs = opts.skipDirs || DEFAULT_SKIP_DIRS;
+  const skipPatterns = opts.skipPatterns || DEFAULT_SKIP_FILE_PATTERNS;
+  const maxFiles = opts.maxFiles || MAX_FILES;
+  const maxBytes = opts.maxBytes || MAX_TOTAL_BYTES;
+
+  const stat = await fsPromises.stat(absRoot);
+  if (!stat.isDirectory()) {
+    throw new Error(`Path is not a directory: ${absRoot}`);
+  }
+
+  const files = [];
+  let totalBytes = 0;
+
+  async function walk(dir) {
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = nodePath.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (skipDirs.has(entry.name)) continue;
+        await walk(full);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      if (skipPatterns.some((re) => re.test(entry.name))) continue;
+
+      const rel = nodePath.relative(absRoot, full).split(nodePath.sep).join('/');
+      const buf = await fsPromises.readFile(full);
+
+      totalBytes += buf.length;
+      if (files.length + 1 > maxFiles) {
+        throw new Error(
+          `Too many files (>${maxFiles}). Add to skipDirs or increase maxFiles.`
+        );
+      }
+      if (totalBytes > maxBytes) {
+        throw new Error(
+          `Total size exceeds ${(maxBytes / 1024 / 1024).toFixed(0)}MB. ` +
+          `Prune node_modules/dist/build dirs or increase maxBytes.`
+        );
+      }
+
+      if (looksBinary(buf)) {
+        files.push({ path: rel, content: buf.toString('base64'), encoding: 'base64' });
+      } else {
+        files.push({ path: rel, content: buf.toString('utf8'), encoding: 'utf8' });
+      }
+    }
+  }
+
+  await walk(absRoot);
+  return { files, count: files.length, totalBytes };
+}
+
 const tools = [
   {
     name: 'byan_ping',
@@ -124,19 +202,27 @@ const tools = [
   {
     name: 'byan_import_project',
     description:
-      'Import a local project directory into byan_web. Scans BMAD artifacts (_bmad-output/, docs/, _bmad/_memory/). Requires auth.',
+      'Import a local project directory into byan_web. Reads files from the local filesystem (client-side) and uploads them as a payload; works whether byan_web is local or remote. Skips .git, node_modules, dist, build, coverage, *.log, *.sqlite. Limits: 10000 files, 100MB total. Requires auth.',
     inputSchema: {
       type: 'object',
       properties: {
         path: {
           type: 'string',
-          description: 'Absolute path to the project directory to import.',
+          description: 'Absolute path to the project directory on THIS machine (the MCP client). The API does not need filesystem access to this path.',
         },
         name: { type: 'string', description: 'Optional project name override.' },
         type: {
           type: 'string',
           enum: ['dev', 'training'],
           description: 'Project type. Default: dev.',
+        },
+        maxFiles: {
+          type: 'number',
+          description: 'Override max file count (default 10000).',
+        },
+        maxBytes: {
+          type: 'number',
+          description: 'Override max total bytes (default 104857600 = 100MB).',
         },
       },
       required: ['path'],
@@ -820,10 +906,14 @@ const tools = [
   {
     name: 'byan_api_import_scan',
     description:
-      'Scan a local directory and report what would be imported. POST /api/import/scan. Requires BYAN_API_TOKEN.',
+      'Scan a local directory and report what would be imported into byan_web. Reads files from the local filesystem (client-side) and uploads them as a payload; works whether byan_web is local or remote. Skips .git, node_modules, dist, build, coverage, *.log, *.sqlite. Limits: 10000 files, 100MB total. Requires auth.',
     inputSchema: {
       type: 'object',
-      properties: { path: { type: 'string', description: 'Absolute path to scan.' } },
+      properties: {
+        path: { type: 'string', description: 'Absolute path to the directory on THIS machine (the MCP client). The API does not need filesystem access to this path.' },
+        maxFiles: { type: 'number', description: 'Override max file count (default 10000).' },
+        maxBytes: { type: 'number', description: 'Override max total bytes (default 104857600 = 100MB).' },
+      },
       required: ['path'],
       additionalProperties: false,
     },
@@ -831,10 +921,14 @@ const tools = [
   {
     name: 'byan_api_import_dry_run',
     description:
-      'Dry-run an import from a local directory (no writes). POST /api/import/dry-run. Requires BYAN_API_TOKEN.',
+      'Dry-run an import from a local directory into byan_web (no writes). Reads files from the local filesystem (client-side) and uploads them as a payload; works whether byan_web is local or remote. Skips .git, node_modules, dist, build, coverage, *.log, *.sqlite. Limits: 10000 files, 100MB total. Requires auth.',
     inputSchema: {
       type: 'object',
-      properties: { path: { type: 'string', description: 'Absolute path to dry-run.' } },
+      properties: {
+        path: { type: 'string', description: 'Absolute path to the directory on THIS machine (the MCP client). The API does not need filesystem access to this path.' },
+        maxFiles: { type: 'number', description: 'Override max file count (default 10000).' },
+        maxBytes: { type: 'number', description: 'Override max total bytes (default 104857600 = 100MB).' },
+      },
       required: ['path'],
       additionalProperties: false,
     },
@@ -899,10 +993,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       if (!BYAN_API_TOKEN) {
         throw new Error('BYAN_API_TOKEN env var is required for this tool.');
       }
+      // Always upload files payload — works for both localhost and remote API.
+      // The API still accepts { path } for backward compat if caller insists,
+      // but the MCP client has no reason to use it (we can always read locally).
+      const { files } = await buildFilesPayload(args.path, {
+        ...(args.maxFiles ? { maxFiles: args.maxFiles } : {}),
+        ...(args.maxBytes ? { maxBytes: args.maxBytes } : {}),
+      });
       const body = await apiRequest('/api/import/project', {
         method: 'POST',
         body: JSON.stringify({
-          path: args.path,
+          files,
           ...(args.name ? { name: args.name } : {}),
           ...(args.type ? { type: args.type } : {}),
         }),
@@ -1298,18 +1399,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === 'byan_api_import_scan') {
       requireToken();
+      // Build files payload from client filesystem — works for remote byan_web.
+      const { files } = await buildFilesPayload(args.path, {
+        ...(args.maxFiles ? { maxFiles: args.maxFiles } : {}),
+        ...(args.maxBytes ? { maxBytes: args.maxBytes } : {}),
+      });
       const body = await apiRequest('/api/import/scan', {
         method: 'POST',
-        body: JSON.stringify({ path: args.path }),
+        body: JSON.stringify({ files }),
       });
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
     if (name === 'byan_api_import_dry_run') {
       requireToken();
+      // Build files payload from client filesystem — works for remote byan_web.
+      const { files } = await buildFilesPayload(args.path, {
+        ...(args.maxFiles ? { maxFiles: args.maxFiles } : {}),
+        ...(args.maxBytes ? { maxBytes: args.maxBytes } : {}),
+      });
       const body = await apiRequest('/api/import/dry-run', {
         method: 'POST',
-        body: JSON.stringify({ path: args.path }),
+        body: JSON.stringify({ files }),
       });
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
@@ -1325,3 +1436,5 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
+
+export { buildFilesPayload };
