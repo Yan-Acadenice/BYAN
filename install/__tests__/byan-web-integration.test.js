@@ -83,13 +83,13 @@ describe('byan-web-integration', () => {
 
   describe('ensureMcpConfig', () => {
     test('creates .mcp.json with byan server config', async () => {
-      const filePath = await ensureMcpConfig(tmpRoot, 'http://api.example.com');
+      const filePath = await ensureMcpConfig(tmpRoot, 'http://host.example.com');
       const content = await fs.readJson(filePath);
       expect(content.mcpServers.byan.command).toBe('node');
       expect(content.mcpServers.byan.args[0]).toBe(
         '_byan/mcp/byan-mcp-server/server.js'
       );
-      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://api.example.com');
+      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://host.example.com');
     });
 
     test('preserves other MCP servers in existing config', async () => {
@@ -111,6 +111,70 @@ describe('byan-web-integration', () => {
 
       const content = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
       expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://new:3737');
+    });
+
+    // F1: token injection
+    test('writes BYAN_API_TOKEN when token is non-empty', async () => {
+      const filePath = await ensureMcpConfig(tmpRoot, 'http://localhost:3737', 'my-secret-token');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBe('my-secret-token');
+    });
+
+    test('omits BYAN_API_TOKEN when token is empty string', async () => {
+      const filePath = await ensureMcpConfig(tmpRoot, 'http://localhost:3737', '');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+    });
+
+    test('omits BYAN_API_TOKEN when token is undefined', async () => {
+      const filePath = await ensureMcpConfig(tmpRoot, 'http://localhost:3737');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+    });
+
+    // F1 + B5: URL stripping
+    test('strips trailing /api from URL', async () => {
+      const filePath = await ensureMcpConfig(tmpRoot, 'http://localhost:3737/api');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
+    });
+
+    test('strips trailing /api/ from URL', async () => {
+      const filePath = await ensureMcpConfig(tmpRoot, 'http://localhost:3737/api/');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
+    });
+
+    // F7: preserve other mcpServers entries on merge
+    test('preserves other mcpServers entries on merge', async () => {
+      const filePath = path.join(tmpRoot, '.mcp.json');
+      await fs.writeJson(filePath, {
+        mcpServers: { foo: { command: 'foo-cmd', args: ['foo.js'] } },
+      });
+      await ensureMcpConfig(tmpRoot, 'http://localhost:3737', 'tok');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.foo.command).toBe('foo-cmd');
+      expect(content.mcpServers.byan).toBeDefined();
+    });
+
+    // F7: preserve existing command and args of mcpServers.byan if already set
+    test('preserves existing command and args of mcpServers.byan when already set', async () => {
+      const filePath = path.join(tmpRoot, '.mcp.json');
+      await fs.writeJson(filePath, {
+        mcpServers: {
+          byan: {
+            command: 'custom-node',
+            args: ['/absolute/path/server.js'],
+            env: { BYAN_API_URL: 'http://old:3737' },
+          },
+        },
+      });
+      await ensureMcpConfig(tmpRoot, 'http://new:3737', 'tok');
+      const content = await fs.readJson(filePath);
+      expect(content.mcpServers.byan.command).toBe('custom-node');
+      expect(content.mcpServers.byan.args[0]).toBe('/absolute/path/server.js');
+      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://new:3737');
+      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBe('tok');
     });
   });
 
@@ -153,6 +217,7 @@ describe('byan-web-integration', () => {
 
       const mcp = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
       expect(mcp.mcpServers.byan.env.BYAN_API_URL).toBe('http://preset:3737');
+      expect(mcp.mcpServers.byan.env.BYAN_API_TOKEN).toBe('preset-token');
     });
   });
 });

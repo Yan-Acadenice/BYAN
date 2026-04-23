@@ -70,15 +70,35 @@ async function updateDotenv(projectRoot, env) {
   return filePath;
 }
 
-async function ensureMcpConfig(projectRoot, apiUrl) {
+async function ensureMcpConfig(projectRoot, apiUrl, token) {
+  // Strip trailing /api or /api/ so the server.js prefix doesn't double-up (B5)
+  const cleanUrl = apiUrl.replace(/\/api\/?$/, '');
+
   const filePath = path.join(projectRoot, '.mcp.json');
   const current = await readJsonOrEmpty(filePath);
   current.mcpServers = current.mcpServers || {};
+
+  const existing = current.mcpServers.byan || {};
+
+  // Build env: always overwrite URL and token; preserve anything else
+  const env = { ...(existing.env || {}) };
+  env.BYAN_API_URL = cleanUrl;
+  if (token && typeof token === 'string' && token.length > 0) {
+    env.BYAN_API_TOKEN = token;
+  } else {
+    // Remove placeholder empty string if it was set previously without a token
+    delete env.BYAN_API_TOKEN;
+  }
+
+  // Spread existing to preserve any extra keys (e.g. set by claude-native-setup).
+  // Defaults for command/args are only applied when the entry is new.
   current.mcpServers.byan = {
     command: 'node',
     args: [MCP_SERVER_REL_PATH],
-    env: { BYAN_API_URL: apiUrl },
+    ...existing,
+    env,
   };
+
   await fs.writeJson(filePath, current, { spaces: 2 });
   return filePath;
 }
@@ -147,7 +167,7 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
 
   const settingsPath = await updateSettingsLocal(projectRoot, env);
   const envPath = await updateDotenv(projectRoot, env);
-  const mcpPath = await ensureMcpConfig(projectRoot, inputs.apiUrl);
+  const mcpPath = await ensureMcpConfig(projectRoot, inputs.apiUrl, inputs.token);
 
   if (!options.quiet) {
     console.log(chalk.green(`  ✓ byan_web integration configured`));
