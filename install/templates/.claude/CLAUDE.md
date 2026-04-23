@@ -44,6 +44,13 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 - Methodologie: voir @.claude/rules/merise-agile.md
 - Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
 - Protocol fact-check scientifique: voir @.claude/rules/fact-check.md
+- Systeme API byan_web: voir @.claude/rules/byan-api.md
+
+## API byan_web
+
+BYAN expose une API REST via `$BYAN_API_URL` avec authentification par token (`ApiKey` ou `Bearer`).
+26 tools MCP sont disponibles pour Claude Code — a preferer au curl direct.
+Voir @.claude/rules/byan-api.md pour le detail.
 
 ## ELO Trust System
 

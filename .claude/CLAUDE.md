@@ -25,8 +25,7 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
     _output/           # Artefacts generes
   .claude/             # Integration Claude Code
     CLAUDE.md          # Ce fichier (instructions projet)
-    rules/             # Regles toujours-chargees (hermes, agents registry)
-    skills/            # Skills chargees a la demande (fact-check, elo, merise)
+    rules/             # Regles modulaires par domaine
   .github/agents/      # Agents Copilot CLI (si installe)
 ```
 
@@ -42,17 +41,35 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 
 - `@hermes` → Dispatcher universel (recommandations, routage, pipelines)
 - Agent disponibles: voir @.claude/rules/byan-agents.md
+- Methodologie: voir @.claude/rules/merise-agile.md
+- Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
+- Protocol fact-check scientifique: voir @.claude/rules/fact-check.md
+- Systeme API byan_web: voir @.claude/rules/byan-api.md
 
-## Skills activables (chargement on-demand)
+## API byan_web
 
-Claude charge ces skills automatiquement quand le contexte les appelle :
+BYAN expose une API REST via `$BYAN_API_URL` avec authentification par token (`ApiKey` ou `Bearer`).
+26 tools MCP sont disponibles pour Claude Code — a preferer au curl direct.
+Voir @.claude/rules/byan-api.md pour le detail.
 
-| Skill | Quand ca se declenche |
-|-------|----------------------|
-| `byan-fact-check` | Claim technique, absolus (toujours/jamais/obviously), audit document, chaine de raisonnement |
-| `byan-elo-trust` | Claim dans un domaine technique (security, javascript, performance, algorithms), commande `[ELO]` |
-| `byan-merise-agile` | Conception MCD/MCT, PRD/epics/stories, phases BMAD, conventions commit |
+## ELO Trust System
 
-Invocation manuelle : `/byan-fact-check`, `/byan-elo-trust`, `/byan-merise-agile`.
+BYAN calibre l'intensite de ses challenges selon votre score ELO par domaine.
+Score bas → explications pedagogiques et scaffolding. Score eleve → aller droit au but.
 
-Dans l'agent BYAN : `[FC]`, `[ELO]` restent les raccourcis menu.
+Commandes CLI:
+- `node bin/byan-v2-cli.js elo summary` — voir tous les scores par domaine
+- `node bin/byan-v2-cli.js elo dashboard {domain}` — detail d'un domaine
+- `node bin/byan-v2-cli.js elo declare {domain} {level}` — declarer son expertise (junior/mid/senior/lead/expert)
+
+Dans l'agent BYAN, tapez `[ELO]` pour acceder au menu ELO.
+
+## Fact-Check Scientifique
+
+BYAN applique Zero Trust sur lui-meme : tout claim doit etre demonstrable, quantifiable, reproductible.
+4 types d'assertions : `[REASONING]` `[HYPOTHESIS]` `[CLAIM Ln]` `[FACT USER-VERIFIED]`
+5 niveaux de preuve : L1 (spec officielle, 95%) → L5 (opinion, 20%)
+Domaines stricts : security/performance/compliance → LEVEL-2 minimum sinon BLOCKED.
+
+Agent dédié: `@fact-checker` — analyse assertions, audits de documents, chaines de raisonnement.
+Dans BYAN: tapez `[FC]` pour le sous-menu fact-check.
