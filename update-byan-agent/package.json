@@ -26,6 +26,7 @@
   "author": "Yan",
   "license": "MIT",
   "dependencies": {
+    "@byan/platform-config": "file:../install/packages/platform-config",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "diff": "^5.1.0",

@@ -221,7 +221,22 @@ program
       console.log(chalk.green.bold('Mise a jour terminee avec succes!'));
       console.log(chalk.gray(`  ${versionInfo.current} -> ${versionInfo.latest}`));
       console.log('');
-      
+
+      // Post-update: auto-heal .mcp.json for pre-fix installs (G8)
+      try {
+        const { runMigration } = require('../lib/migrate-mcp-config');
+        const result = await runMigration(process.cwd(), { verbose: false });
+        if (result.migrated) {
+          console.log(chalk.green(`  ✓ .mcp.json migrated (${result.changes.length} change${result.changes.length > 1 ? 's' : ''})`));
+        } else if (result.reason === 'no-token-available') {
+          console.log(chalk.yellow(`  ⚠ ${result.hint}`));
+        }
+        // silent on already-ok / no-mcp-json / no-byan-server
+      } catch (err) {
+        console.log(chalk.gray(`  (migration skipped: ${err.message})`));
+        // never block the update
+      }
+
     } catch (error) {
       console.error('');
       console.error(chalk.red.bold('Erreur lors de la mise a jour:'));
@@ -301,6 +316,15 @@ program
       console.error(chalk.red(`Erreur: ${error.message}`));
       process.exit(1);
     }
+  });
+
+program
+  .command('migrate-mcp-config')
+  .description('Migrer .mcp.json pre-fix : inject BYAN_API_TOKEN si absent, strip /api de BYAN_API_URL')
+  .option('--dry-run', 'Simuler sans ecrire')
+  .action(async (options) => {
+    const { runMigration } = require('../lib/migrate-mcp-config');
+    await runMigration(process.cwd(), { dryRun: options.dryRun, verbose: true });
   });
 
 /**
