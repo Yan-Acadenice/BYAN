@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.11.1",
+  "version": "2.11.2",
   "description": "BYAN v2.8 - Intelligent AI agent creator with ELO trust system + scientific fact-check + Hermes universal dispatcher + native Claude Code integration (hooks, skills, MCP server). Multi-platform (Copilot CLI, Claude Code, Codex). Merise Agile + TDD + 64 Mantras. ~54% LLM cost savings.",
   "main": "src/index.js",
   "bin": {
