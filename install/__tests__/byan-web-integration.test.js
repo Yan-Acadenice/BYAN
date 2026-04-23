@@ -6,6 +6,7 @@ const {
   updateDotenv,
   ensureMcpConfig,
   setupByanWebIntegration,
+  validateByanWebReachability,
 } = require('../lib/byan-web-integration');
 
 describe('byan-web-integration', () => {
@@ -175,6 +176,64 @@ describe('byan-web-integration', () => {
       expect(content.mcpServers.byan.args[0]).toBe('/absolute/path/server.js');
       expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://new:3737');
       expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBe('tok');
+    });
+  });
+
+  describe('validateByanWebReachability', () => {
+    afterEach(() => {
+      global.fetch = undefined;
+    });
+
+    test('returns reachable:true with status and latency on 200', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ status: 200 });
+      const result = await validateByanWebReachability({
+        apiUrl: 'http://localhost:3737',
+        token: 'byan_test-token',
+      });
+      expect(result.reachable).toBe(true);
+      expect(result.status).toBe(200);
+      expect(typeof result.latencyMs).toBe('number');
+      expect(result.error).toBeUndefined();
+    });
+
+    test('returns reachable:true with error message on 4xx', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ status: 401 });
+      const result = await validateByanWebReachability({
+        apiUrl: 'http://localhost:3737',
+        token: 'bad-token',
+      });
+      expect(result.reachable).toBe(true);
+      expect(result.status).toBe(401);
+      expect(result.error).toMatch(/401/);
+    });
+
+    test('returns reachable:false on network error — never throws', async () => {
+      global.fetch = jest.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+      const result = await validateByanWebReachability({
+        apiUrl: 'http://localhost:9999',
+      });
+      expect(result.reachable).toBe(false);
+      expect(result.error).toContain('ECONNREFUSED');
+    });
+
+    test('sets ApiKey scheme for byan_ prefixed token', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ status: 200 });
+      await validateByanWebReachability({
+        apiUrl: 'http://localhost:3737',
+        token: 'byan_abc123',
+      });
+      const headers = global.fetch.mock.calls[0][1].headers;
+      expect(headers['Authorization']).toBe('ApiKey byan_abc123');
+    });
+
+    test('sets Bearer scheme for non-byan_ token', async () => {
+      global.fetch = jest.fn().mockResolvedValue({ status: 200 });
+      await validateByanWebReachability({
+        apiUrl: 'http://localhost:3737',
+        token: 'eyJhbGciOiJIUzI1NiJ9.foo',
+      });
+      const headers = global.fetch.mock.calls[0][1].headers;
+      expect(headers['Authorization']).toMatch(/^Bearer /);
     });
   });
 

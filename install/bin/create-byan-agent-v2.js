@@ -14,7 +14,7 @@ const yaml = require('js-yaml');
 const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questions');
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
-const { setupByanWebIntegration } = require('../lib/byan-web-integration');
+const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupStagingConsent } = require('../lib/staging-consent');
 
@@ -1366,6 +1366,25 @@ async function install() {
       byanWebResult = await setupByanWebIntegration(projectRoot);
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ byan_web setup skipped: ${error.message}`));
+    }
+
+    if (byanWebResult && byanWebResult.configured) {
+      try {
+        const check = await validateByanWebReachability({
+          apiUrl: byanWebResult.apiUrl,
+          token: byanWebResult.token,
+        });
+        if (check.reachable && check.status < 400) {
+          console.log(chalk.green(`  ✓ byan_web reachable (${check.latencyMs}ms)`));
+        } else if (check.reachable) {
+          console.log(chalk.yellow(`  ⚠ byan_web responded ${check.status} — check token/URL`));
+        } else {
+          console.log(chalk.yellow(`  ⚠ byan_web UNREACHABLE (${check.error})`));
+          console.log(chalk.gray(`    Re-run installer or edit .env / .mcp.json to fix later.`));
+        }
+      } catch (_) {
+        // reachability check must never block install
+      }
     }
 
     if (byanWebResult && byanWebResult.configured) {
