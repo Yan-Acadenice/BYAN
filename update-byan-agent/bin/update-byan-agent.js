@@ -145,13 +145,22 @@ program
           stdio: 'pipe'
         });
         
-        // Copy _byan from node_modules to project root
+        // Copy _byan from node_modules to project root. The published tarball
+        // ships _byan source under install/templates/_byan/, not at the root.
+        // Fall back to root-level _byan/ for legacy tarballs that may still
+        // have shipped it there.
         const pkgRoot = path.join(installPath, 'node_modules', 'create-byan-agent');
-        const nodeModulesByan = path.join(pkgRoot, '_byan');
-        if (fs.existsSync(nodeModulesByan)) {
+        const candidates = [
+          path.join(pkgRoot, 'install', 'templates', '_byan'),
+          path.join(pkgRoot, '_byan'),
+        ];
+        const nodeModulesByan = candidates.find((p) => fs.existsSync(p));
+        if (nodeModulesByan) {
           copyRecursive(nodeModulesByan, byanDir);
         } else {
-          throw new Error('_byan directory not found in npm package');
+          throw new Error(
+            `_byan directory not found in npm package (looked in: ${candidates.map((p) => path.relative(pkgRoot, p)).join(', ')})`
+          );
         }
 
         // Also refresh .github/agents/ from templates (Copilot stubs)
