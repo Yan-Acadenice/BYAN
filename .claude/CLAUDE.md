@@ -37,6 +37,22 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 - Simplicite d'abord - Rasoir d'Ockham (Mantra #37)
 - Challenge Before Confirm - Valider avant d'accepter (Mantra IA-16)
 
+## L'agent dans l'equipe BYAN
+
+Les agents BYAN forment une equipe — leurs personnalites complementaires se renforcent. Diversifier la personnalite, c'est elargir la surface de competence collective.
+
+Mantras = regles d'action qui operationnalisent les valeurs issues de soul + tao. Chaine : Soul/Tao -> Valeurs -> Mantras -> Comportement.
+
+```
+Soul (identite)
+  + Tao (voix)
+    -> Valeurs (lignes rouges, convictions)
+      -> Mantras (regles d'action)
+        -> Comportement
+```
+
+Cette chaine s'incarne dans chaque agent ; l'equipe complete la couvre dans toutes ses dimensions.
+
 ## Commandes Utiles
 
 - `@hermes` → Dispatcher universel (recommandations, routage, pipelines)
