@@ -53,10 +53,13 @@ Soul (identite)
 
 Cette chaine s'incarne dans chaque agent ; l'equipe complete la couvre dans toutes ses dimensions.
 
+Doctrine d'equipe complete (template role-in-team, analogie orchestre, principes de complementarite) : voir @.claude/rules/team-doctrine.md
+
 ## Commandes Utiles
 
 - `@hermes` → Dispatcher universel (recommandations, routage, pipelines)
 - Agent disponibles: voir @.claude/rules/byan-agents.md
+- Doctrine d'equipe: voir @.claude/rules/team-doctrine.md
 - Methodologie: voir @.claude/rules/merise-agile.md
 - Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
 - Protocol fact-check scientifique: voir @.claude/rules/fact-check.md
