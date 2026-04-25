@@ -41,6 +41,28 @@ C'est juste un agent intelligent avec les bons softskills et hardskills pour vou
 
 ---
 
+## Anatomie d'un agent BYAN
+
+Un agent BYAN n'est pas un script. C'est une chaine vivante de couches doctrinales, et il appartient a une equipe.
+
+```mermaid
+flowchart LR
+  subgraph Agent["Un agent BYAN"]
+    Soul["Soul<br/>identite"]
+    Tao["Tao<br/>voix"]
+    Valeurs["Valeurs<br/>lignes rouges, convictions"]
+    Mantras["Mantras<br/>regles d'action"]
+    Comportement["Comportement"]
+    Soul --> Tao --> Valeurs --> Mantras --> Comportement
+  end
+
+  Agent -. appartient a .-> Equipe["Equipe BYAN<br/>N agents complementaires<br/>orchestres par Hermes"]
+```
+
+Diversifier les personas elargit la surface de competence collective.
+
+---
+
 ## Installation
 
 ### Prérequis
