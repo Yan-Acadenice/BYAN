@@ -82,6 +82,8 @@ async function apiRequest(path, options = {}) {
   };
   const res = await fetch(url, { ...options, headers });
   const text = await res.text();
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  const isJson = contentType.includes('application/json');
   let body;
   try {
     body = text ? JSON.parse(text) : null;
@@ -92,6 +94,19 @@ async function apiRequest(path, options = {}) {
     const err = new Error(`${res.status} ${res.statusText}: ${text}`);
     err.status = res.status;
     err.body = body;
+    throw err;
+  }
+  // A 200 carrying HTML almost certainly means BYAN_API_URL points at the
+  // WebUI host (behind Authentik SSO) instead of the API backend.
+  // Never let a non-JSON response through — it used to fall back to
+  // `body.data || []` and silently pretend the API was empty.
+  if (!isJson) {
+    const hint = contentType.includes('text/html')
+      ? 'Expected JSON, got HTML. Likely BYAN_API_URL points at the WebUI (byan.<domain>) instead of the API (byan-api.<domain>).'
+      : `Expected JSON, got content-type: ${contentType || '(none)'}.`;
+    const err = new Error(`${hint} URL=${url}`);
+    err.status = res.status;
+    err.nonJson = true;
     throw err;
   }
   return body;
@@ -202,7 +217,7 @@ const tools = [
   {
     name: 'byan_import_project',
     description:
-      'Import a local project directory into byan_web. Reads files from the local filesystem (client-side) and uploads them as a payload; works whether byan_web is local or remote. Skips .git, node_modules, dist, build, coverage, *.log, *.sqlite. Limits: 10000 files, 100MB total. Requires auth.',
+      'Import a local project directory into byan_web. Reads files from the local filesystem (client-side) and uploads them as a payload; works whether byan_web is local or remote. Skips .git, node_modules, dist, build, coverage, *.log, *.sqlite. Limits: 10000 files, 100MB total. Requires auth. If projectId is provided, files attach to that project ; otherwise a new project is created from name (or directory basename).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -210,11 +225,19 @@ const tools = [
           type: 'string',
           description: 'Absolute path to the project directory on THIS machine (the MCP client). The API does not need filesystem access to this path.',
         },
-        name: { type: 'string', description: 'Optional project name override.' },
+        projectId: {
+          type: 'string',
+          description: 'Existing project id to attach the files to. If absent, a new project is created.',
+        },
+        name: { type: 'string', description: 'Project name override (used only when projectId is absent).' },
         type: {
           type: 'string',
           enum: ['dev', 'training'],
-          description: 'Project type. Default: dev.',
+          description: 'Project type for new project creation. Default: dev. Ignored when projectId is provided.',
+        },
+        autoCreateNodes: {
+          type: 'boolean',
+          description: 'When true, auto-create knowledge nodes from file directory structure. Default: false.',
         },
         maxFiles: {
           type: 'number',
@@ -994,19 +1017,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error('BYAN_API_TOKEN env var is required for this tool.');
       }
       // Always upload files payload — works for both localhost and remote API.
-      // The API still accepts { path } for backward compat if caller insists,
-      // but the MCP client has no reason to use it (we can always read locally).
+      // Server contract (post FD api-import-project-files-payload-merge):
+      //   { files, projectId? }              -> attach to existing project
+      //   { files, projectMeta: { name, type } } -> create new project
       const { files } = await buildFilesPayload(args.path, {
         ...(args.maxFiles ? { maxFiles: args.maxFiles } : {}),
         ...(args.maxBytes ? { maxBytes: args.maxBytes } : {}),
       });
+      const payload = { files };
+      if (args.projectId) {
+        payload.projectId = args.projectId;
+      } else if (args.name || args.type) {
+        payload.projectMeta = {
+          ...(args.name ? { name: args.name } : {}),
+          type: args.type || 'dev',
+        };
+      }
+      if (args.autoCreateNodes === true) {
+        payload.autoCreateNodes = true;
+      }
       const body = await apiRequest('/api/import/project', {
         method: 'POST',
-        body: JSON.stringify({
-          files,
-          ...(args.name ? { name: args.name } : {}),
-          ...(args.type ? { type: args.type } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       return {
         content: [{ type: 'text', text: JSON.stringify(body.data || body, null, 2) }],

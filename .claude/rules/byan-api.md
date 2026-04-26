@@ -36,7 +36,7 @@ Base URL dans `$BYAN_API_URL` env. Dev par defaut : `http://localhost:3737`. Pro
 |------|-------|--------------|
 | `byan_ping` | Verifier que l'API repond | Non |
 | `byan_list_projects` | Lister les projets de l'utilisateur | Oui |
-| `byan_import_project` | Importer un projet local dans BYAN | Oui |
+| `byan_import_project` | Importer un dossier local. Args : `path` (requis), `projectId` (attache au projet existant) OU `name` + `type` (cree un nouveau projet), `autoCreateNodes` optional | Oui |
 
 ### Projets
 
