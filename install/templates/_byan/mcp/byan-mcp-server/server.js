@@ -406,7 +406,7 @@ const tools = [
   {
     name: 'byan_fd_start',
     description:
-      'Start a new Feature Development (FD) cycle for BYAN. Writes _byan-output/fd-state.json with phase=BRAINSTORM. Rejects if another FD is already in progress (unless force=true).',
+      'Start a new Feature Development (FD) cycle for BYAN. Writes _byan-output/fd-state.json with phase=DISCOVERY. Rejects if another FD is already in progress (unless force=true).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -426,13 +426,25 @@ const tools = [
   {
     name: 'byan_fd_advance',
     description:
-      'Transition the current FD session to another phase. Valid targets : BRAINSTORM | PRUNE | DISPATCH | BUILD | VALIDATE | COMPLETED | ABORTED. Rejects backward moves (except abort).',
+      'Transition the current FD session to another phase. Valid targets : DISCOVERY | BRAINSTORM | PRUNE | DISPATCH | BUILD | REVIEW | VALIDATE | REFACTOR | DOC | COMPLETED | ABORTED. Rejects backward moves except REFACTOR->BUILD (rework loop) and ABORTED/COMPLETED.',
     inputSchema: {
       type: 'object',
       properties: {
         to: {
           type: 'string',
-          enum: ['BRAINSTORM', 'PRUNE', 'DISPATCH', 'BUILD', 'VALIDATE', 'COMPLETED', 'ABORTED'],
+          enum: [
+            'DISCOVERY',
+            'BRAINSTORM',
+            'PRUNE',
+            'DISPATCH',
+            'BUILD',
+            'REVIEW',
+            'VALIDATE',
+            'REFACTOR',
+            'DOC',
+            'COMPLETED',
+            'ABORTED',
+          ],
         },
         note: { type: 'string', description: 'Optional gate-crossing rationale.' },
       },
@@ -443,7 +455,7 @@ const tools = [
   {
     name: 'byan_fd_update',
     description:
-      'Patch fields on the active FD state. Allowed keys : backlog, dispatch_table, commits, notes, feature_name. Rejects unknown keys.',
+      'Patch fields on the active FD state. Allowed keys : project_context, raw_ideas, backlog, dispatch_table, commits, review_findings, validate_verdict, refactor_log, doc_log, notes, feature_name. Rejects unknown keys.',
     inputSchema: {
       type: 'object',
       properties: {

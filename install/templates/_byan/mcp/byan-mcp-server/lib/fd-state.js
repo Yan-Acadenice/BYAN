@@ -1,7 +1,24 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const PHASES = ['BRAINSTORM', 'PRUNE', 'DISPATCH', 'BUILD', 'VALIDATE', 'COMPLETED', 'ABORTED'];
+const PHASES = [
+  'DISCOVERY',
+  'BRAINSTORM',
+  'PRUNE',
+  'DISPATCH',
+  'BUILD',
+  'REVIEW',
+  'VALIDATE',
+  'REFACTOR',
+  'DOC',
+  'COMPLETED',
+  'ABORTED',
+];
+
+// Backward-allowed transitions: REFACTOR loops back to BUILD by design.
+const BACKWARD_ALLOWED = new Set([
+  'REFACTOR->BUILD',
+]);
 
 function resolveRoot(projectRoot) {
   return projectRoot || process.env.CLAUDE_PROJECT_DIR || process.cwd();
@@ -64,14 +81,19 @@ export function start({ featureName, projectRoot, now = new Date(), force = fals
   const state = {
     fd_id: stampId(now, featureName),
     feature_name: featureName || 'unnamed',
-    phase: 'BRAINSTORM',
+    phase: 'DISCOVERY',
     started_at: now.toISOString(),
     updated_at: now.toISOString(),
-    phase_history: [{ phase: 'BRAINSTORM', entered_at: now.toISOString() }],
+    phase_history: [{ phase: 'DISCOVERY', entered_at: now.toISOString() }],
+    project_context: null,
     raw_ideas: [],
     backlog: [],
     dispatch_table: [],
     commits: [],
+    review_findings: [],
+    validate_verdict: null,
+    refactor_log: [],
+    doc_log: [],
     notes: [],
   };
   writeState(state, projectRoot);
@@ -103,17 +125,35 @@ export function advance({ to, note, projectRoot, now = new Date(), force = false
 
   const order = PHASES.indexOf(state.phase);
   const target = PHASES.indexOf(to);
-  if (target < order && !['ABORTED', 'COMPLETED'].includes(to)) {
+  const transitionKey = `${state.phase}->${to}`;
+  const isBackward = target < order;
+  const isTerminal = ['ABORTED', 'COMPLETED'].includes(to);
+
+  if (isBackward && !isTerminal && !BACKWARD_ALLOWED.has(transitionKey)) {
     throw new Error(
-      `Cannot move backwards from ${state.phase} to ${to}. Use abort() or fix the workflow.`
+      `Cannot move backwards from ${state.phase} to ${to}. Allowed loop: REFACTOR->BUILD. Use abort() or fix the workflow.`
     );
+  }
+
+  // DISCOVERY exit gate : need project_context populated (unless forced)
+  if (
+    state.phase === 'DISCOVERY' &&
+    to !== 'DISCOVERY' &&
+    !isTerminal &&
+    !force
+  ) {
+    if (!state.project_context) {
+      throw new Error(
+        `DISCOVERY requires project_context to be set before advancing. Populate via update({ patch: { project_context: { name, summary, source } } }), or pass force=true to skip.`
+      );
+    }
   }
 
   // BRAINSTORM exit gate : need >= BRAINSTORM_MIN_IDEAS raw ideas
   if (
     state.phase === 'BRAINSTORM' &&
     to !== 'BRAINSTORM' &&
-    !['ABORTED'].includes(to) &&
+    !isTerminal &&
     !force
   ) {
     const n = Array.isArray(state.raw_ideas) ? state.raw_ideas.length : 0;
@@ -136,7 +176,19 @@ export function update({ patch = {}, projectRoot, now = new Date() } = {}) {
   const state = readState(projectRoot);
   if (!state) throw new Error('No active FD session.');
 
-  const allowed = ['raw_ideas', 'backlog', 'dispatch_table', 'commits', 'notes', 'feature_name'];
+  const allowed = [
+    'project_context',
+    'raw_ideas',
+    'backlog',
+    'dispatch_table',
+    'commits',
+    'review_findings',
+    'validate_verdict',
+    'refactor_log',
+    'doc_log',
+    'notes',
+    'feature_name',
+  ];
   for (const key of Object.keys(patch)) {
     if (!allowed.includes(key)) {
       throw new Error(`Field "${key}" is not patchable. Allowed: ${allowed.join(', ')}`);

@@ -205,7 +205,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <item cmd="PC or fuzzy match on show-context">[PC] Show Project Context and business documentation</item>
     <item cmd="MAN or fuzzy match on show-mantras">[MAN] Display 64 Mantras reference guide</item>
     <item cmd="FC or fuzzy match on fact-check or check or verify" exec="{project-root}/_byan/workflows/byan/fact-check-workflow.md">[FC] Fact-Check — Analyser une assertion, un document ou une chaine de raisonnement</item>
-    <item cmd="FD or fuzzy match on feature or feature-dev or improve" exec="{project-root}/_byan/workflows/byan/feature-workflow.md">[FD] Feature Development — Brainstorm → Prune → Dispatch → Build → Validate (validation a chaque etape)</item>
+    <item cmd="FD or fuzzy match on feature or feature-dev or improve" exec="{project-root}/_byan/workflows/byan/feature-workflow.md">[FD] Feature Development — Discovery → Brainstorm → Prune → Dispatch → Build → Review → Validate → Doc (boucle Refactor si KO)</item>
     <item cmd="FORGE or fuzzy match on forge or soul or ame" exec="{project-root}/_byan/workflows/byan/forge-soul-workflow.md">[FORGE] Forger une âme — Interview psychologique profonde pour distiller l'âme du créateur</item>
     <item cmd="SOUL or fuzzy match on show-soul or mon-ame">[SOUL] Afficher l'âme active — soul.md + soul-memory.md</item>
     <item cmd="ELO or fuzzy match on elo trust score" exec="{project-root}/_byan/bmb/workflows/byan/elo-workflow.md">[ELO] View and manage your Epistemic Trust Score (challenge calibration)</item>

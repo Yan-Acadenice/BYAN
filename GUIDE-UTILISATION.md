@@ -389,36 +389,60 @@ feature   # fuzzy match
 improve   # fuzzy match
 ```
 
-### Les 5 étapes
+### Les 8 étapes (avec boucle Refactor)
 
 ```
-BRAINSTORM → PRUNE → DISPATCH → BUILD → VALIDATE
+DISCOVERY → BRAINSTORM → PRUNE → DISPATCH → BUILD → REVIEW → VALIDATE → DOC
+                                                                    └─ KO ─→ REFACTOR ─┐
+                                                                                       └→ retour BUILD
 ```
 
-**1. BRAINSTORM** (Agent Carson)
+**1. DISCOVERY** (Agent BYAN)
+- Identifier le projet sur lequel on travaille avant toute ideation
+- MCP first : `byan_list_projects`, `byan_api_projects_get` pour le resume
+- Fallback local : CLAUDE.md, _byan/config.yaml, README.md
+- Gate : `project_context` rempli + utilisateur confirme
+
+**2. BRAINSTORM** (Agent Carson)
 - Pousser un maximum d'idees brutes — quantite > qualite
 - Techniques : YES AND, inversion, analogies
-- Gate : "stop brainstorm" ou "j'ai toutes mes idees"
+- Gate : "stop brainstorm" ou "j'ai toutes mes idees" (>= 10 idees)
 
-**2. PRUNE** (User + BYAN)
+**3. PRUNE** (User + BYAN)
 - Challenge chaque idee : quel probleme ? est-ce necessaire maintenant ? quel MVP ?
 - Ockham's Razor applique systematiquement
 - Gate : backlog priorise valide par l'utilisateur
 
-**3. DISPATCH** (Worker — EconomicDispatcher)
+**4. DISPATCH** (Worker — EconomicDispatcher)
 - Pour chaque feature : quelle brique BYAN ?
 - Agent existant / Worker existant / Context / Workflow — ou creer le composant
 - Gate : tableau feature → composant valide
 
-**4. BUILD** (Agent ou Worker selon score de complexite)
+**5. BUILD** (Agent ou Worker selon score de complexite)
 - TDD-first, commits atomiques, zero emoji, code self-documenting
 - Score < 30 → Worker | 30-60 → Sonnet | >= 60 → Opus
-- Gate : review et approbation utilisateur
+- Gate : "ok build" — review et approbation utilisateur
 
-**5. VALIDATE** (MantraValidator + tests)
-- `npm test` : 100% passant
-- Score mantras >= 80%
-- Gate : tests verts + validation utilisateur
+**6. REVIEW** (Agent Quinn — pre-flight humain)
+- Inspection qualitative du diff vs criteres VALIDATE
+- Coverage, lisibilite, comments justifies, mantras a risque
+- Gate : `ready-for-validate` → VALIDATE | `needs-rework` → REFACTOR direct
+
+**7. VALIDATE** (MantraValidator + tests)
+- `npm test` : 100% passant (zero regression)
+- Score mantras >= 80%, fact-check des claims absolus
+- Decision binaire : `OK` → DOC | `KO` → REFACTOR
+
+**8a. DOC** (Agent Paige tech-writer, si VALIDATE OK)
+- CHANGELOG.md, README.md, guide d'usage, manifestes
+- Bump version (semver) si necessaire
+- Gate : "ok doc" → COMPLETED
+
+**8b. REFACTOR** (boucle corrective si VALIDATE KO)
+- Pas de nouvelle feature, pas de re-design — correctifs cibles uniquement
+- Commits `fix: [issue]`, un par blocking_issue
+- Garde-fou : 3 cycles sans converger → retour PRUNE ou ABORTED
+- Boucle vers BUILD pour re-tester
 
 Fichier source : `_byan/workflows/byan/feature-workflow.md`
 
