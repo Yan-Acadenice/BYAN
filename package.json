@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.14.0",
+  "version": "2.14.1",
   "description": "BYAN v2.8 - Intelligent AI agent creator with ELO trust system + scientific fact-check + Hermes universal dispatcher + native Claude Code integration (hooks, skills, MCP server). Multi-platform (Copilot CLI, Claude Code, Codex). Merise Agile + TDD + 64 Mantras. ~54% LLM cost savings.",
   "main": "src/index.js",
   "bin": {
@@ -17,7 +17,8 @@
     "test:watch": "jest --watch",
     "test:e2e": "jest __tests__/e2e-install-update.test.js",
     "setup-turbo-whisper": "node install/setup-turbo-whisper.js",
-    "byan": "echo \"BYAN agent installed. Use: copilot and type /agent\""
+    "byan": "echo \"BYAN agent installed. Use: copilot and type /agent\"",
+    "version": "node scripts/sync-install-version.js && git add install/package.json"
   },
   "keywords": [
     "byan",
