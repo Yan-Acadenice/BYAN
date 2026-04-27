@@ -20,7 +20,12 @@ const { setupCodexNative } = require('../lib/codex-native-setup');
 const { setupStagingConsent } = require('../lib/staging-consent');
 const { getLatestVersion, compareVersions } = require('../lib/utils/version-compare');
 
-const BYAN_VERSION = require('../package.json').version;
+// Version source-of-truth is the root package.json (the one npm publishes).
+// install/package.json used to be read here, but it carries an unrelated
+// internal version that drifted (2.11.0 while the npm package shipped 2.14.0)
+// and silently mis-flagged users as obsolete. Resolve via path so it works
+// both in the published tarball and in the dev repo.
+const BYAN_VERSION = require(path.resolve(__dirname, '..', '..', 'package.json')).version;
 
 // Versions strictly below this floor have known install bugs (e.g. v2.9.8 ships
 // the broken node_modules filter that copies an empty MCP server dir). They
