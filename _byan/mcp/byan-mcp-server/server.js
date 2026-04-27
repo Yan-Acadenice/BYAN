@@ -45,6 +45,14 @@ import {
   fcCheck,
   fcParse,
 } from './lib/cli.js';
+import { checkForUpdate, formatApplyInstructions } from './lib/update.js';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = nodePath.dirname(__filename);
+// Resolve the host project root: server.js lives at
+// {projectRoot}/_byan/mcp/byan-mcp-server/server.js, so go up three levels.
+const PROJECT_ROOT = nodePath.resolve(__dirname, '..', '..', '..');
 
 const BYAN_API_URL = process.env.BYAN_API_URL || 'http://localhost:3737';
 const BYAN_API_TOKEN = process.env.BYAN_API_TOKEN || '';
@@ -956,6 +964,35 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'byan_update_check',
+    description:
+      'Check whether the BYAN platform installed in this project is up to date. Read-only. Reads the installed version from _byan/.manifest.json (fallback: package.json), fetches the latest published version from the npm registry (registry.npmjs.org/create-byan-agent), compares them, and returns { installed, latest, updateAvailable, delta }. Network failures are reported (networkError) and treated as "do not block". Use at agent activation to surface updates without nagging.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_update_apply',
+    description:
+      'Returns the exact shell command the user must run to apply a BYAN update via the yanstaller pipeline (backup, diff vs latest npm template, merge non-user-modified files). Does NOT execute anything itself — update is destructive and must remain an explicit user action. Use after byan_update_check reports updateAvailable=true and the user has consented.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        preview: {
+          type: 'boolean',
+          description: 'If true, returns the --preview command (shows the diff without writing). Default: false.',
+        },
+        force: {
+          type: 'boolean',
+          description: 'If true, returns the --force command (overrides user-modified files). Default: false. Use with caution.',
+        },
+      },
+      additionalProperties: false,
+    },
+  },
 ];
 
 const server = new Server(
@@ -1455,6 +1492,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         body: JSON.stringify({ files }),
       });
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_update_check') {
+      const status = await checkForUpdate(PROJECT_ROOT);
+      return { content: [{ type: 'text', text: JSON.stringify(status, null, 2) }] };
+    }
+
+    if (name === 'byan_update_apply') {
+      const instructions = formatApplyInstructions({
+        preview: args.preview === true,
+        force: args.force === true,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(instructions, null, 2) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);

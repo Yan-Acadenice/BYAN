@@ -16,9 +16,78 @@ const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
+const { setupCodexNative } = require('../lib/codex-native-setup');
 const { setupStagingConsent } = require('../lib/staging-consent');
+const { getLatestVersion, compareVersions } = require('../lib/utils/version-compare');
 
 const BYAN_VERSION = require('../package.json').version;
+
+// Versions strictly below this floor have known install bugs (e.g. v2.9.8 ships
+// the broken node_modules filter that copies an empty MCP server dir). They
+// are blocked outright. Above the floor, an outdated version becomes a soft
+// prompt — the user can choose to continue or upgrade.
+const KNOWN_BAD_VERSION_FLOOR = '2.13.1';
+
+async function assertVersionFresh({ skip = false, timeoutMs = 5000 } = {}) {
+  if (skip || process.env.BYAN_SKIP_VERSION_CHECK === '1') return;
+  let latest;
+  try {
+    latest = await Promise.race([
+      getLatestVersion('create-byan-agent'),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('npm-timeout')), timeoutMs)),
+    ]);
+  } catch (err) {
+    console.log(chalk.gray(`  (version check skipped: ${err.message})`));
+    return;
+  }
+  if (compareVersions(BYAN_VERSION, latest) >= 0) return;
+
+  // Hard block when below the known-bad floor — these versions corrupt installs.
+  if (compareVersions(BYAN_VERSION, KNOWN_BAD_VERSION_FLOOR) < 0) {
+    console.error('');
+    console.error(chalk.red.bold('  BYAN installer is obsolete (known install bugs)'));
+    console.error('');
+    console.error(chalk.yellow(`    Installed: ${BYAN_VERSION}`));
+    console.error(chalk.yellow(`    Latest:    ${latest}`));
+    console.error(chalk.yellow(`    Floor:     ${KNOWN_BAD_VERSION_FLOOR} (older versions silently produce empty MCP servers)`));
+    console.error('');
+    console.error(chalk.cyan('  Upgrade required:'));
+    console.error(chalk.bold('    npm i -g create-byan-agent@latest'));
+    console.error('');
+    console.error(chalk.gray('  Bypass (not recommended):  --skip-version-check  or  BYAN_SKIP_VERSION_CHECK=1'));
+    console.error('');
+    process.exit(1);
+  }
+
+  // Soft prompt above the floor — propose upgrade interactively.
+  console.log('');
+  console.log(chalk.yellow.bold(`  BYAN ${BYAN_VERSION} -> ${latest} available on npm`));
+  console.log(chalk.gray('  Newer release published. Continue with current, or abort to upgrade?'));
+  if (!process.stdin.isTTY) {
+    console.log(chalk.gray('  (non-TTY context — continuing without prompt)'));
+    return;
+  }
+  const { proceed } = await inquirer.prompt([
+    {
+      type: 'list',
+      name: 'proceed',
+      message: 'How do you want to proceed ?',
+      choices: [
+        { name: `Continue with v${BYAN_VERSION}`, value: 'continue' },
+        { name: `Abort and upgrade (npm i -g create-byan-agent@latest)`, value: 'abort' },
+      ],
+      default: 'continue',
+    },
+  ]);
+  if (proceed === 'abort') {
+    console.log('');
+    console.log(chalk.cyan('  Run:'));
+    console.log(chalk.bold('    npm i -g create-byan-agent@latest'));
+    console.log(chalk.gray('  Then re-run `npx create-byan-agent`.'));
+    console.log('');
+    process.exit(0);
+  }
+}
 
 // ASCII Art Banner
 const banner = `
@@ -256,10 +325,12 @@ async function mergePackageJson(templateDir, projectRoot, spinner) {
 }
 
 // Main installer
-async function install() {
+async function install(options = {}) {
   console.clear();
   console.log(banner);
-  
+
+  await assertVersionFresh({ skip: options.skipVersionCheck });
+
   const projectRoot = process.cwd();
   
   // Step 1: Detect project type
@@ -1358,6 +1429,21 @@ async function install() {
     }
   }
 
+  if (needsCodex) {
+    console.log();
+    console.log(chalk.cyan('Codex CLI MCP setup (~/.codex/config.toml)'));
+    try {
+      await setupCodexNative(projectRoot);
+    } catch (error) {
+      console.log(chalk.red(`  ✘ Codex MCP setup failed: ${error.message}`));
+      console.log(
+        chalk.yellow(
+          `    → Edit ~/.codex/config.toml manually to add the byan MCP entry.`
+        )
+      );
+    }
+  }
+
   if (needsClaude || needsCopilot) {
     console.log();
     console.log(chalk.cyan('byan_web integration (optional — service payant)'));
@@ -1753,6 +1839,7 @@ program
   .name('create-byan-agent')
   .description('Install BYAN v2.2.0 - Builder of YAN with Model Selector and multi-platform support')
   .version(BYAN_VERSION)
+  .option('--skip-version-check', 'Bypass the npm freshness guard (not recommended)')
   .action(install);
 
 // Update Command (Yanstaller v3)
