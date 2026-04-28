@@ -17,6 +17,7 @@ const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat'
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupCodexNative } = require('../lib/codex-native-setup');
+const { setupMcpExtensions } = require('../lib/mcp-extensions');
 const { setupStagingConsent } = require('../lib/staging-consent');
 const { getLatestVersion, compareVersions } = require('../lib/utils/version-compare');
 
@@ -1488,6 +1489,14 @@ async function install(options = {}) {
       } catch (error) {
         console.log(chalk.yellow(`  ⚠ memory-sync setup skipped: ${error.message}`));
       }
+    }
+  }
+
+  if (needsClaude) {
+    try {
+      await setupMcpExtensions(projectRoot, {});
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ MCP extensions setup skipped: ${error.message}`));
     }
   }
 

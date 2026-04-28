@@ -1,16 +1,20 @@
 /**
  * migrate-mcp-config — self-healing migration for pre-fix BYAN installs.
  *
- * Injects BYAN_API_TOKEN into .mcp.json env block if absent, and strips the
- * legacy /api suffix from BYAN_API_URL. Uses byan-platform-config primitives
- * exclusively; no duplicated logic here.
+ * Heals three drift cases on .mcp.json:
+ *   1. token missing       → injects ${BYAN_API_TOKEN} placeholder
+ *   2. url has /api suffix → strips it
+ *   3. token in clear      → extracts to .env and replaces with placeholder
+ *                            (security fix from BYAN >=2.16.0)
+ *
+ * Uses byan-platform-config primitives exclusively; no duplicated logic here.
  */
 
 const chalk = require('chalk');
 const ora = require('ora');
 const {
-  mcpConfig: { readMcpConfig, ensureMcpConfig },
-  envConfig:  { readEnvToken },
+  mcpConfig: { readMcpConfig, ensureMcpConfig, TOKEN_PLACEHOLDER },
+  envConfig:  { readEnvToken, updateDotenv },
   urlUtils:   { stripApiSuffix },
 } = require('byan-platform-config');
 
@@ -65,32 +69,27 @@ async function runMigration(projectRoot, { dryRun = false, verbose = false } = {
   stopSpinner(chalk.gray('.mcp.json lu'), true);
 
   // 3. Diagnose
-  const tokenMissing   = !byan.env || !byan.env.BYAN_API_TOKEN;
-  const urlHasApiSuffix = /\/api\/?$/.test(byan.env && byan.env.BYAN_API_URL || '');
+  const currentToken      = (byan.env && byan.env.BYAN_API_TOKEN) || '';
+  const tokenIsPlaceholder = currentToken === TOKEN_PLACEHOLDER;
+  const tokenInClear      = !!currentToken && !tokenIsPlaceholder;
+  const tokenIsLegacy     = !!currentToken; // any non-empty value is legacy: token must not live in .mcp.json
+  const urlHasApiSuffix   = /\/api\/?$/.test(byan.env && byan.env.BYAN_API_URL || '');
 
   // 4. Nothing to do?
-  if (!tokenMissing && !urlHasApiSuffix) {
-    log(chalk.green('  .mcp.json est deja a jour (token present, URL correcte)'));
+  if (!tokenIsLegacy && !urlHasApiSuffix) {
+    log(chalk.green('  .mcp.json est deja a jour (token absent du fichier, URL correcte)'));
     return { migrated: false, reason: 'already-ok' };
   }
 
   const changes = [];
+  let extractedClearToken = null;
 
-  // 5. Resolve token
-  let token = byan.env && byan.env.BYAN_API_TOKEN; // may already exist (url-only fix)
-  if (tokenMissing) {
-    startSpinner('Recherche BYAN_API_TOKEN (.env / settings.local.json)...');
-    token = await readEnvToken(projectRoot);
-    if (!token) {
-      stopSpinner(chalk.yellow('Token introuvable'), false);
-      return {
-        migrated: false,
-        reason:   'no-token-available',
-        hint:     'Re-run npx create-byan-agent to prompt for a token',
-      };
-    }
-    stopSpinner(chalk.green('Token trouve'), true);
-    changes.push('BYAN_API_TOKEN injected into .mcp.json env');
+  // 5. Detect a clear-text token to relocate to .env
+  if (tokenInClear) {
+    extractedClearToken = currentToken;
+    changes.push('BYAN_API_TOKEN extracted from .mcp.json (clear) into .env, removed from .mcp.json');
+  } else if (tokenIsPlaceholder) {
+    changes.push('BYAN_API_TOKEN placeholder removed from .mcp.json (token now resolved via settings.local.json env)');
   }
 
   // 6. Resolve URL
@@ -108,9 +107,16 @@ async function runMigration(projectRoot, { dryRun = false, verbose = false } = {
     return { migrated: false, reason: 'dry-run', changes };
   }
 
-  // 8. Apply via ensureMcpConfig
+  // 8. Apply
   startSpinner('Application de la migration...');
-  await ensureMcpConfig(projectRoot, { apiUrl: cleanUrl || existingUrl, token });
+  if (extractedClearToken) {
+    const existingDotenvToken = await readEnvToken(projectRoot);
+    if (!existingDotenvToken || existingDotenvToken !== extractedClearToken) {
+      await updateDotenv(projectRoot, { BYAN_API_TOKEN: extractedClearToken });
+    }
+  }
+  // ensureMcpConfig always strips BYAN_API_TOKEN from .mcp.json (security)
+  await ensureMcpConfig(projectRoot, { apiUrl: cleanUrl || existingUrl });
   stopSpinner(chalk.green('.mcp.json migre avec succes'), true);
 
   // 9. Return result

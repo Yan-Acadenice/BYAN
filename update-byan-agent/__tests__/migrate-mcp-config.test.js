@@ -13,6 +13,7 @@ const fs   = require('fs-extra');
 
 // Module under test (loaded once; all I/O goes to tmpdir per test)
 const { runMigration } = require('../lib/migrate-mcp-config');
+const { mcpConfig: { TOKEN_PLACEHOLDER } } = require('byan-platform-config');
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -69,16 +70,16 @@ test('returns no-byan-server if .mcp.json has other servers but no byan entry', 
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Test 3 — byan entry already has token and URL without /api suffix → already-ok
+// Test 3 — byan entry already has placeholder + clean URL → already-ok
 // ──────────────────────────────────────────────────────────────────────────────
-test('returns already-ok if byan entry has token and no /api suffix', async () => {
+test('returns already-ok if byan entry has no BYAN_API_TOKEN (token belongs in .env / settings.local.json)', async () => {
   const dir = await makeTmp();
   await writeMcp(dir, {
     mcpServers: {
       byan: {
         command: 'node',
         args:    ['_byan/mcp/byan-mcp-server/server.js'],
-        env:     { BYAN_API_URL: 'https://api.byan.io', BYAN_API_TOKEN: 'byan_tok' },
+        env:     { BYAN_API_URL: 'https://api.byan.io' },
       },
     },
   });
@@ -91,7 +92,7 @@ test('returns already-ok if byan entry has token and no /api suffix', async () =
 // ──────────────────────────────────────────────────────────────────────────────
 // Test 4 — needs token but .env + settings.local.json both empty → no-token-available
 // ──────────────────────────────────────────────────────────────────────────────
-test('returns no-token-available if .mcp.json needs token but sources are empty', async () => {
+test('returns already-ok if .mcp.json has no BYAN_API_TOKEN (token absence is now the desired state)', async () => {
   const dir = await makeTmp();
   await writeMcp(dir, {
     mcpServers: {
@@ -99,23 +100,19 @@ test('returns no-token-available if .mcp.json needs token but sources are empty'
         command: 'node',
         args:    ['_byan/mcp/byan-mcp-server/server.js'],
         env:     { BYAN_API_URL: 'https://api.byan.io' },
-        // no BYAN_API_TOKEN
       },
     },
   });
-  // no .env, no settings.local.json
   const result = await runMigration(dir);
   expect(result.migrated).toBe(false);
-  expect(result.reason).toBe('no-token-available');
-  expect(typeof result.hint).toBe('string');
-  expect(result.hint.length).toBeGreaterThan(0);
+  expect(result.reason).toBe('already-ok');
   await fs.remove(dir);
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Test 5 — migrates successfully: token from .env
 // ──────────────────────────────────────────────────────────────────────────────
-test('migrates: token from .env → .mcp.json env.BYAN_API_TOKEN', async () => {
+test('with token already absent in .mcp.json + .env populated: no-op (already-ok), .env preserved untouched', async () => {
   const dir = await makeTmp();
   await writeMcp(dir, {
     mcpServers: {
@@ -129,19 +126,18 @@ test('migrates: token from .env → .mcp.json env.BYAN_API_TOKEN', async () => {
   await writeDotenv(dir, 'BYAN_API_TOKEN=byan_from_dotenv\n');
 
   const result = await runMigration(dir);
-  expect(result.migrated).toBe(true);
-  expect(result.reason).toBe('healed');
-  expect(result.changes.length).toBeGreaterThanOrEqual(1);
+  expect(result.migrated).toBe(false);
+  expect(result.reason).toBe('already-ok');
 
-  const written = await readMcp(dir);
-  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBe('byan_from_dotenv');
+  const dotenvAfter = await fs.readFile(path.join(dir, '.env'), 'utf8');
+  expect(dotenvAfter).toBe('BYAN_API_TOKEN=byan_from_dotenv\n');
   await fs.remove(dir);
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Test 6 — migrates successfully: token from .claude/settings.local.json fallback
 // ──────────────────────────────────────────────────────────────────────────────
-test('migrates: token from settings.local.json fallback', async () => {
+test('with token in settings.local.json + absent from .mcp.json: no-op (already-ok), settings preserved', async () => {
   const dir = await makeTmp();
   await writeMcp(dir, {
     mcpServers: {
@@ -152,22 +148,20 @@ test('migrates: token from settings.local.json fallback', async () => {
       },
     },
   });
-  // no .env, token in settings.local.json
   await writeSettingsLocal(dir, { env: { BYAN_API_TOKEN: 'byan_from_settings' } });
 
   const result = await runMigration(dir);
-  expect(result.migrated).toBe(true);
-  expect(result.reason).toBe('healed');
-
-  const written = await readMcp(dir);
-  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBe('byan_from_settings');
+  expect(result.migrated).toBe(false);
+  expect(result.reason).toBe('already-ok');
+  const settings = await fs.readJson(path.join(dir, '.claude', 'settings.local.json'));
+  expect(settings.env.BYAN_API_TOKEN).toBe('byan_from_settings');
   await fs.remove(dir);
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Test 7 — strips /api suffix from BYAN_API_URL
 // ──────────────────────────────────────────────────────────────────────────────
-test('strips /api suffix from BYAN_API_URL', async () => {
+test('strips /api suffix and extracts clear token to .env (token removed from .mcp.json)', async () => {
   const dir = await makeTmp();
   await writeMcp(dir, {
     mcpServers: {
@@ -184,7 +178,60 @@ test('strips /api suffix from BYAN_API_URL', async () => {
 
   const written = await readMcp(dir);
   expect(written.mcpServers.byan.env.BYAN_API_URL).toBe('https://api.byan.io');
-  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBe('byan_tok');
+  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+  const dotenvContent = await fs.readFile(path.join(dir, '.env'), 'utf8');
+  expect(dotenvContent).toContain('BYAN_API_TOKEN=byan_tok');
+  const raw = await fs.readFile(path.join(dir, '.mcp.json'), 'utf8');
+  expect(raw).not.toContain('byan_tok');
+  await fs.remove(dir);
+});
+
+test('extracts clear token from .mcp.json into .env and removes it from .mcp.json (security migration)', async () => {
+  const dir = await makeTmp();
+  await writeMcp(dir, {
+    mcpServers: {
+      byan: {
+        command: 'node',
+        args:    ['_byan/mcp/byan-mcp-server/server.js'],
+        env:     { BYAN_API_URL: 'https://api.byan.io', BYAN_API_TOKEN: 'byan_leaked_in_clear' },
+      },
+    },
+  });
+
+  const result = await runMigration(dir);
+  expect(result.migrated).toBe(true);
+  expect(result.reason).toBe('healed');
+  expect(result.changes.some((c) => /extracted/i.test(c))).toBe(true);
+
+  const written = await readMcp(dir);
+  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+
+  const raw = await fs.readFile(path.join(dir, '.mcp.json'), 'utf8');
+  expect(raw).not.toContain('byan_leaked_in_clear');
+
+  const dotenvContent = await fs.readFile(path.join(dir, '.env'), 'utf8');
+  expect(dotenvContent).toContain('BYAN_API_TOKEN=byan_leaked_in_clear');
+  await fs.remove(dir);
+});
+
+test('removes ${BYAN_API_TOKEN} placeholder from .mcp.json (no value to extract)', async () => {
+  const dir = await makeTmp();
+  await writeMcp(dir, {
+    mcpServers: {
+      byan: {
+        command: 'node',
+        args:    ['_byan/mcp/byan-mcp-server/server.js'],
+        env:     { BYAN_API_URL: 'https://api.byan.io', BYAN_API_TOKEN: TOKEN_PLACEHOLDER },
+      },
+    },
+  });
+
+  const result = await runMigration(dir);
+  expect(result.migrated).toBe(true);
+  expect(result.reason).toBe('healed');
+
+  const written = await readMcp(dir);
+  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
   await fs.remove(dir);
 });
 
@@ -215,6 +262,9 @@ test('dry-run: does not write .mcp.json but returns changes', async () => {
   const afterMcp = await readMcp(dir);
   expect(afterMcp.mcpServers.byan.env.BYAN_API_URL).toBe('https://api.byan.io/api');
   expect(afterMcp.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+  // .env must NOT have been touched on dry-run either
+  const dotenvAfter = await fs.readFile(path.join(dir, '.env'), 'utf8');
+  expect(dotenvAfter).toBe('BYAN_API_TOKEN=byan_dryrun_tok\n');
   await fs.remove(dir);
 });
 

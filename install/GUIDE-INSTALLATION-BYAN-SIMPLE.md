@@ -416,6 +416,46 @@ Claude reconnaît l'agent BYAN et vous pouvez interagir avec lui.
 
 ---
 
+### 🔌 Extensions MCP optionnelles (depuis 2.16.0)
+
+Pendant l'installation, BYAN propose d'activer des MCP servers tiers en plus du serveur byan natif.
+
+**Disponibles aujourd'hui :**
+
+| Extension | Description | Setup |
+|-----------|-------------|-------|
+| `gdrive` | Google Workspace : Docs, Sheets, Slides, Drive, Gmail, Calendar (95+ tools via `google-workspace-mcp`) | Interactif — guide Google Cloud + OAuth flow |
+
+**Sécurité — où vivent les credentials :**
+
+- Aucune credential n'est écrite dans le repo BYAN ni dans `.mcp.json` (source : [CLAIM L1] code de `install/packages/platform-config/lib/mcp-config.js`, fonction `assertNoSecretInEntry`)
+- `~/.google-mcp/credentials.json` (perm 600) — Client OAuth Google
+- `~/.google-mcp/tokens/<account>.json` — Tokens d'accès persistés par compte
+- `BYAN_API_TOKEN` — vit uniquement dans `.env` (gitignored) + `.claude/settings.local.json` (gitignored)
+
+**Si tu skip l'extension à l'install et veux l'activer plus tard**, relance `npx create-byan-agent` ou ajoute manuellement l'entry suivante à `.mcp.json` :
+
+```json
+{
+  "mcpServers": {
+    "gdrive": {
+      "command": "npx",
+      "args": ["-y", "google-workspace-mcp", "serve"]
+    }
+  }
+}
+```
+
+Puis exécute le setup interactif du package :
+
+```bash
+npx -y google-workspace-mcp setup
+npx -y google-workspace-mcp accounts add default
+npx -y google-workspace-mcp status   # vérifier que tout est OK
+```
+
+---
+
 ## 5. Cas d'Usage Typiques
 
 ### 🎯 Cas 1 : Créer un Nouvel Agent
