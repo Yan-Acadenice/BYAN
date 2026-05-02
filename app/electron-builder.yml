@@ -1,0 +1,80 @@
+appId: fr.acadenice.byan
+productName: BYAN
+copyright: Copyright (c) 2026 Yan Acadenice
+
+directories:
+  output: release/
+  buildResources: build/
+
+files:
+  - dist/**/*
+  - package.json
+  - "!**/__tests__/**"
+  - "!**/*.test.*"
+  - "!**/*.spec.*"
+  - "!**/*.map"
+  - "!playwright.config.*"
+  - "!tsconfig.e2e.json"
+  - "!playwright-report/**"
+  - "!test-results/**"
+
+asar: true
+asarUnpack:
+  - node_modules/keytar/**/*
+
+extraResources:
+  - from: ../install/src/webui
+    to: webui-server
+    filter:
+      - "**/*"
+      - "!node_modules"
+
+publish:
+  provider: github
+  owner: Yan-Acadenice
+  repo: BYAN
+
+linux:
+  target:
+    - target: AppImage
+      arch: x64
+    - target: deb
+      arch: x64
+  category: Development
+  icon: build/icons/
+  desktop:
+    StartupWMClass: BYAN
+    Categories: Development;IDE
+  maintainer: Yan Acadenice <yan@acadenice.fr>
+
+deb:
+  depends:
+    - libsecret-1-0
+    - libgtk-3-0
+    - libnotify4
+    - libnss3
+    - libxss1
+    - libxtst6
+    - xdg-utils
+
+appImage:
+  category: Development
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+  icon: build/icons/icon.ico
+  publisherName: Yan Acadenice
+  artifactName: BYAN-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: BYAN
+  uninstallDisplayName: BYAN
+  deleteAppDataOnUninstall: false

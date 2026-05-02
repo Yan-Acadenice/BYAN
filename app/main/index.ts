@@ -1,0 +1,91 @@
+// Electron main process entrypoint.
+// Owns app lifecycle, BrowserWindow creation, and IPC bootstrap.
+// Security baseline (mantra IA-23 / IA-24): contextIsolation: true, nodeIntegration: false.
+// Renderer URL is decided by env: BYAN_DEV=1 -> Vite dev server, else file:// from build output.
+
+import { app, BrowserWindow, session, ipcMain, dialog } from 'electron';
+import * as path from 'path';
+import { applyCsp } from './csp';
+import { registerAll } from './ipc-handlers';
+import { installMenu } from './menu';
+import { createLocalServer } from './local-server';
+import { setLocalServer } from './ipc-handlers/server';
+import { setLocalServerForAuth } from './ipc-handlers/auth';
+
+// Singleton local server — started on login (F13), stopped on quit.
+const localServer = createLocalServer({ logger: console });
+setLocalServer(localServer);
+// auth handler needs the same singleton to check server status for mode:'local'.
+setLocalServerForAuth(localServer);
+
+localServer.on('fatal', () => {
+  dialog.showErrorBox(
+    'Local server failed',
+    'Cannot start the local BYAN server. Switch to cloud mode in Settings.'
+  );
+});
+
+const DEV_SERVER_URL = process.env.BYAN_DEV_SERVER_URL ?? 'http://localhost:5173';
+const isDev = process.env.BYAN_DEV === '1';
+
+// E2E mode flag (F18) — main process opts into deterministic stubs read by:
+//   - main/env-detect.ts          (BYAN_E2E_MOCK_CLI)
+//   - main/ipc-handlers/auth.ts   (BYAN_E2E_MOCK_AUTH)
+//   - main/local-server.ts        (BYAN_E2E_MOCK_SERVER_PORT)
+//   - app/__tests__/e2e/fixtures  (BYAN_E2E_TMP_PROJECT_ROOT)
+// The flag itself stays read-only; consumers gate on process.env.BYAN_E2E_MODE.
+const isE2E = process.env.BYAN_E2E_MODE === '1';
+void isE2E;
+
+function createMainWindow(): BrowserWindow {
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    backgroundColor: '#0a0f1e',
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, '..', 'preload', 'index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
+  });
+
+  win.once('ready-to-show', () => win.show());
+
+  if (isDev) {
+    void win.loadURL(DEV_SERVER_URL);
+  } else {
+    const indexHtml = path.join(__dirname, '..', 'renderer', 'index.html');
+    void win.loadFile(indexHtml);
+  }
+
+  return win;
+}
+
+app.whenReady().then(() => {
+  applyCsp(session.defaultSession);
+  registerAll(ipcMain, { app });
+  const mainWindow = createMainWindow();
+  installMenu(mainWindow);
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createMainWindow();
+    }
+  });
+});
+
+// Gracefully stop the child server before Electron exits so the OS port is freed.
+app.on('before-quit', (e) => {
+  e.preventDefault();
+  void localServer.stop().finally(() => app.exit(0));
+});
+
+app.on('window-all-closed', () => {
+  // macOS convention is to keep app alive until Cmd+Q; we follow it for forward-compat
+  // even though Mac packaging is deferred to F21.
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});

@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    // outDir/rootDir are app/dist and app/ so that the main+shared tree co-locates
+    // alongside the preload+shared tree. main imports the IPC contract from
+    // app/shared/ipc-contract.ts; if rootDir were "./main" TSC would refuse to emit
+    // (TS6059). The runtime path math in main/index.ts assumes:
+    //   dist/main/index.js  +  dist/preload/index.js  +  dist/shared/ipc-contract.js
+    "outDir": "./dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "noEmit": false
+  },
+  "include": ["main/**/*.ts", "shared/**/*.ts"],
+  "exclude": ["main/**/__tests__/**"]
+}

@@ -3,6 +3,13 @@
 # Node modules
 node_modules/
 install/node_modules/
+app/node_modules/
+
+# Electron app build output
+app/dist/
+app/release/
+app/playwright-report/
+app/test-results/
 
 # NPM artifacts
 *.tgz

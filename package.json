@@ -18,7 +18,11 @@
     "test:e2e": "jest __tests__/e2e-install-update.test.js",
     "setup-turbo-whisper": "node install/setup-turbo-whisper.js",
     "byan": "echo \"BYAN agent installed. Use: copilot and type /agent\"",
-    "version": "node scripts/sync-install-version.js && git add install/package.json"
+    "version": "node scripts/sync-install-version.js && git add install/package.json",
+    "app:dev": "npm --prefix app run dev",
+    "app:build": "npm --prefix app run build",
+    "app:typecheck": "npm --prefix app run typecheck",
+    "app:install": "npm --prefix app install"
   },
   "keywords": [
     "byan",

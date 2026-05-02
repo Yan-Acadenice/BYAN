@@ -51,8 +51,15 @@ class ByanWebUI {
 
     return new Promise((resolve) => {
       this.server.listen(this.port, () => {
-        const url = `http://localhost:${this.port}`;
+        const addr = this.server.address();
+        const assignedPort = (addr && typeof addr === 'object') ? addr.port : this.port;
+        const url = `http://localhost:${assignedPort}`;
         console.log(`BYAN WebUI running at ${url}`);
+        // Notify parent Electron process (F3 LocalServer) of the assigned port.
+        // process.send exists only when forked via child_process.fork().
+        if (typeof process.send === 'function') {
+          process.send({ type: 'ready', port: assignedPort });
+        }
         this.openBrowser(url);
         resolve(this);
       });

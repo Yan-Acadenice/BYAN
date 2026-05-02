@@ -84,6 +84,12 @@ function detectPlatforms(projectRoot) {
 }
 
 const routes = {
+  // Lightweight health-check — used by Electron LocalServer health-ping every 5s.
+  'GET health': async (req, res) => {
+    res.writeHead(200);
+    res.end(JSON.stringify({ ok: true }));
+  },
+
   'GET status': async (req, res, server) => {
     const projectRoot = server.projectRoot;
     const version = readPackageVersion();
