@@ -47,9 +47,13 @@ export default [
   ...tseslint.configs.recommended,
   {
     // Renderer-specific lockdown — applies to the SPA runtime only.
-    // Excludes vite.config.ts which runs in the build-time Node context.
+    // Excludes build-time Node configs (vite, postcss, tailwind).
     files: ['renderer/**/*.{ts,tsx,js,jsx}'],
-    ignores: ['renderer/vite.config.ts'],
+    ignores: [
+      'renderer/vite.config.ts',
+      'renderer/postcss.config.js',
+      'renderer/tailwind.config.js'
+    ],
     rules: {
       'no-restricted-imports': [
         'error',

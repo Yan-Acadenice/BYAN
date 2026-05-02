@@ -5,7 +5,24 @@
 // It is NEVER placed in localStorage or any renderer-side persistent store.
 
 import React, { useEffect, useState } from 'react';
+import {
+  Cloud,
+  Monitor,
+  Settings2,
+  Key,
+  Eye,
+  EyeOff,
+  Play,
+  ArrowRight,
+  ExternalLink,
+  Loader2,
+  Wifi,
+  WifiOff,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react';
 import type { AuthMode, AuthResult } from '../../shared/ipc-contract';
+import ByanLogo from '../components/ByanLogo';
 
 const CLOUD_DEFAULT_URL = 'https://byan-api.stark.a3n.fr';
 const LOCAL_DEFAULT_URL = 'http://localhost:3737';
@@ -15,16 +32,32 @@ type Tab = AuthMode;
 interface TabConfig {
   id: Tab;
   label: string;
+  Icon: LucideIcon;
+  description: string;
 }
 
 const TABS: TabConfig[] = [
-  { id: 'cloud', label: 'Cloud' },
-  { id: 'local', label: 'Local' },
-  { id: 'custom', label: 'Custom' }
+  {
+    id: 'cloud',
+    label: 'Cloud',
+    Icon: Cloud,
+    description: 'Connect to BYAN cloud service',
+  },
+  {
+    id: 'local',
+    label: 'Local',
+    Icon: Monitor,
+    description: 'Run BYAN on this machine',
+  },
+  {
+    id: 'custom',
+    label: 'Custom',
+    Icon: Settings2,
+    description: 'Self-hosted BYAN instance',
+  },
 ];
 
 interface LoginProps {
-  // Injected by the router after successful login so the page can redirect.
   onAuthenticated?: () => void;
 }
 
@@ -32,16 +65,18 @@ export default function Login({ onAuthenticated }: LoginProps) {
   const [activeTab, setActiveTab] = useState<Tab>('cloud');
   const [cloudUrl, setCloudUrl] = useState(CLOUD_DEFAULT_URL);
   const [cloudToken, setCloudToken] = useState('');
+  const [showCloudToken, setShowCloudToken] = useState(false);
   const [localPort, setLocalPort] = useState<number | null>(null);
   const [localToken, setLocalToken] = useState('');
+  const [showLocalToken, setShowLocalToken] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
   const [customToken, setCustomToken] = useState('');
+  const [showCustomToken, setShowCustomToken] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverStarting, setServerStarting] = useState(false);
   const [error, setError] = useState('');
   const [initialized, setInitialized] = useState(false);
 
-  // Restore last mode from persistent store on mount.
   useEffect(() => {
     const restoreMode = async () => {
       try {
@@ -70,15 +105,16 @@ export default function Login({ onAuthenticated }: LoginProps) {
       const result: AuthResult = await window.byanApi.auth.login({
         mode: opts.mode,
         url: opts.url,
-        token: opts.token
+        token: opts.token,
       });
 
       if (!result.ok) {
         const messages: Record<string, string> = {
           invalid_token: 'Token invalide ou refuse par le serveur.',
-          unreachable: 'Serveur inaccessible. Verifiez l\'URL et votre connexion.',
+          unreachable:
+            "Serveur inaccessible. Verifiez l'URL et votre connexion.",
           cancelled: 'Connexion annulee.',
-          unknown: 'Erreur inconnue lors de la connexion.'
+          unknown: 'Erreur inconnue lors de la connexion.',
         };
         setError(messages[result.reason] ?? result.message);
         return;
@@ -105,7 +141,9 @@ export default function Login({ onAuthenticated }: LoginProps) {
       const result = await window.byanApi.server.spawn();
       setLocalPort(result.port);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Impossible de demarrer le serveur local.');
+      setError(
+        err instanceof Error ? err.message : 'Impossible de demarrer le serveur local.'
+      );
     } finally {
       setServerStarting(false);
     }
@@ -128,208 +166,343 @@ export default function Login({ onAuthenticated }: LoginProps) {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
+      {/* Background ambient */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-[420px] h-[420px] rounded-full bg-byan-600/25 blur-3xl" />
-        <div className="absolute -bottom-40 -right-20 w-[520px] h-[520px] rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute inset-0 bg-grid-dark [background-size:36px_36px] opacity-60" />
+        <div className="absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-byan-600/20 blur-[120px]" />
+        <div className="absolute -bottom-48 -right-24 w-[600px] h-[600px] rounded-full bg-cyan-500/12 blur-[140px]" />
+        <div
+          className="absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, rgba(148,163,184,0.06) 1px, transparent 0)',
+            backgroundSize: '36px 36px',
+          }}
+        />
       </div>
 
-      <div className="relative w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-gradient shadow-glow-lg mb-5">
-            <span className="text-white font-bold text-2xl tracking-tight">B</span>
+      <div className="relative w-full max-w-md animate-fade-in-up">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="mb-4 shadow-glow-lg rounded-[17px]">
+            <ByanLogo size={56} />
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gradient-primary">BYAN</h1>
-          <p className="text-sm text-ink-400 mt-2">Agent Orchestration Platform</p>
+          <p className="text-sm text-ink-400 mt-1.5 tracking-wide">Agent Orchestration Platform</p>
         </div>
 
-        <div className="glass-card p-8 shadow-glass-lg">
-          <h2 className="text-lg font-semibold text-white mb-1">Connexion</h2>
-          <p className="text-xs text-ink-400 mb-5">Choisissez votre mode de connexion</p>
+        {/* Main card */}
+        <div className="glass-strong rounded-2xl shadow-glass-lg overflow-hidden">
+          {/* Gradient top border */}
+          <div
+            className="h-px w-full"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent, rgba(92,124,250,0.6) 30%, rgba(6,182,212,0.5) 70%, transparent)',
+            }}
+          />
 
-          {/* Mode tabs */}
-          <div className="flex gap-1 mb-6 p-1 bg-white/5 rounded-xl border border-white/10">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                data-testid={`tab-${tab.id}`}
-                onClick={() => handleTabChange(tab.id)}
-                className={[
-                  'flex-1 py-1.5 text-xs font-medium rounded-lg transition-all',
-                  activeTab === tab.id
-                    ? 'bg-white/15 text-white shadow-sm'
-                    : 'text-ink-400 hover:text-ink-200'
-                ].join(' ')}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <div className="p-7">
+            <h2 className="text-lg font-bold text-white mb-0.5">Connect to BYAN</h2>
+            <p className="text-xs text-ink-400 mb-5">Choose your connection mode</p>
 
-          {/* Error banner */}
-          {error && (
-            <div
-              role="alert"
-              className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-300"
-            >
-              {error}
+            {/* Mode tabs */}
+            <div className="flex gap-1 mb-6 p-1 bg-white/5 rounded-xl border border-white/8">
+              {TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const { Icon } = tab;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    data-testid={`tab-${tab.id}`}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={[
+                      'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all duration-200',
+                      isActive
+                        ? 'bg-byan-500/20 text-byan-200 border border-byan-500/30 shadow-glow-sm'
+                        : 'text-ink-400 hover:text-ink-200 hover:bg-white/5',
+                    ].join(' ')}
+                  >
+                    <Icon size={12} />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
-          )}
 
-          {/* Cloud panel */}
-          {activeTab === 'cloud' && (
-            <form onSubmit={handleCloudSubmit} className="space-y-4" data-testid="panel-cloud">
-              <div>
-                <label className="block text-xs font-medium text-ink-300 mb-1.5 uppercase tracking-wider">
-                  URL BYAN Cloud
-                </label>
-                <input
-                  type="url"
-                  value={cloudUrl}
-                  onChange={(e) => setCloudUrl(e.target.value)}
-                  className="input"
-                  placeholder={CLOUD_DEFAULT_URL}
-                  required
-                />
+            {/* Error banner */}
+            {error && (
+              <div
+                role="alert"
+                className="mb-5 flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-sm text-red-300"
+              >
+                <XCircle size={15} className="flex-shrink-0 mt-0.5 text-red-400" />
+                <span className="text-xs">{error}</span>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-ink-300 mb-1.5 uppercase tracking-wider">
-                  Token API
-                </label>
-                <input
-                  type="password"
-                  value={cloudToken}
-                  onChange={(e) => setCloudToken(e.target.value)}
-                  className="input"
-                  placeholder="byan_..."
-                  required
-                  data-testid="cloud-token-input"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <a
-                  href="#"
-                  className="text-xs text-byan-400 hover:text-byan-300 underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // openExternal is not in the IPC contract yet — use noop fallback.
-                    // TODO(F7): wire window.byanApi.app.openExternal when available.
-                  }}
-                >
-                  Obtenir un token
-                </a>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary py-2 px-5"
-                  data-testid="cloud-submit"
-                >
-                  {loading ? 'Connexion...' : 'Se connecter'}
-                </button>
-              </div>
-            </form>
-          )}
+            )}
 
-          {/* Local panel */}
-          {activeTab === 'local' && (
-            <form onSubmit={handleLocalConnect} className="space-y-4" data-testid="panel-local">
-              <p className="text-xs text-ink-400">
-                Lance un serveur BYAN embarque localement. Aucune connexion internet requise.
-              </p>
-
-              {localPort ? (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300" data-testid="local-server-status">
-                  Serveur actif sur{' '}
-                  <code className="font-mono">http://localhost:{localPort}</code>
+            {/* Cloud panel */}
+            {activeTab === 'cloud' && (
+              <form
+                onSubmit={handleCloudSubmit}
+                className="space-y-4 animate-fade-in-up"
+                data-testid="panel-cloud"
+              >
+                <div>
+                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                    BYAN Cloud URL
+                  </label>
+                  <input
+                    type="url"
+                    value={cloudUrl}
+                    onChange={(e) => setCloudUrl(e.target.value)}
+                    className="input text-ink-400"
+                    placeholder={CLOUD_DEFAULT_URL}
+                    required
+                  />
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void handleLocalSpawn()}
-                  disabled={serverStarting}
-                  className="btn-secondary w-full py-2"
-                  data-testid="local-spawn-btn"
-                >
-                  {serverStarting ? 'Demarrage...' : 'Demarrer le serveur local'}
-                </button>
-              )}
+                <div>
+                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                    API Token
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                      <Key size={14} />
+                    </div>
+                    <input
+                      type={showCloudToken ? 'text' : 'password'}
+                      value={cloudToken}
+                      onChange={(e) => setCloudToken(e.target.value)}
+                      className="input pl-9 pr-10"
+                      placeholder="byan_..."
+                      required
+                      data-testid="cloud-token-input"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300 transition-colors"
+                      onClick={() => setShowCloudToken((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={showCloudToken ? 'Hide token' : 'Show token'}
+                    >
+                      {showCloudToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1.5 text-xs text-byan-400 hover:text-byan-300 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // TODO(F7): wire window.byanApi.app.openExternal when available.
+                    }}
+                  >
+                    <ExternalLink size={11} />
+                    Get a token
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex items-center gap-2 py-2.5 px-5"
+                    data-testid="cloud-submit"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        Connect
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
 
-              <div>
-                <label className="block text-xs font-medium text-ink-300 mb-1.5 uppercase tracking-wider">
-                  Token (optionnel)
-                </label>
-                <input
-                  type="password"
-                  value={localToken}
-                  onChange={(e) => setLocalToken(e.target.value)}
-                  className="input"
-                  placeholder="Laisser vide pour le mode dev"
-                  data-testid="local-token-input"
-                />
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary py-2 px-5"
-                  data-testid="local-submit"
-                >
-                  {loading ? 'Connexion...' : 'Connecter au local'}
-                </button>
-              </div>
-            </form>
-          )}
+            {/* Local panel */}
+            {activeTab === 'local' && (
+              <form
+                onSubmit={handleLocalConnect}
+                className="space-y-4 animate-fade-in-up"
+                data-testid="panel-local"
+              >
+                <p className="text-xs text-ink-400 leading-relaxed">
+                  Launch an embedded BYAN server locally. No internet connection required.
+                </p>
 
-          {/* Custom panel */}
-          {activeTab === 'custom' && (
-            <form onSubmit={handleCustomSubmit} className="space-y-4" data-testid="panel-custom">
-              <p className="text-xs text-ink-400">
-                Connectez-vous a une instance BYAN auto-hebergee.
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-ink-300 mb-1.5 uppercase tracking-wider">
-                  URL du serveur
-                </label>
-                <input
-                  type="url"
-                  value={customUrl}
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  className="input"
-                  placeholder="https://mon-byan.exemple.com"
-                  required
-                  data-testid="custom-url-input"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-ink-300 mb-1.5 uppercase tracking-wider">
-                  Token API
-                </label>
-                <input
-                  type="password"
-                  value={customToken}
-                  onChange={(e) => setCustomToken(e.target.value)}
-                  className="input"
-                  placeholder="byan_..."
-                  required
-                  data-testid="custom-token-input"
-                />
-              </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary py-2 px-5"
-                  data-testid="custom-submit"
-                >
-                  {loading ? 'Connexion...' : 'Se connecter'}
-                </button>
-              </div>
-            </form>
-          )}
+                {localPort ? (
+                  <div
+                    className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs text-emerald-300"
+                    data-testid="local-server-status"
+                  >
+                    <Wifi size={14} className="text-emerald-400 flex-shrink-0" />
+                    <span>
+                      Server running on{' '}
+                      <code className="font-mono text-emerald-200">
+                        http://localhost:{localPort}
+                      </code>
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleLocalSpawn()}
+                    disabled={serverStarting}
+                    className="btn-secondary w-full flex items-center justify-center gap-2 py-2.5"
+                    data-testid="local-spawn-btn"
+                  >
+                    {serverStarting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Starting server...
+                      </>
+                    ) : (
+                      <>
+                        <Play size={14} />
+                        Start local server
+                      </>
+                    )}
+                  </button>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                    Token (optional)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                      <Key size={14} />
+                    </div>
+                    <input
+                      type={showLocalToken ? 'text' : 'password'}
+                      value={localToken}
+                      onChange={(e) => setLocalToken(e.target.value)}
+                      className="input pl-9 pr-10"
+                      placeholder="Leave empty for dev mode"
+                      data-testid="local-token-input"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300 transition-colors"
+                      onClick={() => setShowLocalToken((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={showLocalToken ? 'Hide token' : 'Show token'}
+                    >
+                      {showLocalToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex items-center gap-2 py-2.5 px-5"
+                    data-testid="local-submit"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        Connect to local
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Custom panel */}
+            {activeTab === 'custom' && (
+              <form
+                onSubmit={handleCustomSubmit}
+                className="space-y-4 animate-fade-in-up"
+                data-testid="panel-custom"
+              >
+                <p className="text-xs text-ink-400 leading-relaxed">
+                  Connect to a self-hosted BYAN instance.
+                </p>
+                <div>
+                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                    Server URL
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                      <WifiOff size={14} />
+                    </div>
+                    <input
+                      type="url"
+                      value={customUrl}
+                      onChange={(e) => setCustomUrl(e.target.value)}
+                      className="input pl-9"
+                      placeholder="https://byan.example.com"
+                      required
+                      data-testid="custom-url-input"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                    API Token
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                      <Key size={14} />
+                    </div>
+                    <input
+                      type={showCustomToken ? 'text' : 'password'}
+                      value={customToken}
+                      onChange={(e) => setCustomToken(e.target.value)}
+                      className="input pl-9 pr-10"
+                      placeholder="byan_..."
+                      required
+                      data-testid="custom-token-input"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300 transition-colors"
+                      onClick={() => setShowCustomToken((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={showCustomToken ? 'Hide token' : 'Show token'}
+                    >
+                      {showCustomToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex items-center gap-2 py-2.5 px-5"
+                    data-testid="custom-submit"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>
+                        Connect
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
 
-        <p className="text-center text-[11px] text-ink-500 mt-6 uppercase tracking-[0.2em]">
+        <p className="text-center text-[11px] text-ink-500/60 mt-6 uppercase tracking-[0.2em]">
           Builder of YAN &middot; v1.0
         </p>
       </div>

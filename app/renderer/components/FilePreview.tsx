@@ -1,53 +1,72 @@
-// FilePreview — renders a single FileWritePlan with action badge and content.
+// FilePreview — renders a single FileWritePlan with action badge and collapsible content.
 //
-// No syntax-highlighting library dependency (Prism/Monaco not in this package).
-// We use a plain <pre> with monospace font — readable and zero extra deps.
-// The action badge ('create' / 'update' / 'skip') communicates idempotence clearly.
+// Design: dark terminal-like panel with action badge, path display, and monospace content.
+// No syntax-highlighting library dependency — plain pre with monospace font.
 
 import React, { useState } from 'react';
+import { ChevronDown, ChevronRight, FilePlus, FileEdit, CheckCircle, type LucideIcon } from 'lucide-react';
 import type { FileWritePlan, FileWriteAction } from '../../shared/ipc-contract';
 
-const ACTION_STYLES: Record<FileWriteAction, string> = {
-  create: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
-  update: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
-  skip: 'bg-white/5 text-ink-500 border-white/10',
-};
-
-const ACTION_LABELS: Record<FileWriteAction, string> = {
-  create: 'will create',
-  update: 'will update',
-  skip: 'up to date',
+const ACTION_CONFIG: Record<
+  FileWriteAction,
+  { label: string; containerClass: string; badgeClass: string; Icon: LucideIcon }
+> = {
+  create: {
+    label: 'create',
+    containerClass: 'border-emerald-500/20 bg-emerald-500/[0.04]',
+    badgeClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+    Icon: FilePlus,
+  },
+  update: {
+    label: 'update',
+    containerClass: 'border-amber-500/20 bg-amber-500/[0.04]',
+    badgeClass: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    Icon: FileEdit,
+  },
+  skip: {
+    label: 'skip',
+    containerClass: 'border-white/8 bg-white/[0.02]',
+    badgeClass: 'bg-white/5 text-ink-500 border-white/10',
+    Icon: CheckCircle,
+  },
 };
 
 interface FilePreviewProps {
   plan: FileWritePlan;
-  // When true, the content panel is expanded on mount.
   defaultExpanded?: boolean;
 }
 
 export default function FilePreview({ plan, defaultExpanded = false }: FilePreviewProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const config = ACTION_CONFIG[plan.action];
+  const { Icon } = config;
 
   return (
     <div
       data-testid={`file-preview-${plan.relPath}`}
-      className="border border-white/10 rounded-xl overflow-hidden mb-2 bg-white/3"
+      className={[
+        'border rounded-xl overflow-hidden mb-2 transition-all duration-200',
+        config.containerClass,
+      ].join(' ')}
     >
       {/* Header row */}
       <button
         type="button"
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-white/5 transition-colors"
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-white/[0.04] transition-colors"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
+        {/* Action icon */}
+        <Icon size={13} />
+
         {/* Action badge */}
         <span
           className={[
             'flex-shrink-0 text-[10px] font-mono px-2 py-0.5 rounded border uppercase tracking-wider',
-            ACTION_STYLES[plan.action],
+            config.badgeClass,
           ].join(' ')}
         >
-          {ACTION_LABELS[plan.action]}
+          {config.label}
         </span>
 
         {/* Relative path */}
@@ -58,13 +77,15 @@ export default function FilePreview({ plan, defaultExpanded = false }: FilePrevi
           {plan.platform}
         </span>
 
-        {/* Expand chevron (text-based, no svg dep) */}
-        <span className="flex-shrink-0 text-ink-500 text-xs">{expanded ? '-' : '+'}</span>
+        {/* Expand chevron */}
+        <span className="flex-shrink-0 text-ink-500">
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
       </button>
 
       {/* Content panel */}
       {expanded && (
-        <div className="border-t border-white/10 bg-black/30">
+        <div className="border-t border-white/8 bg-black/40">
           {plan.action === 'skip' ? (
             <p className="px-4 py-3 text-xs text-ink-500 italic">
               File already matches — no changes will be written.

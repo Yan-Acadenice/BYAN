@@ -1,10 +1,11 @@
-// Stepper — generic multi-step progress indicator.
+// Stepper — horizontal timeline with glowing nodes.
 //
-// Purely presentational: renders step labels and a connecting line.
-// The active step is highlighted; completed steps show a check indicator.
-// No internal state — the parent drives `currentStep`.
+// Design: gradient progress line connecting node circles.
+// Active node: byan glow pulse. Done nodes: emerald check. Future: muted.
+// Purely presentational — parent drives currentStep.
 
 import React from 'react';
+import { Check } from 'lucide-react';
 
 export interface StepDef {
   id: string;
@@ -18,52 +19,69 @@ interface StepperProps {
 
 export default function Stepper({ steps, currentStep }: StepperProps) {
   return (
-    <div className="flex items-center w-full mb-8" aria-label="Progress steps" role="navigation">
+    <nav
+      className="flex items-center w-full mb-10"
+      aria-label="Progress steps"
+      role="navigation"
+    >
       {steps.map((step, idx) => {
         const isDone = idx < currentStep;
         const isActive = idx === currentStep;
+
         return (
           <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center flex-shrink-0">
+            {/* Node */}
+            <div className="flex flex-col items-center flex-shrink-0 gap-2">
               <div
                 data-testid={`step-indicator-${step.id}`}
                 aria-current={isActive ? 'step' : undefined}
                 className={[
-                  'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all',
+                  'relative w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300',
                   isDone
-                    ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400'
+                    ? 'bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400'
                     : isActive
-                    ? 'border-byan-400 bg-byan-400/20 text-byan-300'
-                    : 'border-white/20 bg-white/5 text-ink-500',
+                    ? 'bg-byan-500/20 border-2 border-byan-400 text-byan-300 shadow-glow animate-glow-pulse'
+                    : 'bg-white/5 border-2 border-white/15 text-ink-500',
                 ].join(' ')}
               >
                 {isDone ? (
-                  // Simple checkmark without emoji / svg dependency
-                  <span aria-hidden>ok</span>
+                  <Check size={14} strokeWidth={2.5} />
                 ) : (
-                  <span>{idx + 1}</span>
+                  <span className="text-[11px] font-bold">{idx + 1}</span>
                 )}
               </div>
               <span
                 className={[
-                  'mt-1 text-[10px] text-center leading-tight max-w-[64px]',
-                  isActive ? 'text-byan-300 font-medium' : isDone ? 'text-emerald-400' : 'text-ink-500',
+                  'text-[10px] font-medium text-center tracking-wide',
+                  isActive
+                    ? 'text-byan-300'
+                    : isDone
+                    ? 'text-emerald-400'
+                    : 'text-ink-500',
                 ].join(' ')}
               >
                 {step.label}
               </span>
             </div>
+
+            {/* Connector line */}
             {idx < steps.length - 1 && (
-              <div
-                className={[
-                  'flex-1 h-px mx-1',
-                  idx < currentStep ? 'bg-emerald-500/50' : 'bg-white/10',
-                ].join(' ')}
-              />
+              <div className="flex-1 h-px mx-2 relative overflow-hidden rounded-full">
+                <div className="absolute inset-0 bg-white/10" />
+                <div
+                  className="absolute inset-0 transition-all duration-500 rounded-full"
+                  style={{
+                    background:
+                      idx < currentStep
+                        ? 'linear-gradient(90deg, #34d399, #10b981)'
+                        : 'transparent',
+                  }}
+                />
+              </div>
             )}
           </React.Fragment>
         );
       })}
-    </div>
+    </nav>
   );
 }
