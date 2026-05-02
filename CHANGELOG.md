@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.16.2] - 2026-05-02
+
+### Added - Electron desktop app v1.0 (Linux + Windows)
+
+Commits ea7abf3 + e905bee. App lives in `app/` as a standalone package (not a workspace of the root); builds and publishes independently of `create-byan-agent`.
+
+#### Core shell and security (F1, F2, F12)
+
+- **F1 app shell** — Electron main process in TypeScript (`app/main/`), compiled to `dist/main/`. Window lifecycle, splash, tray (Linux/Win only).
+- **F2 IPC contract** — Preload bridge via `contextBridge` (`app/preload/`). All renderer-to-Node calls go through typed IPC channels; `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`.
+- **F12 strict CSP** — Content Security Policy header injected by main process; default-src self, no inline scripts, no eval.
+
+#### Local server lifecycle and renderer (F3, F13)
+
+- **F3 lifecycle** — Main process spawns and supervises the existing `install/src/webui/server.js` local server on a free port; emits `server-ready` IPC event to renderer.
+- **F13 dev hot reload** — `npm run dev` runs renderer (Vite dev server, port 5173), main watcher (`tsc -w`), and preload watcher concurrently via `concurrently`; `BYAN_DEV=1` env flag switches main to load the Vite URL instead of `dist/renderer/index.html`.
+
+#### Authentication (F5)
+
+- **F5 hybrid login** — Three login modes selectable at runtime: cloud (`byan.acadenice.fr`), local (auto-detected server), custom URL. Mode persisted in app config; switchable from the native menu.
+
+#### Onboarding (F4)
+
+- **F4 5-step onboarding** — Welcome -> Platform detection -> Config preview -> Apply -> Done. Covers Linux and Windows; macOS branch present but gated (F21 deferred). Onboarding state persisted via Electron store; skipped on subsequent launches.
+
+#### Secure storage (F6)
+
+- **F6 keytar** — API tokens stored via `keytar` (libsecret on Linux, Credential Manager on Windows). Token stored in the OS keychain, not in plaintext config files; IPC `get-token` / `set-token` channels exposed through preload only.
+
+#### Native integration (F19)
+
+- **F19 native menu** — Application menu built with `Menu.buildFromTemplate`; entries: File (quit), Edit (cut/copy/paste/select-all), View (reload, devtools in dev mode), Help (about). Consistent on Linux and Windows.
+
+#### Cross-platform build (F10)
+
+- **F10 build** — `npm run build` compiles main + preload (TypeScript) and bundles renderer (Vite). `npm run build:linux` produces AppImage + deb via electron-builder. `npm run build:win` produces NSIS installer via cross-compilation (Wine on Linux CI or native Windows runner).
+
+#### CI matrix (F11, P1)
+
+- **F11 + P1 GitHub Actions matrix** — Workflow `.github/workflows/electron-ci.yml` runs on `ubuntu-latest` (Linux build + unit tests) and `windows-latest` (Windows build + unit tests) in parallel. Draft GitHub Release created automatically when a `v*` tag is pushed; AppImage, deb, and NSIS installer attached as artifacts.
+
+#### Test suite (F18)
+
+- **F18 E2E Playwright** — Playwright suite in `app/__tests__/` using `playwright-electron`; covers: app launch, onboarding flow, login modal, token store round-trip, native menu visibility. `npm run test:e2e` runs the full suite headlessly.
+
+### Changed
+
+- `install/src/webui/server.js` and `install/src/webui/api.js` — minor edits to support port-injection from the Electron main process (F3: server accepts `BYAN_PORT` env var, binds to `127.0.0.1` only, emits a ready signal to stdout that main process parses).
+
+### Notes
+
+- **F21 macOS** — deferred; code branch exists, not tested, no CI runner. Target: v1.1.
+- **F9 auto-update** — electron-updater integration deferred to P2 (v1.1). Update check menu item is present but inert.
+- **F14 MCP control panel** — deferred to P2 (v1.1).
+- **First CI run** — push tag `v0.1.0-rc` to trigger the first draft release and validate artifact upload end-to-end before promoting to `v1.0.0`.
+
+---
+
 ## [2.9.10] - 2026-04-21
 
 ### Fixed - MCP auth scheme wrong for byan_web API keys

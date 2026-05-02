@@ -1,39 +1,248 @@
-# BYAN Electron App
+# BYAN Desktop
 
-Electron desktop shell for BYAN. Linux + Windows in P1, macOS deferred to F21.
+Electron desktop application for BYAN. Wraps the existing local server and web UI
+in a native shell with OS-level secure storage, a 5-step onboarding flow, and a
+native application menu.
 
-## Structure
+**Supported platforms (v1.0):** Linux x64 (AppImage, deb), Windows x64 (NSIS installer).
+macOS is deferred to v1.1 (F21).
+
+**Who is it for:** developers and teams already using BYAN who want a standalone
+desktop experience without keeping a browser tab open or managing a terminal process.
+
+---
+
+## Architecture
 
 ```
 app/
-  main/        Main process (Node) — TypeScript, compiled to dist/main/
-  preload/     Preload bridge (contextBridge) — TypeScript, compiled to dist/preload/
-  renderer/    Renderer SPA (React 18 + Vite) — bundled to dist/renderer/
-  dist/        Build output (gitignored)
+  main/       Main process (Node/TypeScript) — window lifecycle, server spawn, IPC router
+  preload/    Preload bridge (TypeScript)    — contextBridge, typed IPC channels
+  renderer/   Renderer SPA (React 18 + Vite) — loads webui via @webui alias
+  shared/     Types shared across all three layers
+  dist/       Build output (gitignored)
+  __tests__/  Playwright E2E suite + Vitest unit tests
 ```
 
-`app/` is a standalone npm package, NOT an npm workspace of the repo root. Reason: the
-repo root publishes `create-byan-agent` and depends on `file:./install/packages/platform-config`;
-activating workspaces would break that publishing pipeline.
+### Process model
 
-## Scripts
+```
++---------------------+      IPC channels      +-------------------+
+|  Main process       | <--------------------> |  Preload bridge   |
+|  (Node, full APIs)  |   get-token/set-token  |  (contextBridge)  |
+|                     |   server-ready         +-------------------+
+|  spawns:            |   navigate                      |
+|    local server     |                        +-------------------+
+|    (webui/server.js)|                        |  Renderer (React) |
++---------------------+                        |  sandboxed, no    |
+         |                                     |  Node access      |
+    BYAN_PORT env                               +-------------------+
+         |
+  127.0.0.1:<free port>
+```
 
-| Command | What it does |
-|---------|--------------|
-| `npm run dev` | Build main+preload once, then run renderer Vite + tsc watchers + electron concurrently |
-| `npm run build` | Production build of main, preload, renderer into `dist/` |
-| `npm run typecheck` | Typecheck main, preload, renderer (no emit) |
-| `npm start` | Run electron against the current `dist/` (after `npm run build`) |
+Rules enforced at build time:
+- `nodeIntegration: false`
+- `contextIsolation: true`
+- `sandbox: true`
+- CSP: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'`
 
-## Renderer link
+All renderer-to-Node communication goes through the preload bridge. The renderer
+has no direct access to Node APIs or the filesystem.
 
-The renderer reuses the existing `api/webui/src/` SPA via the Vite alias `@webui` and
-the matching `tsconfig.renderer.json` `paths` entry. No symlink (Windows-fragile).
-F3 will switch `renderer/main.tsx` from the placeholder to `import App from '@webui/App'`.
+---
 
-## Dev runtime
+## Installation and dev
 
-- Main process expects `BYAN_DEV=1` to load the Vite dev server (`http://localhost:5173`),
-  otherwise it loads `dist/renderer/index.html` via `file://`.
-- `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` — the preload
-  bridge is the only path between renderer and Node.
+```bash
+cd app
+npm install
+```
+
+### Development
+
+```bash
+npm run dev
+```
+
+Starts four concurrent processes: Vite dev server (port 5173), TypeScript watcher
+for main, TypeScript watcher for preload, and Electron. The main process detects
+`BYAN_DEV=1` and loads `http://localhost:5173` instead of the built renderer.
+
+Hot reload: renderer changes reflect immediately via Vite HMR. Main/preload changes
+require restarting the Electron process (Ctrl+C then `npm run dev` again, or use
+the View > Reload menu entry).
+
+### Type-check only (no emit)
+
+```bash
+npm run typecheck
+```
+
+Runs `tsc --noEmit` for all three tsconfigs (main, preload, renderer).
+
+### Production build
+
+```bash
+npm run build
+```
+
+Compiles main + preload (TypeScript) and bundles renderer (Vite) into `dist/`.
+
+```bash
+npm start
+```
+
+Launches Electron against the current `dist/` (requires `npm run build` first).
+
+### Packaging
+
+```bash
+npm run build:linux
+```
+
+Produces `release/byan-app-<version>.AppImage` and `release/byan-app-<version>.deb`
+via electron-builder. Requires `electron-builder` installed (included in devDependencies).
+
+```bash
+npm run build:win
+```
+
+Produces `release/byan-app-<version>-setup.exe` (NSIS). Run on a Windows runner or
+via cross-compilation with Wine on Linux.
+
+### Tests
+
+```bash
+npm test
+```
+
+Runs Vitest unit tests for main process utilities and preload bridge.
+
+```bash
+npm run test:e2e
+```
+
+Runs the Playwright E2E suite headlessly. Covers: app launch, onboarding flow,
+login modal, token store round-trip, native menu visibility.
+
+---
+
+## Onboarding flow
+
+The onboarding runs on first launch and is skipped on subsequent launches.
+State is persisted via Electron store (`userData/config.json`).
+
+```
+Step 1 — Welcome
+  Displays app version and platform. User clicks "Get started".
+
+Step 2 — Platform detection
+  Detects OS (Linux / Windows). Shows what will be configured.
+
+Step 3 — Config preview
+  Shows the planned configuration: server port, login mode, token storage backend.
+
+Step 4 — Apply
+  Spawns local server, stores initial token in OS keychain, writes config.
+
+Step 5 — Done
+  Confirms setup. Opens main UI. Onboarding flag set to avoid re-running.
+```
+
+---
+
+## Login modes
+
+Three modes are selectable at runtime via the native menu (File > Switch login mode)
+or during onboarding.
+
+| Mode | Server | When to use |
+|------|--------|-------------|
+| `cloud` | `https://byan.acadenice.fr` | SaaS account, no local install needed |
+| `local` | `http://127.0.0.1:<port>` | Local BYAN server auto-spawned by the app |
+| `custom` | User-supplied URL | Self-hosted instance, dev cluster |
+
+The active mode is persisted in `userData/config.json`. Switching mode triggers
+a renderer navigation to the new base URL; no app restart required.
+
+---
+
+## Security
+
+The app enforces four layers of isolation:
+
+1. **Process sandbox** — `sandbox: true` on the renderer window; the renderer process
+   has no access to Node.js APIs or native modules.
+
+2. **Context isolation** — `contextIsolation: true` ensures the renderer's JavaScript
+   context is separate from the preload script's context. The only surface exposed is
+   the `window.byan` API injected by `contextBridge`.
+
+3. **CSP** — A strict Content Security Policy is set on every loaded page. Inline
+   scripts and eval are blocked; all resources must originate from `self` or the
+   configured server origin.
+
+4. **Keytar** — API tokens are stored in the OS keychain (libsecret on Linux,
+   Windows Credential Manager on Windows) via `keytar`. Config files on disk contain
+   no credentials. The preload exposes `get-token` / `set-token` IPC channels; the
+   renderer calls these and has no direct keytar access.
+
+**System dependencies for keytar:**
+- Linux: `libsecret-1-0` (`sudo apt install libsecret-1-0` on Debian/Ubuntu)
+- Windows: Windows Credential Manager (built in, no extra install)
+
+---
+
+## CI and release
+
+CI is defined in `.github/workflows/electron-ci.yml`.
+
+The matrix runs two jobs in parallel:
+- `linux` on `ubuntu-latest` — builds AppImage + deb, runs unit + E2E tests
+- `windows` on `windows-latest` — builds NSIS installer, runs unit tests
+
+A draft GitHub Release is created automatically when a `v*` tag is pushed.
+The AppImage, deb, and NSIS installer are attached as release artifacts.
+
+**First release procedure:**
+
+```bash
+git tag v0.1.0-rc
+git push origin v0.1.0-rc
+```
+
+This triggers the CI matrix and creates a draft release. Review the artifacts,
+then promote the draft to a published release. For the stable release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+See `app/CI-SIGNING.md` for code-signing setup (Windows EV certificate, Linux GPG).
+
+---
+
+## Roadmap v1.1
+
+| Feature | ID | Priority |
+|---------|----|----------|
+| Auto-update via electron-updater | F9 | P2 |
+| macOS support | F21 | P2 |
+| MCP control panel | F14 | P2 |
+| Notifications (toast) | F7 | P3 |
+| Offline mode indicator | F8 | P3 |
+| Localization (i18n) | F15 | P3 |
+| Accessibility audit | F16 | P3 |
+| Deep links (byan:// protocol) | F17 | P3 |
+| Plugin / extension panel | F20 | P3 |
+
+---
+
+## Package notes
+
+`app/` is a standalone npm package with its own `package.json` and lockfile.
+It is NOT an npm workspace of the repo root. The root publishes `create-byan-agent`
+and depends on `file:./install/packages/platform-config`; activating workspaces
+would break that publishing pipeline. Run all `npm` commands from inside `app/`.
