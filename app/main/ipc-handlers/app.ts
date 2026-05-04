@@ -7,10 +7,27 @@
 import type { App, IpcMain } from 'electron';
 import { shell } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipc-contract';
-import { wrap } from './_error';
+import { IpcError, wrap } from './_error';
 
 export interface AppDeps {
   app: Pick<App, 'quit' | 'relaunch' | 'getVersion'>;
+}
+
+// Security: renderer-supplied URLs must be https only.
+// This prevents opening file://, javascript:, or arbitrary protocol handlers.
+function assertHttpsUrl(url: unknown): asserts url is string {
+  if (typeof url !== 'string' || url.length === 0) {
+    throw new IpcError('INVALID_ARGUMENT', 'openExternal: url must be a non-empty string');
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new IpcError('INVALID_ARGUMENT', `openExternal: invalid URL: ${url}`);
+  }
+  if (parsed.protocol !== 'https:') {
+    throw new IpcError('INVALID_ARGUMENT', `openExternal: only https:// URLs are allowed (got ${parsed.protocol})`);
+  }
 }
 
 export function makeHandlers(deps: AppDeps) {
@@ -26,6 +43,7 @@ export function makeHandlers(deps: AppDeps) {
       deps.app.quit();
     },
     openExternal: async (url: string): Promise<void> => {
+      assertHttpsUrl(url);
       await shell.openExternal(url);
     }
   };

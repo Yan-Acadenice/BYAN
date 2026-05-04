@@ -67,6 +67,24 @@ export default function App() {
     void init();
   }, []);
 
+  // Listen for native menu actions pushed by main via webContents.send.
+  // The menu emits { action: string } on channel 'byan:menu:action'.
+  useEffect(() => {
+    if (typeof window.byanEvents === 'undefined') return;
+    const unsub = window.byanEvents.on('byan:menu:action', (payload: unknown) => {
+      const { action } = (payload as { action?: string }) ?? {};
+      if (!action) return;
+      if (action === 'newProject' || action === 'openProject' || action === 'import') {
+        // Navigate to Projects page where these flows will eventually be wired.
+        if (route === 'app') setActivePage('projects');
+      }
+      if (action === 'eloSummary') {
+        if (route === 'app') setActivePage('settings');
+      }
+    });
+    return unsub;
+  });
+
   const handleOnboardingComplete = async () => {
     setRoute('login');
   };

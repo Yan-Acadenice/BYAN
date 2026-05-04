@@ -234,6 +234,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     try {
       const result = await window.byanApi.onboarding.apply(activePlans);
       setApplyResult(result);
+      // Persist the project root so App.tsx can skip onboarding on next launch.
+      // Done after apply so a failed apply doesn't mark the project as configured.
+      try {
+        await window.byanApi.store.set('onboarding.projectRoot', projectRoot);
+      } catch {
+        // Non-critical — worst case: onboarding shows again next launch.
+      }
     } catch (err) {
       setApplyResult({
         written: 0,

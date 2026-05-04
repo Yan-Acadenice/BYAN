@@ -271,4 +271,23 @@ describe('Onboarding — Step 4: Done', () => {
     await goToDone();
     expect(screen.getByText(/permission denied/i)).toBeInTheDocument();
   });
+
+  it('persists onboarding.projectRoot to store after successful apply', async () => {
+    await goToDone();
+    // store.set must have been called with the key 'onboarding.projectRoot' and the path.
+    expect(mockStoreSet).toHaveBeenCalledWith(
+      'onboarding.projectRoot',
+      '/home/user/my-project'
+    );
+  });
+
+  it('does NOT persist onboarding.projectRoot when apply throws', async () => {
+    mockOnboardingApply.mockRejectedValueOnce(new Error('disk full'));
+    await goToDone();
+    // On apply failure the store.set for projectRoot must not be called.
+    const projectRootCalls = (mockStoreSet.mock.calls as unknown[][]).filter(
+      (c) => c[0] === 'onboarding.projectRoot'
+    );
+    expect(projectRootCalls).toHaveLength(0);
+  });
 });

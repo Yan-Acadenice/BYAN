@@ -5,6 +5,9 @@
 //   - contextIsolation: true (main/index.ts) -> exposeInMainWorld is the ONLY way out.
 //   - sandbox: true        (main/index.ts) -> no fs/child_process from preload either.
 //   - One single namespace `byanApi` so the renderer surface is auditable in one grep.
+//
+// Additionally exposes a `byanEvents` namespace for one-way main->renderer push
+// events (e.g. native menu actions sent via webContents.send).
 
 import { contextBridge, ipcRenderer } from 'electron';
 import {
@@ -73,3 +76,19 @@ const api: ByanApi = {
 };
 
 contextBridge.exposeInMainWorld('byanApi', api);
+
+// One-way event bridge: main can push events to the renderer via webContents.send.
+// The renderer registers listeners via window.byanEvents.on(channel, callback).
+// Callback is called with the event payload; unsubscribe by calling the returned fn.
+//
+// Security: only channels starting with 'byan:' are forwarded. This prevents a
+// compromised renderer from subscribing to internal Electron channels.
+contextBridge.exposeInMainWorld('byanEvents', {
+  on: (channel: string, callback: (...args: unknown[]) => void): (() => void) => {
+    if (!channel.startsWith('byan:')) return () => {};
+    const handler = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args);
+    ipcRenderer.on(channel, handler);
+    // Return cleanup function so callers can unsubscribe (avoids listener leaks).
+    return () => ipcRenderer.removeListener(channel, handler);
+  }
+});

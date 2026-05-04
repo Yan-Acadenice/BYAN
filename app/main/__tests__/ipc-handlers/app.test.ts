@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { makeHandlers, register } from '../../ipc-handlers/app';
 import { IPC_CHANNELS } from '../../../shared/ipc-contract';
+import { IpcError } from '../../ipc-handlers/_error';
+
+// Mock shell.openExternal so tests don't open a real browser.
+vi.mock('electron', () => ({
+  shell: {
+    openExternal: vi.fn(() => Promise.resolve())
+  }
+}));
 
 function makeFakeApp() {
   return {
@@ -38,8 +46,53 @@ describe('app.relaunch', () => {
   });
 });
 
+describe('app.openExternal — allow-list', () => {
+  it('resolves for a valid https URL', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('https://acadenice.fr')).resolves.toBeUndefined();
+  });
+
+  it('resolves for the BYAN cloud URL', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('https://byan-api.stark.a3n.fr')).resolves.toBeUndefined();
+  });
+
+  it('throws INVALID_ARGUMENT for a non-https URL (http)', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('http://example.com')).rejects.toBeInstanceOf(IpcError);
+    await expect(h.openExternal('http://example.com')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT for file:// URL', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('file:///etc/passwd')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT for javascript: URL', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('javascript:alert(1)')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT for empty string', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws INVALID_ARGUMENT for a non-URL string', async () => {
+    const fake = makeFakeApp();
+    const h = makeHandlers({ app: fake });
+    await expect(h.openExternal('not-a-url')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+});
+
 describe('app.register', () => {
-  it('registers all three channels on ipcMain', () => {
+  it('registers all four channels on ipcMain', () => {
     const handle = vi.fn();
     const fake = makeFakeApp();
     register({ handle } as never, { app: fake });
@@ -47,5 +100,6 @@ describe('app.register', () => {
     expect(channels).toContain(IPC_CHANNELS.app.quit);
     expect(channels).toContain(IPC_CHANNELS.app.version);
     expect(channels).toContain(IPC_CHANNELS.app.relaunch);
+    expect(channels).toContain(IPC_CHANNELS.app.openExternal);
   });
 });

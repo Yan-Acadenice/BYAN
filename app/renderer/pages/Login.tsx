@@ -273,9 +273,8 @@ export default function Login({ onAuthenticated }: LoginProps) {
                   <button
                     type="button"
                     className="flex items-center gap-1.5 text-xs text-byan-400 hover:text-byan-300 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      // TODO(F7): wire window.byanApi.app.openExternal when available.
+                    onClick={() => {
+                      void window.byanApi.app.openExternal('https://byan-api.stark.a3n.fr');
                     }}
                   >
                     <ExternalLink size={11} />
