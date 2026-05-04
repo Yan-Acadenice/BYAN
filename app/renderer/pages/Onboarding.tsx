@@ -182,7 +182,16 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         platforms,
       });
       setPlans(result);
-      setStep(2);
+      // If the installers have nothing to do (every selected platform is
+      // already configured), skip Preview + Apply and jump straight to
+      // Done with an "already configured" summary. Otherwise the user
+      // would land on an empty Preview screen with no way forward.
+      if (result.length === 0) {
+        setApplyResult({ written: 0, skipped: 0, errors: {} });
+        setStep(4);
+      } else {
+        setStep(2);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Preview failed.');
     } finally {
@@ -629,7 +638,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                     {errorCount === 0 ? 'All set.' : 'Setup done with warnings.'}
                   </h2>
                   <p className="text-sm text-ink-400 text-center">
-                    BYAN is ready for your project.
+                    {applyResult && applyResult.written === 0 && applyResult.skipped === 0 && errorCount === 0
+                      ? 'Your selected platforms were already configured. Nothing to do.'
+                      : 'BYAN is ready for your project.'}
                   </p>
                 </div>
 
