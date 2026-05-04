@@ -41,6 +41,109 @@ export interface McpServer {
   status: McpStatus;
 }
 
+// ---------- byan_web API types ----------
+// These types mirror the live API schema confirmed via curl against
+// https://byan-api.stark.a3n.fr — see byan-api-client.ts for the fetch layer.
+
+export interface ByanProject {
+  id: string;
+  name: string;
+  description: string | null;
+  type: string;
+  visibility: 'private' | 'public';
+  taxonomy_type: string | null;
+  my_role: string;
+  root_node_id: string | null;
+  metadata_tree: {
+    nodeCount: number;
+    maxDepth: number;
+    types: Record<string, number>;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ByanMemory {
+  id: string;
+  project_id: string;
+  node_id: string | null;
+  user_id: string | null;
+  cli_source: string | null;
+  session_id: string | null;
+  layer: string;
+  category: string | null;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  pinned: boolean;
+  accessed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ByanKnowledge {
+  id: string;
+  title: string;
+  content: string;
+  category: string | null;
+  tags: string[] | null;
+  project_id: string;
+  node_id: string | null;
+  path: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ByanCustomAgent {
+  id: string;
+  slug: string;
+  name: string;
+  title: string | null;
+  icon: string | null;
+  color: string | null;
+  role: string | null;
+  identity: string | null;
+  communication_style: string | null;
+  principles: string[];
+  menu: unknown[];
+  soul: string | null;
+  tao: string | null;
+  knowledge: unknown[];
+  model_preferences: Record<string, unknown>;
+  parent_slug: string | null;
+  created_by: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ByanSession {
+  id: string;
+  project_id: string | null;
+  agent_slug: string | null;
+  started_at: string;
+  ended_at: string | null;
+  status: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ByanUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  email: string;
+  role: string;
+}
+
+export interface ByanApiListOpts {
+  projectId?: string;
+  limit?: number;
+  category?: string;
+  type?: string;
+  tags?: string;
+}
+
 // ---------- CLI detection ----------
 
 // Each entry is the absolute path of the detected CLI binary, or undefined if not found.
@@ -111,6 +214,25 @@ export interface ByanApi {
     login(opts: AuthLoginOptions): Promise<AuthResult>;
     logout(): Promise<void>;
     getToken(): Promise<string | null>;
+  };
+  byanWeb: {
+    projects: {
+      list(): Promise<ByanProject[]>;
+      get(id: string): Promise<ByanProject | null>;
+    };
+    memory: {
+      list(opts?: ByanApiListOpts): Promise<ByanMemory[]>;
+    };
+    knowledge: {
+      list(opts?: ByanApiListOpts): Promise<ByanKnowledge[]>;
+    };
+    customAgents: {
+      list(): Promise<ByanCustomAgent[]>;
+    };
+    sessions: {
+      list(opts?: Pick<ByanApiListOpts, 'projectId' | 'limit'>): Promise<ByanSession[]>;
+    };
+    me(): Promise<ByanUser>;
   };
   fs: {
     // Returns the absolute path the user picked, or null if they cancelled.
@@ -197,6 +319,15 @@ export const IPC_CHANNELS = {
   store: {
     get: 'byan:store:get',
     set: 'byan:store:set'
+  },
+  byanWeb: {
+    projectsList: 'byan:byanWeb:projects:list',
+    projectsGet: 'byan:byanWeb:projects:get',
+    memoryList: 'byan:byanWeb:memory:list',
+    knowledgeList: 'byan:byanWeb:knowledge:list',
+    customAgentsList: 'byan:byanWeb:customAgents:list',
+    sessionsList: 'byan:byanWeb:sessions:list',
+    me: 'byan:byanWeb:me'
   }
 } as const;
 
@@ -211,7 +342,10 @@ export type IpcErrorCode =
   | 'PERMISSION_DENIED'
   | 'UNAUTHENTICATED'
   | 'UNAVAILABLE'
-  | 'INTERNAL';
+  | 'INTERNAL'
+  // Thrown by byanWeb handlers when the stored token is missing or the server
+  // returns 401. The renderer should redirect to Login on this code.
+  | 'AUTH_REQUIRED';
 
 export interface IpcErrorShape {
   code: IpcErrorCode;

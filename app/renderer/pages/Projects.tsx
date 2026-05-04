@@ -1,45 +1,45 @@
-// Projects — e._projects_list ported to React.
-// Data: mocked statically — IPC wiring deferred to post-MVP.
+// Projects — project list wired to live byan_web API.
 
-import React, { useState } from 'react';
-import { Search, Pin, Archive, FolderOpen, Plus, ArrowLeft } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, FolderOpen, Plus, ArrowLeft, Loader2, AlertCircle, Globe, Lock } from 'lucide-react';
 import ProjectDetail from './ProjectDetail';
+import type { ByanProject } from '../../shared/ipc-contract';
 
-const MOCK_PROJECTS = [
-  {
-    id: '1',
-    name: 'BYAN Platform',
-    slug: 'byan-platform',
-    agents: 4,
-    lastActivity: '2 hours ago',
-    pinned: true,
-  },
-  {
-    id: '2',
-    name: 'Acadenice CFA Portal',
-    slug: 'acadenice-cfa',
-    agents: 2,
-    lastActivity: '1 day ago',
-    pinned: false,
-  },
-  {
-    id: '3',
-    name: 'Data Pipeline Demo',
-    slug: 'data-pipeline',
-    agents: 1,
-    lastActivity: '3 days ago',
-    pinned: false,
-  },
-];
+type Filter = 'all' | 'recent';
 
-type Filter = 'all' | 'recent' | 'pinned';
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return 'Just now';
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 export default function Projects() {
+  const [projects, setProjects] = useState<ByanProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  // Show project detail inline if a row is opened
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await window.byanApi.byanWeb.projects.list();
+      setProjects(list as ByanProject[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
   if (detailId !== null) {
     return (
       <div className="space-y-lg">
@@ -51,15 +51,22 @@ export default function Projects() {
           <ArrowLeft size={14} />
           Back to Projects
         </button>
-        <ProjectDetail />
+        <ProjectDetail projectId={detailId} />
       </div>
     );
   }
 
-  const FILTERS: Filter[] = ['all', 'recent', 'pinned'];
+  const FILTERS: Filter[] = ['all', 'recent'];
 
-  const visible = MOCK_PROJECTS.filter((p) => {
-    if (filter === 'pinned' && !p.pinned) return false;
+  const sorted = [...projects].sort(
+    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  );
+
+  const visible = sorted.filter((p) => {
+    if (filter === 'recent') {
+      const ageH = (Date.now() - new Date(p.updated_at).getTime()) / 3_600_000;
+      if (ageH > 72) return false;
+    }
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -110,68 +117,58 @@ export default function Projects() {
       </div>
 
       {/* Table */}
-      <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden">
-        <div className="grid grid-cols-[1fr_180px_80px_160px_100px] px-md py-sm border-b border-ink-800 bg-ink-950">
-          <span className="font-label text-label text-ink-400 uppercase">Name</span>
-          <span className="font-label text-label text-ink-400 uppercase">Slug</span>
-          <span className="font-label text-label text-ink-400 uppercase">Agents</span>
-          <span className="font-label text-label text-ink-400 uppercase">Last activity</span>
-          <span className="font-label text-label text-ink-400 uppercase">Actions</span>
+      {loading ? (
+        <div className="flex items-center justify-center py-xxl text-ink-400">
+          <Loader2 size={20} className="animate-spin mr-sm" />
+          <span className="font-body-sm text-body-sm">Loading projects...</span>
         </div>
-
-        {visible.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
-            <FolderOpen size={40} className="mb-md opacity-50" />
-            <p className="font-h3 text-h3 text-ink-400 mb-xs">No projects found</p>
-            <p className="font-body-sm text-body-sm text-ink-500">Try adjusting your search or filter.</p>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+          <AlertCircle size={40} className="mb-md text-red opacity-70" />
+          <p className="font-h3 text-h3 text-ink-300 mb-xs">Could not load projects</p>
+          <p className="font-body-sm text-body-sm text-ink-500 mb-md">{error}</p>
+          <button type="button" className="btn-secondary" onClick={() => void load()}>Retry</button>
+        </div>
+      ) : (
+        <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden">
+          <div className="grid grid-cols-[1fr_120px_180px_120px_80px] px-md py-sm border-b border-ink-800 bg-ink-950">
+            <span className="font-label text-label text-ink-400 uppercase">Name</span>
+            <span className="font-label text-label text-ink-400 uppercase">Type</span>
+            <span className="font-label text-label text-ink-400 uppercase">Last activity</span>
+            <span className="font-label text-label text-ink-400 uppercase">Role</span>
+            <span className="font-label text-label text-ink-400 uppercase">Vis.</span>
           </div>
-        ) : (
-          <div className="divide-y divide-ink-800/50">
-            {visible.map((p) => (
-              <div
-                key={p.id}
-                className="grid grid-cols-[1fr_180px_80px_160px_100px] items-center px-md hover:bg-ink-800 transition-colors cursor-pointer"
-                style={{ height: '56px' }}
-                onClick={() => setDetailId(p.id)}
-              >
-                <div className="flex items-center gap-sm">
-                  {p.pinned && <Pin size={12} className="text-byan-400 flex-shrink-0" />}
+
+          {visible.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+              <FolderOpen size={40} className="mb-md opacity-50" />
+              <p className="font-h3 text-h3 text-ink-400 mb-xs">No projects found</p>
+              <p className="font-body-sm text-body-sm text-ink-500">Try adjusting your search or filter.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-ink-800/50">
+              {visible.map((p) => (
+                <div
+                  key={p.id}
+                  className="grid grid-cols-[1fr_120px_180px_120px_80px] items-center px-md hover:bg-ink-800 transition-colors cursor-pointer"
+                  style={{ height: '56px' }}
+                  onClick={() => setDetailId(p.id)}
+                >
                   <span className="font-body-sm text-body-sm text-ink-100 font-medium truncate">
                     {p.name}
                   </span>
+                  <span className="font-mono-code text-mono-code text-ink-400 text-[11px] truncate">{p.type}</span>
+                  <span className="font-caption text-caption text-ink-400">{timeAgo(p.updated_at)}</span>
+                  <span className="font-caption text-caption text-ink-400">{p.my_role}</span>
+                  <span className="text-ink-500">
+                    {p.visibility === 'public' ? <Globe size={14} /> : <Lock size={14} />}
+                  </span>
                 </div>
-                <span className="font-mono-code text-mono-code text-ink-400 truncate">{p.slug}</span>
-                <span className="font-body-sm text-body-sm text-ink-400">{p.agents}</span>
-                <span className="font-caption text-caption text-ink-400">{p.lastActivity}</span>
-                <div className="flex items-center gap-xs" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    className="p-1 rounded hover:bg-ink-700 text-ink-500 hover:text-ink-200 transition-colors"
-                    title="Open"
-                    onClick={() => setDetailId(p.id)}
-                  >
-                    <FolderOpen size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-1 rounded hover:bg-ink-700 text-ink-500 hover:text-byan-400 transition-colors"
-                    title="Pin"
-                  >
-                    <Pin size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-1 rounded hover:bg-ink-700 text-ink-500 hover:text-ink-200 transition-colors"
-                    title="Archive"
-                  >
-                    <Archive size={14} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

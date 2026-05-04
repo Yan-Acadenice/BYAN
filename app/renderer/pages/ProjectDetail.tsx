@@ -1,35 +1,81 @@
-// ProjectDetail — f._project_detail ported to React.
-// Data: mocked statically — IPC wiring deferred to post-MVP.
+// ProjectDetail — wired to live byan_web API.
+// Receives projectId from Projects.tsx; fetches project + memory + knowledge tabs.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, AlertCircle, BookOpen, Brain } from 'lucide-react';
+import type { ByanProject, ByanMemory, ByanKnowledge } from '../../shared/ipc-contract';
 
-type Tab = 'overview' | 'agents' | 'memory' | 'knowledge' | 'sessions' | 'settings';
-const TABS: Tab[] = ['overview', 'agents', 'memory', 'knowledge', 'sessions', 'settings'];
+type Tab = 'overview' | 'memory' | 'knowledge';
+const TABS: Tab[] = ['overview', 'memory', 'knowledge'];
 
-const MOCK_PROJECT = {
-  name: 'BYAN Platform',
-  slug: 'byan-platform',
-  description: 'AI agent orchestration platform. Multi-agent dispatch, Merise Agile + TDD.',
-  sessions: 12,
-  agents: 4,
-  knowledge: 9,
-  lastActivity: '2 hours ago',
-};
+interface ProjectDetailProps {
+  projectId?: string;
+}
 
-const MOCK_SESSIONS = [
-  { id: '1', name: 'Alpha Deployment', agent: 'Agent-X', duration: '45m', ago: '2h ago' },
-  { id: '2', name: 'Data Ingestion Pipeline', agent: 'Crawler-Bot', duration: '1h 20m', ago: '5h ago' },
-];
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 3_600_000);
+  if (h < 1) return 'Just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
-export default function ProjectDetail() {
+export default function ProjectDetail({ projectId }: ProjectDetailProps) {
+  const [project, setProject] = useState<ByanProject | null>(null);
+  const [memory, setMemory] = useState<ByanMemory[]>([]);
+  const [knowledge, setKnowledge] = useState<ByanKnowledge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      if (projectId) {
+        const [p, m, k] = await Promise.all([
+          window.byanApi.byanWeb.projects.get(projectId),
+          window.byanApi.byanWeb.memory.list({ projectId, limit: 10 }),
+          window.byanApi.byanWeb.knowledge.list({ projectId, limit: 10 }),
+        ]);
+        setProject(p as ByanProject | null);
+        setMemory(m as ByanMemory[]);
+        setKnowledge(k as ByanKnowledge[]);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load project');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, [projectId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-xxl text-ink-400">
+        <Loader2 size={20} className="animate-spin mr-sm" />
+        <span className="font-body-sm text-body-sm">Loading project...</span>
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+        <AlertCircle size={40} className="mb-md text-red opacity-70" />
+        <p className="font-h3 text-h3 text-ink-300 mb-xs">{error || 'Project not found'}</p>
+        <button type="button" className="btn-secondary mt-md" onClick={() => void load()}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-lg">
       {/* Header */}
       <div>
-        <p className="section-title">Projects / {MOCK_PROJECT.slug}</p>
-        <h1 className="page-title mt-0.5">{MOCK_PROJECT.name}</h1>
+        <p className="section-title">Projects / {project.type}</p>
+        <h1 className="page-title mt-0.5">{project.name}</h1>
       </div>
 
       {/* Tabs */}
@@ -54,18 +100,28 @@ export default function ProjectDetail() {
       {/* Overview tab */}
       {activeTab === 'overview' && (
         <div className="space-y-lg animate-fade-in-up">
-          {/* Description */}
           <div className="bg-ink-900 border border-ink-800 rounded-lg p-md">
             <p className="font-label text-label text-ink-400 uppercase mb-sm">Description</p>
-            <p className="font-body text-body text-ink-200">{MOCK_PROJECT.description}</p>
+            <p className="font-body text-body text-ink-200">
+              {project.description ?? 'No description.'}
+            </p>
           </div>
-
-          {/* Stats row */}
           <div className="grid grid-cols-3 gap-md">
             {[
-              { label: 'Sessions', value: MOCK_PROJECT.sessions },
-              { label: 'Agents', value: MOCK_PROJECT.agents },
-              { label: 'Knowledge entries', value: MOCK_PROJECT.knowledge },
+              { label: 'Type', value: project.type },
+              { label: 'Visibility', value: project.visibility },
+              { label: 'Your role', value: project.my_role },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
+                <p className="font-label text-label text-ink-400 uppercase mb-xs">{label}</p>
+                <p className="font-body-sm text-body-sm text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-md">
+            {[
+              { label: 'Memory entries (preview)', value: memory.length },
+              { label: 'Knowledge entries (preview)', value: knowledge.length },
             ].map(({ label, value }) => (
               <div key={label} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
                 <p className="font-label text-label text-ink-400 uppercase mb-xs">{label}</p>
@@ -73,37 +129,61 @@ export default function ProjectDetail() {
               </div>
             ))}
           </div>
-
-          {/* Recent sessions */}
-          <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden">
-            <div className="px-md py-sm border-b border-ink-800 flex justify-between items-center">
-              <h3 className="font-h3 text-h3 text-ink-100">Recent sessions</h3>
-            </div>
-            {MOCK_SESSIONS.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between px-md border-b border-ink-800/50 last:border-b-0 hover:bg-ink-800 transition-colors"
-                style={{ height: '56px' }}
-              >
-                <div>
-                  <p className="font-body-sm text-body-sm text-ink-100 font-medium">{s.name}</p>
-                  <p className="font-caption text-caption text-ink-400">{s.agent}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono-code text-mono-code text-ink-300">{s.duration}</p>
-                  <p className="font-caption text-caption text-ink-500">{s.ago}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* Other tabs — placeholder */}
-      {activeTab !== 'overview' && (
-        <div className="flex flex-col items-center justify-center py-xxl text-ink-500 animate-fade-in-up">
-          <p className="font-h3 text-h3 text-ink-400 capitalize">{activeTab} — coming soon</p>
-          <p className="font-body-sm text-body-sm text-ink-500 mt-xs">This section will be wired in a future sprint.</p>
+      {/* Memory tab */}
+      {activeTab === 'memory' && (
+        <div className="space-y-sm animate-fade-in-up">
+          {memory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+              <Brain size={40} className="mb-md opacity-30" />
+              <p className="font-h3 text-h3 text-ink-400">No memory entries</p>
+            </div>
+          ) : (
+            memory.map((m) => (
+              <div key={m.id} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
+                <div className="flex items-center gap-sm mb-xs">
+                  <span className="badge badge-neutral">{m.layer}</span>
+                  {m.category && <span className="badge badge-neutral">{m.category}</span>}
+                  {m.pinned && <span className="badge badge-primary">pinned</span>}
+                  <span className="font-caption text-caption text-ink-500 ml-auto">{timeAgo(m.created_at)}</span>
+                </div>
+                <p className="font-body-sm text-body-sm text-ink-300">{m.content}</p>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Knowledge tab */}
+      {activeTab === 'knowledge' && (
+        <div className="space-y-sm animate-fade-in-up">
+          {knowledge.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+              <BookOpen size={40} className="mb-md opacity-30" />
+              <p className="font-h3 text-h3 text-ink-400">No knowledge entries</p>
+            </div>
+          ) : (
+            knowledge.map((k) => (
+              <div key={k.id} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
+                <div className="flex items-center gap-sm mb-xs">
+                  <h3 className="font-h3 text-h3 text-ink-100">{k.title}</h3>
+                  <span className="font-caption text-caption text-ink-500 ml-auto">{timeAgo(k.created_at)}</span>
+                </div>
+                {k.path && (
+                  <p className="font-mono-code text-mono-code text-ink-500 text-[11px] mb-xs">{k.path}</p>
+                )}
+                {k.tags && k.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-xs">
+                    {k.tags.map((tag) => (
+                      <span key={tag} className="badge badge-neutral text-[9px]">{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>

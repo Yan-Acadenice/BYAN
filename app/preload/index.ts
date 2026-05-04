@@ -23,6 +23,7 @@ import {
   OnboardingOpts,
   FileWritePlan,
   OnboardingResult,
+  ByanApiListOpts,
 } from '../shared/ipc-contract';
 
 // Thin invoke helper — keeps the per-method bodies a single line and ensures
@@ -72,6 +73,26 @@ const api: ByanApi = {
   store: {
     get: <T = unknown>(key: string) => invoke<T | null>(IPC_CHANNELS.store.get, key),
     set: <T>(key: string, value: T) => invoke<void>(IPC_CHANNELS.store.set, key, value)
+  },
+  byanWeb: {
+    projects: {
+      list: () => invoke(IPC_CHANNELS.byanWeb.projectsList),
+      get: (id: string) => invoke(IPC_CHANNELS.byanWeb.projectsGet, id),
+    },
+    memory: {
+      list: (opts?: ByanApiListOpts) => invoke(IPC_CHANNELS.byanWeb.memoryList, opts),
+    },
+    knowledge: {
+      list: (opts?: ByanApiListOpts) => invoke(IPC_CHANNELS.byanWeb.knowledgeList, opts),
+    },
+    customAgents: {
+      list: () => invoke(IPC_CHANNELS.byanWeb.customAgentsList),
+    },
+    sessions: {
+      list: (opts?: Pick<ByanApiListOpts, 'projectId' | 'limit'>) =>
+        invoke(IPC_CHANNELS.byanWeb.sessionsList, opts),
+    },
+    me: () => invoke(IPC_CHANNELS.byanWeb.me),
   }
 };
 

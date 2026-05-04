@@ -1,27 +1,40 @@
-// Memory — h._memory ported to React.
-// Data: mocked statically — IPC wiring deferred to post-MVP.
+// Memory — wired to live byan_web API (/api/memory).
 
-import React, { useState } from 'react';
-import { Search, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Search, Trash2, Loader2, AlertCircle, Brain } from 'lucide-react';
+import type { ByanMemory } from '../../shared/ipc-contract';
 
-const MOCK_ENTRIES = [
-  { id: '1', timestamp: '2026-05-04T10:23:00Z', source: 'byan', snippet: 'User prefers terse, concrete responses. Token efficiency first-class concern.', confidence: 95 },
-  { id: '2', timestamp: '2026-05-03T14:05:00Z', source: 'analyst', snippet: 'Project BYAN uses Merise Agile + TDD, 64 mantras. Yan is the primary stakeholder.', confidence: 88 },
-  { id: '3', timestamp: '2026-05-02T09:11:00Z', source: 'dev', snippet: 'Electron app targets Linux + Windows. Renderer is React TSX with Tailwind CSS.', confidence: 92 },
-];
-
-function formatTs(iso: string) {
+function formatTs(iso: string): string {
   return iso.replace('T', ' ').replace('Z', '').slice(0, 16);
 }
 
 export default function Memory() {
+  const [entries, setEntries] = useState<ByanMemory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
   const [search, setSearch] = useState('');
 
-  const visible = MOCK_ENTRIES.filter(
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const list = await window.byanApi.byanWeb.memory.list({ limit: 50 });
+      setEntries(list as ByanMemory[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load memory');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const visible = entries.filter(
     (e) =>
       !search ||
-      e.snippet.toLowerCase().includes(search.toLowerCase()) ||
-      e.source.toLowerCase().includes(search.toLowerCase())
+      e.content.toLowerCase().includes(search.toLowerCase()) ||
+      (e.category ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (e.cli_source ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -46,42 +59,65 @@ export default function Memory() {
       </div>
 
       {/* Table */}
-      <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden">
-        <div className="grid grid-cols-[180px_100px_1fr_80px_60px] px-md py-sm border-b border-ink-800 bg-ink-950">
-          <span className="font-label text-label text-ink-400 uppercase">Timestamp</span>
-          <span className="font-label text-label text-ink-400 uppercase">Source</span>
-          <span className="font-label text-label text-ink-400 uppercase">Snippet</span>
-          <span className="font-label text-label text-ink-400 uppercase">Confidence</span>
-          <span />
+      {loading ? (
+        <div className="flex items-center justify-center py-xxl text-ink-400">
+          <Loader2 size={20} className="animate-spin mr-sm" />
+          <span className="font-body-sm text-body-sm">Loading memory...</span>
         </div>
-        {visible.length === 0 ? (
-          <div className="flex items-center justify-center py-xxl text-ink-500">
-            <p className="font-body-sm text-body-sm">No memory entries match your search.</p>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+          <AlertCircle size={40} className="mb-md text-red opacity-70" />
+          <p className="font-h3 text-h3 text-ink-300 mb-xs">Could not load memory</p>
+          <p className="font-body-sm text-body-sm text-ink-500 mb-md">{error}</p>
+          <button type="button" className="btn-secondary" onClick={() => void load()}>Retry</button>
+        </div>
+      ) : (
+        <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden">
+          <div className="grid grid-cols-[180px_100px_80px_1fr_80px_60px] px-md py-sm border-b border-ink-800 bg-ink-950">
+            <span className="font-label text-label text-ink-400 uppercase">Timestamp</span>
+            <span className="font-label text-label text-ink-400 uppercase">Source</span>
+            <span className="font-label text-label text-ink-400 uppercase">Layer</span>
+            <span className="font-label text-label text-ink-400 uppercase">Content</span>
+            <span className="font-label text-label text-ink-400 uppercase">Pinned</span>
+            <span />
           </div>
-        ) : (
-          <div className="divide-y divide-ink-800/50">
-            {visible.map((e) => (
-              <div
-                key={e.id}
-                className="grid grid-cols-[180px_100px_1fr_80px_60px] items-center px-md hover:bg-ink-800 transition-colors"
-                style={{ minHeight: '56px', padding: '12px 16px' }}
-              >
-                <span className="font-mono-code text-mono-code text-ink-400 text-[11px]">{formatTs(e.timestamp)}</span>
-                <span className="badge badge-neutral w-fit">{e.source}</span>
-                <span className="font-body-sm text-body-sm text-ink-300 truncate pr-md">{e.snippet}</span>
-                <span className="font-caption text-caption text-ink-400">{e.confidence}%</span>
-                <button
-                  type="button"
-                  className="p-1 rounded hover:bg-ink-700 text-ink-600 hover:text-red transition-colors"
-                  title="Delete"
+          {visible.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+              <Brain size={40} className="mb-md opacity-30" />
+              <p className="font-body-sm text-body-sm">
+                {search ? 'No memory entries match your search.' : 'No memory entries yet.'}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-ink-800/50">
+              {visible.map((e) => (
+                <div
+                  key={e.id}
+                  className="grid grid-cols-[180px_100px_80px_1fr_80px_60px] items-center px-md hover:bg-ink-800 transition-colors"
+                  style={{ minHeight: '56px', padding: '12px 16px' }}
                 >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                  <span className="font-mono-code text-mono-code text-ink-400 text-[11px]">
+                    {formatTs(e.created_at)}
+                  </span>
+                  <span className="badge badge-neutral w-fit">{e.cli_source ?? 'unknown'}</span>
+                  <span className="font-caption text-caption text-ink-400">{e.layer}</span>
+                  <span className="font-body-sm text-body-sm text-ink-300 truncate pr-md">{e.content}</span>
+                  <span className="font-caption text-caption text-ink-400">
+                    {e.pinned ? 'yes' : ''}
+                  </span>
+                  <button
+                    type="button"
+                    className="p-1 rounded hover:bg-ink-700 text-ink-600 hover:text-red transition-colors"
+                    title="Delete (not implemented)"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

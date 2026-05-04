@@ -1,30 +1,69 @@
 // Dashboard — post-login home screen.
-// Stitch screen d._dashboard ported to React.
-// Data: mocked statically — IPC wiring deferred to post-MVP.
+// Wired to live byan_web API via IPC: projects count + recent sessions.
 
-import React from 'react';
-import { FolderOpen, History, Terminal, Zap, Upload, ArrowUpRight, Brain } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { FolderOpen, History, Terminal, Zap, Upload, ArrowUpRight, Brain, Loader2, AlertCircle } from 'lucide-react';
+import type { ByanProject, ByanSession } from '../../shared/ipc-contract';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
 }
 
-const MOCK_SESSIONS = [
-  { id: '1', name: 'Alpha Deployment', agent: 'Agent-X', duration: '45m', ago: '2h ago' },
-  { id: '2', name: 'Data Ingestion Pipeline', agent: 'Crawler-Bot', duration: '1h 20m', ago: '5h ago' },
-  { id: '3', name: 'System Diagnostics', agent: 'Diagnostic-Core', duration: '12m', ago: 'Yesterday' },
-  { id: '4', name: 'Model Evaluation', agent: 'Evaluator-Prime', duration: '3h 10m', ago: 'Yesterday' },
-];
+type LoadState = 'loading' | 'error' | 'ok';
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+  const [projects, setProjects] = useState<ByanProject[]>([]);
+  const [sessions, setSessions] = useState<ByanSession[]>([]);
+  const [state, setState] = useState<LoadState>('loading');
+  const [error, setError] = useState<string>('');
+
+  const load = async () => {
+    setState('loading');
+    setError('');
+    try {
+      const [p, s] = await Promise.all([
+        window.byanApi.byanWeb.projects.list(),
+        window.byanApi.byanWeb.sessions.list({ limit: 5 }),
+      ]);
+      setProjects(p as ByanProject[]);
+      setSessions(s as ByanSession[]);
+      setState('ok');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      setState('error');
+    }
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  if (state === 'loading') {
+    return (
+      <div className="flex items-center justify-center py-xxl text-ink-400">
+        <Loader2 size={20} className="animate-spin mr-sm" />
+        <span className="font-body-sm text-body-sm">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  if (state === 'error') {
+    return (
+      <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+        <AlertCircle size={40} className="mb-md text-red opacity-70" />
+        <p className="font-h3 text-h3 text-ink-300 mb-xs">Could not load dashboard</p>
+        <p className="font-body-sm text-body-sm text-ink-500 mb-md">{error}</p>
+        <button type="button" className="btn-secondary" onClick={() => void load()}>Retry</button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-xl">
       {/* Hero */}
       <section className="space-y-xs">
-        <h2 className="font-display text-display text-white">Welcome back, Yan.</h2>
+        <h2 className="font-display text-display text-white">Welcome back.</h2>
         <div className="flex items-center gap-xs">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald" />
-          <p className="font-caption text-caption text-ink-400">Last session 2 hours ago</p>
+          <p className="font-caption text-caption text-ink-400">Connected to byan_web</p>
         </div>
       </section>
 
@@ -36,26 +75,25 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             <FolderOpen size={20} className="text-ink-400 group-hover:text-byan-500 transition-colors" />
           </div>
           <p className="font-body-sm text-body-sm text-ink-400 mb-1">Active projects</p>
-          <p className="font-display text-display text-white">4</p>
+          <p className="font-display text-display text-white">{projects.length}</p>
         </div>
-        {/* Sessions today */}
+        {/* Sessions */}
         <div className="bg-ink-900 border border-ink-800 rounded-lg p-lg hover:-translate-y-px hover:border-ink-700 transition-all duration-200 group">
           <div className="flex justify-between items-start mb-4">
             <History size={20} className="text-ink-400 group-hover:text-byan-500 transition-colors" />
           </div>
-          <p className="font-body-sm text-body-sm text-ink-400 mb-1">Sessions today</p>
-          <p className="font-display text-display text-white">12</p>
+          <p className="font-body-sm text-body-sm text-ink-400 mb-1">Recent sessions</p>
+          <p className="font-display text-display text-white">{sessions.length}</p>
         </div>
-        {/* MCP servers */}
+        {/* MCP servers — still from local IPC, not byan_web */}
         <div className="bg-ink-900 border border-ink-800 rounded-lg p-lg hover:-translate-y-px hover:border-ink-700 transition-all duration-200 group">
           <div className="flex justify-between items-start mb-4">
             <Terminal size={20} className="text-ink-400 group-hover:text-byan-500 transition-colors" />
           </div>
-          <p className="font-body-sm text-body-sm text-ink-400 mb-1">MCP servers online</p>
-          <div className="flex items-end gap-xs">
-            <p className="font-display text-display text-white">3</p>
-            <p className="font-body-sm text-body-sm text-ink-400 pb-1">/ 4</p>
-          </div>
+          <p className="font-body-sm text-body-sm text-ink-400 mb-1">MCP servers</p>
+          <p className="font-display text-display text-white">
+            <span className="cursor-pointer" onClick={() => onNavigate('mcp-servers')}>View</span>
+          </p>
         </div>
       </section>
 
@@ -74,25 +112,36 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </button>
           </div>
           <div className="flex-1">
-            {MOCK_SESSIONS.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center px-md border-b border-ink-800/50 last:border-b-0 hover:bg-ink-800 transition-colors cursor-pointer group"
-                style={{ height: '56px' }}
-              >
-                <div className="w-8 h-8 rounded bg-ink-850 border border-ink-700 flex items-center justify-center mr-md shrink-0">
-                  <Zap size={14} className="text-ink-300 group-hover:text-byan-500 transition-colors" />
-                </div>
-                <div className="flex-1 min-w-0 pr-md">
-                  <p className="font-body-sm text-body-sm text-ink-100 truncate font-medium">{s.name}</p>
-                  <p className="font-caption text-caption text-ink-400 truncate mt-0.5">{s.agent}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-mono-code text-mono-code text-ink-300">{s.duration}</p>
-                  <p className="font-caption text-caption text-ink-500 mt-0.5">{s.ago}</p>
-                </div>
+            {sessions.length === 0 ? (
+              <div className="flex items-center justify-center py-xl text-ink-500">
+                <p className="font-body-sm text-body-sm">No sessions yet.</p>
               </div>
-            ))}
+            ) : (
+              sessions.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center px-md border-b border-ink-800/50 last:border-b-0 hover:bg-ink-800 transition-colors cursor-pointer group"
+                  style={{ height: '56px' }}
+                >
+                  <div className="w-8 h-8 rounded bg-ink-850 border border-ink-700 flex items-center justify-center mr-md shrink-0">
+                    <Zap size={14} className="text-ink-300 group-hover:text-byan-500 transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0 pr-md">
+                    <p className="font-body-sm text-body-sm text-ink-100 truncate font-medium">
+                      {s.agent_slug ?? 'Session'}
+                    </p>
+                    <p className="font-caption text-caption text-ink-400 truncate mt-0.5">
+                      {s.status}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-caption text-caption text-ink-500 mt-0.5">
+                      {new Date(s.started_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -121,7 +170,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               onClick={() => onNavigate('projects')}
             >
               <ArrowUpRight size={16} />
-              Open last project
+              Open projects
             </button>
             <button
               type="button"
