@@ -88,6 +88,12 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
 
   const [error, setError] = useState('');
 
+  // Clear stale error banners as soon as the user navigates between steps
+  // or toggles a platform — keeps the current step's error contextually scoped.
+  useEffect(() => {
+    setError('');
+  }, [step]);
+
   useEffect(() => {
     const check = async () => {
       try {
@@ -158,6 +164,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   };
 
   const handlePlatformToggle = (key: PlatformKey) => {
+    setError('');
     setPlatforms((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -203,7 +210,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     setError('');
     const activePlans = plans.filter((p) => !cancelledPlatforms.has(p.platform as PlatformKey));
     if (activePlans.length === 0) {
-      setError('All platforms were cancelled. Select at least one to continue.');
+      // Distinguish "nothing to write" (preview returned []) from "user
+      // cancelled every preview block" — both produce zero active plans
+      // but the user-facing message differs.
+      if (plans.length === 0) {
+        setError('Nothing to write — the selected platforms are already configured.');
+      } else {
+        setError('All platforms were cancelled. Restore at least one to continue.');
+      }
       return;
     }
     setStep(3);
