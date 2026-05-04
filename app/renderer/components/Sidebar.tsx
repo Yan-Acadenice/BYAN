@@ -6,6 +6,7 @@
 import React from 'react';
 import {
   LayoutDashboard,
+  MessageSquare,
   FolderOpen,
   Bot,
   BrainCircuit,
@@ -19,6 +20,7 @@ import AcadeniceBadge from './AcadeniceBadge';
 
 export type NavPage =
   | 'dashboard'
+  | 'chat'
   | 'projects'
   | 'agents'
   | 'memory'
@@ -35,6 +37,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { id: 'chat', label: 'Chat', Icon: MessageSquare },
   { id: 'projects', label: 'Projects', Icon: FolderOpen },
   { id: 'agents', label: 'Agents', Icon: Bot },
   { id: 'memory', label: 'Memory', Icon: BrainCircuit },

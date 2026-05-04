@@ -128,6 +128,71 @@ export interface ByanSession {
   updated_at: string;
 }
 
+// ---------- Chat types ----------
+// Derived from the live API contract confirmed via curl against
+// POST /api/chat/conversations and GET /api/chat/conversations/:id/messages.
+
+export type ChatCliProvider = 'claude-code' | 'copilot' | 'codex';
+
+export interface ChatScope {
+  types: string[];
+  projectId: string | null;
+  knowledgeTags: string[];
+  memoryTags: string[];
+  memoryLimit: number;
+  knowledgeLimit: number;
+  tokenBudget: number;
+}
+
+export interface ChatConversation {
+  id: string;
+  project_id: string | null;
+  agent_id: string | null;
+  title: string;
+  model: string | null;
+  provider: string | null;
+  system_prompt: string | null;
+  created_by: string;
+  owner_id: string;
+  cli_provider: ChatCliProvider | null;
+  scope_snapshot: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  cli_provider: ChatCliProvider | null;
+  tokens_in: number | null;
+  tokens_out: number | null;
+  cost_usd: number | null;
+  duration_ms: number | null;
+  credential_source: string | null;
+  created_at: string;
+}
+
+export interface CreateConversationOpts {
+  title?: string;
+  cli_provider?: ChatCliProvider;
+  scope?: Partial<ChatScope>;
+  projectId?: string;
+}
+
+export interface SendMessageOpts {
+  cli_provider?: ChatCliProvider;
+  scope?: Partial<ChatScope>;
+}
+
+// SSE chunk types received from main via byan:chat:chunk event.
+export type ChatChunkPayload =
+  | { streamId: string; type: 'chunk'; delta: string }
+  | { streamId: string; type: 'end'; messageId: string; credentialSource: string | null }
+  | { streamId: string; type: 'error'; error: string };
+
 export interface ByanUser {
   id: string;
   username: string;
@@ -233,6 +298,22 @@ export interface ByanApi {
       list(opts?: Pick<ByanApiListOpts, 'projectId' | 'limit'>): Promise<ByanSession[]>;
     };
     me(): Promise<ByanUser>;
+    chat: {
+      conversations: {
+        list(): Promise<ChatConversation[]>;
+        create(opts: CreateConversationOpts): Promise<ChatConversation>;
+        delete(id: string): Promise<void>;
+      };
+      messages: {
+        list(conversationId: string, opts?: { limit?: number }): Promise<ChatMessage[]>;
+      };
+      stream: {
+        // Opens an SSE connection. Chunks arrive via byan:chat:chunk events.
+        // Returns a streamId used to correlate events and to abort.
+        start(conversationId: string, message: string, opts?: SendMessageOpts): Promise<{ streamId: string }>;
+        abort(streamId: string): Promise<void>;
+      };
+    };
   };
   fs: {
     // Returns the absolute path the user picked, or null if they cancelled.
@@ -327,9 +408,17 @@ export const IPC_CHANNELS = {
     knowledgeList: 'byan:byanWeb:knowledge:list',
     customAgentsList: 'byan:byanWeb:customAgents:list',
     sessionsList: 'byan:byanWeb:sessions:list',
-    me: 'byan:byanWeb:me'
+    me: 'byan:byanWeb:me',
+    chatConversationsList: 'byan:byanWeb:chat:conversations:list',
+    chatConversationsCreate: 'byan:byanWeb:chat:conversations:create',
+    chatConversationsDelete: 'byan:byanWeb:chat:conversations:delete',
+    chatMessagesList: 'byan:byanWeb:chat:messages:list',
+    chatStreamStart: 'byan:byanWeb:chat:stream:start',
+    chatStreamAbort: 'byan:byanWeb:chat:stream:abort',
   }
 } as const;
+// Event channels pushed from main -> renderer (used with byanEvents.on):
+//   byan:chat:chunk — ChatChunkPayload
 
 // ---------- Error envelope ----------
 // When a handler throws, Electron serializes the Error across the IPC boundary.

@@ -138,6 +138,95 @@ liveOnly('live byan_web endpoints contract', () => {
     // Sessions may be empty — shape is still valid
   });
 
+  // ---------- Chat ----------
+
+  it('GET /api/chat/conversations returns { data: Conversation[] } shape', async () => {
+    const res = await fetch(`${URL}/api/chat/conversations`, {
+      headers: { Authorization: `ApiKey ${TOKEN}` }
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveProperty('data');
+    expect(Array.isArray(body.data)).toBe(true);
+    if (body.data.length > 0) {
+      const c = body.data[0];
+      expect(c).toHaveProperty('id');
+      expect(c).toHaveProperty('title');
+      expect(c).toHaveProperty('owner_id');
+      expect(c).toHaveProperty('created_at');
+      expect(c).toHaveProperty('updated_at');
+    }
+  });
+
+  it('GET /api/chat/conversations requires auth', async () => {
+    const res = await fetch(`${URL}/api/chat/conversations`);
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/chat/conversations/:id/messages returns { data: Message[] } shape', async () => {
+    // Requires an existing conversation — fetch list first.
+    const listRes = await fetch(`${URL}/api/chat/conversations`, {
+      headers: { Authorization: `ApiKey ${TOKEN}` }
+    });
+    const list = await listRes.json();
+    if (!list.data || list.data.length === 0) return; // no conversations to test
+
+    const convId: string = list.data[0].id;
+    const res = await fetch(`${URL}/api/chat/conversations/${convId}/messages?limit=5`, {
+      headers: { Authorization: `ApiKey ${TOKEN}` }
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toHaveProperty('data');
+    expect(Array.isArray(body.data)).toBe(true);
+    if (body.data.length > 0) {
+      const m = body.data[0];
+      expect(m).toHaveProperty('id');
+      expect(m).toHaveProperty('conversation_id');
+      expect(m).toHaveProperty('role');
+      expect(m).toHaveProperty('content');
+      expect(m).toHaveProperty('created_at');
+    }
+  });
+
+  it('POST /api/chat/conversations/:id/send returns SSE with type field', { timeout: 20_000 }, async () => {
+    // Get any conversation owned by us — or skip if none exist.
+    const listRes = await fetch(`${URL}/api/chat/conversations`, {
+      headers: { Authorization: `ApiKey ${TOKEN}` }
+    });
+    const list = await listRes.json();
+    if (!list.data || list.data.length === 0) return;
+
+    // Find a conversation with cli_provider set (needed for the bridge to route).
+    const conv = list.data.find((c: { cli_provider: string | null }) => c.cli_provider !== null) ?? list.data[0];
+
+    const res = await fetch(`${URL}/api/chat/conversations/${conv.id}/send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `ApiKey ${TOKEN}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify({ prompt: 'ping' }),
+    });
+
+    // The endpoint always returns 200 with SSE, even on CLI errors.
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/event-stream');
+
+    // Read at least one SSE line to verify the protocol.
+    const reader = res.body?.getReader();
+    expect(reader).toBeTruthy();
+    const { value } = await reader!.read();
+    const text = new TextDecoder().decode(value);
+    expect(text).toContain('data:');
+    // The line should be valid JSON inside "data: {...}".
+    const line = text.split('\n').find((l) => l.startsWith('data: '));
+    expect(line).toBeTruthy();
+    const parsed = JSON.parse(line!.slice(6)) as { type: string };
+    expect(['chunk', 'end', 'error']).toContain(parsed.type);
+  });
+
   it('GET /api/projects/:id returns { data: Project } for a known project', async () => {
     // First fetch the list to get a real project ID.
     const listRes = await fetch(`${URL}/api/projects`, {

@@ -24,6 +24,8 @@ import {
   FileWritePlan,
   OnboardingResult,
   ByanApiListOpts,
+  CreateConversationOpts,
+  SendMessageOpts,
 } from '../shared/ipc-contract';
 
 // Thin invoke helper — keeps the per-method bodies a single line and ensures
@@ -93,6 +95,25 @@ const api: ByanApi = {
         invoke(IPC_CHANNELS.byanWeb.sessionsList, opts),
     },
     me: () => invoke(IPC_CHANNELS.byanWeb.me),
+    chat: {
+      conversations: {
+        list: () => invoke(IPC_CHANNELS.byanWeb.chatConversationsList),
+        create: (opts: CreateConversationOpts) =>
+          invoke(IPC_CHANNELS.byanWeb.chatConversationsCreate, opts),
+        delete: (id: string) =>
+          invoke(IPC_CHANNELS.byanWeb.chatConversationsDelete, id),
+      },
+      messages: {
+        list: (conversationId: string, opts?: { limit?: number }) =>
+          invoke(IPC_CHANNELS.byanWeb.chatMessagesList, conversationId, opts),
+      },
+      stream: {
+        start: (conversationId: string, message: string, opts?: SendMessageOpts) =>
+          invoke<{ streamId: string }>(IPC_CHANNELS.byanWeb.chatStreamStart, conversationId, message, opts),
+        abort: (streamId: string) =>
+          invoke(IPC_CHANNELS.byanWeb.chatStreamAbort, streamId),
+      },
+    },
   }
 };
 

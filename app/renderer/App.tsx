@@ -15,6 +15,7 @@ import React, { useEffect, useState } from 'react';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Chat from './pages/Chat';
 import Projects from './pages/Projects';
 import Agents from './pages/Agents';
 import Memory from './pages/Memory';
@@ -30,6 +31,7 @@ type Route = 'loading' | 'onboarding' | 'login' | 'app';
 
 const PAGE_LABELS: Record<NavPage, string> = {
   dashboard: 'Dashboard',
+  chat: 'Chat',
   projects: 'Projects',
   agents: 'Agents',
   memory: 'Memory',
@@ -116,6 +118,8 @@ export default function App() {
     switch (activePage) {
       case 'dashboard':
         return <Dashboard onNavigate={(p) => setActivePage(p as NavPage)} />;
+      case 'chat':
+        return <Chat />;
       case 'projects':
         return <Projects />;
       case 'agents':

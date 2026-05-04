@@ -7,6 +7,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import Dashboard from '../pages/Dashboard';
+import Chat from '../pages/Chat';
 import Projects from '../pages/Projects';
 import Agents from '../pages/Agents';
 import Memory from '../pages/Memory';
@@ -35,6 +36,21 @@ function defaultByanWebApi() {
       list: vi.fn().mockResolvedValue([]),
     },
     me: vi.fn().mockResolvedValue({ id: 'u1', username: 'yan', email: 'y@test.com', role: 'admin', displayName: 'Yan' }),
+    chat: {
+      conversations: {
+        list: vi.fn().mockResolvedValue([]),
+        create: vi.fn().mockResolvedValue({ id: 'c1', title: 'New', cli_provider: 'claude-code',
+          owner_id: 'u1', created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null }),
+        delete: vi.fn().mockResolvedValue(undefined),
+      },
+      messages: {
+        list: vi.fn().mockResolvedValue([]),
+      },
+      stream: {
+        start: vi.fn().mockResolvedValue({ streamId: 'sid-1' }),
+        abort: vi.fn().mockResolvedValue(undefined),
+      },
+    },
   };
 }
 
@@ -257,5 +273,93 @@ describe('ProjectDetail', () => {
     });
     render(<ProjectDetail projectId="p1" />);
     await waitFor(() => expect(screen.getByText('BYAN Platform')).toBeTruthy());
+  });
+});
+
+// ---------- Chat ----------
+
+describe('Chat', () => {
+  it('shows loading spinner while conversations load', () => {
+    const neverResolves = new Promise<never>(() => {});
+    mountByanApi({
+      ...defaultByanWebApi(),
+      chat: {
+        ...defaultByanWebApi().chat,
+        conversations: {
+          ...defaultByanWebApi().chat.conversations,
+          list: vi.fn().mockReturnValue(neverResolves),
+        },
+      },
+    });
+    render(<Chat />);
+    expect(screen.getByText(/Loading/i)).toBeTruthy();
+  });
+
+  it('shows empty state when no conversations exist', async () => {
+    render(<Chat />);
+    await waitFor(() => expect(screen.getByText(/No conversations yet/i)).toBeTruthy());
+  });
+
+  it('shows error + Retry when conversations fail to load', async () => {
+    mountByanApi({
+      ...defaultByanWebApi(),
+      chat: {
+        ...defaultByanWebApi().chat,
+        conversations: {
+          ...defaultByanWebApi().chat.conversations,
+          list: vi.fn().mockRejectedValue(new Error('Network error')),
+        },
+      },
+    });
+    render(<Chat />);
+    await waitFor(() => expect(screen.getByText('Retry')).toBeTruthy());
+  });
+
+  it('renders conversation in sidebar when one exists', async () => {
+    const conv = {
+      id: 'c1', title: 'My Chat', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: null, agent_id: null, model: null, provider: null, system_prompt: null,
+      created_by: 'u1', scope_snapshot: null, deleted_at: null,
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z',
+    };
+    mountByanApi({
+      ...defaultByanWebApi(),
+      chat: {
+        ...defaultByanWebApi().chat,
+        conversations: {
+          ...defaultByanWebApi().chat.conversations,
+          list: vi.fn().mockResolvedValue([conv]),
+        },
+        messages: { list: vi.fn().mockResolvedValue([]) },
+      },
+    });
+    render(<Chat />);
+    // Title appears in sidebar + conversation header (2 elements is expected).
+    await waitFor(() => expect(screen.getAllByText('My Chat').length).toBeGreaterThan(0));
+  });
+
+  it('shows input area when a conversation is active', async () => {
+    const conv = {
+      id: 'c1', title: 'Active Conv', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: null, agent_id: null, model: null, provider: null, system_prompt: null,
+      created_by: 'u1', scope_snapshot: null, deleted_at: null,
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z',
+    };
+    mountByanApi({
+      ...defaultByanWebApi(),
+      chat: {
+        ...defaultByanWebApi().chat,
+        conversations: {
+          ...defaultByanWebApi().chat.conversations,
+          list: vi.fn().mockResolvedValue([conv]),
+        },
+        messages: { list: vi.fn().mockResolvedValue([]) },
+      },
+    });
+    render(<Chat />);
+    // Title appears in sidebar + conversation header (2 occurrences is expected).
+    await waitFor(() => expect(screen.getAllByText('Active Conv').length).toBeGreaterThan(0));
+    // Input textarea should be visible
+    expect(screen.getByPlaceholderText(/Message/i)).toBeTruthy();
   });
 });

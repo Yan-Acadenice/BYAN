@@ -195,3 +195,91 @@ describe('IpcError code propagation', () => {
     expect(err).toBeInstanceOf(Error);
   });
 });
+
+// ---------- fetchChatConversations ----------
+
+describe('fetchChatConversations', () => {
+  it('returns conversations array on 200', async () => {
+    const convs = [
+      { id: 'c1', title: 'Test conv', cli_provider: 'claude-code', owner_id: 'u1',
+        created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null }
+    ];
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: convs }));
+    const result = await client.fetchChatConversations();
+    expect(result).toEqual(convs);
+  });
+
+  it('returns empty array when data is empty', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: [] }));
+    const result = await client.fetchChatConversations();
+    expect(result).toEqual([]);
+  });
+
+  it('hits /api/chat/conversations', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: [] }));
+    await client.fetchChatConversations();
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/api/chat/conversations');
+  });
+});
+
+// ---------- createChatConversation ----------
+
+describe('createChatConversation', () => {
+  it('POSTs to /api/chat/conversations and returns conversation', async () => {
+    const conv = { id: 'c2', title: 'New', cli_provider: 'claude-code', owner_id: 'u1',
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null };
+    mockFetch.mockResolvedValueOnce(makeResponse(201, { data: conv }));
+    const result = await client.createChatConversation({ title: 'New', cli_provider: 'claude-code' });
+    expect(result).toEqual(conv);
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/api/chat/conversations');
+    expect(init?.method).toBe('POST');
+  });
+
+  it('throws AUTH_REQUIRED when no token', async () => {
+    mockSecureStore.get.mockResolvedValue(null);
+    await expect(client.createChatConversation({ title: 'x' })).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
+  });
+});
+
+// ---------- deleteChatConversation ----------
+
+describe('deleteChatConversation', () => {
+  it('sends DELETE to correct URL', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: { deleted: true } }));
+    await client.deleteChatConversation('c1');
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/api/chat/conversations/c1');
+    expect(init?.method).toBe('DELETE');
+  });
+});
+
+// ---------- fetchChatMessages ----------
+
+describe('fetchChatMessages', () => {
+  it('returns messages array on 200', async () => {
+    const msgs = [
+      { id: 'm1', conversation_id: 'c1', role: 'user', content: 'hi', cli_provider: null,
+        tokens_in: null, tokens_out: null, cost_usd: null, duration_ms: null,
+        credential_source: null, created_at: '2026-05-04T00:00:00Z' }
+    ];
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: msgs }));
+    const result = await client.fetchChatMessages('c1', { limit: 10 });
+    expect(result).toEqual(msgs);
+  });
+
+  it('passes limit in query string', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: [] }));
+    await client.fetchChatMessages('c1', { limit: 25 });
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('limit=25');
+  });
+
+  it('includes conversationId in path', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: [] }));
+    await client.fetchChatMessages('conv-abc', {});
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain('/api/chat/conversations/conv-abc/messages');
+  });
+});

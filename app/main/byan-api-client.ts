@@ -23,6 +23,9 @@ import type {
   ByanSession,
   ByanUser,
   ByanApiListOpts,
+  ChatConversation,
+  ChatMessage,
+  CreateConversationOpts,
 } from '../shared/ipc-contract';
 
 // ---------- Config ----------
@@ -73,6 +76,84 @@ async function apiFetch(path: string): Promise<unknown> {
   }
 
   return res.json();
+}
+
+// ---------- POST helper ----------
+// Shared logic for authenticated POST requests returning JSON.
+
+async function apiFetchPost(path: string, body: unknown): Promise<unknown> {
+  const token = await secureStore.get(AUTH_TOKEN_KEY);
+  if (!token) {
+    throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
+  }
+
+  const storedUrl = await secureStore.get(AUTH_URL_KEY);
+  const base = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `ApiKey ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    throw new IpcError('UNAVAILABLE', `API unreachable: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    throw new IpcError('AUTH_REQUIRED', 'Session expired or token revoked — please log in again.');
+  }
+
+  if (!res.ok) {
+    throw new IpcError('INTERNAL', `API error ${res.status} for ${path}`);
+  }
+
+  return res.json();
+}
+
+// DELETE helper — no body, returns void on 200.
+async function apiFetchDelete(path: string): Promise<void> {
+  const token = await secureStore.get(AUTH_TOKEN_KEY);
+  if (!token) {
+    throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
+  }
+
+  const storedUrl = await secureStore.get(AUTH_URL_KEY);
+  const base = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}${path}`, {
+      method: 'DELETE',
+      headers: { Authorization: `ApiKey ${token}` },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    throw new IpcError('UNAVAILABLE', `API unreachable: ${err instanceof Error ? err.message : String(err)}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  if (res.status === 401 || res.status === 403) {
+    throw new IpcError('AUTH_REQUIRED', 'Session expired or token revoked — please log in again.');
+  }
+
+  if (!res.ok) {
+    throw new IpcError('INTERNAL', `API error ${res.status} for ${path}`);
+  }
 }
 
 // ---------- Query string builder ----------
@@ -139,4 +220,47 @@ export async function fetchSessions(opts: Pick<ByanApiListOpts, 'projectId' | 'l
   };
   const body = await apiFetch(`/api/sessions${qs(params)}`) as { data: ByanSession[] };
   return body.data ?? [];
+}
+
+// ---------- Chat ----------
+
+export async function fetchChatConversations(): Promise<ChatConversation[]> {
+  const body = await apiFetch('/api/chat/conversations') as { data: ChatConversation[] };
+  return body.data ?? [];
+}
+
+export async function createChatConversation(opts: CreateConversationOpts): Promise<ChatConversation> {
+  const body = await apiFetchPost('/api/chat/conversations', opts) as { data: ChatConversation };
+  return body.data;
+}
+
+export async function deleteChatConversation(id: string): Promise<void> {
+  await apiFetchDelete(`/api/chat/conversations/${encodeURIComponent(id)}`);
+}
+
+export async function fetchChatMessages(
+  conversationId: string,
+  opts: { limit?: number } = {}
+): Promise<ChatMessage[]> {
+  const params: Record<string, string | number | undefined> = { limit: opts.limit };
+  const body = await apiFetch(
+    `/api/chat/conversations/${encodeURIComponent(conversationId)}/messages${qs(params)}`
+  ) as { data: ChatMessage[] };
+  return body.data ?? [];
+}
+
+// ---------- SSE stream helpers ----------
+// The SSE stream is opened by startChatStream (called from the IPC handler in byan-web.ts).
+// These helpers provide the token and base URL needed by that handler.
+
+export async function getChatStreamUrl(conversationId: string): Promise<string> {
+  const storedUrl = await secureStore.get(AUTH_URL_KEY);
+  const base = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+  return `${base}/api/chat/conversations/${encodeURIComponent(conversationId)}/send`;
+}
+
+export async function getAuthToken(): Promise<string> {
+  const token = await secureStore.get(AUTH_TOKEN_KEY);
+  if (!token) throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
+  return token;
 }
