@@ -83,6 +83,27 @@ async function probeToken(url: string, token: string): Promise<'ok' | 'invalid_t
   }
 }
 
+// Probes the embedded local server (install/src/webui/server.js).
+// That server has no auth layer — it exposes /api/health which returns
+// 200 OK as long as the process is alive. We use it as a liveness check
+// so the user gets a real "Local server is unreachable" message instead
+// of a misleading "invalid token" when the spawned process has crashed.
+async function probeLocalServer(url: string): Promise<'ok' | 'unreachable'> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${url.replace(/\/$/, '')}/api/health`, {
+      method: 'GET',
+      signal: controller.signal
+    });
+    return res.status === 200 ? 'ok' : 'unreachable';
+  } catch {
+    return 'unreachable';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
   if (!opts || typeof opts !== 'object') {
     throw new IpcError('INVALID_ARGUMENT', 'login: opts must be an object');
@@ -116,12 +137,16 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
         ? `http://localhost:${(serverStatus as { running: true; port: number }).port}`
         : resolvedUrl;
 
-    // Token is optional for local dev mode.
+    // Liveness probe against the embedded server's /api/health endpoint.
+    // The local server has no auth layer, so we never call /api/auth/me here
+    // (it does not exist there) and we ignore the token at probe time.
+    const localProbe = await probeLocalServer(localUrl);
+    if (localProbe !== 'ok') {
+      return { ok: false, reason: 'unreachable', message: 'Serveur local inaccessible.' };
+    }
+
+    // Token is optional for local dev mode — persist if provided.
     if (opts.token) {
-      const probeResult = await probeToken(localUrl, opts.token);
-      if (probeResult !== 'ok') {
-        return { ok: false, reason: probeResult, message: probeResult === 'invalid_token' ? 'Token invalide pour le serveur local.' : 'Serveur local inaccessible.' };
-      }
       await secureStore.set(AUTH_TOKEN_KEY, opts.token);
     }
 

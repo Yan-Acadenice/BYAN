@@ -178,20 +178,25 @@ describe('auth.login — local mode', () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('returns ok when local server is running (no token)', async () => {
+  it('returns ok when local server health probe succeeds (no token)', async () => {
     const ls = makeMockLocalServer(true, 3737);
     auth.setLocalServerForAuth(ls);
+    // /api/health returns 200 → probe ok
+    mockFetch.mockResolvedValue(makeResponse(200));
 
     const r = await auth.login({ mode: 'local' });
 
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.mode).toBe('local');
-    // No token → no SecureStore write, no fetch.
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/health'),
+      expect.any(Object)
+    );
+    // No token supplied → SecureStore not touched.
     expect(mockSecureStore.set).not.toHaveBeenCalled();
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it('validates token against local server when token is provided and server is up', async () => {
+  it('persists token alongside the local-server health probe when one is supplied', async () => {
     const ls = makeMockLocalServer(true, 9000);
     auth.setLocalServerForAuth(ls);
     mockFetch.mockResolvedValue(makeResponse(200));
@@ -200,21 +205,22 @@ describe('auth.login — local mode', () => {
 
     expect(r.ok).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('localhost:9000'),
+      expect.stringContaining('localhost:9000/api/health'),
       expect.any(Object)
     );
     expect(mockSecureStore.set).toHaveBeenCalledWith('auth.token', 'byan_local_tok');
   });
 
-  it('returns invalid_token when local token probe fails', async () => {
+  it('returns unreachable when the local /api/health probe fails', async () => {
     const ls = makeMockLocalServer(true, 9000);
     auth.setLocalServerForAuth(ls);
-    mockFetch.mockResolvedValue(makeResponse(401));
+    // Server replies but /api/health is not 200 (process degraded).
+    mockFetch.mockResolvedValue(makeResponse(500));
 
-    const r = await auth.login({ mode: 'local', token: 'bad_local' });
+    const r = await auth.login({ mode: 'local', token: 'any' });
 
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('invalid_token');
+    if (!r.ok) expect(r.reason).toBe('unreachable');
     expect(mockSecureStore.set).not.toHaveBeenCalled();
   });
 
