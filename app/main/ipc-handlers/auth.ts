@@ -1,7 +1,7 @@
 // Auth IPC handlers.
 //
 // login: validates the token against the remote server BEFORE persisting it.
-//   - cloud/custom: fires a probe request to <url>/api/auth/whoami with the supplied token.
+//   - cloud/custom: fires a probe request to <url>/api/auth/me with the supplied token.
 //     On 200 → persist via SecureStore, return ok.
 //     On 401/403 → return { ok: false, reason: 'invalid_token' }.
 //     On network error / timeout → return { ok: false, reason: 'unreachable' }.
@@ -60,7 +60,11 @@ async function probeToken(url: string, token: string): Promise<'ok' | 'invalid_t
   const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
 
   try {
-    const endpoint = `${url.replace(/\/$/, '')}/api/auth/whoami`;
+    // /api/auth/me is the byan_web endpoint that returns the current user
+    // when an ApiKey or Bearer token is valid. Verified live against
+    // byan-api.stark.a3n.fr — returns 200 with user JSON on success,
+    // 401 on invalid token, 404 if the URL points at the wrong service.
+    const endpoint = `${url.replace(/\/$/, '')}/api/auth/me`;
     const res = await fetch(endpoint, {
       method: 'GET',
       headers: { Authorization: `ApiKey ${token}` },
