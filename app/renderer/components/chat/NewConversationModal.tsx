@@ -180,7 +180,30 @@ export default function NewConversationModal({
             </label>
             <select
               value={form.projectId}
-              onChange={(e) => set('projectId', e.target.value)}
+              onChange={(e) => {
+                // Auto-bind project + knowledge + memory scope when a project
+                // is selected so the CLI receives the project's CLAUDE.md,
+                // pinned knowledge entries and recent memory at conversation
+                // creation time. Without this the backend resolveConversationScope
+                // falls back to the user's default context, which is the
+                // root cause of "centralis confused with byan" on cold start.
+                const projectId = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  projectId,
+                  scope: projectId
+                    ? {
+                        types: ['project', 'knowledge', 'memory'],
+                        projectId,
+                        knowledgeTags: f.scope.knowledgeTags ?? [],
+                        memoryTags: f.scope.memoryTags ?? [],
+                        knowledgeLimit: f.scope.knowledgeLimit ?? 10,
+                        memoryLimit: f.scope.memoryLimit ?? 10,
+                        tokenBudget: f.scope.tokenBudget ?? 2000,
+                      }
+                    : { ...DEFAULT_SCOPE },
+                }));
+              }}
               className="w-full bg-ink-800 border border-ink-700 rounded-lg px-sm py-sm text-ink-200 text-sm focus:outline-none focus:border-byan-500 transition-colors"
             >
               <option value="">None (global context)</option>
@@ -188,7 +211,11 @@ export default function NewConversationModal({
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
-            {!form.projectId && (
+            {form.projectId ? (
+              <p className="text-[10px] text-emerald-400/80 mt-xs">
+                Project context auto-loaded (CLAUDE.md, knowledge, memory).
+              </p>
+            ) : (
               <p className="text-[10px] text-amber-500/70 mt-xs">
                 Without a project the CLI may use the default BYAN context.
               </p>

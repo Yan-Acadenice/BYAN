@@ -42,6 +42,7 @@ import type {
   CreateConversationOpts,
 } from '../../shared/ipc-contract';
 import NewConversationModal from '../components/chat/NewConversationModal';
+import MessageMarkdown from '../components/chat/MessageMarkdown';
 
 // ---------- Constants ----------
 
@@ -184,8 +185,8 @@ function MessageBubble({ msg }: MessageBubbleProps) {
             : 'bg-ink-800 border border-ink-700 text-ink-200 rounded-bl-sm',
         ].join(' ')}
       >
-        {/* Render content — simple preformatted for now (no markdown dep added). */}
-        <span className="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</span>
+        {/* Markdown rendering — CLIs return lists, code blocks, tables; plain text is illegible. */}
+        <MessageMarkdown content={msg.content} />
         <div className="flex items-center justify-between mt-xs gap-xs">
           {!isUser && cli && (
             <span className={`px-1 py-0.5 rounded text-[9px] font-medium ${CLI_BADGE_CLASS[cli]}`}>
