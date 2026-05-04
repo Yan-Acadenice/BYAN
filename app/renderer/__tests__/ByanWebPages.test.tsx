@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import Dashboard from '../pages/Dashboard';
 import Chat from '../pages/Chat';
 import Projects from '../pages/Projects';
@@ -14,6 +14,9 @@ import Memory from '../pages/Memory';
 import Knowledge from '../pages/Knowledge';
 import Sessions from '../pages/Sessions';
 import ProjectDetail from '../pages/ProjectDetail';
+import NewConversationModal from '../components/chat/NewConversationModal';
+import AgentPicker from '../components/chat/AgentPicker';
+import ScopePicker from '../components/chat/ScopePicker';
 
 // ---- helpers ----
 
@@ -361,5 +364,269 @@ describe('Chat', () => {
     await waitFor(() => expect(screen.getAllByText('Active Conv').length).toBeGreaterThan(0));
     // Input textarea should be visible
     expect(screen.getByPlaceholderText(/Message/i)).toBeTruthy();
+  });
+
+  it('opens NewConversationModal when + button is clicked', async () => {
+    render(<Chat />);
+    await waitFor(() => expect(screen.getByText(/No conversations yet/i)).toBeTruthy());
+    const plusBtn = screen.getByTitle('New conversation');
+    fireEvent.click(plusBtn);
+    // Modal contains a specific subtitle that only appears inside the modal, not in the empty state.
+    expect(screen.getByText(/Configure CLI, project and agent scope/i)).toBeTruthy();
+  });
+
+  it('renders project + agent badges when conversation has ids', async () => {
+    const conv = {
+      id: 'c1', title: 'Centralis Chat', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: 'proj-centralis', agent_id: 'agent-winston',
+      model: null, provider: null, system_prompt: null,
+      created_by: 'u1', scope_snapshot: null, deleted_at: null,
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z',
+    };
+    mountByanApi({
+      ...defaultByanWebApi(),
+      projects: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'proj-centralis', name: 'Centralis', type: 'dev', visibility: 'private',
+            my_role: 'admin', description: null, taxonomy_type: null, root_node_id: null,
+            metadata_tree: null, created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-04T00:00:00Z' },
+        ]),
+        get: vi.fn().mockResolvedValue(null),
+      },
+      customAgents: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'agent-winston', slug: 'winston', name: 'Winston', title: 'Architect',
+            icon: null, color: null, role: null, identity: null, communication_style: null,
+            principles: [], menu: [], soul: null, tao: null, knowledge: [],
+            model_preferences: {}, parent_slug: null, created_by: 'u1', status: 'active',
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z' },
+        ]),
+      },
+      chat: {
+        ...defaultByanWebApi().chat,
+        conversations: {
+          ...defaultByanWebApi().chat.conversations,
+          list: vi.fn().mockResolvedValue([conv]),
+        },
+        messages: { list: vi.fn().mockResolvedValue([]) },
+      },
+    });
+    render(<Chat />);
+    // Badges for project and agent should appear in the conversation header.
+    await waitFor(() => expect(screen.getByText(/Project: Centralis/)).toBeTruthy());
+    expect(screen.getByText(/Agent: Winston/)).toBeTruthy();
+  });
+});
+
+// ---------- NewConversationModal ----------
+
+describe('NewConversationModal', () => {
+  it('renders when open=true', () => {
+    render(
+      <NewConversationModal open={true} onClose={vi.fn()} onCreate={vi.fn()} />
+    );
+    expect(screen.getByText('New conversation')).toBeTruthy();
+  });
+
+  it('does not render when open=false', () => {
+    render(
+      <NewConversationModal open={false} onClose={vi.fn()} onCreate={vi.fn()} />
+    );
+    expect(screen.queryByText('New conversation')).toBeNull();
+  });
+
+  it('calls onCreate with projectId and agentId from form', async () => {
+    const mockCreate = vi.fn();
+    mountByanApi({
+      ...defaultByanWebApi(),
+      projects: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'p1', name: 'MyProject', type: 'dev', visibility: 'private',
+            my_role: 'admin', description: null, taxonomy_type: null, root_node_id: null,
+            metadata_tree: null, created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-04T00:00:00Z' },
+        ]),
+        get: vi.fn().mockResolvedValue(null),
+      },
+      customAgents: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'a1', slug: 'winston', name: 'Winston', title: 'Architect',
+            icon: null, color: null, role: null, identity: null, communication_style: null,
+            principles: [], menu: [], soul: null, tao: null, knowledge: [],
+            model_preferences: {}, parent_slug: null, created_by: 'u1', status: 'active',
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z' },
+        ]),
+      },
+    });
+    render(
+      <NewConversationModal open={true} onClose={vi.fn()} onCreate={mockCreate} />
+    );
+
+    // Wait for projects + agents to load into selects.
+    await waitFor(() => expect(screen.getByText('MyProject')).toBeTruthy());
+
+    // Use the select by finding the option and its parent select.
+    const projectOption = screen.getByText('MyProject') as HTMLOptionElement;
+    fireEvent.change(projectOption.parentElement!, { target: { value: 'p1' } });
+
+    // Click Create.
+    const createBtn = screen.getByRole('button', { name: /create/i });
+    fireEvent.click(createBtn);
+
+    expect(mockCreate).toHaveBeenCalledOnce();
+    const call = mockCreate.mock.calls[0][0];
+    expect(call.projectId).toBe('p1');
+  });
+
+  it('calls onClose when Cancel is clicked', () => {
+    const mockClose = vi.fn();
+    render(
+      <NewConversationModal open={true} onClose={mockClose} onCreate={vi.fn()} />
+    );
+    const cancelBtn = screen.getByRole('button', { name: /cancel/i });
+    fireEvent.click(cancelBtn);
+    expect(mockClose).toHaveBeenCalledOnce();
+  });
+});
+
+// ---------- AgentPicker ----------
+
+describe('AgentPicker', () => {
+  it('renders "No agent" trigger button when no value', () => {
+    mountByanApi();
+    render(<AgentPicker value={null} onChange={vi.fn()} />);
+    expect(screen.getByText('No agent')).toBeTruthy();
+  });
+
+  it('shows agent name when value is set', async () => {
+    mountByanApi({
+      ...defaultByanWebApi(),
+      customAgents: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'a1', slug: 'atlas', name: 'Atlas', title: null,
+            icon: null, color: null, role: null, identity: null, communication_style: null,
+            principles: [], menu: [], soul: null, tao: null, knowledge: [],
+            model_preferences: {}, parent_slug: null, created_by: 'u1', status: 'active',
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z' },
+        ]),
+      },
+    });
+    render(<AgentPicker value="a1" onChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Atlas')).toBeTruthy());
+  });
+
+  it('opens dropdown and lists agents on click', async () => {
+    mountByanApi({
+      ...defaultByanWebApi(),
+      customAgents: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'a1', slug: 'atlas', name: 'Atlas', title: null,
+            icon: null, color: null, role: null, identity: null, communication_style: null,
+            principles: [], menu: [], soul: null, tao: null, knowledge: [],
+            model_preferences: {}, parent_slug: null, created_by: 'u1', status: 'active',
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z' },
+        ]),
+      },
+    });
+    render(<AgentPicker value={null} onChange={vi.fn()} />);
+    await waitFor(() => {}); // let load finish
+    const trigger = screen.getByRole('button', { name: /choose agent/i });
+    fireEvent.click(trigger);
+    // After click the dropdown should list Atlas.
+    await waitFor(() => expect(screen.getAllByText('Atlas').length).toBeGreaterThan(0));
+  });
+
+  it('filters agents by query', async () => {
+    mountByanApi({
+      ...defaultByanWebApi(),
+      customAgents: {
+        list: vi.fn().mockResolvedValue([
+          { id: 'a1', slug: 'atlas', name: 'Atlas', title: null, icon: null, color: null,
+            role: null, identity: null, communication_style: null, principles: [], menu: [],
+            soul: null, tao: null, knowledge: [], model_preferences: {}, parent_slug: null,
+            created_by: 'u1', status: 'active',
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z' },
+          { id: 'a2', slug: 'winston', name: 'Winston', title: null, icon: null, color: null,
+            role: null, identity: null, communication_style: null, principles: [], menu: [],
+            soul: null, tao: null, knowledge: [], model_preferences: {}, parent_slug: null,
+            created_by: 'u1', status: 'active',
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-01T00:00:00Z' },
+        ]),
+      },
+    });
+    render(<AgentPicker value={null} onChange={vi.fn()} />);
+    await waitFor(() => {});
+    const trigger = screen.getByRole('button', { name: /choose agent/i });
+    fireEvent.click(trigger);
+    await waitFor(() => expect(screen.getAllByText('Atlas').length).toBeGreaterThan(0));
+
+    // Type "win" — only Winston should remain.
+    const searchInput = screen.getByPlaceholderText(/search agents/i);
+    fireEvent.change(searchInput, { target: { value: 'win' } });
+    expect(screen.queryByText('Atlas')).toBeNull();
+    expect(screen.getByText('Winston')).toBeTruthy();
+  });
+});
+
+// ---------- ScopePicker ----------
+
+describe('ScopePicker', () => {
+  const noopChange = vi.fn();
+
+  it('renders three section headers', () => {
+    render(
+      <ScopePicker
+        scope={{ types: [] }}
+        onChange={noopChange}
+        projects={[]}
+      />
+    );
+    expect(screen.getByText('Project context')).toBeTruthy();
+    expect(screen.getByText('Knowledge')).toBeTruthy();
+    expect(screen.getByText('Memory')).toBeTruthy();
+  });
+
+  it('does not show project select when project type is not toggled', () => {
+    render(
+      <ScopePicker scope={{ types: [] }} onChange={noopChange} projects={[]} />
+    );
+    // There should be no project dropdown visible.
+    expect(screen.queryByText('None')).toBeNull();
+  });
+
+  it('calls onChange when project type is toggled on', () => {
+    const handleChange = vi.fn();
+    render(
+      <ScopePicker scope={{ types: [] }} onChange={handleChange} projects={[]} />
+    );
+    // Click the first checkbox (project section).
+    const checkboxes = screen.getAllByRole('checkbox');
+    fireEvent.click(checkboxes[0]);
+    expect(handleChange).toHaveBeenCalledWith(
+      expect.objectContaining({ types: expect.arrayContaining(['project']) })
+    );
+  });
+
+  it('shows project dropdown when project type is active', () => {
+    render(
+      <ScopePicker
+        scope={{ types: ['project'], projectId: null }}
+        onChange={noopChange}
+        projects={[
+          { id: 'p1', name: 'Centralis', type: 'dev', visibility: 'private', my_role: 'admin',
+            description: null, taxonomy_type: null, root_node_id: null, metadata_tree: null,
+            created_at: '2026-05-01T00:00:00Z', updated_at: '2026-05-04T00:00:00Z' },
+        ]}
+      />
+    );
+    expect(screen.getByText('Centralis')).toBeTruthy();
+  });
+
+  it('renders token budget input with default 2000', () => {
+    render(
+      <ScopePicker scope={{ types: [], tokenBudget: 2000 }} onChange={noopChange} projects={[]} />
+    );
+    const input = screen.getByDisplayValue('2000') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    expect(input.value).toBe('2000');
   });
 });

@@ -230,7 +230,18 @@ export async function fetchChatConversations(): Promise<ChatConversation[]> {
 }
 
 export async function createChatConversation(opts: CreateConversationOpts): Promise<ChatConversation> {
-  const body = await apiFetchPost('/api/chat/conversations', opts) as { data: ChatConversation };
+  // Map camelCase opts to the exact shape the backend expects.
+  // WHY: backend uses snake_case on the wire (cli_provider) but accepts
+  // camelCase projectId/agentId — confirmed via curl 2026-05-04.
+  const payload: Record<string, unknown> = {};
+  if (opts.title)        payload.title        = opts.title;
+  if (opts.cli_provider) payload.cli_provider = opts.cli_provider;
+  if (opts.projectId)    payload.projectId    = opts.projectId;
+  if (opts.agentId)      payload.agentId      = opts.agentId;
+  if (opts.systemPrompt) payload.systemPrompt = opts.systemPrompt;
+  if (opts.scope)        payload.scope        = opts.scope;
+
+  const body = await apiFetchPost('/api/chat/conversations', payload) as { data: ChatConversation };
   return body.data;
 }
 

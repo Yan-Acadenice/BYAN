@@ -241,6 +241,66 @@ describe('createChatConversation', () => {
     mockSecureStore.get.mockResolvedValue(null);
     await expect(client.createChatConversation({ title: 'x' })).rejects.toMatchObject({ code: 'AUTH_REQUIRED' });
   });
+
+  // Regression: projectId + agentId must be forwarded in POST body so the CLI
+  // scopes to the correct project instead of the default BYAN context.
+  it('forwards projectId in POST body', async () => {
+    const conv = { id: 'c3', title: 'Centralis', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: 'proj-centralis', agent_id: null,
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null };
+    mockFetch.mockResolvedValueOnce(makeResponse(201, { data: conv }));
+    await client.createChatConversation({
+      title: 'Centralis',
+      cli_provider: 'claude-code',
+      projectId: 'proj-centralis',
+    });
+    const [, init] = mockFetch.mock.calls[0];
+    const body = JSON.parse(init?.body as string);
+    expect(body.projectId).toBe('proj-centralis');
+    expect(body.title).toBe('Centralis');
+  });
+
+  it('forwards agentId in POST body', async () => {
+    const conv = { id: 'c4', title: 'Winston conv', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: 'proj-x', agent_id: 'agent-winston',
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null };
+    mockFetch.mockResolvedValueOnce(makeResponse(201, { data: conv }));
+    await client.createChatConversation({
+      projectId: 'proj-x',
+      agentId: 'agent-winston',
+      cli_provider: 'claude-code',
+    });
+    const [, init] = mockFetch.mock.calls[0];
+    const body = JSON.parse(init?.body as string);
+    expect(body.projectId).toBe('proj-x');
+    expect(body.agentId).toBe('agent-winston');
+  });
+
+  it('does not include undefined fields in body when omitted', async () => {
+    const conv = { id: 'c5', title: 'Min conv', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: null, agent_id: null,
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null };
+    mockFetch.mockResolvedValueOnce(makeResponse(201, { data: conv }));
+    await client.createChatConversation({ cli_provider: 'claude-code' });
+    const [, init] = mockFetch.mock.calls[0];
+    const body = JSON.parse(init?.body as string);
+    // projectId and agentId must NOT appear — backend would ignore undefined,
+    // but cleaner to not send noise.
+    expect(body).not.toHaveProperty('projectId');
+    expect(body).not.toHaveProperty('agentId');
+  });
+
+  it('forwards scope in POST body when provided', async () => {
+    const conv = { id: 'c6', title: 'Scoped', cli_provider: 'claude-code', owner_id: 'u1',
+      project_id: 'proj-y', agent_id: null,
+      created_at: '2026-05-04T00:00:00Z', updated_at: '2026-05-04T00:00:00Z', deleted_at: null };
+    mockFetch.mockResolvedValueOnce(makeResponse(201, { data: conv }));
+    const scope = { types: ['knowledge' as const], knowledgeTags: ['api'], tokenBudget: 3000 };
+    await client.createChatConversation({ projectId: 'proj-y', scope });
+    const [, init] = mockFetch.mock.calls[0];
+    const body = JSON.parse(init?.body as string);
+    expect(body.scope).toEqual(scope);
+  });
 });
 
 // ---------- deleteChatConversation ----------

@@ -6,10 +6,14 @@
 //   - SSE stream: main process opens the fetch, pushes chunks via byan:chat:chunk events
 //
 // Slash-commands:
-//   /new    → open new conversation modal
+//   /new    → open NewConversationModal (with project + agent picker)
 //   /cli    → switch CLI provider for the active conversation
-//   /scope  → toggle scope picker panel (placeholder — scope stored in conversation)
+//   /scope  → toggle scope picker panel
 //   /clear  → delete active conversation (with confirmation)
+//
+// Bug fix: project scope — previously created without projectId, so the CLI
+// always defaulted to the BYAN platform context. Now the modal collects
+// projectId + agentId and passes them at creation time.
 //
 // No fetch in renderer (ESLint rule). All HTTP goes through window.byanApi.
 
@@ -29,12 +33,15 @@ import {
   X,
 } from 'lucide-react';
 import type {
+  ByanCustomAgent,
+  ByanProject,
   ChatConversation,
   ChatCliProvider,
   ChatMessage,
   ChatChunkPayload,
   CreateConversationOpts,
 } from '../../shared/ipc-contract';
+import NewConversationModal from '../components/chat/NewConversationModal';
 
 // ---------- Constants ----------
 
@@ -220,82 +227,47 @@ function StreamingBubble({ text }: StreamingBubbleProps) {
   );
 }
 
-interface NewConvModalProps {
-  open: boolean;
-  onClose: () => void;
-  onCreate: (opts: CreateConversationOpts) => void;
+// ---------- ConvHeader — shows project + agent + CLI badges ----------
+
+interface ConvHeaderProps {
+  conv: ChatConversation;
+  projectName: string | null;
+  agentName: string | null;
+  onDelete: () => void;
 }
 
-function NewConvModal({ open, onClose, onCreate }: NewConvModalProps) {
-  const [title, setTitle] = useState('');
-  const [cli, setCli] = useState<ChatCliProvider>('claude-code');
-
-  if (!open) return null;
-
-  const submit = () => {
-    onCreate({ title: title.trim() || 'New conversation', cli_provider: cli });
-    setTitle('');
-    setCli('claude-code');
-    onClose();
-  };
-
+function ConvHeader({ conv, projectName, agentName, onDelete }: ConvHeaderProps) {
+  const cli = conv.cli_provider;
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md"
-      onClick={onClose}
-    >
-      <div
-        className="bg-ink-900 border border-ink-700 rounded-xl shadow-xl w-full max-w-md p-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-lg">
-          <h3 className="font-h3 text-h3 text-ink-100">New conversation</h3>
-          <button type="button" onClick={onClose} className="text-ink-500 hover:text-ink-300 transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="space-y-md">
-          <div>
-            <label className="block font-label text-label text-ink-400 uppercase mb-xs">Title</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="New conversation"
-              className="w-full bg-ink-800 border border-ink-700 rounded-lg px-sm py-sm text-ink-200 text-sm focus:outline-none focus:border-byan-500 transition-colors"
-              autoFocus
-              onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-            />
-          </div>
-
-          <div>
-            <label className="block font-label text-label text-ink-400 uppercase mb-xs">CLI Provider</label>
-            <div className="flex gap-sm flex-wrap">
-              {(['claude-code', 'copilot', 'codex'] as ChatCliProvider[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setCli(p)}
-                  className={[
-                    'px-sm py-xs rounded-lg text-sm font-medium border transition-colors',
-                    cli === p
-                      ? 'bg-byan-700 border-byan-500 text-white'
-                      : 'bg-ink-800 border-ink-700 text-ink-400 hover:border-ink-600',
-                  ].join(' ')}
-                >
-                  {CLI_LABELS[p]}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-sm mt-xl">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button type="button" className="btn-primary" onClick={submit}>Create</button>
-        </div>
+    <div className="flex items-center justify-between px-lg py-sm border-b border-ink-800 shrink-0 gap-sm">
+      <div className="flex items-center gap-sm min-w-0 flex-wrap">
+        <p className="font-medium text-ink-200 truncate">
+          {conv.title || 'Conversation'}
+        </p>
+        {cli && (
+          <span className={`px-sm py-0.5 rounded text-[10px] font-medium ${CLI_BADGE_CLASS[cli]}`}>
+            {CLI_LABELS[cli]}
+          </span>
+        )}
+        {projectName && (
+          <span className="px-sm py-0.5 rounded text-[10px] font-medium bg-violet-900/40 text-violet-300 border border-violet-700/50">
+            Project: {projectName}
+          </span>
+        )}
+        {agentName && (
+          <span className="px-sm py-0.5 rounded text-[10px] font-medium bg-teal-900/40 text-teal-300 border border-teal-700/50">
+            Agent: {agentName}
+          </span>
+        )}
       </div>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="shrink-0 text-ink-500 hover:text-red-400 transition-colors p-1 rounded"
+        title="Delete conversation"
+      >
+        <Trash2 size={14} />
+      </button>
     </div>
   );
 }
@@ -326,11 +298,21 @@ export default function Chat() {
   const [newConvOpen, setNewConvOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+  // Lookup maps for project/agent names in the conversation header.
+  // WHY: conversations store ids (project_id, agent_id) not names — we need
+  // these maps to render human-readable badges without an extra API call per conv.
+  const [projectMap, setProjectMap] = useState<Record<string, string>>({});
+  const [agentMap, setAgentMap] = useState<Record<string, string>>({});
+
   // Refs
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const activeConv = convs.find((c) => c.id === activeConvId) ?? null;
+
+  // Resolve human-readable names for header badges.
+  const activeProjectName = activeConv?.project_id ? (projectMap[activeConv.project_id] ?? null) : null;
+  const activeAgentName   = activeConv?.agent_id   ? (agentMap[activeConv.agent_id]     ?? null) : null;
 
   // ---------- Load conversations ----------
 
@@ -352,6 +334,26 @@ export default function Chat() {
   }, [activeConvId]);
 
   useEffect(() => { void loadConvs(); }, []);
+
+  // Load project + agent lookup maps once — used for header badges.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [projects, agents] = await Promise.all([
+          window.byanApi.byanWeb.projects.list() as Promise<ByanProject[]>,
+          window.byanApi.byanWeb.customAgents.list() as Promise<ByanCustomAgent[]>,
+        ]);
+        const pm: Record<string, string> = {};
+        for (const p of projects) pm[p.id] = p.name;
+        setProjectMap(pm);
+        const am: Record<string, string> = {};
+        for (const a of agents) am[a.id] = a.name;
+        setAgentMap(am);
+      } catch {
+        // Non-fatal — badges just won't show a name.
+      }
+    })();
+  }, []);
 
   // ---------- Load messages when active conversation changes ----------
 
@@ -605,7 +607,7 @@ export default function Chat() {
 
   return (
     <>
-      <NewConvModal
+      <NewConversationModal
         open={newConvOpen}
         onClose={() => setNewConvOpen(false)}
         onCreate={(opts) => void handleCreate(opts)}
@@ -710,27 +712,13 @@ export default function Chat() {
             </div>
           ) : (
             <>
-              {/* Conversation header */}
-              <div className="flex items-center justify-between px-lg py-sm border-b border-ink-800 shrink-0">
-                <div className="flex items-center gap-sm min-w-0">
-                  <p className="font-medium text-ink-200 truncate">
-                    {activeConv?.title || 'Conversation'}
-                  </p>
-                  {activeConv?.cli_provider && (
-                    <span className={`px-sm py-0.5 rounded text-[10px] font-medium ${CLI_BADGE_CLASS[activeConv.cli_provider]}`}>
-                      {CLI_LABELS[activeConv.cli_provider]}
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirm(activeConvId)}
-                  className="text-ink-500 hover:text-red-400 transition-colors p-1 rounded"
-                  title="Delete conversation"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+              {/* Conversation header — shows project, agent and CLI badges */}
+              <ConvHeader
+                conv={activeConv!}
+                projectName={activeProjectName}
+                agentName={activeAgentName}
+                onDelete={() => setDeleteConfirm(activeConvId)}
+              />
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-lg py-lg">

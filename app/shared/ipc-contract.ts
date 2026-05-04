@@ -178,8 +178,18 @@ export interface ChatMessage {
 export interface CreateConversationOpts {
   title?: string;
   cli_provider?: ChatCliProvider;
-  scope?: Partial<ChatScope>;
+  // Top-level project scope — sent as `projectId` in the POST body.
+  // WHY: the backend stores it as project_id on the conversation row;
+  // the CLI then uses it to scope knowledge/memory context automatically.
   projectId?: string;
+  // Agent to incarnate — sent as `agentId` in the POST body.
+  // WHY: fixes the "centralis confused with byan" bug: without agentId the
+  // backend falls back to its default context (the BYAN platform project).
+  agentId?: string;
+  // Optional system-prompt override for the conversation.
+  systemPrompt?: string;
+  // Full hierarchical scope (knowledge tags, memory tags, token budget).
+  scope?: Partial<ChatScope>;
 }
 
 export interface SendMessageOpts {

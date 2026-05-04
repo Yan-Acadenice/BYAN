@@ -244,4 +244,77 @@ liveOnly('live byan_web endpoints contract', () => {
     expect(body).toHaveProperty('data');
     expect(body.data.id).toBe(id);
   });
+
+  // ---------- Chat scope regression: projectId + agentId ----------
+  // Regression test for the "centralis confused with byan" bug.
+  // Confirms that a conversation created with projectId and agentId has the
+  // correct ids in the response — so the CLI uses the right context.
+
+  it('POST /api/chat/conversations stores project_id when projectId is sent', async () => {
+    // Need a real project id — grab first from list.
+    const projRes = await fetch(`${URL}/api/projects`, {
+      headers: { Authorization: `ApiKey ${TOKEN}` }
+    });
+    const projList = await projRes.json();
+    if (!projList.data || projList.data.length === 0) return;
+    const projectId: string = projList.data[0].id;
+
+    const createRes = await fetch(`${URL}/api/chat/conversations`, {
+      method: 'POST',
+      headers: {
+        Authorization: `ApiKey ${TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: '[integration-test] scope-project',
+        cli_provider: 'claude-code',
+        projectId,
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const body = await createRes.json();
+    expect(body.data.project_id).toBe(projectId);
+
+    // Cleanup — delete the test conversation.
+    if (body.data?.id) {
+      await fetch(`${URL}/api/chat/conversations/${body.data.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `ApiKey ${TOKEN}` },
+      });
+    }
+  });
+
+  it('POST /api/chat/conversations stores agent_id when agentId is sent', async () => {
+    // Need a real agent id — grab first from list.
+    const agentRes = await fetch(`${URL}/api/custom-agents`, {
+      headers: { Authorization: `ApiKey ${TOKEN}` }
+    });
+    const agentList = await agentRes.json();
+    if (!agentList.data || agentList.data.length === 0) return;
+    const agentId: string = agentList.data[0].id;
+
+    const createRes = await fetch(`${URL}/api/chat/conversations`, {
+      method: 'POST',
+      headers: {
+        Authorization: `ApiKey ${TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: '[integration-test] scope-agent',
+        cli_provider: 'claude-code',
+        agentId,
+      }),
+    });
+    expect(createRes.status).toBe(201);
+    const body = await createRes.json();
+    expect(body.data.agent_id).toBe(agentId);
+
+    // Cleanup.
+    if (body.data?.id) {
+      await fetch(`${URL}/api/chat/conversations/${body.data.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `ApiKey ${TOKEN}` },
+      });
+    }
+  });
 });
