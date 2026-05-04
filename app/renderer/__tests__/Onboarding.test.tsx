@@ -42,7 +42,7 @@ function buildByanApi() {
       apply: mockOnboardingApply,
     },
     server: { spawn: vi.fn(), stop: vi.fn(), status: vi.fn() },
-    app: { quit: vi.fn(), version: vi.fn(), relaunch: vi.fn() },
+    app: { quit: vi.fn(), version: vi.fn(), relaunch: vi.fn(), openExternal: vi.fn() },
     store: { get: mockStoreGet, set: mockStoreSet },
   };
 }

@@ -11,6 +11,10 @@ app/release/
 app/playwright-report/
 app/test-results/
 
+# Design source (Stitch generated reference, not source code)
+_design/
+stitch_design_system_implementation.zip
+
 # NPM artifacts
 *.tgz
 npm-debug.log*

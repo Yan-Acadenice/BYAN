@@ -165,42 +165,22 @@ export default function Login({ onAuthenticated }: LoginProps) {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden px-4">
-      {/* Background ambient */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[520px] h-[520px] rounded-full bg-byan-600/20 blur-[120px]" />
-        <div className="absolute -bottom-48 -right-24 w-[600px] h-[600px] rounded-full bg-cyan-500/12 blur-[140px]" />
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, rgba(148,163,184,0.06) 1px, transparent 0)',
-            backgroundSize: '36px 36px',
-          }}
-        />
-      </div>
-
-      <div className="relative w-full max-w-md animate-fade-in-up">
+    <div className="min-h-screen flex items-center justify-center bg-ink-950 px-4">
+      <div className="w-full max-w-[480px] animate-fade-in-up">
         {/* Header */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 shadow-glow-lg rounded-[17px]">
+        <div className="flex flex-col items-center mb-xl">
+          <div className="mb-md w-16 h-16 rounded-lg overflow-hidden bg-ink-900 border border-ink-800 flex items-center justify-center shadow-glow-sm">
             <ByanLogo size={56} />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-gradient-primary">BYAN</h1>
-          <p className="text-sm text-ink-400 mt-1.5 tracking-wide">Agent Orchestration Platform</p>
+          <h1 className="font-h1 text-h1 text-white">Connect to BYAN</h1>
+          {/* Acadenice co-branding caption */}
+          <p className="font-caption text-caption text-ink-400 mt-xs uppercase tracking-wider">
+            An AcadéNice product
+          </p>
         </div>
 
         {/* Main card */}
-        <div className="glass-strong rounded-2xl shadow-glass-lg overflow-hidden">
-          {/* Gradient top border */}
-          <div
-            className="h-px w-full"
-            style={{
-              background:
-                'linear-gradient(90deg, transparent, rgba(92,124,250,0.6) 30%, rgba(6,182,212,0.5) 70%, transparent)',
-            }}
-          />
-
+        <div className="bg-ink-900 border border-ink-800 rounded-xl overflow-hidden shadow-glass">
           <div className="p-7">
             <h2 className="text-lg font-bold text-white mb-0.5">Connect to BYAN</h2>
             <p className="text-xs text-ink-400 mb-5">Choose your connection mode</p>
@@ -502,9 +482,11 @@ export default function Login({ onAuthenticated }: LoginProps) {
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-ink-500/60 mt-6 uppercase tracking-[0.2em]">
-          Builder of YAN &middot; v1.0
-        </p>
+        <div className="mt-lg text-center flex justify-center gap-lg">
+          <span className="font-caption text-caption text-ink-500/60 uppercase tracking-[0.2em]">
+            Builder of YAN &middot; v1.0
+          </span>
+        </div>
       </div>
     </div>
   );

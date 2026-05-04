@@ -37,7 +37,7 @@ const buildByanApi = () => ({
   fs: { openProjectDialog: vi.fn(), readFile: vi.fn() },
   mcp: { list: vi.fn(), start: vi.fn(), stop: vi.fn(), status: vi.fn() },
   cli: { detect: vi.fn() },
-  app: { quit: vi.fn(), version: vi.fn(), relaunch: vi.fn() }
+  app: { quit: vi.fn(), version: vi.fn(), relaunch: vi.fn(), openExternal: vi.fn() }
 });
 
 beforeEach(() => {

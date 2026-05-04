@@ -63,7 +63,8 @@ const api: ByanApi = {
   app: {
     quit: () => invoke<void>(IPC_CHANNELS.app.quit),
     version: () => invoke<string>(IPC_CHANNELS.app.version),
-    relaunch: () => invoke<void>(IPC_CHANNELS.app.relaunch)
+    relaunch: () => invoke<void>(IPC_CHANNELS.app.relaunch),
+    openExternal: (url: string) => invoke<void>(IPC_CHANNELS.app.openExternal, url)
   },
   store: {
     get: <T = unknown>(key: string) => invoke<T | null>(IPC_CHANNELS.store.get, key),

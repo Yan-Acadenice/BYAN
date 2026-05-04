@@ -4,6 +4,7 @@
 //   - On mount: checks if _byan/config.yaml exists in the current project root.
 //   - If missing → /onboarding
 //   - If present → /login
+//   - After login → /app (AppShell with dashboard)
 //
 // Project root discovery:
 //   The app does not know the project root at renderer start. We read it from
@@ -13,11 +14,34 @@
 import React, { useEffect, useState } from 'react';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Projects from './pages/Projects';
+import Agents from './pages/Agents';
+import Memory from './pages/Memory';
+import Knowledge from './pages/Knowledge';
+import Sessions from './pages/Sessions';
+import McpServers from './pages/McpServers';
+import Settings from './pages/Settings';
+import NotFound from './pages/NotFound';
+import AppShell from './components/AppShell';
+import type { NavPage } from './components/Sidebar';
 
-type Route = 'loading' | 'onboarding' | 'login';
+type Route = 'loading' | 'onboarding' | 'login' | 'app';
+
+const PAGE_LABELS: Record<NavPage, string> = {
+  dashboard: 'Dashboard',
+  projects: 'Projects',
+  agents: 'Agents',
+  memory: 'Memory',
+  knowledge: 'Knowledge',
+  sessions: 'Sessions',
+  mcp: 'MCP Servers',
+  settings: 'Settings',
+};
 
 export default function App() {
   const [route, setRoute] = useState<Route>('loading');
+  const [activePage, setActivePage] = useState<NavPage>('dashboard');
 
   useEffect(() => {
     const init = async () => {
@@ -44,13 +68,15 @@ export default function App() {
   }, []);
 
   const handleOnboardingComplete = async () => {
-    // After onboarding, go directly to login.
     setRoute('login');
   };
 
   const handleAuthenticated = () => {
-    // F7/F8 will implement the main dashboard route.
-    // For now: authenticated state is persisted by auth handler; this noop is intentional.
+    setRoute('app');
+  };
+
+  const handleLogout = () => {
+    setRoute('login');
   };
 
   if (route === 'loading') {
@@ -61,5 +87,43 @@ export default function App() {
     return <Onboarding onComplete={() => void handleOnboardingComplete()} />;
   }
 
-  return <Login onAuthenticated={handleAuthenticated} />;
+  if (route === 'login') {
+    return <Login onAuthenticated={handleAuthenticated} />;
+  }
+
+  // App shell — post-login
+  const breadcrumb = PAGE_LABELS[activePage] ?? 'Dashboard';
+
+  const renderPage = () => {
+    switch (activePage) {
+      case 'dashboard':
+        return <Dashboard onNavigate={(p) => setActivePage(p as NavPage)} />;
+      case 'projects':
+        return <Projects />;
+      case 'agents':
+        return <Agents />;
+      case 'memory':
+        return <Memory />;
+      case 'knowledge':
+        return <Knowledge />;
+      case 'sessions':
+        return <Sessions />;
+      case 'mcp':
+        return <McpServers />;
+      case 'settings':
+        return <Settings onLogout={handleLogout} />;
+      default:
+        return <NotFound onBackHome={() => setActivePage('dashboard')} />;
+    }
+  };
+
+  return (
+    <AppShell
+      activePage={activePage}
+      onNavigate={setActivePage}
+      breadcrumb={breadcrumb}
+    >
+      {renderPage()}
+    </AppShell>
+  );
 }

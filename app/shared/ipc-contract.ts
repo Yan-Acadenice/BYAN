@@ -146,6 +146,7 @@ export interface ByanApi {
     quit(): Promise<void>;
     version(): Promise<string>;
     relaunch(): Promise<void>;
+    openExternal(url: string): Promise<void>;
   };
   store: {
     get<T = unknown>(key: string): Promise<T | null>;
@@ -190,7 +191,8 @@ export const IPC_CHANNELS = {
   app: {
     quit: 'byan:app:quit',
     version: 'byan:app:version',
-    relaunch: 'byan:app:relaunch'
+    relaunch: 'byan:app:relaunch',
+    openExternal: 'byan:app:openExternal'
   },
   store: {
     get: 'byan:store:get',
