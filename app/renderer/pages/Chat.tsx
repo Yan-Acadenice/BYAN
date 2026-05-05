@@ -25,10 +25,13 @@ import React, {
 } from 'react';
 import {
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
   Loader2,
   MessageSquare,
   Plus,
   Send,
+  Settings2,
   Trash2,
   X,
 } from 'lucide-react';
@@ -43,6 +46,9 @@ import type {
 } from '../../shared/ipc-contract';
 import NewConversationModal from '../components/chat/NewConversationModal';
 import MessageMarkdown from '../components/chat/MessageMarkdown';
+import ScopePicker from '../components/chat/ScopePicker';
+import AgentPicker from '../components/chat/AgentPicker';
+import { useChatDefaults } from '../hooks/useChatDefaults';
 
 // ---------- Constants ----------
 
@@ -61,7 +67,8 @@ const CLI_BADGE_CLASS: Record<ChatCliProvider, string> = {
 const SLASH_COMMANDS = [
   { cmd: '/new', description: 'Start a new conversation' },
   { cmd: '/cli', description: 'Switch CLI provider' },
-  { cmd: '/scope', description: 'Toggle scope picker' },
+  { cmd: '/scope', description: 'Edit scope for next conversation' },
+  { cmd: '/agent', description: 'Edit agent for next conversation' },
   { cmd: '/clear', description: 'Delete this conversation' },
 ];
 
@@ -235,9 +242,12 @@ interface ConvHeaderProps {
   projectName: string | null;
   agentName: string | null;
   onDelete: () => void;
+  // Toggles the inline defaults panel (scope + agent picker for the next conv).
+  onToggleDefaults: () => void;
+  defaultsOpen: boolean;
 }
 
-function ConvHeader({ conv, projectName, agentName, onDelete }: ConvHeaderProps) {
+function ConvHeader({ conv, projectName, agentName, onDelete, onToggleDefaults, defaultsOpen }: ConvHeaderProps) {
   const cli = conv.cli_provider;
   return (
     <div className="flex items-center justify-between px-lg py-sm border-b border-ink-800 shrink-0 gap-sm">
@@ -261,14 +271,68 @@ function ConvHeader({ conv, projectName, agentName, onDelete }: ConvHeaderProps)
           </span>
         )}
       </div>
-      <button
-        type="button"
-        onClick={onDelete}
-        className="shrink-0 text-ink-500 hover:text-red-400 transition-colors p-1 rounded"
-        title="Delete conversation"
-      >
-        <Trash2 size={14} />
-      </button>
+      <div className="flex items-center gap-xs shrink-0">
+        <button
+          type="button"
+          onClick={onToggleDefaults}
+          className={[
+            'flex items-center gap-xs px-xs py-1 rounded text-xs transition-colors',
+            defaultsOpen
+              ? 'text-byan-300 bg-byan-900/30 border border-byan-700/40'
+              : 'text-ink-500 hover:text-ink-300 hover:bg-ink-800 border border-transparent',
+          ].join(' ')}
+          title="Configure defaults for the next conversation"
+          aria-expanded={defaultsOpen}
+          aria-label="Toggle defaults panel"
+        >
+          <Settings2 size={12} />
+          <span className="hidden md:inline">Defaults</span>
+          {defaultsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="text-ink-500 hover:text-red-400 transition-colors p-1 rounded"
+          title="Delete conversation"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- DefaultsPanel — inline scope + agent picker ----------
+//
+// WHY inline: changes apply to the *next* conversation, not the current one
+// (the backend snapshots scope at creation time). Letting the user tune defaults
+// without leaving the chat keeps the flow tight: /scope -> tweak -> /new.
+
+interface DefaultsPanelProps {
+  agentId: string | null;
+  scope: import('../../shared/ipc-contract').ChatScope;
+  projects: ByanProject[];
+  onChangeAgent: (id: string | null) => void;
+  onChangeScope: (s: import('../../shared/ipc-contract').ChatScope) => void;
+  initialFocus: 'scope' | 'agent' | null;
+}
+
+function DefaultsPanel({ agentId, scope, projects, onChangeAgent, onChangeScope, initialFocus }: DefaultsPanelProps) {
+  return (
+    <div className="border-b border-ink-800 bg-ink-950 px-lg py-sm shrink-0">
+      <p className="text-[10px] text-ink-500 uppercase tracking-wider mb-xs">
+        Defaults for next conversation
+      </p>
+      <div className="flex items-start gap-md flex-wrap">
+        <div data-section="agent" data-focus={initialFocus === 'agent' ? '1' : '0'}>
+          <p className="text-[10px] text-ink-500 mb-xs uppercase tracking-wide">Agent</p>
+          <AgentPicker value={agentId} onChange={onChangeAgent} />
+        </div>
+        <div className="flex-1 min-w-[260px]" data-section="scope" data-focus={initialFocus === 'scope' ? '1' : '0'}>
+          <p className="text-[10px] text-ink-500 mb-xs uppercase tracking-wide">Scope</p>
+          <ScopePicker scope={scope} onChange={onChangeScope} projects={projects} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -298,6 +362,19 @@ export default function Chat() {
   // Modals
   const [newConvOpen, setNewConvOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Inline defaults panel (toggled by /scope, /agent, or the header chevron).
+  // initialFocus marks which sub-section the user opened — used by the panel
+  // for visual emphasis only (not strict focus-trap).
+  const [defaultsOpen, setDefaultsOpen] = useState(false);
+  const [defaultsFocus, setDefaultsFocus] = useState<'scope' | 'agent' | null>(null);
+
+  // Persistent chat defaults (CLI, projectId, agentId, scope) for the next
+  // conversation. Persisted to byanApi.store under key `chat.defaults`.
+  const { defaults, setDefaults } = useChatDefaults();
+
+  // Project list — loaded once, also used by ScopePicker inside the inline panel.
+  const [projects, setProjects] = useState<ByanProject[]>([]);
 
   // Lookup maps for project/agent names in the conversation header.
   // WHY: conversations store ids (project_id, agent_id) not names — we need
@@ -336,19 +413,21 @@ export default function Chat() {
 
   useEffect(() => { void loadConvs(); }, []);
 
-  // Load project + agent lookup maps once — used for header badges.
+  // Load project + agent lookup maps once — used for header badges and the
+  // inline ScopePicker (project select).
   useEffect(() => {
     void (async () => {
       try {
-        const [projects, agents] = await Promise.all([
+        const [projectsList, agentsList] = await Promise.all([
           window.byanApi.byanWeb.projects.list() as Promise<ByanProject[]>,
           window.byanApi.byanWeb.customAgents.list() as Promise<ByanCustomAgent[]>,
         ]);
+        setProjects(projectsList);
         const pm: Record<string, string> = {};
-        for (const p of projects) pm[p.id] = p.name;
+        for (const p of projectsList) pm[p.id] = p.name;
         setProjectMap(pm);
         const am: Record<string, string> = {};
-        for (const a of agents) am[a.id] = a.name;
+        for (const a of agentsList) am[a.id] = a.name;
         setAgentMap(am);
       } catch {
         // Non-fatal — badges just won't show a name.
@@ -515,11 +594,48 @@ export default function Chat() {
       setConvs((prev) => [conv, ...prev]);
       setActiveConvId(conv.id);
       setMessages([]);
+
+      // Persist the chosen options as the new defaults so the next /new
+      // opens with the same context. The user's pattern is "stay on this
+      // project for a session" — re-asking every time is friction.
+      setDefaults({
+        cli: opts.cli_provider ?? defaults.cli,
+        projectId: opts.projectId ?? null,
+        agentId: opts.agentId ?? null,
+        scope: opts.scope
+          ? { ...defaults.scope, ...opts.scope }
+          : defaults.scope,
+      });
     } catch (err) {
       // Surface error inline — creation failure is non-silent
       alert(err instanceof Error ? err.message : 'Failed to create conversation');
     }
+  }, [defaults, setDefaults]);
+
+  // ---------- Defaults panel handlers ----------
+  // `/scope` and `/agent` slash commands toggle the same inline panel and
+  // just hint which section the user is interested in. Both edit `defaults`
+  // through `setDefaults`, which persists to store immediately.
+
+  const openDefaults = useCallback((focus: 'scope' | 'agent') => {
+    setDefaultsFocus(focus);
+    setDefaultsOpen(true);
   }, []);
+
+  const handleDefaultsAgentChange = useCallback((agentId: string | null) => {
+    setDefaults({ ...defaults, agentId });
+  }, [defaults, setDefaults]);
+
+  const handleDefaultsScopeChange = useCallback(
+    (scope: import('../../shared/ipc-contract').ChatScope) => {
+      // Mirror the project on the top-level field so the next conversation's
+      // POST body carries projectId even if the user only edited it inside
+      // ScopePicker. WHY: backend uses both — top-level for the row and scope
+      // for runtime context resolution.
+      setDefaults({ ...defaults, scope, projectId: scope.projectId ?? null });
+    },
+    [defaults, setDefaults],
+  );
 
   // ---------- Delete conversation ----------
 
@@ -574,9 +690,15 @@ export default function Chat() {
         return;
       }
       if (trimmed === '/scope') {
-        // Placeholder — scope picker is a future enhancement
         setInput('');
         setSlashMenu([]);
+        openDefaults('scope');
+        return;
+      }
+      if (trimmed === '/agent') {
+        setInput('');
+        setSlashMenu([]);
+        openDefaults('agent');
         return;
       }
       if (trimmed.startsWith('/cli ')) {
@@ -612,6 +734,7 @@ export default function Chat() {
         open={newConvOpen}
         onClose={() => setNewConvOpen(false)}
         onCreate={(opts) => void handleCreate(opts)}
+        defaults={defaults}
       />
 
       {/* Delete confirmation */}
@@ -719,7 +842,26 @@ export default function Chat() {
                 projectName={activeProjectName}
                 agentName={activeAgentName}
                 onDelete={() => setDeleteConfirm(activeConvId)}
+                onToggleDefaults={() => {
+                  setDefaultsOpen((v) => !v);
+                  setDefaultsFocus(null);
+                }}
+                defaultsOpen={defaultsOpen}
               />
+
+              {/* Inline defaults panel — toggled by /scope, /agent or the
+                  header chevron. Edits the persistent defaults that the
+                  next /new conversation will inherit. */}
+              {defaultsOpen && (
+                <DefaultsPanel
+                  agentId={defaults.agentId}
+                  scope={defaults.scope}
+                  projects={projects}
+                  onChangeAgent={handleDefaultsAgentChange}
+                  onChangeScope={handleDefaultsScopeChange}
+                  initialFocus={defaultsFocus}
+                />
+              )}
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-lg py-lg">
@@ -807,8 +949,9 @@ export default function Chat() {
                 </div>
 
                 <p className="text-[10px] text-ink-600 mt-xs">
-                  Type <code className="font-mono">/new</code> to start a conversation,{' '}
-                  <code className="font-mono">/clear</code> to delete this one
+                  <code className="font-mono">/new</code> start,{' '}
+                  <code className="font-mono">/scope</code> + <code className="font-mono">/agent</code> tune defaults,{' '}
+                  <code className="font-mono">/clear</code> delete
                 </p>
               </div>
             </>

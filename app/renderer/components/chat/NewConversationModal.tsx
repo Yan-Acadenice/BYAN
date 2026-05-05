@@ -17,6 +17,7 @@ import type {
   CreateConversationOpts,
 } from '../../../shared/ipc-contract';
 import ScopePicker, { DEFAULT_SCOPE } from './ScopePicker';
+import type { ChatDefaults } from '../../hooks/useChatDefaults';
 
 // ---------- CLI selector ----------
 
@@ -59,6 +60,10 @@ interface NewConversationModalProps {
   open: boolean;
   onClose: () => void;
   onCreate: (opts: CreateConversationOpts) => void;
+  // Pre-populate the form from persisted user defaults so the modal opens
+  // already aligned with the current work context. Optional — falls back to
+  // EMPTY_FORM when omitted (e.g. for tests).
+  defaults?: ChatDefaults;
 }
 
 interface FormState {
@@ -79,14 +84,34 @@ const EMPTY_FORM: FormState = {
   showScope: false,
 };
 
+function fromDefaults(d: ChatDefaults | undefined): FormState {
+  if (!d) return { ...EMPTY_FORM };
+  return {
+    title: '',
+    cli: d.cli,
+    projectId: d.projectId ?? '',
+    agentId: d.agentId ?? '',
+    scope: { ...d.scope },
+    // Auto-expand the scope panel when the user has actually configured one.
+    showScope: (d.scope.types?.length ?? 0) > 0,
+  };
+}
+
 export default function NewConversationModal({
   open,
   onClose,
   onCreate,
+  defaults,
 }: NewConversationModalProps) {
-  const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
+  const [form, setForm] = useState<FormState>(() => fromDefaults(defaults));
   const [projects, setProjects] = useState<ByanProject[]>([]);
   const [agents, setAgents] = useState<ByanCustomAgent[]>([]);
+
+  // Re-sync the form when the modal (re-)opens so an updated `defaults`
+  // (e.g. after the inline /scope or /agent panel modified them) is reflected.
+  useEffect(() => {
+    if (open) setForm(fromDefaults(defaults));
+  }, [open, defaults]);
 
   // Load lists once when modal opens.
   useEffect(() => {
@@ -116,7 +141,7 @@ export default function NewConversationModal({
     if (form.scope.types.length > 0) opts.scope = form.scope;
 
     onCreate(opts);
-    setForm({ ...EMPTY_FORM });
+    setForm(fromDefaults(defaults));
     onClose();
   };
 
