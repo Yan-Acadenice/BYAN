@@ -14,14 +14,7 @@
 import * as fs from 'fs/promises';
 import * as nodePath from 'path';
 import type { FileWritePlan, OnboardingOpts } from '../../shared/ipc-contract';
-
-// Root of the install/templates tree, resolved relative to this file at runtime.
-// In production dist: app/dist/main/installers/claude.js → up 4 dirs to BYAN root, then install/templates.
-// In dev src: app/main/installers/claude.ts → up 3 dirs to BYAN root, then install/templates.
-function resolveTemplateRoot(): string {
-  // __dirname resolves correctly in both tsc (CommonJS) and vitest (ESM with vite-node).
-  return nodePath.resolve(__dirname, '..', '..', '..', 'install', 'templates');
-}
+import { resolveTemplateRoot } from './template-root';
 
 async function safeReadFile(p: string): Promise<string | null> {
   try {

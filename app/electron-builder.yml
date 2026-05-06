@@ -28,6 +28,14 @@ extraResources:
     filter:
       - "**/*"
       - "!node_modules"
+  # Onboarding installers (claude, copilot, codex) walk these templates to
+  # build FileWritePlan[]; without them the wizard returns 0 plans and auto-
+  # jumps to Done. resolveTemplateRoot() reads process.resourcesPath/templates.
+  - from: ../install/templates
+    to: templates
+    filter:
+      - "**/*"
+      - "!**/node_modules/**"
 
 publish:
   provider: github

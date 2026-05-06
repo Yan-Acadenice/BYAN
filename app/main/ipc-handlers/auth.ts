@@ -14,10 +14,26 @@
 // SECURITY: token is NEVER logged and only transits main-process memory + OS keychain.
 
 import type { IpcMain } from 'electron';
+import { BrowserWindow } from 'electron';
 import { IPC_CHANNELS, AuthLoginOptions, AuthResult } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
 import { secureStore } from '../secure-store';
 import { clearSessionCaches } from '../byan-api-client';
+
+// Push a renderer notification on the same channel namespace as native menu
+// actions ('byan:*' is whitelisted by preload). Used to make logout reactive
+// across IPC boundaries — without this an external trigger of logout (Settings
+// button, /quit command, e2e harness) leaves the renderer stuck on the app
+// shell because React state is not aware of the secure-store mutation.
+function broadcastAuthChanged(reason: 'login' | 'logout'): void {
+  // BrowserWindow is undefined in vitest (no Electron stub); the IPC bridge
+  // is a no-op there and that is fine — unit tests assert the secure-store
+  // mutation, not the broadcast.
+  const wins = BrowserWindow?.getAllWindows?.() ?? [];
+  for (const win of wins) {
+    win.webContents.send('byan:auth:changed', { reason });
+  }
+}
 
 // Injected by server.ts after bootstrap so we can query LocalServer status for mode:'local'.
 // Kept as a weak reference (never imported circularly from local-server.ts).
@@ -199,6 +215,7 @@ export async function logout(): Promise<void> {
   // reuse the previous user's token or list responses.
   await secureStore.delete(AUTH_TOKEN_KEY);
   clearSessionCaches();
+  broadcastAuthChanged('logout');
 }
 
 export async function getToken(): Promise<string | null> {

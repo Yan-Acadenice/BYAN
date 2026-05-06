@@ -35,20 +35,20 @@ const E2E_IGNORED_KEYS: ReadonlySet<string> = new Set([
 
 export async function get<T>(key: string): Promise<T | null> {
   assertValidKey(key);
-  if (process.env.BYAN_E2E_MODE === '1' && E2E_IGNORED_KEYS.has(key)) {
-    return null;
+  if (process.env.BYAN_E2E_MODE === '1') {
+    if (E2E_IGNORED_KEYS.has(key)) return null;
+    // Env fallback takes precedence over keytar in E2E mode: keytar is
+    // process-global on Linux so the previous spec's tmp dir survives across
+    // runs and would mask BYAN_E2E_TMP_PROJECT_ROOT (the path Playwright
+    // freshly creates for this spec).
+    const envName = E2E_KEY_TO_ENV[key];
+    const envVal = envName ? process.env[envName] : undefined;
+    if (envVal) return envVal as unknown as T;
   }
   // SecureStore stores strings. For backwards-compat with F2 callers that
   // stored arbitrary objects, we attempt JSON.parse — fall back to raw string.
   const raw = await secureStore.get(key);
-  if (raw === null) {
-    if (process.env.BYAN_E2E_MODE === '1') {
-      const envName = E2E_KEY_TO_ENV[key];
-      const envVal = envName ? process.env[envName] : undefined;
-      if (envVal) return envVal as unknown as T;
-    }
-    return null;
-  }
+  if (raw === null) return null;
   try {
     return JSON.parse(raw) as T;
   } catch {

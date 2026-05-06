@@ -105,6 +105,18 @@ export default function App() {
     return unsub;
   });
 
+  // Auth state mutations from main (logout via Settings, IPC, e2e harness)
+  // need to flip the React route — otherwise the renderer happily keeps
+  // showing the app shell with a now-empty token.
+  useEffect(() => {
+    if (typeof window.byanEvents === 'undefined') return;
+    const unsub = window.byanEvents.on('byan:auth:changed', (payload: unknown) => {
+      const { reason } = (payload as { reason?: string }) ?? {};
+      if (reason === 'logout') setRoute('login');
+    });
+    return unsub;
+  }, []);
+
   const handleOnboardingComplete = async () => {
     setRoute('login');
   };

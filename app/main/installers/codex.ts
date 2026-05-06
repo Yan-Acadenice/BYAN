@@ -8,10 +8,7 @@
 import * as fs from 'fs/promises';
 import * as nodePath from 'path';
 import type { FileWritePlan, OnboardingOpts } from '../../shared/ipc-contract';
-
-function resolveTemplateRoot(): string {
-  return nodePath.resolve(__dirname, '..', '..', '..', 'install', 'templates');
-}
+import { resolveTemplateRoot } from './template-root';
 
 async function safeReadFile(p: string): Promise<string | null> {
   try {
