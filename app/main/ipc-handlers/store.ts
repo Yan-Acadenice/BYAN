@@ -25,8 +25,19 @@ const E2E_KEY_TO_ENV: Record<string, string> = {
   'onboarding.projectRoot': 'BYAN_E2E_TMP_PROJECT_ROOT',
 };
 
+// Keys to ignore (return null) under E2E mode. Keytar is process-global on
+// Linux (gnome-keyring service "byan") so specs share state across runs.
+// e.g. login-local persists login.lastMode='local' which would otherwise
+// flip the login-cloud spec into the Local tab on the next run.
+const E2E_IGNORED_KEYS: ReadonlySet<string> = new Set([
+  'login.lastMode',
+]);
+
 export async function get<T>(key: string): Promise<T | null> {
   assertValidKey(key);
+  if (process.env.BYAN_E2E_MODE === '1' && E2E_IGNORED_KEYS.has(key)) {
+    return null;
+  }
   // SecureStore stores strings. For backwards-compat with F2 callers that
   // stored arbitrary objects, we attempt JSON.parse — fall back to raw string.
   const raw = await secureStore.get(key);

@@ -55,6 +55,7 @@ function createMainWindow(): BrowserWindow {
 
   if (isDev) {
     void win.loadURL(DEV_SERVER_URL);
+    win.webContents.openDevTools({ mode: 'detach' });
   } else {
     const indexHtml = path.join(__dirname, '..', 'renderer', 'index.html');
     void win.loadFile(indexHtml);

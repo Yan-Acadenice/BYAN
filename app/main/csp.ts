@@ -3,8 +3,15 @@
 // - meta tag CSP has no authority over fetch already-in-flight at parse time
 // - webPreferences has no CSP knob in Electron 33
 // File source for prod (file://) and Vite dev (http://localhost:5173) both go through this hook.
+//
+// Dev mode relaxation: @vitejs/plugin-react injects an inline <script> preamble
+// for React Fast Refresh — without 'unsafe-inline' in dev the preamble is
+// blocked and every component crashes at mount (symptom: black window). Prod
+// builds never inject inline scripts so the strict policy stays.
 
 import type { Session } from 'electron';
+
+const IS_DEV = process.env.BYAN_DEV === '1';
 
 // Directives kept as a structured map so tests can assert per-directive without parsing a string.
 // `style-src 'unsafe-inline'` is a deliberate concession: Tailwind injects style attributes at runtime.
@@ -15,7 +22,7 @@ import type { Session } from 'electron';
 //   - *.googleapis.com (MCP gdrive integration)
 export const CSP_DIRECTIVES: Readonly<Record<string, readonly string[]>> = Object.freeze({
   'default-src': ["'self'"],
-  'script-src': ["'self'"],
+  'script-src': IS_DEV ? ["'self'", "'unsafe-inline'"] : ["'self'"],
   'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
   'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
   'img-src': ["'self'", 'data:', 'https:'],

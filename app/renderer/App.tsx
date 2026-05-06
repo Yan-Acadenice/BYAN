@@ -20,6 +20,15 @@ import type { NavPage } from './components/Sidebar';
 // Lazy chunks — pages only paid for on demand. Onboarding runs once at most;
 // the rest are post-login surfaces that the user navigates to one at a time.
 const Onboarding = lazy(() => import('./pages/Onboarding'));
+
+// Minimal Suspense fallback. Empty fallback would show a black canvas while
+// a chunk is mid-fetch (BrowserWindow backgroundColor is #0a0f1e); this keeps
+// the user oriented without pulling in a spinner library.
+const PageLoader = () => (
+  <div className="w-full h-screen flex items-center justify-center text-ink-400 text-sm">
+    Loading…
+  </div>
+);
 const Chat = lazy(() => import('./pages/Chat'));
 const Projects = lazy(() => import('./pages/Projects'));
 const Agents = lazy(() => import('./pages/Agents'));
@@ -109,12 +118,12 @@ export default function App() {
   };
 
   if (route === 'loading') {
-    return null;
+    return <PageLoader />;
   }
 
   if (route === 'onboarding') {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<PageLoader />}>
         <Onboarding onComplete={() => void handleOnboardingComplete()} />
       </Suspense>
     );
@@ -158,7 +167,7 @@ export default function App() {
       onNavigate={setActivePage}
       breadcrumb={breadcrumb}
     >
-      <Suspense fallback={null}>{renderPage()}</Suspense>
+      <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
     </AppShell>
   );
 }
