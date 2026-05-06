@@ -16,12 +16,28 @@ function assertValidKey(key: unknown): asserts key is string {
   }
 }
 
+// Keys whose value can be supplied by the E2E harness via env vars when the
+// secure-store has nothing yet. WHY: Playwright spawns the packaged binary
+// against a fresh tmp dir (no keytar entries, no .env); without this fallback
+// every test would land on Onboarding step 1, which is exactly the bug the
+// 4 e2e specs were hitting before this hook was added.
+const E2E_KEY_TO_ENV: Record<string, string> = {
+  'onboarding.projectRoot': 'BYAN_E2E_TMP_PROJECT_ROOT',
+};
+
 export async function get<T>(key: string): Promise<T | null> {
   assertValidKey(key);
   // SecureStore stores strings. For backwards-compat with F2 callers that
   // stored arbitrary objects, we attempt JSON.parse — fall back to raw string.
   const raw = await secureStore.get(key);
-  if (raw === null) return null;
+  if (raw === null) {
+    if (process.env.BYAN_E2E_MODE === '1') {
+      const envName = E2E_KEY_TO_ENV[key];
+      const envVal = envName ? process.env[envName] : undefined;
+      if (envVal) return envVal as unknown as T;
+    }
+    return null;
+  }
   try {
     return JSON.parse(raw) as T;
   } catch {

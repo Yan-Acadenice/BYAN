@@ -18,6 +18,7 @@
 // No fetch in renderer (ESLint rule). All HTTP goes through window.byanApi.
 
 import React, {
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -163,7 +164,10 @@ interface MessageBubbleProps {
   msg: ChatMessage;
 }
 
-function MessageBubble({ msg }: MessageBubbleProps) {
+// Re-render only when the message reference (and therefore content) changes.
+// During SSE streaming the `messages` array is mutated by appending — past
+// bubbles keep the same reference so they short-circuit.
+const MessageBubble = memo(function MessageBubble({ msg }: MessageBubbleProps) {
   const isUser = msg.role === 'user';
   const cli = msg.cli_provider;
 
@@ -205,7 +209,7 @@ function MessageBubble({ msg }: MessageBubbleProps) {
       </div>
     </div>
   );
-}
+});
 
 interface StreamingBubbleProps {
   text: string;

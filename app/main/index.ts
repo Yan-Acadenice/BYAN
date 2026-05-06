@@ -63,11 +63,25 @@ function createMainWindow(): BrowserWindow {
   return win;
 }
 
+const BOOT_T0 = Date.now();
+
 app.whenReady().then(() => {
+  const tReady = Date.now();
   applyCsp(session.defaultSession);
   registerAll(ipcMain, { app });
+  const tHandlers = Date.now();
   const mainWindow = createMainWindow();
   installMenu(mainWindow);
+
+  if (isDev) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      const tLoaded = Date.now();
+      console.debug(
+        `[perf] main boot — whenReady=${tReady - BOOT_T0}ms, ipc-handlers=${tHandlers - tReady}ms, ` +
+        `window-loaded=${tLoaded - BOOT_T0}ms`
+      );
+    });
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

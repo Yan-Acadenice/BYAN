@@ -17,6 +17,7 @@ import type { IpcMain } from 'electron';
 import { IPC_CHANNELS, AuthLoginOptions, AuthResult } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
 import { secureStore } from '../secure-store';
+import { clearSessionCaches } from '../byan-api-client';
 
 // Injected by server.ts after bootstrap so we can query LocalServer status for mode:'local'.
 // Kept as a weak reference (never imported circularly from local-server.ts).
@@ -89,6 +90,12 @@ async function probeToken(url: string, token: string): Promise<'ok' | 'invalid_t
 // so the user gets a real "Local server is unreachable" message instead
 // of a misleading "invalid token" when the spawned process has crashed.
 async function probeLocalServer(url: string): Promise<'ok' | 'unreachable'> {
+  // Honor the same E2E mock override as probeToken — without it, login-local
+  // and switch-mode would still fire a real fetch against a port nobody is
+  // listening on (BYAN_E2E_MOCK_SERVER_PORT only fakes the spawn IPC).
+  const mock = probeMockOverride();
+  if (mock === 'ok' || mock === 'unreachable') return mock;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
   try {
@@ -149,6 +156,9 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
     if (opts.token) {
       await secureStore.set(AUTH_TOKEN_KEY, opts.token);
     }
+    // Drop any cached token/responses from a prior session before the renderer
+    // starts firing fresh API calls.
+    clearSessionCaches();
 
     return {
       ok: true,
@@ -173,6 +183,9 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
 
   // Token validated — persist.
   await secureStore.set(AUTH_TOKEN_KEY, opts.token);
+  // Drop any cached token/responses from a prior session before the renderer
+  // starts firing fresh API calls.
+  clearSessionCaches();
 
   return {
     ok: true,
@@ -182,8 +195,10 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
 }
 
 export async function logout(): Promise<void> {
-  // Clear stored token.
+  // Clear stored token + drop the in-memory cache so the next session can't
+  // reuse the previous user's token or list responses.
   await secureStore.delete(AUTH_TOKEN_KEY);
+  clearSessionCaches();
 }
 
 export async function getToken(): Promise<string | null> {

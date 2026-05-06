@@ -11,21 +11,24 @@
 //   the persistent store (written by Onboarding after the user picks a folder).
 //   If no stored root, we show Onboarding and let the user pick.
 
-import React, { useEffect, useState } from 'react';
-import Onboarding from './pages/Onboarding';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import Chat from './pages/Chat';
-import Projects from './pages/Projects';
-import Agents from './pages/Agents';
-import Memory from './pages/Memory';
-import Knowledge from './pages/Knowledge';
-import Sessions from './pages/Sessions';
-import McpServers from './pages/McpServers';
-import Settings from './pages/Settings';
-import NotFound from './pages/NotFound';
 import AppShell from './components/AppShell';
 import type { NavPage } from './components/Sidebar';
+
+// Lazy chunks — pages only paid for on demand. Onboarding runs once at most;
+// the rest are post-login surfaces that the user navigates to one at a time.
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Projects = lazy(() => import('./pages/Projects'));
+const Agents = lazy(() => import('./pages/Agents'));
+const Memory = lazy(() => import('./pages/Memory'));
+const Knowledge = lazy(() => import('./pages/Knowledge'));
+const Sessions = lazy(() => import('./pages/Sessions'));
+const McpServers = lazy(() => import('./pages/McpServers'));
+const Settings = lazy(() => import('./pages/Settings'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 type Route = 'loading' | 'onboarding' | 'login' | 'app';
 
@@ -46,6 +49,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<NavPage>('dashboard');
 
   useEffect(() => {
+    performance.mark('byan:app:init-start');
     const init = async () => {
       try {
         // Retrieve the last project root the user configured (stored after onboarding).
@@ -64,6 +68,11 @@ export default function App() {
       } catch {
         // API not available (test env without preload) — show onboarding.
         setRoute('onboarding');
+      } finally {
+        performance.mark('byan:app:init-end');
+        performance.measure('byan:app:init', 'byan:app:init-start', 'byan:app:init-end');
+        const m = performance.getEntriesByName('byan:app:init').pop();
+        if (m) console.debug(`[perf] app init (route decided) ${m.duration.toFixed(1)}ms`);
       }
     };
     void init();
@@ -104,7 +113,11 @@ export default function App() {
   }
 
   if (route === 'onboarding') {
-    return <Onboarding onComplete={() => void handleOnboardingComplete()} />;
+    return (
+      <Suspense fallback={null}>
+        <Onboarding onComplete={() => void handleOnboardingComplete()} />
+      </Suspense>
+    );
   }
 
   if (route === 'login') {
@@ -145,7 +158,7 @@ export default function App() {
       onNavigate={setActivePage}
       breadcrumb={breadcrumb}
     >
-      {renderPage()}
+      <Suspense fallback={null}>{renderPage()}</Suspense>
     </AppShell>
   );
 }

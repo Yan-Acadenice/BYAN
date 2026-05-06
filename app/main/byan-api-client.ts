@@ -34,17 +34,67 @@ const DEFAULT_URL = 'https://byan-api.stark.a3n.fr';
 const AUTH_URL_KEY = 'auth.url';
 const FETCH_TIMEOUT_MS = 15_000;
 
+// ---------- Session caches (token + GET responses) ----------
+//
+// Token + base URL: keytar / secure-store roundtrips cost ~5-30ms each on Linux
+// and were paid on every single API call. Cached for the session and cleared
+// on logout via clearSessionCaches() (called from the auth.logout handler).
+//
+// GET responses: list endpoints (projects, agents, knowledge…) are mounted on
+// every page and re-fetched on each navigation. A 30s TTL cache makes
+// dashboard ↔ projects round-trips quasi-instantaneous while keeping the
+// "stale data" window tight enough that any user mutation invalidates well
+// before it bites.
+
+let cachedToken: string | null = null;
+let cachedBase: string | null = null;
+
+interface CacheEntry { ts: number; data: unknown }
+const responseCache = new Map<string, CacheEntry>();
+const DEFAULT_TTL_MS = 30_000;
+
+async function getToken(): Promise<string> {
+  if (cachedToken) return cachedToken;
+  const token = await secureStore.get(AUTH_TOKEN_KEY);
+  if (!token) throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
+  cachedToken = token;
+  return token;
+}
+
+async function getBase(): Promise<string> {
+  if (cachedBase) return cachedBase;
+  const storedUrl = await secureStore.get(AUTH_URL_KEY);
+  cachedBase = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+  return cachedBase;
+}
+
+// Drop every list/single response whose path starts with `prefix`. Used after
+// mutations (e.g. a new chat conversation invalidates /api/chat/conversations).
+function invalidateCache(prefix: string): void {
+  for (const key of responseCache.keys()) {
+    if (key.startsWith(prefix)) responseCache.delete(key);
+  }
+}
+
+// Called from the auth.logout IPC handler to ensure the next session can't
+// reuse a stale token or cached private data.
+export function clearSessionCaches(): void {
+  cachedToken = null;
+  cachedBase = null;
+  responseCache.clear();
+}
+
 // ---------- Core fetch helper ----------
 
-async function apiFetch(path: string): Promise<unknown> {
-  const token = await secureStore.get(AUTH_TOKEN_KEY);
-  if (!token) {
-    throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
+async function apiFetch(path: string, opts: { ttlMs?: number } = {}): Promise<unknown> {
+  const ttl = opts.ttlMs ?? 0;
+  if (ttl > 0) {
+    const hit = responseCache.get(path);
+    if (hit && Date.now() - hit.ts < ttl) return hit.data;
   }
 
-  // Prefer the URL the user logged in with (persisted by auth.ts), fall back to cloud default.
-  const storedUrl = await secureStore.get(AUTH_URL_KEY);
-  const base = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+  const token = await getToken();
+  const base = await getBase();
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -75,20 +125,17 @@ async function apiFetch(path: string): Promise<unknown> {
     throw new IpcError('INTERNAL', `API error ${res.status} for ${path}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  if (ttl > 0) responseCache.set(path, { ts: Date.now(), data });
+  return data;
 }
 
 // ---------- POST helper ----------
 // Shared logic for authenticated POST requests returning JSON.
 
 async function apiFetchPost(path: string, body: unknown): Promise<unknown> {
-  const token = await secureStore.get(AUTH_TOKEN_KEY);
-  if (!token) {
-    throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
-  }
-
-  const storedUrl = await secureStore.get(AUTH_URL_KEY);
-  const base = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+  const token = await getToken();
+  const base = await getBase();
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -123,13 +170,8 @@ async function apiFetchPost(path: string, body: unknown): Promise<unknown> {
 
 // DELETE helper — no body, returns void on 200.
 async function apiFetchDelete(path: string): Promise<void> {
-  const token = await secureStore.get(AUTH_TOKEN_KEY);
-  if (!token) {
-    throw new IpcError('AUTH_REQUIRED', 'No auth token — please log in.');
-  }
-
-  const storedUrl = await secureStore.get(AUTH_URL_KEY);
-  const base = (storedUrl ?? DEFAULT_URL).replace(/\/$/, '');
+  const token = await getToken();
+  const base = await getBase();
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -167,18 +209,21 @@ function qs(params: Record<string, string | number | undefined>): string {
 // ---------- Public API ----------
 
 export async function fetchMe(): Promise<ByanUser> {
-  const body = await apiFetch('/api/auth/me') as { data: ByanUser };
+  const body = await apiFetch('/api/auth/me', { ttlMs: DEFAULT_TTL_MS }) as { data: ByanUser };
   return body.data;
 }
 
 export async function fetchProjects(): Promise<ByanProject[]> {
-  const body = await apiFetch('/api/projects') as { data: ByanProject[] };
+  const body = await apiFetch('/api/projects', { ttlMs: DEFAULT_TTL_MS }) as { data: ByanProject[] };
   return body.data ?? [];
 }
 
 export async function fetchProject(id: string): Promise<ByanProject | null> {
   try {
-    const body = await apiFetch(`/api/projects/${encodeURIComponent(id)}`) as { data: ByanProject };
+    const body = await apiFetch(
+      `/api/projects/${encodeURIComponent(id)}`,
+      { ttlMs: DEFAULT_TTL_MS }
+    ) as { data: ByanProject };
     return body.data ?? null;
   } catch (err) {
     if (err instanceof IpcError && err.code === 'NOT_FOUND') return null;
@@ -193,7 +238,7 @@ export async function fetchMemory(opts: ByanApiListOpts = {}): Promise<ByanMemor
     category: opts.category,
     type: opts.type,
   };
-  const body = await apiFetch(`/api/memory${qs(params)}`) as { data: ByanMemory[] };
+  const body = await apiFetch(`/api/memory${qs(params)}`, { ttlMs: DEFAULT_TTL_MS }) as { data: ByanMemory[] };
   return body.data ?? [];
 }
 
@@ -204,12 +249,12 @@ export async function fetchKnowledge(opts: ByanApiListOpts = {}): Promise<ByanKn
     category: opts.category,
     tags: opts.tags,
   };
-  const body = await apiFetch(`/api/knowledge${qs(params)}`) as { data: ByanKnowledge[] };
+  const body = await apiFetch(`/api/knowledge${qs(params)}`, { ttlMs: DEFAULT_TTL_MS }) as { data: ByanKnowledge[] };
   return body.data ?? [];
 }
 
 export async function fetchCustomAgents(): Promise<ByanCustomAgent[]> {
-  const body = await apiFetch('/api/custom-agents') as { data: ByanCustomAgent[] };
+  const body = await apiFetch('/api/custom-agents', { ttlMs: DEFAULT_TTL_MS }) as { data: ByanCustomAgent[] };
   return body.data ?? [];
 }
 
@@ -218,14 +263,17 @@ export async function fetchSessions(opts: Pick<ByanApiListOpts, 'projectId' | 'l
     limit: opts.limit,
     projectId: opts.projectId,
   };
-  const body = await apiFetch(`/api/sessions${qs(params)}`) as { data: ByanSession[] };
+  const body = await apiFetch(`/api/sessions${qs(params)}`, { ttlMs: DEFAULT_TTL_MS }) as { data: ByanSession[] };
   return body.data ?? [];
 }
 
 // ---------- Chat ----------
 
 export async function fetchChatConversations(): Promise<ChatConversation[]> {
-  const body = await apiFetch('/api/chat/conversations') as { data: ChatConversation[] };
+  const body = await apiFetch(
+    '/api/chat/conversations',
+    { ttlMs: DEFAULT_TTL_MS }
+  ) as { data: ChatConversation[] };
   return body.data ?? [];
 }
 
@@ -242,11 +290,13 @@ export async function createChatConversation(opts: CreateConversationOpts): Prom
   if (opts.scope)        payload.scope        = opts.scope;
 
   const body = await apiFetchPost('/api/chat/conversations', payload) as { data: ChatConversation };
+  invalidateCache('/api/chat/conversations');
   return body.data;
 }
 
 export async function deleteChatConversation(id: string): Promise<void> {
   await apiFetchDelete(`/api/chat/conversations/${encodeURIComponent(id)}`);
+  invalidateCache('/api/chat/conversations');
 }
 
 export async function fetchChatMessages(

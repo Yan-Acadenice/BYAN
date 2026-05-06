@@ -45,6 +45,9 @@ beforeEach(() => {
     if (key === 'auth.url') return Promise.resolve(null); // use default cloud URL
     return Promise.resolve(null);
   });
+  // The client caches token + GET responses for the session — clear between
+  // tests so per-case mockSecureStore overrides actually take effect.
+  client.clearSessionCaches();
 });
 
 // ---------- fetchMe ----------
@@ -341,5 +344,118 @@ describe('fetchChatMessages', () => {
     await client.fetchChatMessages('conv-abc', {});
     const [url] = mockFetch.mock.calls[0];
     expect(String(url)).toContain('/api/chat/conversations/conv-abc/messages');
+  });
+});
+
+// ---------- Session caches (token + GET responses) ----------
+//
+// These tests pin down the perf optimisations introduced when the client
+// gained an in-memory cache. They are deterministic — no real timers, no
+// real fetch — and assert the exact call counts to fetch / secureStore.
+
+describe('session caches', () => {
+  it('fetchProjects: second call within TTL serves from cache (no fetch)', async () => {
+    const projects = [{ id: 'p1', name: 'P', type: 'dev' }];
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: projects }));
+
+    const a = await client.fetchProjects();
+    const b = await client.fetchProjects();
+
+    expect(a).toEqual(projects);
+    expect(b).toEqual(projects);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('createChatConversation invalidates the conversations cache', async () => {
+    const convs = [{ id: 'c1', title: 't', created_at: '', updated_at: '' }];
+    mockFetch
+      .mockResolvedValueOnce(makeResponse(200, { data: convs }))
+      .mockResolvedValueOnce(makeResponse(200, { data: { id: 'c2' } }))
+      .mockResolvedValueOnce(makeResponse(200, { data: [...convs, { id: 'c2', title: 'n', created_at: '', updated_at: '' }] }));
+
+    await client.fetchChatConversations();
+    await client.createChatConversation({ title: 'n' });
+    await client.fetchChatConversations();
+
+    // Without invalidation the second fetchChatConversations would hit the
+    // cache and total fetch count would be 2 (list + post). 3 proves the
+    // post wiped the cache and the second list re-fetched.
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('deleteChatConversation invalidates the conversations cache', async () => {
+    const convs = [{ id: 'c1', title: 't', created_at: '', updated_at: '' }];
+    mockFetch
+      .mockResolvedValueOnce(makeResponse(200, { data: convs }))
+      .mockResolvedValueOnce(makeResponse(200, {}))
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }));
+
+    await client.fetchChatConversations();
+    await client.deleteChatConversation('c1');
+    await client.fetchChatConversations();
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('clearSessionCaches forces the next fetch to hit the network again', async () => {
+    mockFetch
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }))
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }));
+
+    await client.fetchProjects();
+    client.clearSessionCaches();
+    await client.fetchProjects();
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('token cache: secureStore.get(auth.token) is read at most once for a streak of GETs', async () => {
+    mockFetch
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }))
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }))
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }));
+
+    await client.fetchProjects();
+    await client.fetchCustomAgents();
+    await client.fetchSessions();
+
+    const tokenReads = mockSecureStore.get.mock.calls.filter(([key]) => key === 'auth.token');
+    expect(tokenReads.length).toBe(1);
+  });
+
+  it('clearSessionCaches drops the cached token (next call re-reads from store)', async () => {
+    mockFetch
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }))
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }));
+
+    await client.fetchProjects();
+    const before = mockSecureStore.get.mock.calls.filter(([key]) => key === 'auth.token').length;
+
+    client.clearSessionCaches();
+    await client.fetchProjects();
+    const after = mockSecureStore.get.mock.calls.filter(([key]) => key === 'auth.token').length;
+
+    expect(after).toBe(before + 1);
+  });
+
+  it('cache is keyed per path — fetchMemory with different opts yields distinct fetches', async () => {
+    mockFetch
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }))
+      .mockResolvedValueOnce(makeResponse(200, { data: [] }));
+
+    await client.fetchMemory({ limit: 10 });
+    await client.fetchMemory({ limit: 50 });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('cache hit returns immediately even if fetch is no longer mocked', async () => {
+    mockFetch.mockResolvedValueOnce(makeResponse(200, { data: [{ id: 'p1' }] }));
+    await client.fetchProjects();
+
+    // No further mockResolvedValueOnce — a cache miss would throw.
+    const cached = await client.fetchProjects();
+    expect(cached).toEqual([{ id: 'p1' }]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });

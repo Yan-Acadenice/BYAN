@@ -30,8 +30,20 @@ import {
 
 // Thin invoke helper — keeps the per-method bodies a single line and ensures
 // every call goes through the same path (easy to add tracing later).
+// In dev mode (BYAN_DEV=1) every call is timed and logged via console.debug
+// so the renderer DevTools shows IPC latency without extra plumbing.
+const TRACE_IPC = process.env.BYAN_DEV === '1';
+
 function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
-  return ipcRenderer.invoke(channel, ...args) as Promise<T>;
+  if (!TRACE_IPC) {
+    return ipcRenderer.invoke(channel, ...args) as Promise<T>;
+  }
+  const t0 = performance.now();
+  const p = ipcRenderer.invoke(channel, ...args) as Promise<T>;
+  return p.finally(() => {
+    const ms = (performance.now() - t0).toFixed(1);
+    console.debug(`[ipc] ${channel} ${ms}ms`);
+  });
 }
 
 const api: ByanApi = {
