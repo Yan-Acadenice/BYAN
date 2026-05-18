@@ -86,3 +86,42 @@ nsis:
   shortcutName: BYAN
   uninstallDisplayName: BYAN
   deleteAppDataOnUninstall: false
+
+# Mac targets — F21. Universal DMG covers Intel + Apple Silicon in a single
+# installer. ZIP target is required by electron-updater on macOS (the differential
+# delta format ships as a .zip alongside the .dmg).
+#
+# Code signing: hardenedRuntime + entitlements are pre-wired so a future
+# Developer ID Application certificate can be plugged in by setting
+# CSC_LINK / CSC_KEY_PASSWORD env vars at build time. Without a cert the app
+# ships unsigned; users will need to right-click → Open the first time.
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.developer-tools
+  icon: build/icons/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: false
+  artifactName: BYAN-${version}-${arch}.${ext}
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380

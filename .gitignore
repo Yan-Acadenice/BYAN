@@ -55,6 +55,11 @@ dist/
 build/
 out/
 
+# Exception: app/build/ holds electron-builder resources (icons, entitlements)
+# that must be tracked — only the root-level build/ output dir is ephemeral.
+!app/build/
+!app/build/**
+
 # Environment
 .env
 .env.local

@@ -111,8 +111,9 @@ app.on('before-quit', (e) => {
 });
 
 app.on('window-all-closed', () => {
-  // macOS convention is to keep app alive until Cmd+Q; we follow it for forward-compat
-  // even though Mac packaging is deferred to F21.
+  // macOS convention: keep the process alive when all windows are closed; the
+  // user reopens via the dock and the 'activate' handler above creates a fresh
+  // window. Other platforms exit immediately.
   if (process.platform !== 'darwin') {
     app.quit();
   }

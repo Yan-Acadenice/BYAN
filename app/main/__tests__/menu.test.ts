@@ -113,7 +113,7 @@ describe('installMenu — production (no dev env)', () => {
       const file = findSection(template, 'File')!;
       const item = findItem(file, 'New Project');
       expect(item).toBeDefined();
-      expect(item!.accelerator).toBe('Ctrl+N');
+      expect(item!.accelerator).toBe('CmdOrCtrl+N');
     });
 
     it('contains Open Project with Ctrl+O', async () => {
@@ -123,7 +123,7 @@ describe('installMenu — production (no dev env)', () => {
       const file = findSection(template, 'File')!;
       const item = findItem(file, 'Open Project');
       expect(item).toBeDefined();
-      expect(item!.accelerator).toBe('Ctrl+O');
+      expect(item!.accelerator).toBe('CmdOrCtrl+O');
     });
 
     it('contains Import with Ctrl+I', async () => {
@@ -133,7 +133,7 @@ describe('installMenu — production (no dev env)', () => {
       const file = findSection(template, 'File')!;
       const item = findItem(file, 'Import');
       expect(item).toBeDefined();
-      expect(item!.accelerator).toBe('Ctrl+I');
+      expect(item!.accelerator).toBe('CmdOrCtrl+I');
     });
 
     it('contains Quit with Ctrl+Q', async () => {
@@ -143,7 +143,7 @@ describe('installMenu — production (no dev env)', () => {
       const file = findSection(template, 'File')!;
       const item = findItem(file, 'Quit');
       expect(item).toBeDefined();
-      expect(item!.accelerator).toBe('Ctrl+Q');
+      expect(item!.accelerator).toBe('CmdOrCtrl+Q');
     });
   });
 
@@ -229,14 +229,14 @@ describe('installMenu — development (BYAN_DEV=1)', () => {
     delete process.env.BYAN_DEV;
   });
 
-  it('includes Reload with Ctrl+R in dev mode', async () => {
+  it('includes Reload with CmdOrCtrl+R in dev mode', async () => {
     const { installMenu } = await loadMenu({ BYAN_DEV: '1' });
     installMenu({ webContents: { send: vi.fn() } } as never);
     const template = capturedTemplates[capturedTemplates.length - 1];
     const view = findSection(template, 'View')!;
     const reload = findItem(view, 'Reload');
     expect(reload).toBeDefined();
-    expect(reload!.accelerator).toBe('Ctrl+R');
+    expect(reload!.accelerator).toBe('CmdOrCtrl+R');
   });
 
   it('includes Toggle Developer Tools with Ctrl+Shift+I in dev mode', async () => {
@@ -262,5 +262,61 @@ describe('installMenu — development (NODE_ENV=development)', () => {
     const template = capturedTemplates[capturedTemplates.length - 1];
     const view = findSection(template, 'View')!;
     expect(findItem(view, 'Toggle Developer Tools')).toBeDefined();
+  });
+});
+
+// F21 — macOS-specific menu shape. We mock process.platform to 'darwin' before
+// importing the module so isMac is true at evaluation time.
+describe('installMenu — macOS', () => {
+  let originalPlatform: NodeJS.Platform;
+
+  beforeEach(() => {
+    originalPlatform = process.platform;
+    Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+    delete process.env.NODE_ENV;
+    delete process.env.BYAN_DEV;
+  });
+
+  afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    vi.resetModules();
+  });
+
+  it('adds the BYAN app menu first and Window menu before Help', async () => {
+    const { installMenu } = await loadMenu({});
+    installMenu({ webContents: { send: vi.fn() } } as never);
+    const template = capturedTemplates[capturedTemplates.length - 1];
+    const labels = template.map((s) => s.label);
+    // app.name is mocked to 'BYAN' via app.name not set in mock — falls back to undefined.
+    // Just verify the structural order: first slot is the app menu, then File/Edit/View/Window/Help.
+    expect(template).toHaveLength(6);
+    expect(labels.slice(1)).toEqual(['File', 'Edit', 'View', 'Window', 'Help']);
+  });
+
+  it('omits Quit from File menu (lives in app menu on Mac)', async () => {
+    const { installMenu } = await loadMenu({});
+    installMenu({ webContents: { send: vi.fn() } } as never);
+    const template = capturedTemplates[capturedTemplates.length - 1];
+    const file = findSection(template, 'File')!;
+    expect(findItem(file, 'Quit')).toBeUndefined();
+  });
+
+  it('places About BYAN in the app menu, not in Help', async () => {
+    const { installMenu } = await loadMenu({});
+    installMenu({ webContents: { send: vi.fn() } } as never);
+    const template = capturedTemplates[capturedTemplates.length - 1];
+    const appMenu = template[0];
+    const aboutItem = submenuItems(appMenu).find((i) => typeof i.label === 'string' && i.label.startsWith('About'));
+    expect(aboutItem).toBeDefined();
+    const help = findSection(template, 'Help')!;
+    expect(findItem(help, 'About BYAN')).toBeUndefined();
+  });
+
+  it('Edit menu ends with a Speech submenu on Mac', async () => {
+    const { installMenu } = await loadMenu({});
+    installMenu({ webContents: { send: vi.fn() } } as never);
+    const template = capturedTemplates[capturedTemplates.length - 1];
+    const edit = findSection(template, 'Edit')!;
+    expect(findItem(edit, 'Speech')).toBeDefined();
   });
 });

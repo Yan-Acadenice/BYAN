@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTD/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    BYAN macOS entitlements — F21.
+    Required by hardenedRuntime: true in electron-builder.yml.
+
+    com.apple.security.cs.allow-jit
+      Electron uses V8 which JIT-compiles JavaScript. Without this,
+      hardenedRuntime blocks the engine.
+
+    com.apple.security.cs.allow-unsigned-executable-memory
+      Some V8 sub-features still write to executable pages outside the
+      JIT region; Electron documents this as required for Node integration.
+
+    com.apple.security.cs.disable-library-validation
+      Electron loads bundled .dylib files (e.g. keytar's native module)
+      that are signed by us (or not signed at all in unsigned builds).
+      The default library validation refuses to load anything that isn't
+      signed by the same Team ID as the parent app.
+
+    com.apple.security.cs.allow-dyld-environment-variables
+      Required for some Node native modules that rely on DYLD_* env vars.
+
+    com.apple.security.network.client
+      The renderer + main both make outgoing HTTPS requests to the byan_web
+      API and to GitHub Releases (auto-update feed).
+
+    com.apple.security.files.user-selected.read-write
+      Onboarding lets the user pick a project root via the native file
+      dialog; we then write to it (.claude/, .codex/, .github/, _byan/).
+  -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+  <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+  <true/>
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+</dict>
+</plist>
