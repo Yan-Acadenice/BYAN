@@ -2,7 +2,9 @@
 // Sections: Connection / API Authentication / Appearance / About / Powered by Acadenice.
 
 import React, { useState } from 'react';
-import { LogOut, KeyRound, Info, ArrowLeftRight, ExternalLink, type LucideIcon } from 'lucide-react';
+import { LogOut, KeyRound, Info, ArrowLeftRight, ExternalLink, Languages, type LucideIcon } from 'lucide-react';
+import { useT } from '../i18n/I18nContext';
+import { LOCALES, type Locale } from '../i18n/locales';
 
 interface SettingsProps {
   onLogout?: () => void;
@@ -32,8 +34,14 @@ function SectionHeader({
   );
 }
 
+const LOCALE_LABELS: Record<Locale, string> = {
+  en: 'English',
+  fr: 'Français',
+};
+
 export default function Settings({ onLogout }: SettingsProps) {
   const [loggingOut, setLoggingOut] = useState(false);
+  const { locale, setLocale } = useT();
 
   const handleSwitchMode = async () => {
     setLoggingOut(true);
@@ -84,6 +92,24 @@ export default function Settings({ onLogout }: SettingsProps) {
             </>
           )}
         </button>
+      </div>
+
+      {/* Language */}
+      <div className="bg-ink-900 border border-ink-800 rounded-lg p-md">
+        <SectionHeader icon={Languages} title="Language" />
+        <p className="font-body-sm text-body-sm text-ink-400 mb-md leading-relaxed">
+          Interface language. Changes apply instantly across the app.
+        </p>
+        <select
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+          className="bg-ink-800 border border-ink-700 rounded px-sm py-xs text-ink-100 font-body-sm focus:outline-none focus:border-byan-500"
+          aria-label="Interface language"
+        >
+          {LOCALES.map((l) => (
+            <option key={l} value={l}>{LOCALE_LABELS[l]}</option>
+          ))}
+        </select>
       </div>
 
       {/* API Authentication */}

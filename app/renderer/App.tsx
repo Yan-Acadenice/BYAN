@@ -18,6 +18,8 @@ import AppShell from './components/AppShell';
 import UpdateBanner from './components/UpdateBanner';
 import DeepLinkRouter from './components/DeepLinkRouter';
 import { ToastProvider } from './components/toast/ToastContext';
+import { I18nProvider, useT } from './i18n/I18nContext';
+import type { MessageKey } from './i18n/locales';
 import type { NavPage } from './components/Sidebar';
 
 // Lazy chunks — pages only paid for on demand. Onboarding runs once at most;
@@ -44,19 +46,22 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 type Route = 'loading' | 'onboarding' | 'login' | 'app';
 
-const PAGE_LABELS: Record<NavPage, string> = {
-  dashboard: 'Dashboard',
-  chat: 'Chat',
-  projects: 'Projects',
-  agents: 'Agents',
-  memory: 'Memory',
-  knowledge: 'Knowledge',
-  sessions: 'Sessions',
-  mcp: 'MCP Servers',
-  settings: 'Settings',
+const PAGE_LABEL_KEYS: Record<NavPage, MessageKey> = {
+  dashboard: 'nav.dashboard',
+  chat: 'nav.chat',
+  projects: 'nav.projects',
+  agents: 'nav.agents',
+  memory: 'nav.memory',
+  knowledge: 'nav.knowledge',
+  sessions: 'nav.sessions',
+  mcp: 'nav.mcp',
+  settings: 'nav.settings',
 };
 
-export default function App() {
+// Inner component — has access to the i18n hooks because it renders inside
+// <I18nProvider>. The outer App() is the provider boundary.
+function AppRouter() {
+  const { t } = useT();
   const [route, setRoute] = useState<Route>('loading');
   const [activePage, setActivePage] = useState<NavPage>('dashboard');
 
@@ -133,7 +138,7 @@ export default function App() {
   };
 
   // App shell — post-login
-  const breadcrumb = PAGE_LABELS[activePage] ?? 'Dashboard';
+  const breadcrumb = t(PAGE_LABEL_KEYS[activePage] ?? 'nav.dashboard');
 
   const renderPage = () => {
     switch (activePage) {
@@ -191,5 +196,13 @@ export default function App() {
       <DeepLinkRouter isAuthenticated={route === 'app'} onNavigate={setActivePage} />
       {renderRoute()}
     </ToastProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <I18nProvider>
+      <AppRouter />
+    </I18nProvider>
   );
 }

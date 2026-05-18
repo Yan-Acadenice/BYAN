@@ -6,6 +6,7 @@ import React from 'react';
 import { Search, User } from 'lucide-react';
 import AcadeniceBadge from './AcadeniceBadge';
 import OfflineIndicator from './OfflineIndicator';
+import { useT } from '../i18n/I18nContext';
 
 interface TopbarProps {
   breadcrumb: string;
@@ -16,6 +17,7 @@ function openAcadenice() {
 }
 
 export default function Topbar({ breadcrumb }: TopbarProps) {
+  const { t } = useT();
   return (
     <header
       className="flex justify-between items-center px-6 w-full z-40 bg-ink-900 border-b border-ink-800 sticky top-0"
@@ -23,7 +25,7 @@ export default function Topbar({ breadcrumb }: TopbarProps) {
     >
       {/* Left: breadcrumb */}
       <div className="flex items-center gap-xs font-body text-body-sm text-ink-400">
-        <span className="text-ink-500">BYAN</span>
+        <span className="text-ink-500">{t('topbar.brand')}</span>
         <span className="text-ink-600 mx-1">/</span>
         <span className="text-ink-100 font-medium">{breadcrumb}</span>
       </div>
@@ -42,7 +44,7 @@ export default function Topbar({ breadcrumb }: TopbarProps) {
           <input
             type="text"
             readOnly
-            placeholder="Search..."
+            placeholder={t('topbar.search.placeholder')}
             className="bg-ink-950 border border-ink-700 rounded h-8 pl-8 pr-md font-body-sm text-body-sm text-ink-100 focus:outline-none focus:ring-2 focus:ring-byan-500/30 w-48 cursor-pointer placeholder:text-ink-500"
           />
           <span className="absolute right-sm top-1/2 -translate-y-1/2 font-mono-code text-[10px] text-ink-500 border border-ink-700 rounded px-1 bg-ink-900">

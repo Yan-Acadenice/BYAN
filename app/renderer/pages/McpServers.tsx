@@ -7,13 +7,15 @@ import { Play, Square, RotateCcw, Plus, Loader2, AlertTriangle, Pencil, Trash2 }
 import type { McpServer, McpStatus, McpStatusChangePayload } from '../../shared/ipc-contract';
 import McpServerFormModal, { type McpFormMode } from '../components/mcp/McpServerFormModal';
 import { useToast } from '../components/toast/ToastContext';
+import { useT } from '../i18n/I18nContext';
+import type { MessageKey } from '../i18n/locales';
 
-function stateLabel(status: McpStatus): string {
+function stateLabelKey(status: McpStatus): MessageKey {
   switch (status.state) {
-    case 'running': return 'Running';
-    case 'starting': return 'Starting…';
-    case 'error': return 'Error';
-    case 'stopped': return 'Stopped';
+    case 'running': return 'mcp.state.running';
+    case 'starting': return 'mcp.state.starting';
+    case 'error': return 'mcp.state.error';
+    case 'stopped': return 'mcp.state.stopped';
   }
 }
 
@@ -29,6 +31,7 @@ export default function McpServers() {
   const [formMode, setFormMode] = useState<McpFormMode>('add');
   const [editTarget, setEditTarget] = useState<McpServer | undefined>(undefined);
   const toast = useToast();
+  const { t } = useT();
 
   const refresh = useCallback(async () => {
     try {
@@ -137,8 +140,8 @@ export default function McpServers() {
     <div className="space-y-lg">
       <div className="flex items-center justify-between">
         <div>
-          <p className="section-title">Platform</p>
-          <h1 className="page-title mt-0.5">MCP Servers</h1>
+          <p className="section-title">{t('mcp.section')}</p>
+          <h1 className="page-title mt-0.5">{t('mcp.title')}</h1>
         </div>
         <button
           type="button"
@@ -146,21 +149,21 @@ export default function McpServers() {
           className="btn-primary flex items-center gap-xs py-2 px-md"
         >
           <Plus size={14} />
-          Add MCP server
+          {t('mcp.add')}
         </button>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-xxl text-ink-400">
           <Loader2 size={20} className="animate-spin mr-sm" />
-          <span className="font-body-sm text-body-sm">Loading servers...</span>
+          <span className="font-body-sm text-body-sm">{t('mcp.loading')}</span>
         </div>
       ) : servers.length === 0 ? (
         <div className="bg-ink-900 border border-ink-800 rounded-lg flex flex-col items-center justify-center py-xxl text-ink-500">
           <Play size={40} className="mb-md opacity-30" />
-          <p className="font-h3 text-h3 text-ink-400 mb-xs">No MCP servers configured</p>
+          <p className="font-h3 text-h3 text-ink-400 mb-xs">{t('mcp.empty.title')}</p>
           <p className="font-body-sm text-body-sm text-ink-500 max-w-md text-center px-md">
-            Configure one in <code className="font-mono-code text-mono-code">.mcp.json</code> at your project root. Complete onboarding first if you haven't picked a project.
+            {t('mcp.empty.body')}
           </p>
         </div>
       ) : (
@@ -183,10 +186,10 @@ export default function McpServers() {
                     <div className="flex items-center gap-xs">
                       <p className="font-body-sm text-body-sm text-ink-100 font-medium">{srv.name}</p>
                       <span className="font-mono-code text-mono-code text-ink-500 text-[10px] uppercase">
-                        {stateLabel(srv.status)}
+                        {t(stateLabelKey(srv.status))}
                       </span>
                       {!srv.enabled && (
-                        <span className="font-mono-code text-mono-code text-ink-500 text-[10px] uppercase">disabled</span>
+                        <span className="font-mono-code text-mono-code text-ink-500 text-[10px] uppercase">{t('mcp.disabled')}</span>
                       )}
                     </div>
                     <p className="font-mono-code text-mono-code text-ink-500 text-[11px] truncate">
@@ -211,7 +214,7 @@ export default function McpServers() {
                       disabled={isBusy || !srv.enabled || srv.transport !== 'stdio'}
                     >
                       {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
-                      Start
+                      {t('mcp.action.start')}
                     </button>
                   )}
                   {isRunning && (
@@ -221,7 +224,7 @@ export default function McpServers() {
                       className="btn-secondary btn-sm flex items-center gap-xs"
                       disabled={isBusy}
                     >
-                      <Square size={12} /> Stop
+                      <Square size={12} /> {t('mcp.action.stop')}
                     </button>
                   )}
                   <button
@@ -230,7 +233,7 @@ export default function McpServers() {
                     className="btn-ghost btn-sm flex items-center gap-xs"
                     disabled={isBusy || !srv.enabled || srv.transport !== 'stdio'}
                   >
-                    <RotateCcw size={12} /> Restart
+                    <RotateCcw size={12} /> {t('mcp.action.restart')}
                   </button>
                   <button
                     type="button"

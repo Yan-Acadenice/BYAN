@@ -17,6 +17,8 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import AcadeniceBadge from './AcadeniceBadge';
+import { useT } from '../i18n/I18nContext';
+import type { MessageKey } from '../i18n/locales';
 
 export type NavPage =
   | 'dashboard'
@@ -31,19 +33,19 @@ export type NavPage =
 
 interface NavItem {
   id: NavPage;
-  label: string;
+  labelKey: MessageKey;
   Icon: React.ElementType;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', Icon: LayoutDashboard },
-  { id: 'chat', label: 'Chat', Icon: MessageSquare },
-  { id: 'projects', label: 'Projects', Icon: FolderOpen },
-  { id: 'agents', label: 'Agents', Icon: Bot },
-  { id: 'memory', label: 'Memory', Icon: BrainCircuit },
-  { id: 'knowledge', label: 'Knowledge', Icon: BookOpen },
-  { id: 'sessions', label: 'Sessions', Icon: History },
-  { id: 'mcp', label: 'MCP Servers', Icon: Terminal },
+  { id: 'dashboard', labelKey: 'nav.dashboard', Icon: LayoutDashboard },
+  { id: 'chat', labelKey: 'nav.chat', Icon: MessageSquare },
+  { id: 'projects', labelKey: 'nav.projects', Icon: FolderOpen },
+  { id: 'agents', labelKey: 'nav.agents', Icon: Bot },
+  { id: 'memory', labelKey: 'nav.memory', Icon: BrainCircuit },
+  { id: 'knowledge', labelKey: 'nav.knowledge', Icon: BookOpen },
+  { id: 'sessions', labelKey: 'nav.sessions', Icon: History },
+  { id: 'mcp', labelKey: 'nav.mcp', Icon: Terminal },
 ];
 
 interface SidebarProps {
@@ -56,6 +58,7 @@ function openAcadenice() {
 }
 
 export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
+  const { t } = useT();
   return (
     <nav
       className="fixed left-0 top-0 h-full flex flex-col py-4 z-50 bg-ink-900 border-r border-ink-800"
@@ -70,7 +73,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
 
       {/* Navigation links */}
       <ul className="flex flex-col gap-base flex-1 px-sm">
-        {NAV_ITEMS.map(({ id, label, Icon }) => {
+        {NAV_ITEMS.map(({ id, labelKey, Icon }) => {
           const isActive = activePage === id;
           return (
             <li key={id}>
@@ -85,7 +88,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                 ].join(' ')}
               >
                 <Icon size={16} />
-                <span className="font-label text-label uppercase">{label}</span>
+                <span className="font-label text-label uppercase">{t(labelKey)}</span>
               </button>
             </li>
           );
@@ -106,7 +109,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
             ].join(' ')}
           >
             <Settings size={16} />
-            <span className="font-label text-label uppercase">Settings</span>
+            <span className="font-label text-label uppercase">{t('nav.settings')}</span>
           </button>
         </li>
       </ul>

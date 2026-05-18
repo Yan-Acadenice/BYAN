@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCcw, X } from 'lucide-react';
 import type { UpdateState } from '../../shared/ipc-contract';
+import { useT } from '../i18n/I18nContext';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -15,6 +16,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function UpdateBanner() {
+  const { t } = useT();
   const [state, setState] = useState<UpdateState>({ state: 'idle' });
   const [dismissed, setDismissed] = useState(false);
 
@@ -56,12 +58,12 @@ export default function UpdateBanner() {
         <div className="min-w-0">
           {state.state === 'available' && (
             <span className="font-body-sm text-body-sm text-ink-100">
-              Update <span className="font-mono-code">v{state.version}</span> available — downloading…
+              {t('update.available', { version: state.version })}
             </span>
           )}
           {state.state === 'downloading' && (
             <span className="font-body-sm text-body-sm text-ink-100">
-              Downloading update… {state.percent.toFixed(0)}%
+              {t('update.downloading', { percent: state.percent.toFixed(0) })}
               <span className="text-ink-400 ml-xs">
                 ({formatBytes(state.transferred)} / {formatBytes(state.total)})
               </span>
@@ -69,7 +71,7 @@ export default function UpdateBanner() {
           )}
           {state.state === 'downloaded' && (
             <span className="font-body-sm text-body-sm text-ink-100">
-              Update <span className="font-mono-code">v{state.version}</span> ready to install.
+              {t('update.downloaded', { version: state.version })}
             </span>
           )}
         </div>
@@ -77,14 +79,14 @@ export default function UpdateBanner() {
       <div className="flex items-center gap-xs flex-shrink-0">
         {state.state === 'downloaded' && (
           <button type="button" onClick={handleInstall} className="btn-primary btn-sm">
-            Install now
+            {t('update.install')}
           </button>
         )}
         <button
           type="button"
           onClick={() => setDismissed(true)}
           className="text-ink-400 hover:text-ink-200 transition-colors"
-          aria-label="Dismiss"
+          aria-label={t('update.dismiss')}
         >
           <X size={14} />
         </button>
