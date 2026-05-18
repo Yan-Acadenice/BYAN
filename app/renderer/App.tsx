@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AppShell from './components/AppShell';
 import UpdateBanner from './components/UpdateBanner';
+import { ToastProvider } from './components/toast/ToastContext';
 import type { NavPage } from './components/Sidebar';
 
 // Lazy chunks — pages only paid for on demand. Onboarding runs once at most;
@@ -175,7 +176,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <ToastProvider>
       <UpdateBanner />
       <AppShell
         activePage={activePage}
@@ -184,6 +185,6 @@ export default function App() {
       >
         <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
       </AppShell>
-    </>
+    </ToastProvider>
   );
 }

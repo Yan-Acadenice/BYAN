@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Play, Square, RotateCcw, Plus, Loader2, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import type { McpServer, McpStatus, McpStatusChangePayload } from '../../shared/ipc-contract';
 import McpServerFormModal, { type McpFormMode } from '../components/mcp/McpServerFormModal';
+import { useToast } from '../components/toast/ToastContext';
 
 function stateLabel(status: McpStatus): string {
   switch (status.state) {
@@ -27,6 +28,7 @@ export default function McpServers() {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<McpFormMode>('add');
   const [editTarget, setEditTarget] = useState<McpServer | undefined>(undefined);
+  const toast = useToast();
 
   const refresh = useCallback(async () => {
     try {
@@ -72,9 +74,9 @@ export default function McpServers() {
   const handleStart = (id: string) => withBusy(id, async () => {
     try {
       await window.byanApi.mcp.start(id);
-    } catch {
-      // surface as a temporary toast in a later iteration; status event will
-      // also flip the row to error if the spawn fails.
+    } catch (err) {
+      const message = (err as { message?: string }).message ?? 'failed to start';
+      toast.error(`${id}: ${message}`);
     } finally {
       await refresh();
     }
@@ -83,7 +85,10 @@ export default function McpServers() {
   const handleStop = (id: string) => withBusy(id, async () => {
     try {
       await window.byanApi.mcp.stop(id);
-    } catch { /* ignore */ }
+    } catch (err) {
+      const message = (err as { message?: string }).message ?? 'failed to stop';
+      toast.error(`${id}: ${message}`);
+    }
     finally { await refresh(); }
   });
 
@@ -93,7 +98,10 @@ export default function McpServers() {
       // Give the exit event a tick to flip state before re-spawning.
       await new Promise((r) => setTimeout(r, 150));
       await window.byanApi.mcp.start(id);
-    } catch { /* ignore */ }
+    } catch (err) {
+      const message = (err as { message?: string }).message ?? 'failed to restart';
+      toast.error(`${id}: ${message}`);
+    }
     finally { await refresh(); }
   });
 
@@ -116,9 +124,10 @@ export default function McpServers() {
     if (!confirmed) return;
     try {
       await window.byanApi.mcp.delete(srv.id);
+      toast.success(`Removed "${srv.id}" from .mcp.json`);
     } catch (err) {
       const message = (err as { message?: string }).message ?? 'delete failed';
-      window.alert(`Failed to delete "${srv.id}": ${message}`);
+      toast.error(`Failed to delete "${srv.id}": ${message}`);
     } finally {
       await refresh();
     }
@@ -253,7 +262,10 @@ export default function McpServers() {
         mode={formMode}
         initial={editTarget}
         onClose={() => setFormOpen(false)}
-        onSaved={() => void refresh()}
+        onSaved={() => {
+          toast.success(formMode === 'edit' ? 'Server updated' : 'Server added to .mcp.json');
+          void refresh();
+        }}
       />
     </div>
   );
