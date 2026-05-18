@@ -21,6 +21,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
+# Exception: app/package-lock.json is required by the CI workflow's `npm ci`
+# step (reproducible installs). The repo root lockfile stays ignored to avoid
+# coupling the create-byan-agent publishing flow with app/ deps.
+!app/package-lock.json
 
 # Client-specific agents (not tracked in git)
 .github/agents/franck.md

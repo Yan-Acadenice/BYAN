@@ -2,7 +2,7 @@
 
 This document describes how the `Electron Build` GitHub Actions workflow
 (`.github/workflows/electron-build.yml`) builds and (optionally) signs the
-BYAN desktop app for Linux and Windows.
+BYAN desktop app for Linux, Windows, and macOS.
 
 ## Overview
 
@@ -10,7 +10,7 @@ BYAN desktop app for Linux and Windows.
 |----------|---------------------|-------------------------|------------------------------------------|
 | Linux    | AppImage, deb       | Not required            | None                                     |
 | Windows  | NSIS installer (.exe) | Optional, opt-in      | `CSC_LINK`, `CSC_KEY_PASSWORD`           |
-| macOS    | dmg, zip            | Deferred to F21 (P2)    | `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
+| macOS    | dmg (x64 + arm64), zip | Optional, opt-in     | `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
 
 ## Triggers
 
@@ -29,9 +29,9 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow builds Linux + Windows, then the `release` job downloads the
-artifacts and creates a **draft** release on GitHub. Edit and publish it
-manually from the GitHub Releases UI.
+The workflow builds Linux + Windows + macOS in parallel, then the `release`
+job downloads the artifacts and creates a **draft** release on GitHub. Edit
+and publish it manually from the GitHub Releases UI.
 
 ## Windows Code Signing
 
@@ -106,23 +106,57 @@ public release.
 
 No secrets are needed for Linux builds.
 
-## macOS — Deferred to F21
+## macOS Code Signing & Notarization
 
-Mac support (dmg + universal binary + Apple notarization) is tracked in
-the P2 backlog as feature **F21**. When activated it will require:
+macOS builds produce a universal DMG (x64 + arm64) plus a ZIP for
+electron-updater delta updates. Without a Developer ID certificate the
+app still builds but Gatekeeper blocks it on first launch — users have
+to right-click → Open to bypass. Signing + notarization eliminate that
+friction.
 
-- Apple Developer Program membership (~$99/year)
-- A "Developer ID Application" certificate exported as `.p12`
-- The following secrets:
-  - `CSC_LINK` — base64-encoded `.p12` (note: name collides with Windows
-    cert; the F21 workflow will use `CSC_LINK_MAC` instead)
-  - `CSC_KEY_PASSWORD` — `.p12` password
-  - `APPLE_ID` — Apple ID email used for notarization
-  - `APPLE_APP_SPECIFIC_PASSWORD` — app-specific password from
-    appleid.apple.com
-  - `APPLE_TEAM_ID` — 10-character Team ID
+### Option A — Signed and notarized (recommended for production)
 
-Until F21 lands, macOS builds are not produced by CI.
+Apple Developer Program membership is ~$99/year and gives you a
+"Developer ID Application" certificate plus access to the notarization
+service.
+
+1. Create the cert in Xcode (Keychain Access → certificate assistant →
+   request from CA) or in the Apple Developer portal.
+2. Export the cert + private key as a `.p12` bundle (right-click the cert
+   in Keychain Access → Export, choose `.p12`, set a password).
+3. Encode it as base64:
+
+   ```bash
+   base64 -i cert.p12 -o cert.p12.base64
+   ```
+
+4. Generate an app-specific password at appleid.apple.com → Sign-In and
+   Security → App-Specific Passwords.
+
+5. Add five GitHub Secrets to the repo:
+
+   - `CSC_LINK` — paste the base64 cert contents.
+   - `CSC_KEY_PASSWORD` — the `.p12` export password.
+   - `APPLE_ID` — your Apple ID email.
+   - `APPLE_APP_SPECIFIC_PASSWORD` — the app-specific password from step 4.
+   - `APPLE_TEAM_ID` — 10-character Team ID from the Apple Developer portal.
+
+6. Push to `main` or tag `v*`. electron-builder picks up the secrets,
+   signs the DMG, and submits it to the notarization service. The notary
+   ticket is stapled to the DMG before upload.
+
+> **Note**: `CSC_LINK` is shared between Windows and macOS signing. If
+> you sign both platforms with different certs, scope the secrets per
+> job using `CSC_LINK_WIN` / `CSC_LINK_MAC` (electron-builder honors
+> both naming conventions).
+
+### Option B — No signing
+
+If `CSC_LINK` is not set, electron-builder produces an **unsigned**
+DMG. The build still passes. Users will see "BYAN cannot be opened
+because the developer cannot be verified" — they bypass via right-click
+→ Open the first time. This is acceptable for early alphas / internal
+testing but not for a public release.
 
 ## Troubleshooting
 
@@ -150,4 +184,4 @@ Confirm the tag matches `v*` (e.g. `v0.1.0`, not `0.1.0` or
 - electron-builder code signing: https://www.electron.build/code-signing
 - `softprops/action-gh-release`: https://github.com/softprops/action-gh-release
 - BYAN F10 (electron-builder config): `app/electron-builder.yml`
-- BYAN F21 (macOS support, P2): backlog
+- BYAN F21 (macOS support): `app/build/entitlements.mac.plist`

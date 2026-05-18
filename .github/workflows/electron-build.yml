@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
 
     defaults:
@@ -73,6 +73,23 @@ jobs:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
 
+      # Mac build (dmg + zip, x64 + arm64). Signing is opt-in via CSC_LINK /
+      # CSC_KEY_PASSWORD (Developer ID Application cert exported as .p12).
+      # Notarization is opt-in via APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD /
+      # APPLE_TEAM_ID. Without these secrets the app ships unsigned — users
+      # will see a Gatekeeper warning on first launch (right-click → Open
+      # bypasses it). See app/CI-SIGNING.md.
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: npx electron-builder --mac --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
       # E2E Playwright suite (F18). Runs against the packaged binary produced
       # by the earlier electron-builder step (--linux / --win both emit an
       # unpacked tree under release/{linux,win}-unpacked/ as a side effect).
@@ -96,6 +113,12 @@ jobs:
         env:
           CI: '1'
 
+      - name: Run E2E (macOS)
+        if: runner.os == 'macOS'
+        run: npm run test:e2e
+        env:
+          CI: '1'
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -104,6 +127,8 @@ jobs:
             app/release/*.AppImage
             app/release/*.deb
             app/release/*.exe
+            app/release/*.dmg
+            app/release/*.zip
             app/release/*.blockmap
             app/release/latest*.yml
           if-no-files-found: ignore
@@ -145,6 +170,8 @@ jobs:
             release-artifacts/**/*.AppImage
             release-artifacts/**/*.deb
             release-artifacts/**/*.exe
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.zip
             release-artifacts/**/latest*.yml
             release-artifacts/**/*.blockmap
         env:
