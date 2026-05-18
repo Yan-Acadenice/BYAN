@@ -42,6 +42,15 @@ publish:
   owner: Yan-Acadenice
   repo: BYAN
 
+# F17: register byan:// protocol with the OS at install time. The runtime
+# `app.setAsDefaultProtocolClient('byan')` only patches the current session;
+# this entry persists the association across reboots and installs the right
+# Info.plist (Mac), Registry keys (Win), and .desktop MimeType (Linux).
+protocols:
+  - name: BYAN deep link
+    schemes:
+      - byan
+
 linux:
   target:
     - target: AppImage

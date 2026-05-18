@@ -457,10 +457,22 @@ export const IPC_CHANNELS = {
 //   byan:chat:chunk        — ChatChunkPayload
 //   byan:mcp:statusChange  — McpStatusChangePayload
 //   byan:update:status     — UpdateState
+//   byan:deepLink          — DeepLink (F17)
 
 export interface McpStatusChangePayload {
   id: string;
   status: McpStatus;
+}
+
+// ---------- Deep links (F17) ----------
+
+export type DeepLinkKind = 'project' | 'chat' | 'agent' | 'settings' | 'unknown';
+
+export interface DeepLink {
+  kind: DeepLinkKind;
+  id?: string;
+  params?: Record<string, string>;
+  raw: string;
 }
 
 // ---------- Auto-update ----------

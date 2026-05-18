@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AppShell from './components/AppShell';
 import UpdateBanner from './components/UpdateBanner';
+import DeepLinkRouter from './components/DeepLinkRouter';
 import { ToastProvider } from './components/toast/ToastContext';
 import type { NavPage } from './components/Sidebar';
 
@@ -131,22 +132,6 @@ export default function App() {
     setRoute('login');
   };
 
-  if (route === 'loading') {
-    return <PageLoader />;
-  }
-
-  if (route === 'onboarding') {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <Onboarding onComplete={() => void handleOnboardingComplete()} />
-      </Suspense>
-    );
-  }
-
-  if (route === 'login') {
-    return <Login onAuthenticated={handleAuthenticated} />;
-  }
-
   // App shell — post-login
   const breadcrumb = PAGE_LABELS[activePage] ?? 'Dashboard';
 
@@ -175,16 +160,36 @@ export default function App() {
     }
   };
 
+  const renderRoute = () => {
+    if (route === 'loading') return <PageLoader />;
+    if (route === 'onboarding') {
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <Onboarding onComplete={() => void handleOnboardingComplete()} />
+        </Suspense>
+      );
+    }
+    if (route === 'login') {
+      return <Login onAuthenticated={handleAuthenticated} />;
+    }
+    return (
+      <>
+        <UpdateBanner />
+        <AppShell
+          activePage={activePage}
+          onNavigate={setActivePage}
+          breadcrumb={breadcrumb}
+        >
+          <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
+        </AppShell>
+      </>
+    );
+  };
+
   return (
     <ToastProvider>
-      <UpdateBanner />
-      <AppShell
-        activePage={activePage}
-        onNavigate={setActivePage}
-        breadcrumb={breadcrumb}
-      >
-        <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
-      </AppShell>
+      <DeepLinkRouter isAuthenticated={route === 'app'} onNavigate={setActivePage} />
+      {renderRoute()}
     </ToastProvider>
   );
 }
