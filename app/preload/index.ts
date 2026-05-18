@@ -65,7 +65,9 @@ const api: ByanApi = {
     start: (id: string) => invoke<void>(IPC_CHANNELS.mcp.start, id),
     stop: (id: string) => invoke<void>(IPC_CHANNELS.mcp.stop, id),
     status: (id: string) => invoke<McpStatus>(IPC_CHANNELS.mcp.status, id),
-    add: (input: McpServerInput) => invoke<McpServer>(IPC_CHANNELS.mcp.add, input)
+    add: (input: McpServerInput) => invoke<McpServer>(IPC_CHANNELS.mcp.add, input),
+    update: (input: McpServerInput) => invoke<McpServer>(IPC_CHANNELS.mcp.update, input),
+    delete: (id: string) => invoke<void>(IPC_CHANNELS.mcp.delete, id)
   },
   cli: {
     detect: () => invoke<CliDetection>(IPC_CHANNELS.cli.detect),

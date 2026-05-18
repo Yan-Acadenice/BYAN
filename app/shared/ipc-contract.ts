@@ -351,6 +351,8 @@ export interface ByanApi {
     stop(id: string): Promise<void>;
     status(id: string): Promise<McpStatus>;
     add(input: McpServerInput): Promise<McpServer>;
+    update(input: McpServerInput): Promise<McpServer>;
+    delete(id: string): Promise<void>;
   };
   cli: {
     detect(): Promise<CliDetection>;
@@ -404,7 +406,9 @@ export const IPC_CHANNELS = {
     start: 'byan:mcp:start',
     stop: 'byan:mcp:stop',
     status: 'byan:mcp:status',
-    add: 'byan:mcp:add'
+    add: 'byan:mcp:add',
+    update: 'byan:mcp:update',
+    delete: 'byan:mcp:delete'
   },
   cli: {
     detect: 'byan:cli:detect'

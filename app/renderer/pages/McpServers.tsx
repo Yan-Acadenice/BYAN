@@ -3,9 +3,9 @@
 // subscribes to byan:mcp:statusChange to keep state in sync without polling.
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Play, Square, RotateCcw, Plus, Loader2, AlertTriangle } from 'lucide-react';
+import { Play, Square, RotateCcw, Plus, Loader2, AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import type { McpServer, McpStatus, McpStatusChangePayload } from '../../shared/ipc-contract';
-import McpAddModal from '../components/mcp/McpAddModal';
+import McpServerFormModal, { type McpFormMode } from '../components/mcp/McpServerFormModal';
 
 function stateLabel(status: McpStatus): string {
   switch (status.state) {
@@ -24,7 +24,9 @@ export default function McpServers() {
   const [servers, setServers] = useState<McpServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
-  const [addOpen, setAddOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<McpFormMode>('add');
+  const [editTarget, setEditTarget] = useState<McpServer | undefined>(undefined);
 
   const refresh = useCallback(async () => {
     try {
@@ -95,6 +97,33 @@ export default function McpServers() {
     finally { await refresh(); }
   });
 
+  const openAdd = () => {
+    setFormMode('add');
+    setEditTarget(undefined);
+    setFormOpen(true);
+  };
+
+  const openEdit = (srv: McpServer) => {
+    setFormMode('edit');
+    setEditTarget(srv);
+    setFormOpen(true);
+  };
+
+  const handleDelete = (srv: McpServer) => withBusy(srv.id, async () => {
+    const confirmed = window.confirm(
+      `Delete MCP server "${srv.id}"?\n\nThis removes it from .mcp.json. The change cannot be undone unless you have version control.`
+    );
+    if (!confirmed) return;
+    try {
+      await window.byanApi.mcp.delete(srv.id);
+    } catch (err) {
+      const message = (err as { message?: string }).message ?? 'delete failed';
+      window.alert(`Failed to delete "${srv.id}": ${message}`);
+    } finally {
+      await refresh();
+    }
+  });
+
   return (
     <div className="space-y-lg">
       <div className="flex items-center justify-between">
@@ -104,7 +133,7 @@ export default function McpServers() {
         </div>
         <button
           type="button"
-          onClick={() => setAddOpen(true)}
+          onClick={openAdd}
           className="btn-primary flex items-center gap-xs py-2 px-md"
         >
           <Plus size={14} />
@@ -194,6 +223,24 @@ export default function McpServers() {
                   >
                     <RotateCcw size={12} /> Restart
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(srv)}
+                    className="btn-ghost btn-sm flex items-center gap-xs"
+                    disabled={isBusy}
+                    aria-label={`Edit ${srv.id}`}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDelete(srv)}
+                    className="btn-ghost btn-sm flex items-center gap-xs text-red-400 hover:text-red-300"
+                    disabled={isBusy}
+                    aria-label={`Delete ${srv.id}`}
+                  >
+                    <Trash2 size={12} />
+                  </button>
                 </div>
               </div>
             );
@@ -201,10 +248,12 @@ export default function McpServers() {
         </div>
       )}
 
-      <McpAddModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdded={() => void refresh()}
+      <McpServerFormModal
+        open={formOpen}
+        mode={formMode}
+        initial={editTarget}
+        onClose={() => setFormOpen(false)}
+        onSaved={() => void refresh()}
       />
     </div>
   );

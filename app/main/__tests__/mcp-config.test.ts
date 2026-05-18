@@ -2,7 +2,14 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { addMcpServer, McpConfigError, readMcpConfig, validateServerInput } from '../mcp-config';
+import {
+  addMcpServer,
+  deleteMcpServer,
+  McpConfigError,
+  readMcpConfig,
+  updateMcpServer,
+  validateServerInput,
+} from '../mcp-config';
 
 let tmp: string;
 
@@ -173,5 +180,70 @@ describe('addMcpServer', () => {
     const parsed = JSON.parse(raw);
     expect(parsed.mcpServers.foo.args).toBeUndefined();
     expect(parsed.mcpServers.foo.env).toBeUndefined();
+  });
+});
+
+describe('updateMcpServer', () => {
+  it('updates an existing entry in place', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node', args: ['a.js'] });
+    await updateMcpServer(tmp, { id: 'foo', command: 'deno', args: ['b.ts'] });
+
+    const result = await readMcpConfig(tmp);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: 'foo', command: 'deno', args: ['b.ts'] });
+  });
+
+  it('preserves other entries when updating one', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node' });
+    await addMcpServer(tmp, { id: 'bar', command: 'python' });
+    await updateMcpServer(tmp, { id: 'foo', command: 'deno' });
+
+    const result = await readMcpConfig(tmp);
+    const map = new Map(result.map((s) => [s.id, s.command]));
+    expect(map.get('foo')).toBe('deno');
+    expect(map.get('bar')).toBe('python');
+  });
+
+  it('throws NOT_FOUND when updating an unknown id', async () => {
+    await expect(updateMcpServer(tmp, { id: 'ghost', command: 'node' }))
+      .rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('throws INVALID_ARGUMENT on bad input', async () => {
+    await expect(updateMcpServer(tmp, { id: 'BAD', command: 'node' }))
+      .rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('refuses to update when .mcp.json is malformed', async () => {
+    await write('.mcp.json', '{not json');
+    await expect(updateMcpServer(tmp, { id: 'foo', command: 'node' }))
+      .rejects.toMatchObject({ code: 'UNAVAILABLE' });
+  });
+});
+
+describe('deleteMcpServer', () => {
+  it('removes the entry from .mcp.json', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node' });
+    await addMcpServer(tmp, { id: 'bar', command: 'python' });
+    await deleteMcpServer(tmp, 'foo');
+
+    const result = await readMcpConfig(tmp);
+    expect(result.map((s) => s.id)).toEqual(['bar']);
+  });
+
+  it('throws NOT_FOUND when id does not exist', async () => {
+    await expect(deleteMcpServer(tmp, 'ghost'))
+      .rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('throws INVALID_ARGUMENT on empty id', async () => {
+    await expect(deleteMcpServer(tmp, ''))
+      .rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('refuses to delete when .mcp.json is malformed', async () => {
+    await write('.mcp.json', '{not json');
+    await expect(deleteMcpServer(tmp, 'foo'))
+      .rejects.toMatchObject({ code: 'UNAVAILABLE' });
   });
 });

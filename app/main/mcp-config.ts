@@ -199,7 +199,7 @@ export async function addMcpServer(
   return parsedBack;
 }
 
-export type McpConfigErrorCode = 'INVALID_ARGUMENT' | 'CONFLICT' | 'UNAVAILABLE' | 'INTERNAL';
+export type McpConfigErrorCode = 'INVALID_ARGUMENT' | 'CONFLICT' | 'NOT_FOUND' | 'UNAVAILABLE' | 'INTERNAL';
 
 export class McpConfigError extends Error {
   public readonly code: McpConfigErrorCode;
@@ -208,4 +208,81 @@ export class McpConfigError extends Error {
     this.name = 'McpConfigError';
     this.code = code;
   }
+}
+
+// Shared reader: returns parsed object + raw map of existing entries, throws if
+// the file is malformed (so callers can refuse to overwrite a broken config).
+async function readForWrite(
+  filePath: string
+): Promise<{ mcpServers: Record<string, RawMcpServer> }> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, 'utf-8');
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return { mcpServers: {} };
+    throw e;
+  }
+  let parsed: RawMcpFile;
+  try {
+    parsed = JSON.parse(raw) as RawMcpFile;
+  } catch {
+    throw new McpConfigError('UNAVAILABLE', '.mcp.json is malformed; fix it manually before editing entries');
+  }
+  if (parsed && typeof parsed === 'object' && parsed.mcpServers && typeof parsed.mcpServers === 'object') {
+    return { mcpServers: { ...parsed.mcpServers } };
+  }
+  return { mcpServers: {} };
+}
+
+async function writeFile(filePath: string, contents: { mcpServers: Record<string, RawMcpServer> }): Promise<void> {
+  const serialized = JSON.stringify(contents, null, 2) + '\n';
+  await fs.writeFile(filePath, serialized, 'utf-8');
+}
+
+function inputToRaw(input: McpServerInput): RawMcpServer {
+  return {
+    command: input.command,
+    ...(input.args && input.args.length > 0 ? { args: input.args } : {}),
+    ...(input.env && Object.keys(input.env).length > 0 ? { env: input.env } : {}),
+    ...(input.cwd ? { cwd: input.cwd } : {}),
+  };
+}
+
+// Updates an existing entry in .mcp.json. The id of the input must match an
+// existing server — renaming is not supported here (delete + add to rename).
+export async function updateMcpServer(
+  projectRoot: string,
+  input: McpServerInput
+): Promise<McpServerConfig> {
+  const err = validateServerInput(input);
+  if (err) throw new McpConfigError('INVALID_ARGUMENT', err);
+
+  const filePath = mcpConfigPath(projectRoot);
+  const existing = await readForWrite(filePath);
+  if (!existing.mcpServers[input.id]) {
+    throw new McpConfigError('NOT_FOUND', `mcp: server "${input.id}" does not exist`);
+  }
+
+  existing.mcpServers[input.id] = inputToRaw(input);
+  await writeFile(filePath, existing);
+
+  const parsedBack = parseEntry(input.id, existing.mcpServers[input.id]);
+  if (!parsedBack) {
+    throw new McpConfigError('INTERNAL', 'failed to round-trip server entry');
+  }
+  return parsedBack;
+}
+
+// Removes an entry from .mcp.json. No-op if the file does not exist.
+export async function deleteMcpServer(projectRoot: string, id: string): Promise<void> {
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new McpConfigError('INVALID_ARGUMENT', 'id is required');
+  }
+  const filePath = mcpConfigPath(projectRoot);
+  const existing = await readForWrite(filePath);
+  if (!existing.mcpServers[id]) {
+    throw new McpConfigError('NOT_FOUND', `mcp: server "${id}" does not exist`);
+  }
+  delete existing.mcpServers[id];
+  await writeFile(filePath, existing);
 }

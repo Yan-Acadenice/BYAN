@@ -1,33 +1,35 @@
-// McpAddModal — F14.8: add a new stdio MCP server to .mcp.json.
+// McpServerFormModal — F14: add OR edit a stdio MCP server in .mcp.json.
 //
-// Why a dedicated modal:
-// The MCP config is durable user state stored in .mcp.json at the project root,
-// so we mirror the Claude Code convention exactly (top-level mcpServers map).
-// http transport is out of scope here — those servers live remotely and the
-// user manages them with the upstream provider.
+// One modal, two modes:
+//   mode='add'  → blank form, calls mcp.add, id is editable.
+//   mode='edit' → pre-filled from `initial`, calls mcp.update, id is locked
+//                 (renaming requires delete + add — out of scope here).
 
 import React, { useEffect, useState } from 'react';
 import { X, AlertTriangle } from 'lucide-react';
-import type { McpServerInput } from '../../../shared/ipc-contract';
+import type { McpServer, McpServerInput } from '../../../shared/ipc-contract';
 
-interface McpAddModalProps {
+export type McpFormMode = 'add' | 'edit';
+
+interface McpServerFormModalProps {
   open: boolean;
+  mode: McpFormMode;
+  initial?: McpServer;
   onClose: () => void;
-  onAdded: () => void;
+  onSaved: () => void;
 }
 
 interface FormState {
   id: string;
   command: string;
-  argsText: string;  // textarea content, one arg per line
-  envText: string;   // textarea content, KEY=VALUE per line
+  argsText: string;
+  envText: string;
 }
 
 const EMPTY: FormState = { id: '', command: '', argsText: '', envText: '' };
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,62}$/;
 
-// Splits a textarea by newlines, trims, drops empty lines.
 function splitLines(raw: string): string[] {
   return raw.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
 }
@@ -46,6 +48,16 @@ function parseEnv(raw: string): { ok: true; env: Record<string, string> } | { ok
     out[key] = value;
   }
   return { ok: true, env: out };
+}
+
+function fromServer(srv: McpServer | undefined): FormState {
+  if (!srv) return { ...EMPTY };
+  return {
+    id: srv.id,
+    command: srv.command ?? '',
+    argsText: (srv.args ?? []).join('\n'),
+    envText: '',
+  };
 }
 
 function buildInput(form: FormState): { ok: true; input: McpServerInput } | { ok: false; error: string } {
@@ -69,20 +81,22 @@ function buildInput(form: FormState): { ok: true; input: McpServerInput } | { ok
   return { ok: true, input };
 }
 
-export default function McpAddModal({ open, onClose, onAdded }: McpAddModalProps) {
+export default function McpServerFormModal({ open, mode, initial, onClose, onSaved }: McpServerFormModalProps) {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setForm(EMPTY);
+      setForm(mode === 'edit' ? fromServer(initial) : EMPTY);
       setError(null);
       setSubmitting(false);
     }
-  }, [open]);
+  }, [open, mode, initial]);
 
   if (!open) return null;
+
+  const isEdit = mode === 'edit';
 
   const handleSubmit = async () => {
     setError(null);
@@ -93,16 +107,20 @@ export default function McpAddModal({ open, onClose, onAdded }: McpAddModalProps
     }
     setSubmitting(true);
     try {
-      await window.byanApi.mcp.add(built.input);
-      onAdded();
+      if (isEdit) {
+        await window.byanApi.mcp.update(built.input);
+      } else {
+        await window.byanApi.mcp.add(built.input);
+      }
+      onSaved();
       onClose();
     } catch (err) {
       const code = (err as { code?: string }).code;
       const message = (err as { message?: string }).message ?? 'unknown error';
       if (code === 'CONFLICT') {
         setError(`Server "${form.id}" already exists in .mcp.json`);
-      } else if (code === 'UNAVAILABLE') {
-        setError(message);
+      } else if (code === 'NOT_FOUND') {
+        setError(`Server "${form.id}" no longer exists — refresh the page`);
       } else {
         setError(message);
       }
@@ -121,7 +139,9 @@ export default function McpAddModal({ open, onClose, onAdded }: McpAddModalProps
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-md py-sm border-b border-ink-800">
-          <h2 className="font-h3 text-h3 text-ink-100">Add MCP server</h2>
+          <h2 className="font-h3 text-h3 text-ink-100">
+            {isEdit ? `Edit ${initial?.id ?? 'server'}` : 'Add MCP server'}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -134,40 +154,47 @@ export default function McpAddModal({ open, onClose, onAdded }: McpAddModalProps
 
         <div className="p-md space-y-md">
           <div>
-            <label htmlFor="mcp-add-id" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
+            <label htmlFor="mcp-form-id" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
               id <span className="text-ink-500">(lowercase, kebab-case)</span>
             </label>
             <input
-              id="mcp-add-id"
+              id="mcp-form-id"
               type="text"
               value={form.id}
               onChange={(e) => setForm({ ...form, id: e.target.value })}
+              disabled={isEdit}
               placeholder="my-server"
-              className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500"
-              autoFocus
+              className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              autoFocus={!isEdit}
             />
+            {isEdit && (
+              <p className="text-ink-500 text-[11px] mt-xs">
+                Renaming an MCP server requires deleting it and adding it again.
+              </p>
+            )}
           </div>
 
           <div>
-            <label htmlFor="mcp-add-command" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
+            <label htmlFor="mcp-form-command" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
               command
             </label>
             <input
-              id="mcp-add-command"
+              id="mcp-form-command"
               type="text"
               value={form.command}
               onChange={(e) => setForm({ ...form, command: e.target.value })}
               placeholder="node"
               className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500"
+              autoFocus={isEdit}
             />
           </div>
 
           <div>
-            <label htmlFor="mcp-add-args" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
+            <label htmlFor="mcp-form-args" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
               args <span className="text-ink-500">(one per line, optional)</span>
             </label>
             <textarea
-              id="mcp-add-args"
+              id="mcp-form-args"
               value={form.argsText}
               onChange={(e) => setForm({ ...form, argsText: e.target.value })}
               placeholder="_byan/mcp/server.js"
@@ -177,17 +204,22 @@ export default function McpAddModal({ open, onClose, onAdded }: McpAddModalProps
           </div>
 
           <div>
-            <label htmlFor="mcp-add-env" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
+            <label htmlFor="mcp-form-env" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
               env <span className="text-ink-500">(KEY=VALUE per line, optional)</span>
             </label>
             <textarea
-              id="mcp-add-env"
+              id="mcp-form-env"
               value={form.envText}
               onChange={(e) => setForm({ ...form, envText: e.target.value })}
               placeholder="BYAN_API_URL=https://example.com"
               rows={3}
               className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500 resize-none"
             />
+            {isEdit && (
+              <p className="text-ink-500 text-[11px] mt-xs">
+                Existing env values are not displayed. Leaving this empty overwrites them with nothing — re-enter values to keep them.
+              </p>
+            )}
           </div>
 
           {error && (
@@ -213,7 +245,7 @@ export default function McpAddModal({ open, onClose, onAdded }: McpAddModalProps
             className="btn-primary btn-sm"
             disabled={submitting}
           >
-            {submitting ? 'Adding…' : 'Add server'}
+            {submitting ? (isEdit ? 'Saving…' : 'Adding…') : (isEdit ? 'Save changes' : 'Add server')}
           </button>
         </div>
       </div>

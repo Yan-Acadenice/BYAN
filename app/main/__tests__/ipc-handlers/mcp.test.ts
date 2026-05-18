@@ -105,8 +105,44 @@ describe('mcp.add', () => {
   });
 });
 
+describe('mcp.update', () => {
+  it('updates an existing entry', async () => {
+    await mcp.add({ id: 'fresh', command: 'node' });
+    const result = await mcp.update({ id: 'fresh', command: 'deno', args: ['b.ts'] });
+    expect(result.command).toBe('deno');
+    expect(result.args).toEqual(['b.ts']);
+  });
+
+  it('throws NOT_FOUND on unknown id', async () => {
+    await expect(mcp.update({ id: 'ghost', command: 'node' }))
+      .rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('throws INVALID_ARGUMENT on bad input', async () => {
+    await expect(mcp.update({ id: 'BAD', command: 'node' }))
+      .rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+});
+
+describe('mcp.remove (delete)', () => {
+  it('removes an existing entry', async () => {
+    await mcp.add({ id: 'temp', command: 'node' });
+    await mcp.remove('temp');
+    const list = await mcp.list();
+    expect(list.map((s) => s.id)).not.toContain('temp');
+  });
+
+  it('throws NOT_FOUND on unknown id', async () => {
+    await expect(mcp.remove('ghost')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('throws INVALID_ARGUMENT on empty id', async () => {
+    await expect(mcp.remove('')).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+});
+
 describe('mcp.register', () => {
-  it('registers all five channels on ipcMain', () => {
+  it('registers all seven channels on ipcMain', () => {
     const handle = vi.fn();
     mcp.register({ handle } as never);
     const channels = handle.mock.calls.map((c) => c[0]);
@@ -115,5 +151,7 @@ describe('mcp.register', () => {
     expect(channels).toContain(IPC_CHANNELS.mcp.stop);
     expect(channels).toContain(IPC_CHANNELS.mcp.status);
     expect(channels).toContain(IPC_CHANNELS.mcp.add);
+    expect(channels).toContain(IPC_CHANNELS.mcp.update);
+    expect(channels).toContain(IPC_CHANNELS.mcp.delete);
   });
 });

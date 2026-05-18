@@ -17,8 +17,10 @@ import { IPC_CHANNELS, type McpServer, type McpServerInput, type McpStatus } fro
 import { IpcError, wrap } from './_error';
 import {
   addMcpServer,
+  deleteMcpServer,
   McpConfigError,
   readMcpConfig,
+  updateMcpServer,
   type McpServerConfig,
 } from '../mcp-config';
 import { McpProcessRegistry } from '../mcp-registry';
@@ -123,6 +125,51 @@ export async function add(input: McpServerInput): Promise<McpServer> {
   }
 }
 
+// Updates an existing entry. If the server is currently running, we stop it
+// first so the next start picks up the new command/args/env. The renderer is
+// expected to refresh its list after a successful update.
+export async function update(input: McpServerInput): Promise<McpServer> {
+  const root = await resolveProjectRoot();
+  if (!root) {
+    throw new IpcError('UNAVAILABLE', 'mcp: no project root configured — complete onboarding first');
+  }
+  if (input && typeof input.id === 'string' && registry.isRunning(input.id)) {
+    await registry.stop(input.id);
+  }
+  try {
+    const cfg = await updateMcpServer(root, input);
+    return toMcpServer(cfg, registry.getStatus(cfg.id));
+  } catch (err) {
+    if (err instanceof McpConfigError) {
+      throw new IpcError(err.code, err.message);
+    }
+    throw new IpcError('INTERNAL', err instanceof Error ? err.message : String(err));
+  }
+}
+
+// Removes an entry. If the server is running we stop it first to free the
+// child process; otherwise removing the config silently leaves an orphan.
+export async function remove(id: string): Promise<void> {
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new IpcError('INVALID_ARGUMENT', 'mcp: id must be a non-empty string');
+  }
+  const root = await resolveProjectRoot();
+  if (!root) {
+    throw new IpcError('UNAVAILABLE', 'mcp: no project root configured — complete onboarding first');
+  }
+  if (registry.isRunning(id)) {
+    await registry.stop(id);
+  }
+  try {
+    await deleteMcpServer(root, id);
+  } catch (err) {
+    if (err instanceof McpConfigError) {
+      throw new IpcError(err.code, err.message);
+    }
+    throw new IpcError('INTERNAL', err instanceof Error ? err.message : String(err));
+  }
+}
+
 function broadcastStatus(id: string, next: McpStatus): void {
   const payload = { id, status: next };
   for (const win of BrowserWindow.getAllWindows()) {
@@ -139,4 +186,6 @@ export function register(ipcMain: IpcMain): void {
   ipcMain.handle(IPC_CHANNELS.mcp.stop, wrap((_evt, id: string) => stop(id)));
   ipcMain.handle(IPC_CHANNELS.mcp.status, wrap((_evt, id: string) => status(id)));
   ipcMain.handle(IPC_CHANNELS.mcp.add, wrap((_evt, input: McpServerInput) => add(input)));
+  ipcMain.handle(IPC_CHANNELS.mcp.update, wrap((_evt, input: McpServerInput) => update(input)));
+  ipcMain.handle(IPC_CHANNELS.mcp.delete, wrap((_evt, id: string) => remove(id)));
 }
