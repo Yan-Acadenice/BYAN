@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { readMcpConfig } from '../mcp-config';
+import { addMcpServer, McpConfigError, readMcpConfig, validateServerInput } from '../mcp-config';
 
 let tmp: string;
 
@@ -86,5 +86,92 @@ describe('readMcpConfig', () => {
     }));
     const result = await readMcpConfig(tmp);
     expect(result[0].env).toBeUndefined();
+  });
+});
+
+describe('validateServerInput', () => {
+  it('accepts a minimal valid input', () => {
+    expect(validateServerInput({ id: 'foo', command: 'node' })).toBeNull();
+  });
+
+  it('rejects id with uppercase', () => {
+    expect(validateServerInput({ id: 'Foo', command: 'node' })).toMatch(/id must match/);
+  });
+
+  it('rejects id starting with hyphen', () => {
+    expect(validateServerInput({ id: '-foo', command: 'node' })).toMatch(/id must match/);
+  });
+
+  it('rejects id longer than 63 chars', () => {
+    expect(validateServerInput({ id: 'a'.repeat(64), command: 'node' })).toMatch(/id must match/);
+  });
+
+  it('rejects empty command', () => {
+    expect(validateServerInput({ id: 'foo', command: '   ' })).toMatch(/command is required/);
+  });
+
+  it('rejects non-string args', () => {
+    expect(validateServerInput({ id: 'foo', command: 'node', args: ['ok', 1 as unknown as string] }))
+      .toMatch(/args must be/);
+  });
+
+  it('rejects non-string env values', () => {
+    expect(validateServerInput({ id: 'foo', command: 'node', env: { OK: 'a', BAD: 1 as unknown as string } }))
+      .toMatch(/env must be/);
+  });
+});
+
+describe('addMcpServer', () => {
+  it('creates .mcp.json when none exists', async () => {
+    const created = await addMcpServer(tmp, { id: 'foo', command: 'node', args: ['x.js'] });
+    expect(created.id).toBe('foo');
+
+    const result = await readMcpConfig(tmp);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: 'foo', command: 'node', args: ['x.js'] });
+  });
+
+  it('preserves existing entries when adding a new one', async () => {
+    await write('.mcp.json', JSON.stringify({
+      mcpServers: { existing: { command: 'a', args: ['b'] } },
+    }));
+    await addMcpServer(tmp, { id: 'fresh', command: 'c' });
+
+    const result = await readMcpConfig(tmp);
+    const ids = result.map((s) => s.id).sort();
+    expect(ids).toEqual(['existing', 'fresh']);
+  });
+
+  it('throws CONFLICT when id already exists', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node' });
+    await expect(addMcpServer(tmp, { id: 'foo', command: 'other' }))
+      .rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('throws INVALID_ARGUMENT on invalid input', async () => {
+    await expect(addMcpServer(tmp, { id: 'BAD', command: 'node' }))
+      .rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws UNAVAILABLE when existing .mcp.json is malformed', async () => {
+    await write('.mcp.json', '{not json');
+    await expect(addMcpServer(tmp, { id: 'foo', command: 'node' }))
+      .rejects.toBeInstanceOf(McpConfigError);
+    await expect(addMcpServer(tmp, { id: 'foo', command: 'node' }))
+      .rejects.toMatchObject({ code: 'UNAVAILABLE' });
+  });
+
+  it('writes a file ending with a trailing newline', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node' });
+    const raw = await fs.readFile(path.join(tmp, '.mcp.json'), 'utf-8');
+    expect(raw.endsWith('\n')).toBe(true);
+  });
+
+  it('omits args/env when empty', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node', args: [], env: {} });
+    const raw = await fs.readFile(path.join(tmp, '.mcp.json'), 'utf-8');
+    const parsed = JSON.parse(raw);
+    expect(parsed.mcpServers.foo.args).toBeUndefined();
+    expect(parsed.mcpServers.foo.env).toBeUndefined();
   });
 });

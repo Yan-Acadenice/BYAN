@@ -13,9 +13,14 @@
 // byanEvents.on and keeps its UI in sync without polling.
 
 import { BrowserWindow, type IpcMain } from 'electron';
-import { IPC_CHANNELS, type McpServer, type McpStatus } from '../../shared/ipc-contract';
+import { IPC_CHANNELS, type McpServer, type McpServerInput, type McpStatus } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
-import { readMcpConfig, type McpServerConfig } from '../mcp-config';
+import {
+  addMcpServer,
+  McpConfigError,
+  readMcpConfig,
+  type McpServerConfig,
+} from '../mcp-config';
 import { McpProcessRegistry } from '../mcp-registry';
 import { get as storeGet } from './store';
 
@@ -102,6 +107,22 @@ export async function status(id: string): Promise<McpStatus> {
   return registry.getStatus(id);
 }
 
+export async function add(input: McpServerInput): Promise<McpServer> {
+  const root = await resolveProjectRoot();
+  if (!root) {
+    throw new IpcError('UNAVAILABLE', 'mcp: no project root configured — complete onboarding first');
+  }
+  try {
+    const cfg = await addMcpServer(root, input);
+    return toMcpServer(cfg, registry.getStatus(cfg.id));
+  } catch (err) {
+    if (err instanceof McpConfigError) {
+      throw new IpcError(err.code, err.message);
+    }
+    throw new IpcError('INTERNAL', err instanceof Error ? err.message : String(err));
+  }
+}
+
 function broadcastStatus(id: string, next: McpStatus): void {
   const payload = { id, status: next };
   for (const win of BrowserWindow.getAllWindows()) {
@@ -117,4 +138,5 @@ export function register(ipcMain: IpcMain): void {
   ipcMain.handle(IPC_CHANNELS.mcp.start, wrap((_evt, id: string) => start(id)));
   ipcMain.handle(IPC_CHANNELS.mcp.stop, wrap((_evt, id: string) => stop(id)));
   ipcMain.handle(IPC_CHANNELS.mcp.status, wrap((_evt, id: string) => status(id)));
+  ipcMain.handle(IPC_CHANNELS.mcp.add, wrap((_evt, input: McpServerInput) => add(input)));
 }

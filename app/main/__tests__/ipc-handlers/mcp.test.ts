@@ -73,8 +73,40 @@ describe('mcp.start / stop / status', () => {
   });
 });
 
+describe('mcp.add', () => {
+  it('persists a new server and returns it with stopped status', async () => {
+    const result = await mcp.add({ id: 'fresh', command: 'node', args: ['srv.js'] });
+    expect(result).toMatchObject({
+      id: 'fresh',
+      command: 'node',
+      args: ['srv.js'],
+      status: { state: 'stopped' },
+    });
+
+    const list = await mcp.list();
+    expect(list.map((s) => s.id)).toContain('fresh');
+  });
+
+  it('throws INVALID_ARGUMENT on bad input', async () => {
+    await expect(mcp.add({ id: 'BAD', command: 'node' }))
+      .rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  });
+
+  it('throws CONFLICT when id collides', async () => {
+    await mcp.add({ id: 'twin', command: 'node' });
+    await expect(mcp.add({ id: 'twin', command: 'other' }))
+      .rejects.toMatchObject({ code: 'CONFLICT' });
+  });
+
+  it('throws UNAVAILABLE when no project root is configured', async () => {
+    mcp._setProjectRootForTests('');
+    await expect(mcp.add({ id: 'x', command: 'node' }))
+      .rejects.toMatchObject({ code: 'UNAVAILABLE' });
+  });
+});
+
 describe('mcp.register', () => {
-  it('registers all four channels on ipcMain', () => {
+  it('registers all five channels on ipcMain', () => {
     const handle = vi.fn();
     mcp.register({ handle } as never);
     const channels = handle.mock.calls.map((c) => c[0]);
@@ -82,5 +114,6 @@ describe('mcp.register', () => {
     expect(channels).toContain(IPC_CHANNELS.mcp.start);
     expect(channels).toContain(IPC_CHANNELS.mcp.stop);
     expect(channels).toContain(IPC_CHANNELS.mcp.status);
+    expect(channels).toContain(IPC_CHANNELS.mcp.add);
   });
 });

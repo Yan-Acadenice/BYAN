@@ -41,6 +41,16 @@ export interface McpServer {
   status: McpStatus;
 }
 
+// Shape accepted by mcp.add — narrower than McpServer because the app only
+// creates stdio entries; http servers are configured by the user manually.
+export interface McpServerInput {
+  id: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+}
+
 // ---------- byan_web API types ----------
 // These types mirror the live API schema confirmed via curl against
 // https://byan-api.stark.a3n.fr — see byan-api-client.ts for the fetch layer.
@@ -340,6 +350,7 @@ export interface ByanApi {
     start(id: string): Promise<void>;
     stop(id: string): Promise<void>;
     status(id: string): Promise<McpStatus>;
+    add(input: McpServerInput): Promise<McpServer>;
   };
   cli: {
     detect(): Promise<CliDetection>;
@@ -387,7 +398,8 @@ export const IPC_CHANNELS = {
     list: 'byan:mcp:list',
     start: 'byan:mcp:start',
     stop: 'byan:mcp:stop',
-    status: 'byan:mcp:status'
+    status: 'byan:mcp:status',
+    add: 'byan:mcp:add'
   },
   cli: {
     detect: 'byan:cli:detect'
@@ -448,6 +460,8 @@ export type IpcErrorCode =
   | 'UNAUTHENTICATED'
   | 'UNAVAILABLE'
   | 'INTERNAL'
+  // Resource already exists (e.g. mcp.add with a colliding id).
+  | 'CONFLICT'
   // Thrown by byanWeb handlers when the stored token is missing or the server
   // returns 401. The renderer should redirect to Login on this code.
   | 'AUTH_REQUIRED';

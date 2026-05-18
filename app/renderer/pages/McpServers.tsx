@@ -5,6 +5,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Play, Square, RotateCcw, Plus, Loader2, AlertTriangle } from 'lucide-react';
 import type { McpServer, McpStatus, McpStatusChangePayload } from '../../shared/ipc-contract';
+import McpAddModal from '../components/mcp/McpAddModal';
 
 function stateLabel(status: McpStatus): string {
   switch (status.state) {
@@ -23,6 +24,7 @@ export default function McpServers() {
   const [servers, setServers] = useState<McpServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
+  const [addOpen, setAddOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -100,7 +102,11 @@ export default function McpServers() {
           <p className="section-title">Platform</p>
           <h1 className="page-title mt-0.5">MCP Servers</h1>
         </div>
-        <button type="button" className="btn-primary flex items-center gap-xs py-2 px-md" disabled>
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="btn-primary flex items-center gap-xs py-2 px-md"
+        >
           <Plus size={14} />
           Add MCP server
         </button>
@@ -194,6 +200,12 @@ export default function McpServers() {
           })}
         </div>
       )}
+
+      <McpAddModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onAdded={() => void refresh()}
+      />
     </div>
   );
 }
