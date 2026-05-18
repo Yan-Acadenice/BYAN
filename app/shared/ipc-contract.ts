@@ -428,7 +428,13 @@ export const IPC_CHANNELS = {
   }
 } as const;
 // Event channels pushed from main -> renderer (used with byanEvents.on):
-//   byan:chat:chunk — ChatChunkPayload
+//   byan:chat:chunk        — ChatChunkPayload
+//   byan:mcp:statusChange  — McpStatusChangePayload
+
+export interface McpStatusChangePayload {
+  id: string;
+  status: McpStatus;
+}
 
 // ---------- Error envelope ----------
 // When a handler throws, Electron serializes the Error across the IPC boundary.

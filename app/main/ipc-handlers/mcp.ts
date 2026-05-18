@@ -1,59 +1,118 @@
-// MCP handlers — STUB for F2.
-// Real implementation lands in F14 (MCP control plane: registry, lifecycle, health).
-// The shapes returned here mirror the BYAN MCP catalog so the renderer can
-// build the MCP panel against them today.
+// MCP handlers — F14 implementation.
+//
+// Responsibilities:
+//   1. list()    → reads .mcp.json from the user's project root (resolved via the
+//                  store key 'onboarding.projectRoot') and merges with the live
+//                  process registry to fill in runtime state.
+//   2. start()   → spawns the child process for an enabled stdio server.
+//   3. stop()    → SIGTERM the child; exit listener flips state to 'stopped'.
+//   4. status()  → returns the registry's current view for that id.
+//
+// Status changes from the registry are broadcast to all renderer windows via
+// the 'byan:mcp:statusChange' channel. The renderer subscribes through
+// byanEvents.on and keeps its UI in sync without polling.
 
-import type { IpcMain } from 'electron';
-import { IPC_CHANNELS, McpServer, McpStatus } from '../../shared/ipc-contract';
+import { BrowserWindow, type IpcMain } from 'electron';
+import { IPC_CHANNELS, type McpServer, type McpStatus } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
+import { readMcpConfig, type McpServerConfig } from '../mcp-config';
+import { McpProcessRegistry } from '../mcp-registry';
+import { get as storeGet } from './store';
 
-// In-memory stub registry — replaced by a real MCP manager in F14.
-const STUB_SERVERS: McpServer[] = [
-  {
-    id: 'byan',
-    name: 'byan',
-    transport: 'stdio',
-    command: 'node',
-    args: ['_byan/mcp/byan-mcp-server.js'],
-    enabled: true,
-    status: { state: 'stopped' }
-  }
-];
+const PROJECT_ROOT_KEY = 'onboarding.projectRoot';
+const STATUS_EVENT_CHANNEL = 'byan:mcp:statusChange';
 
-export async function list(): Promise<McpServer[]> {
-  // TODO(F14): read from .mcp.json + live process registry.
-  return STUB_SERVERS.map((s) => ({ ...s }));
+let registry: McpProcessRegistry = new McpProcessRegistry();
+let projectRootOverride: string | null = null;
+
+// Test-only escape hatch: lets unit tests inject a clean registry and a fixed
+// project root without going through the real store / Electron.
+export function _setRegistryForTests(next: McpProcessRegistry): void {
+  registry = next;
+}
+export function _setProjectRootForTests(root: string | null): void {
+  projectRootOverride = root;
 }
 
-function findOrThrow(id: string): McpServer {
+async function resolveProjectRoot(): Promise<string | null> {
+  if (projectRootOverride !== null) return projectRootOverride;
+  try {
+    const root = await storeGet<string>(PROJECT_ROOT_KEY);
+    return typeof root === 'string' && root.length > 0 ? root : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadConfig(): Promise<McpServerConfig[]> {
+  const root = await resolveProjectRoot();
+  if (!root) return [];
+  return readMcpConfig(root);
+}
+
+function toMcpServer(cfg: McpServerConfig, status: McpStatus): McpServer {
+  return {
+    id: cfg.id,
+    name: cfg.name,
+    transport: cfg.transport,
+    command: cfg.command,
+    args: cfg.args,
+    enabled: cfg.enabled,
+    status,
+  };
+}
+
+export async function list(): Promise<McpServer[]> {
+  const cfgs = await loadConfig();
+  return cfgs.map((c) => toMcpServer(c, registry.getStatus(c.id)));
+}
+
+async function findOrThrow(id: string): Promise<McpServerConfig> {
   if (typeof id !== 'string' || id.length === 0) {
     throw new IpcError('INVALID_ARGUMENT', 'mcp: id must be a non-empty string');
   }
-  const server = STUB_SERVERS.find((s) => s.id === id);
-  if (!server) {
-    throw new IpcError('NOT_FOUND', `mcp: server "${id}" not found`);
-  }
-  return server;
+  const cfgs = await loadConfig();
+  const cfg = cfgs.find((c) => c.id === id);
+  if (!cfg) throw new IpcError('NOT_FOUND', `mcp: server "${id}" not found`);
+  return cfg;
 }
 
 export async function start(id: string): Promise<void> {
-  findOrThrow(id);
-  // TODO(F14): spawn child process, attach stdio, track pid.
-  return;
+  const cfg = await findOrThrow(id);
+  if (!cfg.enabled) {
+    throw new IpcError('PERMISSION_DENIED', `mcp: server "${id}" is disabled in .mcp.json`);
+  }
+  if (cfg.transport !== 'stdio') {
+    throw new IpcError('UNAVAILABLE', `mcp: transport "${cfg.transport}" is not managed locally`);
+  }
+  try {
+    await registry.start(cfg);
+  } catch (err) {
+    throw new IpcError('INTERNAL', err instanceof Error ? err.message : String(err));
+  }
 }
 
 export async function stop(id: string): Promise<void> {
-  findOrThrow(id);
-  // TODO(F14): SIGTERM then SIGKILL after grace period.
-  return;
+  await findOrThrow(id);
+  await registry.stop(id);
 }
 
 export async function status(id: string): Promise<McpStatus> {
-  const server = findOrThrow(id);
-  return server.status;
+  await findOrThrow(id);
+  return registry.getStatus(id);
+}
+
+function broadcastStatus(id: string, next: McpStatus): void {
+  const payload = { id, status: next };
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.webContents.isDestroyed()) {
+      win.webContents.send(STATUS_EVENT_CHANNEL, payload);
+    }
+  }
 }
 
 export function register(ipcMain: IpcMain): void {
+  registry.onStatusChange(broadcastStatus);
   ipcMain.handle(IPC_CHANNELS.mcp.list, wrap(() => list()));
   ipcMain.handle(IPC_CHANNELS.mcp.start, wrap((_evt, id: string) => start(id)));
   ipcMain.handle(IPC_CHANNELS.mcp.stop, wrap((_evt, id: string) => stop(id)));
