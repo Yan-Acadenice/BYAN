@@ -15,6 +15,7 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AppShell from './components/AppShell';
+import UpdateBanner from './components/UpdateBanner';
 import type { NavPage } from './components/Sidebar';
 
 // Lazy chunks — pages only paid for on demand. Onboarding runs once at most;
@@ -174,12 +175,15 @@ export default function App() {
   };
 
   return (
-    <AppShell
-      activePage={activePage}
-      onNavigate={setActivePage}
-      breadcrumb={breadcrumb}
-    >
-      <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
-    </AppShell>
+    <>
+      <UpdateBanner />
+      <AppShell
+        activePage={activePage}
+        onNavigate={setActivePage}
+        breadcrumb={breadcrumb}
+      >
+        <Suspense fallback={<PageLoader />}>{renderPage()}</Suspense>
+      </AppShell>
+    </>
   );
 }

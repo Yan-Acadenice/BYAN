@@ -27,6 +27,7 @@ import {
   ByanApiListOpts,
   CreateConversationOpts,
   SendMessageOpts,
+  UpdateState,
 } from '../shared/ipc-contract';
 
 // Thin invoke helper — keeps the per-method bodies a single line and ensures
@@ -85,6 +86,11 @@ const api: ByanApi = {
     version: () => invoke<string>(IPC_CHANNELS.app.version),
     relaunch: () => invoke<void>(IPC_CHANNELS.app.relaunch),
     openExternal: (url: string) => invoke<void>(IPC_CHANNELS.app.openExternal, url)
+  },
+  update: {
+    check: () => invoke<UpdateState>(IPC_CHANNELS.update.check),
+    getState: () => invoke<UpdateState>(IPC_CHANNELS.update.getState),
+    install: () => invoke<void>(IPC_CHANNELS.update.install)
   },
   store: {
     get: <T = unknown>(key: string) => invoke<T | null>(IPC_CHANNELS.store.get, key),

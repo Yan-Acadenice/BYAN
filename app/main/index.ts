@@ -11,6 +11,9 @@ import { installMenu } from './menu';
 import { createLocalServer } from './local-server';
 import { setLocalServer } from './ipc-handlers/server';
 import { setLocalServerForAuth } from './ipc-handlers/auth';
+import { autoUpdater as electronAutoUpdater } from 'electron-updater';
+import { AutoUpdaterManager, type AutoUpdaterLike } from './auto-updater';
+import { _setManagerForTests as setUpdaterManager, getManager as getUpdaterManager } from './ipc-handlers/update';
 
 // Singleton local server — started on login (F13), stopped on quit.
 const localServer = createLocalServer({ logger: console });
@@ -69,10 +72,19 @@ const BOOT_T0 = Date.now();
 app.whenReady().then(() => {
   const tReady = Date.now();
   applyCsp(session.defaultSession);
+  // Updater manager is created before registerAll so the IPC handler binds the
+  // same singleton that main starts/stops below. electron-updater is only
+  // active outside dev — start() short-circuits on isDev so the module is loaded
+  // but never reaches out to the network when developing locally.
+  const updater = isDev ? undefined : (electronAutoUpdater as unknown as AutoUpdaterLike);
+  setUpdaterManager(new AutoUpdaterManager({ updater, isDev }));
   registerAll(ipcMain, { app });
   const tHandlers = Date.now();
   const mainWindow = createMainWindow();
   installMenu(mainWindow);
+
+  // Start update checks once IPC + window are ready. start() is a no-op in dev.
+  getUpdaterManager().start();
 
   if (isDev) {
     mainWindow.webContents.once('did-finish-load', () => {
@@ -94,6 +106,7 @@ app.whenReady().then(() => {
 // Gracefully stop the child server before Electron exits so the OS port is freed.
 app.on('before-quit', (e) => {
   e.preventDefault();
+  getUpdaterManager().stop();
   void localServer.stop().finally(() => app.exit(0));
 });
 

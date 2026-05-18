@@ -372,6 +372,11 @@ export interface ByanApi {
     relaunch(): Promise<void>;
     openExternal(url: string): Promise<void>;
   };
+  update: {
+    check(): Promise<UpdateState>;
+    getState(): Promise<UpdateState>;
+    install(): Promise<void>;
+  };
   store: {
     get<T = unknown>(key: string): Promise<T | null>;
     set<T>(key: string, value: T): Promise<void>;
@@ -419,6 +424,11 @@ export const IPC_CHANNELS = {
     relaunch: 'byan:app:relaunch',
     openExternal: 'byan:app:openExternal'
   },
+  update: {
+    check: 'byan:update:check',
+    getState: 'byan:update:getState',
+    install: 'byan:update:install'
+  },
   store: {
     get: 'byan:store:get',
     set: 'byan:store:set'
@@ -442,11 +452,24 @@ export const IPC_CHANNELS = {
 // Event channels pushed from main -> renderer (used with byanEvents.on):
 //   byan:chat:chunk        — ChatChunkPayload
 //   byan:mcp:statusChange  — McpStatusChangePayload
+//   byan:update:status     — UpdateState
 
 export interface McpStatusChangePayload {
   id: string;
   status: McpStatus;
 }
+
+// ---------- Auto-update ----------
+
+export type UpdateState =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'not-available'; version: string }
+  | { state: 'downloading'; percent: number; transferred: number; total: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string }
+  | { state: 'disabled'; reason: 'dev-mode' };
 
 // ---------- Error envelope ----------
 // When a handler throws, Electron serializes the Error across the IPC boundary.
