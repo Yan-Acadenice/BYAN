@@ -54,6 +54,7 @@ import {
   abort as strictAbort,
   checkAuditTrail as strictCheckAuditTrail,
 } from './lib/strict-mode.js';
+import { detectActivation as strictDetectActivation } from './lib/strict-activation.js';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -420,6 +421,11 @@ const tools = [
       properties: {
         featureName: { type: 'string', description: 'Short slug for the feature.' },
         force: { type: 'boolean', description: 'Overwrite an existing in-progress FD.' },
+        strict: {
+          type: 'boolean',
+          description:
+            'Start the FD under BYAN Strict Mode. Records strict_mode=true and signals that the scope must be locked (byan_strict_lock_scope) before BUILD.',
+        },
       },
       required: ['featureName'],
       additionalProperties: false,
@@ -551,6 +557,19 @@ const tools = [
     inputSchema: {
       type: 'object',
       properties: { reason: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_suggest',
+    description:
+      'Check whether a piece of text (user request, feature name) signals a production-grade deliverable that should be built under strict mode. Reads activation keywords from _byan/_config/strict-mode.yaml. Returns { suggested, matched, message }. Use on any platform (Codex/Copilot have no in-session hook) to decide whether to lock strict mode.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'The request or feature description to scan.' },
+      },
+      required: ['text'],
       additionalProperties: false,
     },
   },
@@ -1254,7 +1273,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'byan_fd_start') {
-      const state = fdStart({ featureName: args.featureName, force: args.force });
+      const state = fdStart({ featureName: args.featureName, force: args.force, strict: args.strict });
       return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
     }
 
@@ -1308,6 +1327,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === 'byan_strict_abort') {
       const r = strictAbort({ reason: args.reason });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_suggest') {
+      const r = strictDetectActivation({ text: args.text });
       return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
     }
 
