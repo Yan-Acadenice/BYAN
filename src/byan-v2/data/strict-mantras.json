@@ -1,0 +1,188 @@
+{
+  "metadata": {
+    "source": "byan-sync-rules",
+    "generated_from": "_byan/_config/strict-mode.yaml",
+    "count": 12
+  },
+  "mantras": [
+    {
+      "id": "STRICT-1",
+      "title": "Scope Lock First",
+      "description": "Reformulate the request and lock the scope before any build. The locked scope is the contract for the rest of the task.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "lock the scope",
+          "byan_strict_lock_scope",
+          "scope lock"
+        ],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "STRICT-2",
+      "title": "No Downgrade",
+      "description": "Deliver the scope that was asked. Do not substitute an MVP, a stub, or a \"simplified version\" unless the user approves it and it is recorded in the audit trail.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "no downgrade",
+          "downgrade",
+          "mvp"
+        ],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "STRICT-3",
+      "title": "No Silent Cut",
+      "description": "If a part of the scope cannot be done, surface it as a gap in the self_verify findings. Do not drop it quietly.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "silent cut",
+          "surface it as a gap",
+          "do not cut silently"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "STRICT-4",
+      "title": "Self-Verify Three Times",
+      "description": "Run at least three self-verification passes against the locked acceptance criteria before calling complete.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "self-verify",
+          "byan_strict_self_verify",
+          "three times"
+        ],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "STRICT-5",
+      "title": "Re-Read The Original",
+      "description": "Each self-verify pass re-reads the original request, not your own summary of it.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "re-read",
+          "original request"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "STRICT-6",
+      "title": "Evidence Over Assertion",
+      "description": "A \"done\" claim needs an artifact (test output, file diff, command result), not a statement.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "evidence",
+          "artifact",
+          "test output"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "STRICT-7",
+      "title": "Hard Claim Floor",
+      "description": "Claims in security, performance, or compliance need LEVEL-1 sourcing (95%) or they are BLOCKED.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "level-1",
+          "95%",
+          "blocked"
+        ],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "STRICT-8",
+      "title": "Gap Is Not Failure",
+      "description": "Reporting a gap is the correct behavior. Hiding a gap is the violation.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "gap is",
+          "hiding a gap",
+          "the violation"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "STRICT-9",
+      "title": "Audit Trail",
+      "description": "Every scope lock, verify pass, and completion is appended to the audit log. The commit gate reads this trail.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "audit trail",
+          "audit log",
+          "audit token"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "STRICT-10",
+      "title": "No Premature Complete",
+      "description": "complete is rejected below three passes or when the last pass found a gap.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "byan_strict_complete",
+          "rejected below",
+          "earn"
+        ],
+        "required": true
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "STRICT-11",
+      "title": "Honest Status",
+      "description": "Report failing tests with their output. Report skipped steps as skipped. Do not round a partial result up to \"done\".",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "honest status",
+          "failing tests",
+          "skipped"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    },
+    {
+      "id": "STRICT-12",
+      "title": "Full Over Fast",
+      "description": "When the user states \"complete, no cost compromise\", speed is out of scope. Do not re-question the budget under the guise of an estimate.",
+      "validation": {
+        "type": "keyword",
+        "keywords": [
+          "full over fast",
+          "no cost compromise",
+          "out of scope"
+        ],
+        "required": true
+      },
+      "priority": "high"
+    }
+  ]
+}

@@ -98,6 +98,8 @@ mantras:
       Reformulate the request and lock the scope before any build. The locked
       scope is the contract for the rest of the task.
     rationale: A blurry scope is the entry point for silent downgrade.
+    priority: critical
+    validation_keywords: ["lock the scope", "byan_strict_lock_scope", "scope lock"]
 
   - id: STRICT-2
     name: No Downgrade
@@ -106,6 +108,8 @@ mantras:
       "simplified version" unless the user approves it and it is recorded in
       the audit trail.
     rationale: The user asked for a prod app; an MVP is a different deliverable.
+    priority: critical
+    validation_keywords: ["no downgrade", "downgrade", "mvp"]
 
   - id: STRICT-3
     name: No Silent Cut
@@ -113,6 +117,8 @@ mantras:
       If a part of the scope cannot be done, surface it as a gap in the
       self_verify findings. Do not drop it quietly.
     rationale: A dropped requirement the user did not see is a broken contract.
+    priority: high
+    validation_keywords: ["silent cut", "surface it as a gap", "do not cut silently"]
 
   - id: STRICT-4
     name: Self-Verify Three Times
@@ -120,6 +126,8 @@ mantras:
       Run at least three self-verification passes against the locked acceptance
       criteria before calling complete.
     rationale: One pass catches typos; three passes catch missing scope.
+    priority: critical
+    validation_keywords: ["self-verify", "byan_strict_self_verify", "three times"]
 
   - id: STRICT-5
     name: Re-Read The Original
@@ -127,6 +135,8 @@ mantras:
       Each self-verify pass re-reads the original request, not your own summary
       of it.
     rationale: Summaries drift; the source request does not.
+    priority: high
+    validation_keywords: ["re-read", "original request"]
 
   - id: STRICT-6
     name: Evidence Over Assertion
@@ -134,6 +144,8 @@ mantras:
       A "done" claim needs an artifact (test output, file diff, command
       result), not a statement.
     rationale: Stating success is cheap; showing it is the bar.
+    priority: high
+    validation_keywords: ["evidence", "artifact", "test output"]
 
   - id: STRICT-7
     name: Hard Claim Floor
@@ -141,12 +153,16 @@ mantras:
       Claims in security, performance, or compliance need LEVEL-1 sourcing
       (95%) or they are BLOCKED.
     rationale: These domains carry consequences that opinions cannot cover.
+    priority: critical
+    validation_keywords: ["level-1", "95%", "blocked"]
 
   - id: STRICT-8
     name: Gap Is Not Failure
     rule: >-
       Reporting a gap is the correct behavior. Hiding a gap is the violation.
     rationale: Honesty about an unfinished part beats a false completion.
+    priority: high
+    validation_keywords: ["gap is", "hiding a gap", "the violation"]
 
   - id: STRICT-9
     name: Audit Trail
@@ -154,12 +170,16 @@ mantras:
       Every scope lock, verify pass, and completion is appended to the audit
       log. The commit gate reads this trail.
     rationale: Without a trail, enforcement is a suggestion, not a gate.
+    priority: high
+    validation_keywords: ["audit trail", "audit log", "audit token"]
 
   - id: STRICT-10
     name: No Premature Complete
     rule: >-
       complete is rejected below three passes or when the last pass found a gap.
     rationale: Completion is earned by verification, not declared.
+    priority: critical
+    validation_keywords: ["byan_strict_complete", "rejected below", "earn"]
 
   - id: STRICT-11
     name: Honest Status
@@ -167,6 +187,8 @@ mantras:
       Report failing tests with their output. Report skipped steps as skipped.
       Do not round a partial result up to "done".
     rationale: A rounded-up status is the laziness the mode exists to stop.
+    priority: high
+    validation_keywords: ["honest status", "failing tests", "skipped"]
 
   - id: STRICT-12
     name: Full Over Fast
@@ -174,6 +196,8 @@ mantras:
       When the user states "complete, no cost compromise", speed is out of
       scope. Do not re-question the budget under the guise of an estimate.
     rationale: Re-asking "do you validate?" is downgrade wearing a tie.
+    priority: high
+    validation_keywords: ["full over fast", "no cost compromise", "out of scope"]
 
 # ---------------------------------------------------------------------------
 # Injection blocks — canonical text the generator embeds into each platform.
@@ -202,3 +226,33 @@ injection:
     Strict mode: this write targets a path outside the locked scope. Either it
     belongs to the scope (re-lock with the corrected paths) or it does not
     (do not write it).
+
+# ---------------------------------------------------------------------------
+# Hooks config — consumed by the generated .claude/hooks/lib/strict-config.json,
+# which the three Claude Code hooks read at runtime. Single source of truth so
+# the enforcement behavior stays aligned with this file.
+# ---------------------------------------------------------------------------
+hooks:
+  # Words that signal the agent is claiming the work is finished. The Stop
+  # hook blocks end-of-turn when such a claim appears but the strict session
+  # was not completed (3 passes + audit token).
+  completion_claim_markers:
+    - done
+    - finished
+    - complete
+    - delivered
+    - ready
+    - shipped
+    - "terminé"
+    - fini
+    - "livré"
+    - "prêt"
+    - "c'est bon"
+    - "voilà"
+  scope_guard:
+    enforce_paths: true        # deny Write/Edit outside locked allowed_paths
+    exempt_globs:
+      - ".byan-strict/"
+      - "_byan-output/"
+      - ".git/"
+  freshness_window_seconds: 600  # mirrors checkAuditTrail default
