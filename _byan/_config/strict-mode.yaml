@@ -1,0 +1,204 @@
+# BYAN Strict Mode — Source of truth
+#
+# This file is the single canonical definition of BYAN Strict Mode.
+# It is consumed by the `byan-sync-rules` generator (F3), which emits the
+# per-platform artifacts (Claude Code SKILL.md + hooks, Codex AGENTS.md block,
+# GitHub Copilot instructions block) from the values below.
+#
+# Edit this file, then run the generator. Do not hand-edit the generated blocks
+# (they live between BYAN-STRICT:BEGIN / BYAN-STRICT:END markers).
+
+version: 1
+name: BYAN Strict Mode
+slug: byan-strict
+description: >-
+  Enforcement mode that prevents scope downgrade and forces the agent to
+  self-verify its work against the originally locked request before delivering.
+
+# ---------------------------------------------------------------------------
+# Confidence — hard claims must reach LEVEL-1 (95%).
+# ---------------------------------------------------------------------------
+confidence:
+  min_score: 95           # percentage; hard claims below this are BLOCKED
+  hard_claim_level: 1     # LEVEL-1 sourcing required on hard claims
+  applies_to:
+    - security
+    - performance
+    - compliance
+
+# ---------------------------------------------------------------------------
+# Self-verification — the iterate-and-check loop.
+# Mirrors lib/strict-mode.js (MIN_SELF_VERIFY_PASSES = 3).
+# ---------------------------------------------------------------------------
+self_verify:
+  min_passes: 3
+  last_verdict_must_be: ok      # the final pass must report no gap
+  reread_original_each_pass: true
+  verdicts:
+    - ok        # no gap against the locked acceptance criteria
+    - gap       # a gap was found; findings array must be non-empty
+
+# ---------------------------------------------------------------------------
+# Source floors per domain when strict mode is active.
+# Stricter than the default fact-check floors. Level number = LEVEL-n.
+# ---------------------------------------------------------------------------
+source_floors:
+  security: 1       # raised from 2 -> 1 under strict mode
+  performance: 1    # raised from 2 -> 1 under strict mode
+  compliance: 1
+  general: 2        # raised from default under strict mode
+
+# ---------------------------------------------------------------------------
+# Activation — manual + auto-detection.
+# byan_fd_start mode:"strict" sets it explicitly. Auto keywords in the user
+# request raise a strict-mode suggestion that the agent confirms before locking.
+# ---------------------------------------------------------------------------
+activation:
+  manual_mode: strict
+  auto_keywords:
+    - prod
+    - production
+    - client
+    - contrat
+    - "template officiel"
+    - livrable
+    - deliverable
+    - "mise en production"
+    - release
+  auto_behavior: suggest    # suggest -> confirm -> lock (do not lock silently)
+
+# ---------------------------------------------------------------------------
+# Scope lock — the contract template the agent fills before building.
+# Feeds byan_strict_lock_scope (scope + acceptance_criteria + paths).
+# ---------------------------------------------------------------------------
+scope_lock:
+  min_scope_chars: 10
+  require_acceptance_criteria: true
+  template: |
+    SCOPE (verbatim restatement of what was asked):
+      {scope}
+
+    ACCEPTANCE CRITERIA (each one testable):
+      - {criterion}
+
+    PATHS in play:
+      - {path}
+
+    OUT OF SCOPE (explicitly excluded, agreed with user):
+      - {exclusion}
+
+# ---------------------------------------------------------------------------
+# Hard mantras — the rules the enforcement layer makes non-negotiable.
+# These are imperatives, phrased to pass the fact-check absolute-word filter.
+# ---------------------------------------------------------------------------
+mantras:
+  - id: STRICT-1
+    name: Scope Lock First
+    rule: >-
+      Reformulate the request and lock the scope before any build. The locked
+      scope is the contract for the rest of the task.
+    rationale: A blurry scope is the entry point for silent downgrade.
+
+  - id: STRICT-2
+    name: No Downgrade
+    rule: >-
+      Deliver the scope that was asked. Do not substitute an MVP, a stub, or a
+      "simplified version" unless the user approves it and it is recorded in
+      the audit trail.
+    rationale: The user asked for a prod app; an MVP is a different deliverable.
+
+  - id: STRICT-3
+    name: No Silent Cut
+    rule: >-
+      If a part of the scope cannot be done, surface it as a gap in the
+      self_verify findings. Do not drop it quietly.
+    rationale: A dropped requirement the user did not see is a broken contract.
+
+  - id: STRICT-4
+    name: Self-Verify Three Times
+    rule: >-
+      Run at least three self-verification passes against the locked acceptance
+      criteria before calling complete.
+    rationale: One pass catches typos; three passes catch missing scope.
+
+  - id: STRICT-5
+    name: Re-Read The Original
+    rule: >-
+      Each self-verify pass re-reads the original request, not your own summary
+      of it.
+    rationale: Summaries drift; the source request does not.
+
+  - id: STRICT-6
+    name: Evidence Over Assertion
+    rule: >-
+      A "done" claim needs an artifact (test output, file diff, command
+      result), not a statement.
+    rationale: Stating success is cheap; showing it is the bar.
+
+  - id: STRICT-7
+    name: Hard Claim Floor
+    rule: >-
+      Claims in security, performance, or compliance need LEVEL-1 sourcing
+      (95%) or they are BLOCKED.
+    rationale: These domains carry consequences that opinions cannot cover.
+
+  - id: STRICT-8
+    name: Gap Is Not Failure
+    rule: >-
+      Reporting a gap is the correct behavior. Hiding a gap is the violation.
+    rationale: Honesty about an unfinished part beats a false completion.
+
+  - id: STRICT-9
+    name: Audit Trail
+    rule: >-
+      Every scope lock, verify pass, and completion is appended to the audit
+      log. The commit gate reads this trail.
+    rationale: Without a trail, enforcement is a suggestion, not a gate.
+
+  - id: STRICT-10
+    name: No Premature Complete
+    rule: >-
+      complete is rejected below three passes or when the last pass found a gap.
+    rationale: Completion is earned by verification, not declared.
+
+  - id: STRICT-11
+    name: Honest Status
+    rule: >-
+      Report failing tests with their output. Report skipped steps as skipped.
+      Do not round a partial result up to "done".
+    rationale: A rounded-up status is the laziness the mode exists to stop.
+
+  - id: STRICT-12
+    name: Full Over Fast
+    rule: >-
+      When the user states "complete, no cost compromise", speed is out of
+      scope. Do not re-question the budget under the guise of an estimate.
+    rationale: Re-asking "do you validate?" is downgrade wearing a tie.
+
+# ---------------------------------------------------------------------------
+# Injection blocks — canonical text the generator embeds into each platform.
+# Kept here so all three platforms stay in sync from one source.
+# ---------------------------------------------------------------------------
+injection:
+  context_banner: |
+    [STRICT MODE ACTIVE]
+    You are under BYAN Strict Mode. Before building:
+      1. Lock the scope (byan_strict_lock_scope) with testable acceptance criteria.
+    While building:
+      2. Do not downgrade the scope. Surface any gap, do not cut silently.
+    Before delivering:
+      3. Run >= 3 self-verify passes (byan_strict_self_verify), re-reading the
+         original request each time. The last pass must report verdict "ok".
+      4. Call byan_strict_complete to earn the audit token.
+    Hard claims (security/performance/compliance) require LEVEL-1 sourcing (95%).
+    A commit without a fresh, matching audit token is blocked by the pre-commit gate.
+
+  stop_block_reason: >-
+    Strict mode: the turn cannot end. The locked scope has not passed three
+    self-verify passes with a final "ok" verdict. Run byan_strict_self_verify
+    until the scope is satisfied, then byan_strict_complete.
+
+  pretooluse_deny_reason: >-
+    Strict mode: this write targets a path outside the locked scope. Either it
+    belongs to the scope (re-lock with the corrected paths) or it does not
+    (do not write it).
