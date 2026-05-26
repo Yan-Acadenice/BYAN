@@ -91,15 +91,17 @@ test('renderStrictConfig projects the runtime subset', () => {
   assert.equal(out.scope_guard.enforce_paths, true);
 });
 
-test('renderSkill embeds frontmatter, hooks, and mantras', () => {
+test('renderSkill embeds frontmatter, tools, and mantras', () => {
   const cfg = loadConfig({ projectRoot: tmpRoot() });
   const md = renderSkill(cfg);
   assert.ok(md.startsWith('---\nname: byan-strict'));
-  assert.ok(md.includes('strict-stop-guard.js'));
-  assert.ok(md.includes('strict-scope-guard.js'));
-  assert.ok(md.includes('strict-context-inject.js'));
+  assert.ok(md.includes('mcp__byan__byan_strict_lock_scope'));
+  assert.ok(md.includes('mcp__byan__byan_strict_complete'));
   assert.ok(md.includes('STRICT-1 Scope Lock First'));
   assert.ok(md.includes('95%'));
+  // Hooks are registered globally in settings.json (self-gating), not in the
+  // skill frontmatter — avoids double-firing.
+  assert.ok(!md.includes('strict-stop-guard.js'));
 });
 
 test('renderAgentsBlock and renderCopilotBlock include banner and mantras', () => {

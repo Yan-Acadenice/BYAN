@@ -112,19 +112,6 @@ allowed-tools:
   - mcp__byan__byan_strict_complete
   - mcp__byan__byan_strict_status
   - mcp__byan__byan_strict_abort
-hooks:
-  Stop:
-    - hooks:
-        - type: command
-          command: node "$CLAUDE_PROJECT_DIR"/.claude/hooks/strict-stop-guard.js
-  PreToolUse:
-    - hooks:
-        - type: command
-          command: node "$CLAUDE_PROJECT_DIR"/.claude/hooks/strict-scope-guard.js
-  UserPromptSubmit:
-    - hooks:
-        - type: command
-          command: node "$CLAUDE_PROJECT_DIR"/.claude/hooks/strict-context-inject.js
 ---
 
 <!-- ${GENERATED_NOTE} -->
