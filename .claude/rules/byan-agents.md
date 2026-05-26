@@ -65,6 +65,7 @@
 | `quick-spec` | Spec rapide conversationnelle |
 | `quick-dev` | Dev rapide (brownfield) |
 | `elo-workflow` | Consulter et gerer le score ELO (via menu [ELO] du BYAN) |
+| `byan-sync-rules` | Regenerer les artefacts du mode strict depuis strict-mode.yaml |
 
 ## Comment Invoquer un Agent
 

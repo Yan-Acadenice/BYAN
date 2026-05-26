@@ -428,6 +428,29 @@ Domaines stricts : `security` / `performance` / `compliance` → LEVEL-2 minimum
 
 ---
 
+## BYAN Strict Mode — Anti-Downgrade
+
+Mode d'enforcement qui empêche l'agent de livrer moins que demandé (un MVP au
+lieu de l'app prod, un stub au lieu de la feature, un template baclé). Actif sur
+les **3 plateformes** : Claude Code, Codex, GitHub Copilot.
+
+```
+1. Lock du scope       byan_strict_lock_scope  (scope verbatim + critères testables)
+2. Build complet       pas de MVP, pas de stub, tout gap est signalé
+3. Self-verify >= 3x   byan_strict_self_verify (relit la demande initiale)
+4. Complete            byan_strict_complete    (jeton d'audit)
+```
+
+Le commit est **bloqué** par un filet pre-commit tant que la session strict
+engagée n'est pas complétée correctement — y compris pour Codex et Copilot qui
+n'ont pas de hook in-session. Source de vérité unique :
+`_byan/_config/strict-mode.yaml`, régénérée via `byan-sync-rules`.
+
+Activation : `byan_fd_start strict:true`, skill `byan-strict`, ou auto-détection
+sur mots-clés (`prod`, `client`, `livrable`, `contrat`, `release`...).
+
+---
+
 ## Workflows Principaux
 
 | Workflow | Description | Agent principal |
@@ -443,6 +466,7 @@ Domaines stricts : `security` / `performance` / `compliance` → LEVEL-2 minimum
 | `testarch-atdd` | Générer des tests ATDD avant implémentation | tea |
 | `fact-check` | Analyser une assertion ou un document | fact-checker |
 | `elo-workflow` | Consulter et gérer le score de confiance ELO | byan |
+| `byan-sync-rules` | Régénérer les artefacts du mode strict (3 plateformes) | byan |
 
 ---
 

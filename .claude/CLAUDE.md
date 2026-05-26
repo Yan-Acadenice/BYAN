@@ -63,6 +63,7 @@ Doctrine d'equipe complete (template role-in-team, analogie orchestre, principes
 - Methodologie: voir @.claude/rules/merise-agile.md
 - Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
 - Protocol fact-check scientifique: voir @.claude/rules/fact-check.md
+- Mode strict anti-downgrade: voir @.claude/rules/strict-mode.md
 - Systeme API byan_web: voir @.claude/rules/byan-api.md
 
 ## API byan_web
@@ -92,3 +93,19 @@ Domaines stricts : security/performance/compliance → LEVEL-2 minimum sinon BLO
 
 Agent dédié: `@fact-checker` — analyse assertions, audits de documents, chaines de raisonnement.
 Dans BYAN: tapez `[FC]` pour le sous-menu fact-check.
+
+## BYAN Strict Mode
+
+Mode d'enforcement anti-downgrade : empeche l'agent de livrer moins que demande
+(MVP au lieu de prod, stub au lieu de feature, template bacle). Fonctionne sur
+les 3 plateformes (Claude Code, Codex, Copilot).
+
+Protocole : lock du scope -> build complet -> self-verify >= 3 passes -> complete
+(jeton d'audit). Le commit est bloque tant que la verification n'est pas acquise.
+
+- Source de verite : `_byan/_config/strict-mode.yaml` (regenerer via `byan-sync-rules`)
+- Outils MCP : `byan_strict_lock_scope`, `byan_strict_self_verify`, `byan_strict_complete`, `byan_strict_status`, `byan_strict_abort`, `byan_strict_suggest`
+- Activation : `byan_fd_start strict:true`, skill `byan-strict`, ou mots-cles (prod, client, livrable...)
+- Filet final : `.githooks/pre-commit` bloque le commit si une session strict est engagee mais non completee
+
+Detail complet : voir @.claude/rules/strict-mode.md

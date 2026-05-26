@@ -34,6 +34,7 @@ Quand un utilisateur decrit une tache, Hermes recommande le bon agent:
 | creer agent, workflow, module | byan (Builder) |
 | brainstorm, idees, innovation | brainstorming-coach (Carson) |
 | optimiser, tokens, performance | carmack (Optimizer) |
+| prod, livrable, complet, anti-downgrade | skill byan-strict (Strict Mode) |
 
 ## Pipelines Predefinies
 
