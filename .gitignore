@@ -93,3 +93,6 @@ api/
 # BYAN transparency logs + session-local state
 _byan-output/
 _byan/_memory/.soul-memory-nudge-sent
+
+# BYAN Strict Mode runtime state (per-session, never committed)
+.byan-strict/
