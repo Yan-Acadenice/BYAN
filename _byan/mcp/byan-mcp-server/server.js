@@ -46,6 +46,14 @@ import {
   fcParse,
 } from './lib/cli.js';
 import { checkForUpdate, formatApplyInstructions } from './lib/update.js';
+import {
+  lockScope as strictLockScope,
+  selfVerify as strictSelfVerify,
+  complete as strictComplete,
+  getStatus as strictGetStatus,
+  abort as strictAbort,
+  checkAuditTrail as strictCheckAuditTrail,
+} from './lib/strict-mode.js';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -469,6 +477,77 @@ const tools = [
     name: 'byan_fd_abort',
     description:
       'Abort the current FD session (phase → ABORTED). Preserves the state file for inspection.',
+    inputSchema: {
+      type: 'object',
+      properties: { reason: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_lock_scope',
+    description:
+      'Lock a scope for a BYAN Strict Mode session. Records explicit acceptance criteria and allowed paths. Subsequent work is gated against this scope hash. Pass force=true to relock with a different scope (resets self-verify passes).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scopeText: {
+          type: 'string',
+          description: 'Description of the scope (≥ 10 chars). Required.',
+        },
+        acceptanceCriteria: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Non-empty array of explicit deliverable criteria.',
+        },
+        allowedPaths: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Glob patterns of paths the agent may modify.',
+        },
+        force: { type: 'boolean', description: 'Relock with different scope.' },
+      },
+      required: ['scopeText', 'acceptanceCriteria'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_self_verify',
+    description:
+      'Record one self-verify pass against the locked scope. verdict="ok" (zero gaps) or "gap" (findings required). Strict mode requires ≥ 3 passes with the final pass returning "ok" before byan_strict_complete can succeed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        verdict: {
+          type: 'string',
+          enum: ['ok', 'gap'],
+          description: '"ok" = no gap found ; "gap" = gap found, findings required.',
+        },
+        findings: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of gap descriptions. Required when verdict="gap".',
+        },
+      },
+      required: ['verdict'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_complete',
+    description:
+      'Mark the strict session complete. Requires scope locked, ≥ 3 self-verify passes, last pass verdict="ok". Returns audit_token used by the pre-commit hook to authorize the commit.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_strict_status',
+    description:
+      'Return current strict mode state : scope_locked, scope_hash, acceptance_criteria, pass_count, min_passes, completed, audit_token.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_strict_abort',
+    description:
+      'Abort the current strict session. Marks inactive in state.json and appends abort entry to audit.log. State preserved for inspection.',
     inputSchema: {
       type: 'object',
       properties: { reason: { type: 'string' } },
@@ -1197,6 +1276,39 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'byan_fd_abort') {
       const state = fdAbort({ reason: args.reason });
       return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_lock_scope') {
+      const r = strictLockScope({
+        scopeText: args.scopeText,
+        acceptanceCriteria: args.acceptanceCriteria,
+        allowedPaths: args.allowedPaths,
+        force: args.force,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_self_verify') {
+      const r = strictSelfVerify({
+        verdict: args.verdict,
+        findings: args.findings || [],
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_complete') {
+      const r = strictComplete();
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_status') {
+      const r = strictGetStatus();
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_abort') {
+      const r = strictAbort({ reason: args.reason });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
     }
 
     if (name === 'byan_review_request') {
