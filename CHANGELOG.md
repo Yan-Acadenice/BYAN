@@ -24,6 +24,10 @@ and atomise the dev workflow. Design + tooling delivered (FD byan-refactor-cli-w
   dry-run by default.
 - **`migration-map`** — pure mapping legacy -> by-type with collision/provenance handling.
 - **`byan-reconcile-manifests`** — dedups the `*-manifest.csv` files.
+- **yanstaller wiring (dormant)** — `install/lib/fs-migration-hook.js`, called in the
+  update flow. Acts only when explicitly enabled AND the legacy layout is present
+  (backs up `_byan/`, then migrate -> reconcile -> build-index); a no-op otherwise.
+  Awaits platform adoption of the new layout before activation.
 
 #### Design (docs/refactor/)
 
