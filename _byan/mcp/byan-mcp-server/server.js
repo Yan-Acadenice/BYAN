@@ -55,6 +55,21 @@ import {
   checkAuditTrail as strictCheckAuditTrail,
 } from './lib/strict-mode.js';
 import { detectActivation as strictDetectActivation } from './lib/strict-activation.js';
+import {
+  pushLock as strictPushLock,
+  pushVerify as strictPushVerify,
+  pushComplete as strictPushComplete,
+  pushAbort as strictPushAbort,
+  fetchSession as strictFetchSession,
+  syncEnabled as strictSyncEnabled,
+  resolveProjectId as strictResolveProjectId,
+} from './lib/strict-sync.js';
+
+// Compact view of a best-effort strict-sync result for tool responses.
+function syncResult(sync) {
+  if (!sync) return { synced: false, reason: 'no_result' };
+  return sync.synced ? { synced: true } : { synced: false, reason: sync.reason || 'unknown' };
+}
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -511,6 +526,14 @@ const tools = [
           description: 'Glob patterns of paths the agent may modify.',
         },
         force: { type: 'boolean', description: 'Relock with different scope.' },
+        projectId: {
+          type: 'string',
+          description: 'byan_web project id to attach this session to (authority side). Optional; falls back to BYAN_PROJECT_ID env.',
+        },
+        featureName: {
+          type: 'string',
+          description: 'Short feature name for the session (e.g. the FD feature slug). Optional.',
+        },
       },
       required: ['scopeText', 'acceptanceCriteria'],
       additionalProperties: false,
@@ -1304,7 +1327,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         allowedPaths: args.allowedPaths,
         force: args.force,
       });
-      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      const st = strictGetStatus();
+      // Attach to a byan_web project: explicit arg, else env, else resolve from
+      // the active FD project_context (best-effort; null degrades to user-scoped).
+      let projectId = args.projectId || process.env.BYAN_PROJECT_ID || null;
+      let featureName = args.featureName || null;
+      if (strictSyncEnabled()) {
+        try {
+          const fd = fdStatus();
+          const pc = fd && fd.project_context;
+          if (pc) {
+            if (!projectId && (pc.slug || pc.name)) {
+              projectId = await strictResolveProjectId({ slug: pc.slug, name: pc.name });
+            }
+            if (!featureName && fd.feature_name) featureName = fd.feature_name;
+          }
+        } catch {
+          // FD context unavailable — stay user-scoped.
+        }
+      }
+      const sync = await strictPushLock({
+        sessionId: st.strict_session_id,
+        scopeLock: r,
+        projectId,
+        featureName,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, project_id: projectId, sync: syncResult(sync) }, null, 2) }] };
     }
 
     if (name === 'byan_strict_self_verify') {
@@ -1312,22 +1360,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         verdict: args.verdict,
         findings: args.findings || [],
       });
-      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      const st = strictGetStatus();
+      const lastPass = (st.passes || [])[st.passes.length - 1];
+      const sync = await strictPushVerify({ sessionId: st.strict_session_id, pass: lastPass });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, sync: syncResult(sync) }, null, 2) }] };
     }
 
     if (name === 'byan_strict_complete') {
       const r = strictComplete();
-      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      const st = strictGetStatus();
+      const sync = await strictPushComplete({
+        sessionId: st.strict_session_id,
+        auditToken: r.audit_token,
+        completedAt: r.completed_at,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, sync: syncResult(sync) }, null, 2) }] };
     }
 
     if (name === 'byan_strict_status') {
-      const r = strictGetStatus();
-      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      const local = strictGetStatus();
+      // The API is the authority. When a session exists and the API answers,
+      // surface its record; otherwise fall back to the local mirror (offline).
+      let authority = 'local';
+      let r = local;
+      if (local.strict_session_id && strictSyncEnabled()) {
+        const remote = await strictFetchSession({ sessionId: local.strict_session_id });
+        if (remote.ok && remote.data) {
+          authority = 'api';
+          r = { ...local, api: remote.data };
+        }
+      }
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, authority }, null, 2) }] };
     }
 
     if (name === 'byan_strict_abort') {
+      const st = strictGetStatus();
       const r = strictAbort({ reason: args.reason });
-      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+      const sync = await strictPushAbort({ sessionId: st.strict_session_id, reason: args.reason });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, sync: syncResult(sync) }, null, 2) }] };
     }
 
     if (name === 'byan_strict_suggest') {

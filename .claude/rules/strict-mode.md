@@ -83,6 +83,29 @@ Do not hand-edit the generated blocks; edit the YAML and regenerate.
 State lives in `.byan-strict/` (gitignored): `state.json` (current) and
 `audit.log` (append-only JSONL). The pre-commit gate reads this trail.
 
+## Persistance cote byan_web (autorite)
+
+The byan_web API is the **authority** for strict sessions; the local
+`.byan-strict/` state is a mirror. BYAN is an online tool (no network, no
+Claude), so the server is reachable whenever strict mode runs, and its record
+is final.
+
+- **Push** — every mutation pushes best-effort to the API after the local write:
+  `lock_scope` -> `POST /api/strict-sessions` (idempotent on the local session
+  id), `self_verify` -> `PATCH` (append a pass), `complete` -> `PATCH`
+  (audit token), `abort` -> `PATCH`. The session is scoped to the API key's
+  user and attached to a `projectId` (arg or `BYAN_PROJECT_ID`).
+- **Read** — `byan_strict_status` and the pre-commit gate consult the API first;
+  the local mirror is the fallback only when the API is genuinely unreachable
+  (so an offline machine is not hard-blocked, but online the server wins).
+- **Best-effort** — a missing `BYAN_API_TOKEN`, a timeout, or a non-2xx
+  degrades to `synced: false` rather than throwing. The local protocol keeps
+  working regardless; the sync layer (`lib/strict-sync.js`) isolates all
+  network I/O so `strict-mode.js` stays pure-local.
+- **Config** — `.mcp.json` passes `BYAN_API_TOKEN` via `${BYAN_API_TOKEN}`
+  (env expansion); the secret stays out of any tracked file. API side:
+  migration `033-strict-sessions.sql` + `routes/strict-sessions.js`.
+
 ## Les hooks Claude Code
 
 Registered globally in `.claude/settings.json`; each one is a no-op unless a

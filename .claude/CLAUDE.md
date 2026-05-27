@@ -107,5 +107,6 @@ Protocole : lock du scope -> build complet -> self-verify >= 3 passes -> complet
 - Outils MCP : `byan_strict_lock_scope`, `byan_strict_self_verify`, `byan_strict_complete`, `byan_strict_status`, `byan_strict_abort`, `byan_strict_suggest`
 - Activation : `byan_fd_start strict:true`, skill `byan-strict`, ou mots-cles (prod, client, livrable...)
 - Filet final : `.githooks/pre-commit` bloque le commit si une session strict est engagee mais non completee
+- Persistance : sessions poussees vers l'API byan_web (autorite ; local = miroir/fallback offline) via `lib/strict-sync.js` ; migration `033` + `routes/strict-sessions.js` cote byan_web
 
 Detail complet : voir @.claude/rules/strict-mode.md

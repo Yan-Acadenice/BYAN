@@ -13,7 +13,7 @@ function parseArgs(argv) {
   return args;
 }
 
-const result = evaluateGate(parseArgs(process.argv));
+const result = await evaluateGate(parseArgs(process.argv));
 if (result.pass) {
   process.exit(0);
 }
