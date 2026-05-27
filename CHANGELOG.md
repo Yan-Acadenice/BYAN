@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.18.0] - 2026-05-27
+
+### Added - BYAN refactor: workflow atomisation + by-type file system tooling
+
+Refactor `_byan/` from the BMAD module layout toward an explicit by-type layout,
+and atomise the dev workflow. Design + tooling delivered (FD byan-refactor-cli-workflows,
+10 features under Strict Mode, 99/99 tests). See `docs/refactor/README.md`.
+
+#### Tooling (shipped in install/templates/_byan/mcp/byan-mcp-server/)
+
+- **`byan-build-index`** — generates `_byan/INDEX.md` (cross-platform FS map) from the
+  manifests; deterministic and idempotent.
+- **`byan-migrate-fs`** — migrates the legacy module layout to the by-type layout;
+  idempotent, non-destructive (a customized target is preserved, not overwritten),
+  dry-run by default.
+- **`migration-map`** — pure mapping legacy -> by-type with collision/provenance handling.
+- **`byan-reconcile-manifests`** — dedups the `*-manifest.csv` files.
+
+#### Design (docs/refactor/)
+
+- Merise data dictionary + MCD (12 entities), `workflow_dev` spec, `cdcf` simple workflow,
+  target arborescence (SYSTEME + PROJET zones).
+
+#### Fixed
+
+- npm package size: excluded parasitic dev `node_modules` from the tarball (~80MB -> 6.3MB)
+  while keeping the required `byan-platform-config` bundle.
+- Removed 3 stale `create-byan-agent` CLI variants (canonical: `-v2`).
+- Deduped the `drawio` agent-manifest row.
+
+---
+
 ## [2.17.0] - 2026-05-27
 
 ### Added - BYAN Strict Mode shipped to npm + byan_web persistence
