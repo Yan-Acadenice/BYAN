@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.17.0] - 2026-05-27
+
+### Added - BYAN Strict Mode shipped to npm + byan_web persistence
+
+Anti-downgrade enforcement now packaged for `npx create-byan-agent` and backed by the byan_web API.
+
+#### Strict Mode distribution
+
+- Mirrored the full strict feature into `install/templates/` so a fresh install ships it: MCP tools (`byan_strict_*`), Claude Code hooks (Stop / PreToolUse / UserPromptSubmit), the `byan-strict` skill, `strict-mode.yaml`, and the generated runtime config.
+- `settings.json` template now registers the three strict hooks.
+- Installer wires the cross-platform pre-commit gate: copies `.githooks/` and sets `core.hooksPath` when the target is a git repo (`claude-native-setup.js`).
+
+#### Server-side persistence (API authority)
+
+- byan_web migration `033-strict-sessions.sql` + `routes/strict-sessions.js` (POST lock/upsert, PATCH verify/complete/abort, GET list + by id), scoped to the API key user with optional project attachment.
+- New `lib/strict-sync.js` isolates network I/O: each local mutation pushes best-effort to the API; `byan_strict_status` and the pre-commit gate consult the API first and fall back to the local mirror when it is unreachable.
+- `.mcp.json` carries `BYAN_API_TOKEN` via env (no secret committed).
+
+---
+
 ## [2.16.2] - 2026-05-02
 
 ### Added - Electron desktop app v1.0 (Linux + Windows)

@@ -46,6 +46,30 @@ import {
   fcParse,
 } from './lib/cli.js';
 import { checkForUpdate, formatApplyInstructions } from './lib/update.js';
+import {
+  lockScope as strictLockScope,
+  selfVerify as strictSelfVerify,
+  complete as strictComplete,
+  getStatus as strictGetStatus,
+  abort as strictAbort,
+  checkAuditTrail as strictCheckAuditTrail,
+} from './lib/strict-mode.js';
+import { detectActivation as strictDetectActivation } from './lib/strict-activation.js';
+import {
+  pushLock as strictPushLock,
+  pushVerify as strictPushVerify,
+  pushComplete as strictPushComplete,
+  pushAbort as strictPushAbort,
+  fetchSession as strictFetchSession,
+  syncEnabled as strictSyncEnabled,
+  resolveProjectId as strictResolveProjectId,
+} from './lib/strict-sync.js';
+
+// Compact view of a best-effort strict-sync result for tool responses.
+function syncResult(sync) {
+  if (!sync) return { synced: false, reason: 'no_result' };
+  return sync.synced ? { synced: true } : { synced: false, reason: sync.reason || 'unknown' };
+}
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -412,6 +436,11 @@ const tools = [
       properties: {
         featureName: { type: 'string', description: 'Short slug for the feature.' },
         force: { type: 'boolean', description: 'Overwrite an existing in-progress FD.' },
+        strict: {
+          type: 'boolean',
+          description:
+            'Start the FD under BYAN Strict Mode. Records strict_mode=true and signals that the scope must be locked (byan_strict_lock_scope) before BUILD.',
+        },
       },
       required: ['featureName'],
       additionalProperties: false,
@@ -472,6 +501,98 @@ const tools = [
     inputSchema: {
       type: 'object',
       properties: { reason: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_lock_scope',
+    description:
+      'Lock a scope for a BYAN Strict Mode session. Records explicit acceptance criteria and allowed paths. Subsequent work is gated against this scope hash. Pass force=true to relock with a different scope (resets self-verify passes).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scopeText: {
+          type: 'string',
+          description: 'Description of the scope (≥ 10 chars). Required.',
+        },
+        acceptanceCriteria: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Non-empty array of explicit deliverable criteria.',
+        },
+        allowedPaths: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Glob patterns of paths the agent may modify.',
+        },
+        force: { type: 'boolean', description: 'Relock with different scope.' },
+        projectId: {
+          type: 'string',
+          description: 'byan_web project id to attach this session to (authority side). Optional; falls back to BYAN_PROJECT_ID env.',
+        },
+        featureName: {
+          type: 'string',
+          description: 'Short feature name for the session (e.g. the FD feature slug). Optional.',
+        },
+      },
+      required: ['scopeText', 'acceptanceCriteria'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_self_verify',
+    description:
+      'Record one self-verify pass against the locked scope. verdict="ok" (zero gaps) or "gap" (findings required). Strict mode requires ≥ 3 passes with the final pass returning "ok" before byan_strict_complete can succeed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        verdict: {
+          type: 'string',
+          enum: ['ok', 'gap'],
+          description: '"ok" = no gap found ; "gap" = gap found, findings required.',
+        },
+        findings: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of gap descriptions. Required when verdict="gap".',
+        },
+      },
+      required: ['verdict'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_complete',
+    description:
+      'Mark the strict session complete. Requires scope locked, ≥ 3 self-verify passes, last pass verdict="ok". Returns audit_token used by the pre-commit hook to authorize the commit.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_strict_status',
+    description:
+      'Return current strict mode state : scope_locked, scope_hash, acceptance_criteria, pass_count, min_passes, completed, audit_token.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_strict_abort',
+    description:
+      'Abort the current strict session. Marks inactive in state.json and appends abort entry to audit.log. State preserved for inspection.',
+    inputSchema: {
+      type: 'object',
+      properties: { reason: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_strict_suggest',
+    description:
+      'Check whether a piece of text (user request, feature name) signals a production-grade deliverable that should be built under strict mode. Reads activation keywords from _byan/_config/strict-mode.yaml. Returns { suggested, matched, message }. Use on any platform (Codex/Copilot have no in-session hook) to decide whether to lock strict mode.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'The request or feature description to scan.' },
+      },
+      required: ['text'],
       additionalProperties: false,
     },
   },
@@ -1175,7 +1296,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'byan_fd_start') {
-      const state = fdStart({ featureName: args.featureName, force: args.force });
+      const state = fdStart({ featureName: args.featureName, force: args.force, strict: args.strict });
       return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
     }
 
@@ -1197,6 +1318,91 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'byan_fd_abort') {
       const state = fdAbort({ reason: args.reason });
       return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_lock_scope') {
+      const r = strictLockScope({
+        scopeText: args.scopeText,
+        acceptanceCriteria: args.acceptanceCriteria,
+        allowedPaths: args.allowedPaths,
+        force: args.force,
+      });
+      const st = strictGetStatus();
+      // Attach to a byan_web project: explicit arg, else env, else resolve from
+      // the active FD project_context (best-effort; null degrades to user-scoped).
+      let projectId = args.projectId || process.env.BYAN_PROJECT_ID || null;
+      let featureName = args.featureName || null;
+      if (strictSyncEnabled()) {
+        try {
+          const fd = fdStatus();
+          const pc = fd && fd.project_context;
+          if (pc) {
+            if (!projectId && (pc.slug || pc.name)) {
+              projectId = await strictResolveProjectId({ slug: pc.slug, name: pc.name });
+            }
+            if (!featureName && fd.feature_name) featureName = fd.feature_name;
+          }
+        } catch {
+          // FD context unavailable — stay user-scoped.
+        }
+      }
+      const sync = await strictPushLock({
+        sessionId: st.strict_session_id,
+        scopeLock: r,
+        projectId,
+        featureName,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, project_id: projectId, sync: syncResult(sync) }, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_self_verify') {
+      const r = strictSelfVerify({
+        verdict: args.verdict,
+        findings: args.findings || [],
+      });
+      const st = strictGetStatus();
+      const lastPass = (st.passes || [])[st.passes.length - 1];
+      const sync = await strictPushVerify({ sessionId: st.strict_session_id, pass: lastPass });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, sync: syncResult(sync) }, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_complete') {
+      const r = strictComplete();
+      const st = strictGetStatus();
+      const sync = await strictPushComplete({
+        sessionId: st.strict_session_id,
+        auditToken: r.audit_token,
+        completedAt: r.completed_at,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, sync: syncResult(sync) }, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_status') {
+      const local = strictGetStatus();
+      // The API is the authority. When a session exists and the API answers,
+      // surface its record; otherwise fall back to the local mirror (offline).
+      let authority = 'local';
+      let r = local;
+      if (local.strict_session_id && strictSyncEnabled()) {
+        const remote = await strictFetchSession({ sessionId: local.strict_session_id });
+        if (remote.ok && remote.data) {
+          authority = 'api';
+          r = { ...local, api: remote.data };
+        }
+      }
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, authority }, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_abort') {
+      const st = strictGetStatus();
+      const r = strictAbort({ reason: args.reason });
+      const sync = await strictPushAbort({ sessionId: st.strict_session_id, reason: args.reason });
+      return { content: [{ type: 'text', text: JSON.stringify({ ...r, sync: syncResult(sync) }, null, 2) }] };
+    }
+
+    if (name === 'byan_strict_suggest') {
+      const r = strictDetectActivation({ text: args.text });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
     }
 
     if (name === 'byan_review_request') {

@@ -70,7 +70,7 @@ function stampId(now = new Date(), slug) {
   return `${s}-${slugify(slug)}`;
 }
 
-export function start({ featureName, projectRoot, now = new Date(), force = false } = {}) {
+export function start({ featureName, projectRoot, now = new Date(), force = false, strict = false } = {}) {
   const existing = readState(projectRoot);
   if (existing && !['COMPLETED', 'ABORTED'].includes(existing.phase) && !force) {
     throw new Error(
@@ -82,6 +82,7 @@ export function start({ featureName, projectRoot, now = new Date(), force = fals
     fd_id: stampId(now, featureName),
     feature_name: featureName || 'unnamed',
     phase: 'DISCOVERY',
+    strict_mode: Boolean(strict),
     started_at: now.toISOString(),
     updated_at: now.toISOString(),
     phase_history: [{ phase: 'DISCOVERY', entered_at: now.toISOString() }],

@@ -25,6 +25,21 @@ if ! command -v node >/dev/null 2>&1; then
   exit 0
 fi
 
+# BYAN Strict Mode gate — the platform-agnostic final net. If a strict session
+# was engaged (scope locked) but not completed correctly, block the commit.
+# No-op when strict mode was never engaged. Runs on every platform (Claude
+# Code, Codex, Copilot) since it triggers at commit time, not in-session.
+STRICT_GATE="_byan/mcp/byan-mcp-server/bin/strict-precommit-gate.js"
+if [ -f "$STRICT_GATE" ]; then
+  if ! node "$STRICT_GATE" --root "$(git rev-parse --show-toplevel)"; then
+    echo ""
+    echo "Commit blocked by BYAN Strict Mode gate."
+    echo "Complete the strict session (byan_strict_complete) or abort it (byan_strict_abort)."
+    echo "Bypass with 'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
 if [ ! -f "$VALIDATOR" ]; then
   exit 0
 fi

@@ -131,6 +131,35 @@ async function installMcpDependencies(mcpServerPath) {
   }
 }
 
+async function copyGitHooks(projectRoot) {
+  // The BYAN Strict Mode pre-commit gate is the cross-platform final net
+  // (Codex/Copilot have no in-session hook). Install it whenever the project
+  // is a git repo: copy .githooks/ and point core.hooksPath at it.
+  const src = path.join(TEMPLATE_ROOT, '.githooks');
+  const dst = path.join(projectRoot, '.githooks');
+  if (!(await fs.pathExists(src))) return { copied: false, reason: 'no_template' };
+  await fs.copy(src, dst, { overwrite: true });
+
+  const preCommit = path.join(dst, 'pre-commit');
+  if (await fs.pathExists(preCommit)) {
+    try { await fs.chmod(preCommit, 0o755); } catch { /* non-fatal */ }
+  }
+
+  // Only wire core.hooksPath when this is actually a git repo.
+  if (!(await fs.pathExists(path.join(projectRoot, '.git')))) {
+    return { copied: true, hooksPath: false, reason: 'not_a_git_repo' };
+  }
+  try {
+    execSync('git config core.hooksPath .githooks', {
+      cwd: projectRoot,
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    return { copied: true, hooksPath: true };
+  } catch (err) {
+    return { copied: true, hooksPath: false, error: err.message || String(err) };
+  }
+}
+
 async function setupClaudeNative(projectRoot, options = {}) {
   const log = options.quiet ? () => {} : (...a) => console.log(...a);
   const results = {};
@@ -157,6 +186,13 @@ async function setupClaudeNative(projectRoot, options = {}) {
 
   results.mcpConfig = await generateMcpConfig(projectRoot, options);
   log(chalk.green(`  ✓ .mcp.json generated (absolute path)`));
+
+  results.gitHooks = await copyGitHooks(projectRoot);
+  if (results.gitHooks.copied && results.gitHooks.hooksPath) {
+    log(chalk.green(`  ✓ Strict pre-commit gate wired (.githooks + core.hooksPath)`));
+  } else if (results.gitHooks.copied) {
+    log(chalk.yellow(`  ⚠ .githooks copied but not wired (${results.gitHooks.reason || 'no git repo'}); run: git config core.hooksPath .githooks`));
+  }
 
   if (results.mcp.copied && options.installDeps !== false) {
     results.mcpDeps = await installMcpDependencies(results.mcp.path);
@@ -187,6 +223,7 @@ module.exports = {
   copyClaudeSkills,
   copyClaudeSettings,
   copyMcpServer,
+  copyGitHooks,
   makeNodeModulesFilter,
   generateMcpConfig,
   installMcpDependencies,

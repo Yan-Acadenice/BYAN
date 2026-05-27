@@ -1,0 +1,46 @@
+{
+  "_generated_by": "byan-sync-rules",
+  "version": 1,
+  "min_passes": 3,
+  "last_verdict_must_be": "ok",
+  "min_score": 95,
+  "auto_keywords": [
+    "prod",
+    "production",
+    "client",
+    "contrat",
+    "template officiel",
+    "livrable",
+    "deliverable",
+    "mise en production",
+    "release"
+  ],
+  "completion_claim_markers": [
+    "done",
+    "finished",
+    "complete",
+    "delivered",
+    "ready",
+    "shipped",
+    "terminé",
+    "fini",
+    "livré",
+    "prêt",
+    "c'est bon",
+    "voilà"
+  ],
+  "scope_guard": {
+    "enforce_paths": true,
+    "exempt_globs": [
+      ".byan-strict/",
+      "_byan-output/",
+      ".git/"
+    ]
+  },
+  "freshness_window_seconds": 600,
+  "banners": {
+    "context": "[STRICT MODE ACTIVE]\nYou are under BYAN Strict Mode. Before building:\n  1. Lock the scope (byan_strict_lock_scope) with testable acceptance criteria.\nWhile building:\n  2. Do not downgrade the scope. Surface any gap, do not cut silently.\nBefore delivering:\n  3. Run >= 3 self-verify passes (byan_strict_self_verify), re-reading the\n     original request each time. The last pass must report verdict \"ok\".\n  4. Call byan_strict_complete to earn the audit token.\nHard claims (security/performance/compliance) require LEVEL-1 sourcing (95%).\nA commit without a fresh, matching audit token is blocked by the pre-commit gate.\n",
+    "stop_block": "Strict mode: the turn cannot end. The locked scope has not passed three self-verify passes with a final \"ok\" verdict. Run byan_strict_self_verify until the scope is satisfied, then byan_strict_complete.",
+    "scope_deny": "Strict mode: this write targets a path outside the locked scope. Either it belongs to the scope (re-lock with the corrected paths) or it does not (do not write it)."
+  }
+}

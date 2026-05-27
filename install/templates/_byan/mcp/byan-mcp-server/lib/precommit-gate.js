@@ -1,0 +1,120 @@
+import { getStatus, MIN_PASSES } from './strict-mode.js';
+import { fetchSession, syncEnabled } from './strict-sync.js';
+
+// BYAN Strict Mode pre-commit gate.
+//
+// The final, platform-agnostic net. Claude Code has in-session hooks; Codex
+// and Copilot do not. This gate runs at commit time on every platform, so an
+// agent that engaged strict mode but bailed on verification cannot land the
+// commit.
+//
+// The byan_web API is the authority. At commit time the gate asks the API for
+// the session record and judges that; the local .byan-strict/ mirror is the
+// fallback only when the API is genuinely unreachable (so an offline machine
+// is not hard-blocked, but online the server's word is final).
+//
+// Decision (same on either source) :
+//   - No strict session                    -> PASS (strict was not engaged).
+//   - Session aborted                       -> PASS (deliberate, audited exit).
+//   - Session engaged but not completed     -> BLOCK.
+//   - Completed but < min passes
+//     or last verdict not "ok"              -> BLOCK (completion was not earned).
+//   - Completed correctly                   -> PASS.
+
+// Pure decision over a normalized status shape:
+//   { hasSession, active, scopeLocked, completed, passCount, minPasses, passes:[{verdict}], auditToken, sessionId }
+export function decide(status) {
+  if (!status || !status.hasSession) {
+    return { pass: true, reason: 'no strict session — strict mode not engaged' };
+  }
+  if (status.active === false && !status.completed) {
+    return { pass: true, reason: 'strict session aborted (audited) — allowed' };
+  }
+  if (!status.scopeLocked) {
+    return { pass: true, reason: 'no scope locked — strict mode not engaged' };
+  }
+  if (!status.completed) {
+    return {
+      pass: false,
+      reason:
+        `Strict session ${status.sessionId} is engaged but not completed ` +
+        `(${status.passCount}/${status.minPasses} self-verify passes). ` +
+        `Run byan_strict_self_verify until satisfied, then byan_strict_complete. ` +
+        `To exit strict mode deliberately, call byan_strict_abort.`,
+    };
+  }
+  if (status.passCount < status.minPasses) {
+    return {
+      pass: false,
+      reason:
+        `Strict session completed with only ${status.passCount}/${status.minPasses} ` +
+        `self-verify passes. This should not happen — investigate the audit trail.`,
+    };
+  }
+  const passes = status.passes || [];
+  const last = passes[passes.length - 1];
+  if (!last || last.verdict !== 'ok') {
+    return {
+      pass: false,
+      reason:
+        `Strict session completed but the last self-verify verdict was ` +
+        `"${last ? last.verdict : 'none'}" (must be "ok").`,
+    };
+  }
+  return {
+    pass: true,
+    reason: `strict session completed (${status.source}): ${status.passCount} passes, audit token ${status.auditToken}`,
+  };
+}
+
+function normalizeLocal(local) {
+  const noState =
+    local.active === false && !local.scope_locked && !local.completed;
+  return {
+    source: 'local',
+    hasSession: !noState,
+    active: local.active,
+    scopeLocked: Boolean(local.scope_locked),
+    completed: Boolean(local.completed),
+    passCount: local.pass_count || 0,
+    minPasses: local.min_passes || MIN_PASSES,
+    passes: local.passes || [],
+    auditToken: local.audit_token || null,
+    sessionId: local.strict_session_id || null,
+  };
+}
+
+function normalizeApi(api) {
+  const passes = (api.passes || []).map((p) => ({ verdict: p.verdict }));
+  return {
+    source: 'api',
+    hasSession: true,
+    active: api.active !== false && !api.aborted && !api.completed,
+    scopeLocked: true,
+    completed: Boolean(api.completed),
+    passCount: passes.length,
+    minPasses: MIN_PASSES,
+    passes,
+    auditToken: api.audit_token || null,
+    sessionId: api.id || null,
+  };
+}
+
+export async function evaluateGate({ projectRoot, fetchImpl } = {}) {
+  const local = getStatus({ projectRoot });
+  const normalizedLocal = normalizeLocal(local);
+
+  // Consult the authority when there is a session to check and a token is set.
+  if (normalizedLocal.sessionId && syncEnabled()) {
+    const remote = await fetchSession(
+      { sessionId: normalizedLocal.sessionId },
+      fetchImpl ? { fetchImpl } : {}
+    );
+    if (remote.ok && remote.data) {
+      return decide(normalizeApi(remote.data));
+    }
+    // API unreachable / not found -> fall back to local mirror.
+  }
+
+  return decide(normalizedLocal);
+}
