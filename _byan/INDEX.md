@@ -3,11 +3,10 @@
 > Carte du systeme de fichiers BYAN. Genere automatiquement — ne pas editer a la main.
 > Source : `_byan/_config/*-manifest.csv` + scan `_byan/projet/`. Regenerer : `byan-build-index`.
 
-## Agents (27)
+## Agents (26)
 
 ### bmb
 - `agent-builder` — Agent Building Expert — `_byan/bmb/agents/agent-builder.md`
-- `drawio` — Expert Diagrammes Draw.io — `_byan/bmb/agents/drawio.md`
 - `drawio` — Expert Diagrammes Draw.io — `_byan/bmb/agents/drawio.md`
 - `forgeron` — Revelateur d ames — `_byan/bmb/agents/forgeron.md`
 - `module-builder` — Module Creation Master — `_byan/bmb/agents/module-builder.md`
