@@ -187,6 +187,23 @@ program
           console.warn(chalk.yellow(`  ⚠ Claude native refresh skipped: ${e.message}`));
         }
 
+        // FS migration (F11) — dormant by default. Acts only when explicitly
+        // enabled (env BYAN_FS_MIGRATE=1 or _byan/_config/migrate-fs.enabled)
+        // AND the legacy module layout is present. Backs up _byan/ first.
+        try {
+          const hookModule = path.join(pkgRoot, 'install', 'lib', 'fs-migration-hook.js');
+          if (fs.existsSync(hookModule)) {
+            // eslint-disable-next-line import/no-dynamic-require, global-require
+            const { runFsMigration } = require(hookModule);
+            const r = runFsMigration({ projectRoot: installPath });
+            if (r.ran) {
+              console.log(chalk.green(`  ✓ FS migration applied (backup: ${r.backup})`));
+            }
+          }
+        } catch (e) {
+          console.warn(chalk.yellow(`  ⚠ FS migration skipped: ${e.message}`));
+        }
+
         updateSpinner.succeed('Derniere version installee');
       } catch (error) {
         updateSpinner.fail('Erreur installation');
