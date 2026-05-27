@@ -3,6 +3,7 @@
 > Projet propulse par BYAN (Merise Agile + TDD + 64 Mantras)
 > Installer: `npx create-byan-agent`
 > GitHub: https://github.com/Yan-Acadenice/BYAN
+> Carte du systeme de fichiers (agents, workflows, commandes, projets): voir `_byan/INDEX.md` (genere par `byan-build-index`)
 
 ## Hermes - Dispatcher Universel
 
