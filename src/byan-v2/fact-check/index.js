@@ -14,6 +14,7 @@ const LevelScorer = require('./level-scorer');
 const ClaimParser = require('./claim-parser');
 const FactSheet = require('./fact-sheet');
 const KnowledgeGraph = require('./knowledge-graph');
+const layoutResolver = require('../lib/layout-resolver');
 
 const ASSERTION_TYPES = ['REASONING', 'HYPOTHESIS', 'CLAIM', 'FACT'];
 
@@ -36,13 +37,15 @@ class FactChecker {
       strict_domains: ['security', 'performance', 'compliance'],
       output_fact_sheet: true,
       fact_sheet_path: '_byan-output/fact-sheets',
-      knowledge_base: '_byan/knowledge/sources.md',
-      axioms: '_byan/knowledge/axioms.md',
+      knowledge_base: layoutResolver.knowledgePath('sources.md').path,
+      axioms: layoutResolver.knowledgePath('axioms.md').path,
       half_lives: DEFAULT_HALF_LIVES,
       ...config
     };
     this.sessionState = sessionState;
-    this.graph = new KnowledgeGraph(this.config.graph_path || '_byan/_memory/fact-graph.json');
+    // graph_path from config wins; otherwise KnowledgeGraph defaults via the
+    // layout resolver (Gen3 _byan/memoire/ first, Gen2 _byan/_memory/ fallback).
+    this.graph = new KnowledgeGraph(this.config.graph_path);
     this.scorer = new LevelScorer();
     this.parser = new ClaimParser(config.auto_trigger_patterns || []);
     this.sheet = new FactSheet(this.config.fact_sheet_path);

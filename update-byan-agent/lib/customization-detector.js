@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { configCandidates, resolveMemoryDir } = require('./layout-paths');
 
 /**
  * CustomizationDetector - Detects user customizations in BYAN files
@@ -18,18 +19,20 @@ class CustomizationDetector {
   async detectCustomizations() {
     const customizations = [];
 
-    // Preserve config.yaml
-    const configPath = path.join(this.byanDir, 'bmb', 'config.yaml');
-    if (fs.existsSync(configPath)) {
-      customizations.push({
-        path: configPath,
-        type: 'config',
-        preserve: true
-      });
+    // Preserve config.yaml — whichever layout the install uses (Gen3
+    // context/config.yaml, Gen2 root config.yaml, or Gen2 module bmb/config.yaml).
+    for (const configPath of configCandidates(this.installPath)) {
+      if (fs.existsSync(configPath)) {
+        customizations.push({
+          path: configPath,
+          type: 'config',
+          preserve: true
+        });
+      }
     }
 
-    // Preserve _memory directory
-    const memoryDir = path.join(this.byanDir, '_memory');
+    // Preserve the memory directory — Gen3 _byan/memoire/ or Gen2 _byan/_memory/.
+    const memoryDir = resolveMemoryDir(this.installPath);
     if (fs.existsSync(memoryDir)) {
       customizations.push({
         path: memoryDir,

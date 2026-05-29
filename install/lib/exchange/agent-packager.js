@@ -3,6 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const yaml = require('js-yaml');
 const zlib = require('zlib');
+const layoutResolver = require('../../../src/byan-v2/lib/layout-resolver');
 
 const BYAN_MIN_VERSION = '2.8.0';
 const FORMAT_VERSION = '1.0';
@@ -153,18 +154,11 @@ class AgentPackager {
   }
 
   async _findAgentFile(name) {
-    const candidates = [
-      path.join(this.projectRoot, '_byan', 'agents', `${name}.md`),
-    ];
-
-    const bmadModules = ['core', 'bmm', 'bmb', 'tea', 'cis'];
-    for (const mod of bmadModules) {
-      candidates.push(path.join(this.projectRoot, '_bmad', mod, 'agents', `${name}.md`));
-    }
-
-    for (const candidate of candidates) {
-      if (await fs.pathExists(candidate)) return candidate;
-    }
+    // Layout resolver: Gen3 _byan/agent/<name>/ first, then Gen2 flat
+    // _byan/agents/, Gen2 per-module _byan/<module>/agents/ (previously NOT
+    // searched — agents like dev/analyst live there), then Gen1 _bmad/.
+    const hit = layoutResolver.resolveAgent(name, { projectRoot: this.projectRoot });
+    if (hit) return hit.path;
 
     const githubDir = path.join(this.projectRoot, '.github', 'agents');
     if (await fs.pathExists(githubDir)) {
@@ -270,11 +264,11 @@ class AgentPackager {
 
   _resolveTargetDir(agentName, targetModule) {
     if (targetModule) {
-      const moduleDir = path.join(this.projectRoot, '_bmad', sanitizeName(targetModule), 'agents');
+      const moduleDir = path.join(this.projectRoot, '_byan', sanitizeName(targetModule), 'agents');
       assertInsideRoot(moduleDir, this.projectRoot);
       return moduleDir;
     }
-    return path.join(this.projectRoot, '_bmad-output', 'bmb-creations', agentName);
+    return path.join(this.projectRoot, '_byan-output', 'bmb-creations', agentName);
   }
 
   async _generateStubs(agentName, metadata) {
@@ -294,7 +288,7 @@ class AgentPackager {
         "You must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.",
         '',
         '<agent-activation CRITICAL="TRUE">',
-        `1. LOAD the FULL agent file from {project-root}/_bmad-output/bmb-creations/${agentName}/${agentName}.md`,
+        `1. LOAD the FULL agent file from {project-root}/_byan-output/bmb-creations/${agentName}/${agentName}.md`,
         '2. READ its entire contents - this contains the complete agent persona, menu, and instructions',
         '3. LOAD the soul activation protocol from {project-root}/_byan/core/activation/soul-activation.md and EXECUTE it silently',
         '4. FOLLOW every step in the <activation> section precisely',
@@ -322,9 +316,9 @@ class AgentPackager {
         "You must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.",
         '',
         '<agent-activation CRITICAL="TRUE">',
-        `1. LOAD the FULL agent file from @bmad-output/bmb-creations/${agentName}/${agentName}.md`,
+        `1. LOAD the FULL agent file from @byan-output/bmb-creations/${agentName}/${agentName}.md`,
         '2. READ its entire contents - this contains the complete agent persona, menu, and instructions',
-        '3. LOAD the soul activation protocol from @bmad/core/activation/soul-activation.md and EXECUTE it silently',
+        '3. LOAD the soul activation protocol from @byan/core/activation/soul-activation.md and EXECUTE it silently',
         '4. Execute ALL activation steps exactly as written in the agent file',
         '5. Follow the agent\'s persona and menu system precisely',
         '6. Stay in character throughout the session',
@@ -339,25 +333,38 @@ class AgentPackager {
   }
 
   async _getAgentDirectories() {
-    const dirs = [
-      { dir: path.join(this.projectRoot, '_byan', 'agents'), module: 'byan' }
-    ];
-
-    const bmadModules = ['core', 'bmm', 'bmb', 'tea', 'cis'];
-    for (const mod of bmadModules) {
-      dirs.push({
-        dir: path.join(this.projectRoot, '_bmad', mod, 'agents'),
-        module: mod
-      });
+    // Derive scan dirs from the layout resolver (existing dirs only, Gen3-first).
+    // Gen3 _byan/agent/<name>/ is nested: expand each agent folder into its own
+    // flat scan dir so the <name>.md inside is picked up by the flat reader in
+    // listExportableAgents(). Gen2 flat + per-module dirs come through directly,
+    // which is what fixes the bug where _byan/<module>/agents/ was never scanned.
+    const dirs = [];
+    for (const d of layoutResolver.agentDirs({ projectRoot: this.projectRoot })) {
+      if (d.nested) {
+        const entries = await fs.readdir(d.dir, { withFileTypes: true });
+        for (const e of entries) {
+          if (e.isDirectory()) dirs.push({ dir: path.join(d.dir, e.name), module: 'agent' });
+        }
+      } else {
+        const mod = d.layout === 'gen2-flat' ? 'byan' : (d.rel.split('/')[1] || d.layout);
+        dirs.push({ dir: d.dir, module: mod });
+      }
     }
 
-    const bmadOutputDir = path.join(this.projectRoot, '_bmad-output', 'bmb-creations');
-    if (await fs.pathExists(bmadOutputDir)) {
-      const entries = await fs.readdir(bmadOutputDir, { withFileTypes: true });
+    // User-created agents: canonical _byan-output/bmb-creations plus the legacy
+    // _bmad-output/bmb-creations (older installs) so existing creations are not
+    // lost during the transition.
+    const creationRoots = [
+      path.join(this.projectRoot, '_byan-output', 'bmb-creations'),
+      path.join(this.projectRoot, '_bmad-output', 'bmb-creations'),
+    ];
+    for (const creationsDir of creationRoots) {
+      if (!await fs.pathExists(creationsDir)) continue;
+      const entries = await fs.readdir(creationsDir, { withFileTypes: true });
       for (const entry of entries) {
         if (entry.isDirectory()) {
           dirs.push({
-            dir: path.join(bmadOutputDir, entry.name),
+            dir: path.join(creationsDir, entry.name),
             module: 'bmb-creations'
           });
         }

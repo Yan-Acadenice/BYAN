@@ -33,12 +33,19 @@ function changedFiles() {
 
 function looksLikeAgentFile(rel) {
   if (!rel.endsWith('.md')) return false;
-  return (
-    rel.includes('_byan/bmb/agents/') ||
-    rel.includes('_byan/agents/') ||
-    rel.includes('.github/agents/') ||
-    rel.includes('.claude/skills/')
-  );
+  if (rel.includes('.github/agents/') || rel.includes('.claude/skills/')) return true;
+  // Layout-aware agent-path detection (Gen3 _byan/agent/, Gen2 flat + every
+  // module — the old check only matched _byan/bmb/agents/, missing the rest).
+  try {
+    const { isAgentPath } = require(path.join(projectDir, 'src/byan-v2/lib/layout-resolver.js'));
+    return isAgentPath(rel);
+  } catch {
+    return (
+      /(^|\/)_byan\/agent\//.test(rel) ||
+      /(^|\/)_byan\/agents\//.test(rel) ||
+      /(^|\/)_byan\/(core|bmm|bmb|tea|cis)\/agents\//.test(rel)
+    );
+  }
 }
 
 function runValidator(absPath) {

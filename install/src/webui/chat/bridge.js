@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const layoutResolver = require('../../../../src/byan-v2/lib/layout-resolver');
 
 class Bridge {
   constructor(options = {}) {
@@ -26,27 +27,16 @@ class Bridge {
   resolveAgent(agentName) {
     if (!agentName) return null;
 
-    const candidates = [
-      path.join(this.projectRoot, '.github', 'agents', `bmad-agent-${agentName}.md`),
-      path.join(this.projectRoot, '_byan', 'agents', `${agentName}.md`),
-    ];
+    // Copilot stub takes priority (it is the explicit entry point when present).
+    const githubStub = path.join(this.projectRoot, '.github', 'agents', `bmad-agent-${agentName}.md`);
+    try {
+      if (fs.existsSync(githubStub)) return githubStub;
+    } catch { /* ignore */ }
 
-    const bmadModules = ['core', 'bmm', 'bmb', 'tea', 'cis'];
-    for (const mod of bmadModules) {
-      candidates.push(
-        path.join(this.projectRoot, '_bmad', mod, 'agents', `${agentName}.md`)
-      );
-    }
-
-    for (const candidate of candidates) {
-      try {
-        if (fs.existsSync(candidate)) return candidate;
-      } catch {
-        continue;
-      }
-    }
-
-    return null;
+    // Then the layout resolver: Gen3 _byan/agent/<name>/ first, Gen2 flat +
+    // per-module, Gen1 _bmad/ fallback.
+    const hit = layoutResolver.resolveAgent(agentName, { projectRoot: this.projectRoot });
+    return hit ? hit.path : null;
   }
 
   _killProcess(proc, timeoutMs = 5000) {

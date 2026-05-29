@@ -113,7 +113,10 @@ function renderSnapshot() {
   }
   lines.push('');
 
-  const soul = readTextSafe(path.join(projectDir, '_byan', 'soul.md'), 2000);
+  // Gen3 _byan/agent/byan/soul.md first, Gen2 _byan/soul.md fallback.
+  const soulGen3 = path.join(projectDir, '_byan', 'agent', 'byan', 'soul.md');
+  const soulPath = fs.existsSync(soulGen3) ? soulGen3 : path.join(projectDir, '_byan', 'soul.md');
+  const soul = readTextSafe(soulPath, 2000);
   if (soul) {
     lines.push('## Soul (head)');
     lines.push('');

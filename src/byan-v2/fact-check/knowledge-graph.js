@@ -1,17 +1,18 @@
 /**
  * KnowledgeGraph - Persistent fact store across BYAN sessions
  *
- * Storage: _byan/_memory/fact-graph.json
+ * Storage: _byan/memoire/fact-graph.json (Gen3) or _byan/_memory/fact-graph.json (Gen2)
  * Each entry: { id, claim, domain, status, confidence, created_at, expires_at, source, session_id }
  */
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const layoutResolver = require('../lib/layout-resolver');
 
 class KnowledgeGraph {
-  constructor(storagePath = '_byan/_memory/fact-graph.json') {
-    this.storagePath = storagePath;
+  constructor(storagePath) {
+    this.storagePath = storagePath || layoutResolver.memoryPath('fact-graph.json').path;
     this._data = null;
   }
 

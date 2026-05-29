@@ -11,10 +11,19 @@ const path = require('path');
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
+// Gen3 puts BYAN's soul files under _byan/agent/byan/; Gen2 keeps them at the
+// _byan/ root. Prefer Gen3 when present, fall back to Gen2 (self-contained so
+// the hook never depends on a require that could fail).
+function soulFile(label) {
+  const g3 = path.join(projectDir, '_byan', 'agent', 'byan', `${label}.md`);
+  const g2 = path.join(projectDir, '_byan', `${label}.md`);
+  return fs.existsSync(g3) ? g3 : g2;
+}
+
 const files = [
-  { label: 'soul', path: path.join(projectDir, '_byan', 'soul.md') },
-  { label: 'tao', path: path.join(projectDir, '_byan', 'tao.md') },
-  { label: 'soul-memory', path: path.join(projectDir, '_byan', 'soul-memory.md') },
+  { label: 'soul', path: soulFile('soul') },
+  { label: 'tao', path: soulFile('tao') },
+  { label: 'soul-memory', path: soulFile('soul-memory') },
 ];
 
 const chunks = [];

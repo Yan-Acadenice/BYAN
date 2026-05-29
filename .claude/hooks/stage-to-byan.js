@@ -43,6 +43,8 @@ function readSettingsEnv() {
 function readMemorySyncConfig() {
   const paths = [
     path.join(projectDir, 'loadbalancer.yaml'),
+    // Gen3 split config first, then Gen2 root config.
+    path.join(projectDir, '_byan', 'context', 'config.yaml'),
     path.join(projectDir, '_byan', 'config.yaml'),
   ];
   for (const p of paths) {

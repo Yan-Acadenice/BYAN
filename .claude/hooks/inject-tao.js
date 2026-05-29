@@ -12,7 +12,9 @@ const fs = require('fs');
 const path = require('path');
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const taoPath = path.join(projectDir, '_byan', 'tao.md');
+// Gen3 _byan/agent/byan/tao.md first, Gen2 _byan/tao.md fallback.
+const taoGen3 = path.join(projectDir, '_byan', 'agent', 'byan', 'tao.md');
+const taoPath = fs.existsSync(taoGen3) ? taoGen3 : path.join(projectDir, '_byan', 'tao.md');
 
 let additionalContext = '';
 try {

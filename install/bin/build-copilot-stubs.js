@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const layoutResolver = require('../../src/byan-v2/lib/layout-resolver');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const AGENTS_DIR = path.join(ROOT, '.github', 'agents');
@@ -31,14 +32,18 @@ function stripFrontmatter(content) {
 }
 
 function buildByanStub() {
-  const agentContent = readFile(path.join(BYAN_DIR, 'agents', 'byan.md'));
+  // Layout resolver: Gen3 _byan/agent/byan/ first, Gen2 fallback.
+  const agentHit = layoutResolver.resolveAgent('byan', { projectRoot: ROOT });
+  const agentContent = agentHit ? readFile(agentHit.path) : null;
   if (!agentContent) {
-    console.error('Cannot read _byan/agents/byan.md');
+    console.error('Cannot find the byan agent file (looked in Gen3 _byan/agent/byan/ and Gen2 layouts)');
     process.exit(1);
   }
 
-  const soulContent = readFile(path.join(BYAN_DIR, 'soul.md'));
-  const taoContent = readFile(path.join(BYAN_DIR, 'tao.md'));
+  const soulHit = layoutResolver.resolveSoul('soul', { projectRoot: ROOT });
+  const taoHit = layoutResolver.resolveSoul('tao', { projectRoot: ROOT });
+  const soulContent = soulHit ? readFile(soulHit.path) : null;
+  const taoContent = taoHit ? readFile(taoHit.path) : null;
   const soulActivation = readFile(path.join(BYAN_DIR, 'core', 'activation', 'soul-activation.md'));
 
   const agentBody = stripFrontmatter(agentContent);
@@ -80,16 +85,20 @@ ${activationBody}
 }
 
 function buildModuleAgentStub(agentName, moduleName) {
-  const agentPath = path.join(BYAN_DIR, moduleName, 'agents', `${agentName}.md`);
+  // Resolve the agent across layouts (Gen3 _byan/agent/<name>/, Gen2 flat +
+  // per-module); fall back to the explicit module path passed on the CLI.
+  const agentHit = layoutResolver.resolveAgent(agentName, { projectRoot: ROOT });
+  const agentPath = agentHit ? agentHit.path : path.join(BYAN_DIR, moduleName, 'agents', `${agentName}.md`);
   const agentContent = readFile(agentPath);
   if (!agentContent) {
-    console.error(`Cannot read ${agentPath}`);
+    console.error(`Cannot read agent ${agentName} (looked via resolver and ${path.relative(ROOT, agentPath)})`);
     return null;
   }
 
   const agentBody = stripFrontmatter(agentContent);
 
-  const soulPath = path.join(BYAN_DIR, moduleName, 'agents', `${agentName}-soul.md`);
+  // Soul sibling lives next to the resolved agent file.
+  const soulPath = path.join(path.dirname(agentPath), `${agentName}-soul.md`);
   const soulContent = readFile(soulPath);
   const soulSection = soulContent ? `\n<!-- soul: ${agentName}-soul.md -->\n${stripFrontmatter(soulContent)}\n` : '';
 

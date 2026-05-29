@@ -131,9 +131,11 @@ class ByanV2 {
 
     // FactChecker
     if (bmadConfig.fact_check?.enabled !== false) {
+      // graph_path passes through as-is; when unset, FactChecker/KnowledgeGraph
+      // default it via the layout resolver (Gen3 _byan/memoire/ first, Gen2
+      // _byan/_memory/ fallback) — no hardcoded layout path here.
       this.factChecker = new FactChecker({
-        ...bmadConfig.fact_check,
-        graph_path: bmadConfig.fact_check?.graph_path || '_byan/_memory/fact-graph.json'
+        ...bmadConfig.fact_check
       }, this.sessionState);
       this.logger.info('[ByanV2] Fact-check system enabled');
     }

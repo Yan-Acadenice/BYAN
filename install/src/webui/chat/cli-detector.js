@@ -5,6 +5,7 @@
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const layoutResolver = require('../../../../src/byan-v2/lib/layout-resolver');
 
 const CLI_DEFINITIONS = [
   { name: 'claude', command: 'claude', versionArg: '--version' },
@@ -103,52 +104,55 @@ function scanDir(dirPath) {
   }
 }
 
+// Map a resolver layout (+ rel) to the legacy source label, so API responses
+// stay stable: Gen2 flat / Gen3 -> 'byan', Gen2 per-module -> 'bmad-<mod>'.
+function sourceForLayout(layout, rel) {
+  if (layout === 'gen2-module' || layout === 'gen1') {
+    const mod = String(rel).split('/')[1];
+    return `bmad-${mod}`;
+  }
+  return 'byan';
+}
+
 async function detectAgents(projectRoot) {
   const agents = [];
   const seen = new Set();
 
-  const locations = [
-    { dir: path.join(projectRoot, '.github', 'agents'), source: 'copilot' },
-    { dir: path.join(projectRoot, '_byan', 'agents'), source: 'byan' },
-  ];
-
-  const bmadModules = ['core', 'bmm', 'bmb', 'tea', 'cis'];
-  for (const mod of bmadModules) {
-    locations.push({
-      dir: path.join(projectRoot, '_bmad', mod, 'agents'),
-      source: `bmad-${mod}`,
+  const pushAgent = (id, source, filePath) => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    let fm = {};
+    try {
+      const content = fs.readFileSync(filePath, 'utf8').slice(0, 2000);
+      fm = parseFrontmatter(content);
+    } catch { /* skip unparseable */ }
+    agents.push({
+      id,
+      name: fm.name || id,
+      description: fm.description || '',
+      icon: fm.icon || null,
+      source,
+      path: filePath,
     });
+  };
+
+  // Copilot stubs (.github/agents) — flat scan, with the bmad-agent- prefix.
+  // Listed first so a copilot stub wins the dedup, preserving prior priority.
+  const githubDir = path.join(projectRoot, '.github', 'agents');
+  for (const file of scanDir(githubDir)) {
+    const id = file
+      .replace(/\.md$/, '')
+      .replace(/^bmad-agent-/, '')
+      .replace(/\.backup\.\d+.*$/, '')
+      .replace(/\.optimized.*$/, '');
+    pushAgent(id, 'copilot', path.join(githubDir, file));
   }
 
-  for (const loc of locations) {
-    const files = scanDir(loc.dir);
-    for (const file of files) {
-      const filePath = path.join(loc.dir, file);
-      const baseName = file.replace(/\.md$/, '');
-
-      const id = baseName
-        .replace(/^bmad-agent-/, '')
-        .replace(/\.backup\.\d+.*$/, '')
-        .replace(/\.optimized.*$/, '');
-
-      if (seen.has(id)) continue;
-      seen.add(id);
-
-      let fm = {};
-      try {
-        const content = fs.readFileSync(filePath, 'utf8').slice(0, 2000);
-        fm = parseFrontmatter(content);
-      } catch { /* skip unparseable */ }
-
-      agents.push({
-        id,
-        name: fm.name || id,
-        description: fm.description || '',
-        icon: fm.icon || null,
-        source: loc.source,
-        path: filePath,
-      });
-    }
+  // _byan agents via the layout resolver: Gen3 _byan/agent/<name>/ first, then
+  // Gen2 flat _byan/agents/ and per-module _byan/<module>/agents/ (deduped).
+  for (const a of layoutResolver.listAgents({ projectRoot })) {
+    if (/\.backup\.\d+|\.optimized/.test(a.name)) continue;
+    pushAgent(a.name, sourceForLayout(a.layout, a.rel), a.path);
   }
 
   agents.sort((a, b) => a.name.localeCompare(b.name));

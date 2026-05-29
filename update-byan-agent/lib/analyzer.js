@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const yaml = require('js-yaml');
+const { resolveConfigPath, configCandidates } = require('./layout-paths');
 
 /**
  * Analyzer - Version checking and comparison module
@@ -10,11 +11,14 @@ const yaml = require('js-yaml');
 class Analyzer {
   constructor(installPath) {
     this.installPath = installPath;
-    this.configPath = path.join(installPath, '_byan', 'bmb', 'config.yaml');
+    // Gen3 _byan/context/config.yaml first, then Gen2 root, then Gen2 module
+    // config. Falls back to the legacy module path so a missing config still
+    // resolves to a non-existent path (checkCurrentVersion then returns null).
+    this.configPath = resolveConfigPath(installPath) || configCandidates(installPath)[2];
   }
 
   /**
-   * Check current version from _byan/bmb/config.yaml
+   * Check current version from the installed config (Gen3 or Gen2).
    * @returns {Promise<string|null>} Current version or null if not found
    */
   async checkCurrentVersion() {

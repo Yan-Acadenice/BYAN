@@ -1,7 +1,7 @@
 /**
  * elo-store.js — Persistent ELO profile per user/project
  *
- * Storage: _byan/_memory/elo-profile.json
+ * Storage: _byan/memoire/elo-profile.json (Gen3) or _byan/_memory/elo-profile.json (Gen2)
  * Structure: { version, updated_at, domains: { [name]: DomainProfile } }
  *
  * DomainProfile: {
@@ -13,12 +13,11 @@
 const fs   = require('fs');
 const path = require('path');
 const { INITIAL_RATING, INITIAL_RD } = require('./domain-config');
-
-const DEFAULT_PATH = '_byan/_memory/elo-profile.json';
+const layoutResolver = require('../lib/layout-resolver');
 
 class EloStore {
-  constructor(storagePath = DEFAULT_PATH) {
-    this.storagePath = storagePath;
+  constructor(storagePath) {
+    this.storagePath = storagePath || layoutResolver.memoryPath('elo-profile.json').path;
     this._data = null;
   }
 
