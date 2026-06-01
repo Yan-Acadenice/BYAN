@@ -18,10 +18,26 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const LEGACY_MODULES = ['bmm', 'bmb', 'tea', 'cis'];
+const LEGACY_MODULES = ['core', 'bmm', 'bmb', 'tea', 'cis'];
+
+// True iff a directory holds at least one *.md agent file. We probe the agent
+// FILES, not the module directory: a migrated tree keeps module dirs around for
+// the retained module-scoped infra (e.g. _byan/bmb/config.yaml), so an empty
+// _byan/<mod>/agents/ (or its absence) must read as "already migrated".
+function hasAgentFiles(dir) {
+  try {
+    return fs.readdirSync(dir).some((f) => f.endsWith('.md'));
+  } catch {
+    return false;
+  }
+}
 
 function hasLegacyLayout(projectRoot) {
-  return LEGACY_MODULES.some((m) => fs.existsSync(path.join(projectRoot, '_byan', m)));
+  const locations = [path.join(projectRoot, '_byan', 'agents')]; // flat agents
+  for (const m of LEGACY_MODULES) {
+    locations.push(path.join(projectRoot, '_byan', m, 'agents'));
+  }
+  return locations.some(hasAgentFiles);
 }
 
 function isEnabled({ projectRoot, env }) {
@@ -52,11 +68,21 @@ function runFsMigration({ projectRoot, env = process.env, exec = execSync, backu
   const run = (bin, args = '') =>
     exec(`node "${path.join(binDir, bin)}" --root "${projectRoot}"${args}`, { cwd: projectRoot, stdio: 'inherit' });
 
+  // Full sequence: move the files, then fix every reference to the moved files
+  // (content bodies + manifest path columns), dedup, and rebuild the index. The
+  // module-wins collision rule in migration-map reconciles flat-vs-module
+  // duplicate agents during the move (module canonical, flat -> <name>-flat).
   run('byan-migrate-fs.js', ' --apply');
+  run('byan-rewrite-refs.js', ' --apply');
+  run('byan-rewrite-manifests.js', ' --apply');
   run('byan-reconcile-manifests.js', ' --apply');
   run('byan-build-index.js');
 
-  return { ran: true, backup: backupPath, steps: ['migrate', 'reconcile', 'build-index'] };
+  return {
+    ran: true,
+    backup: backupPath,
+    steps: ['migrate', 'rewrite-refs', 'rewrite-manifests', 'reconcile', 'build-index'],
+  };
 }
 
 module.exports = { shouldMigrate, runFsMigration, hasLegacyLayout };
