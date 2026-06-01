@@ -125,6 +125,20 @@ test('scope: matchesPrefix handles dir and exact', () => {
   assert.equal(scopeGuard.matchesPrefix('src/a', 'src/a'), true);
 });
 
+test('scope: matchesPrefix is glob-tolerant (the /** bug)', () => {
+  // the bug: a globbed allowed path used to match nothing -> wrongly denied
+  assert.equal(scopeGuard.matchesPrefix('_byan/x/y.md', '_byan/**'), true);
+  assert.equal(scopeGuard.matchesPrefix('_byan/agent/byan/byan.md', '_byan/**'), true);
+  assert.equal(scopeGuard.matchesPrefix('src/a/b.test.js', 'src/**/*.test.js'), true);
+  // a wildcard mid-path reduces to the literal prefix
+  assert.equal(scopeGuard.matchesPrefix('_byan/bmm/agents/dev.md', '_byan/*/agents'), true);
+  // outside the literal prefix is still denied
+  assert.equal(scopeGuard.matchesPrefix('other/x.js', '_byan/**'), false);
+  // bare wildcard matches everything; trailing slash preserved
+  assert.equal(scopeGuard.matchesPrefix('anything/here.js', '**'), true);
+  assert.equal(scopeGuard.matchesPrefix('_byan-output/x', '_byan-output/'), true);
+});
+
 // --- Context inject -----------------------------------------------------
 
 test('context: injects banner + status when engaged', () => {

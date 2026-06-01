@@ -26,7 +26,16 @@ function toRelative(filePath, root) {
 }
 
 function matchesPrefix(rel, prefix) {
-  const p = String(prefix).replace(/\/+$/, '');
+  let p = String(prefix).trim();
+  // Glob-tolerant: reduce a glob to the literal directory part before the first
+  // wildcard, then prefix-match. So "_byan/**" and "src/**/*.test.js" match
+  // their subtree instead of being compared as a literal string (which never
+  // matched, wrongly denying every write under a globbed allowed path). A prefix
+  // with no wildcard keeps the exact + dir-prefix behavior unchanged.
+  const star = p.indexOf('*');
+  if (star !== -1) p = p.slice(0, star);
+  p = p.replace(/\/+$/, '');
+  if (p === '') return true; // bare "**" / "*" -> matches everything
   return rel === p || rel.startsWith(p + '/');
 }
 
