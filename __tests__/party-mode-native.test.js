@@ -1,7 +1,8 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const coord = require('../_byan/core/workflows/party-mode-native/coordination');
+// Gen3 layout: party-mode-native moved from _byan/core/workflows/ to _byan/workflow/simple/.
+const coord = require('../_byan/workflow/simple/party-mode-native/coordination');
 
 let sessionsRoot;
 

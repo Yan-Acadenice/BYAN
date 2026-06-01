@@ -99,7 +99,7 @@ node _byan/core/model-selector.js \
 
 ```bash
 node _byan/core/model-selector.js \
-  --workflow=_byan/workflows/yanstaller/workflow.md
+  --workflow=_byan/workflow/simple/yanstaller/workflow.md
 ```
 
 ---
@@ -274,5 +274,5 @@ Testez avec modèles moins chers si résultats acceptables:
 
 - Configuration: `_byan/core/model-selector.yaml`
 - Script: `_byan/core/model-selector.js`
-- Workers BYAN v2: `_byan/workers.md`
+- Workers BYAN v2: `_byan/worker/workers.md`
 - Mantras: #IA-21 (Self-Aware Complexity), #37 (Ockham's Razor), #39 (Consequences)

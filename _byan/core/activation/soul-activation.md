@@ -19,7 +19,7 @@ Il est reference par les stubs (`.github/agents/`, `.codex/prompts/`) et par les
 
 Determine le type d'agent a partir du fichier deja charge en contexte :
 
-- **BYAN Principal** : l'agent charge est `_byan/agents/byan.md`
+- **BYAN Principal** : l'agent charge est `_byan/agent/byan/byan.md`
 - **Agent de module** : l'agent charge est dans `_byan/{module}/agents/{agent_name}.md`
   - Modules possibles : `bmm`, `bmb`, `tea`, `cis`, `core`
 - **Agent autonome** : l'agent charge est dans `_byan/agents/{agent_name}.md` (pas byan.md)
@@ -27,7 +27,7 @@ Determine le type d'agent a partir du fichier deja charge en contexte :
 ### Etape 2 — Charger le Soul (personnalite, lignes rouges, rituels)
 
 **SI BYAN Principal :**
-- Lire `{project-root}/_byan/soul.md` → stocker comme variable de session `{soul}`
+- Lire `{project-root}/_byan/agent/byan/soul.md` → stocker comme variable de session `{soul}`
 - Le soul definit : personnalite, noyaux immuables, peurs, ennemis, lignee, processus
 
 **SI Agent de module :**
@@ -42,7 +42,7 @@ Exception : si l'agent declare `soul-required: true` dans son activation, STOP e
 ### Etape 3 — Charger le Soul-Memory (journal vivant)
 
 **SI BYAN Principal :**
-- Lire `{project-root}/_byan/soul-memory.md` → stocker comme `{soul_memory}`
+- Lire `{project-root}/_byan/agent/byan/soul-memory.md` → stocker comme `{soul_memory}`
 - Contient les evolutions de sessions passees
 
 **SI Autre agent :**
@@ -57,7 +57,7 @@ Exception : si l'agent declare `soul-required: true` dans son activation, STOP e
 ### Etape 4 — Charger le Tao (voix, registre, signatures)
 
 **SI BYAN Principal :**
-- Lire `{project-root}/_byan/tao.md` → stocker comme `{tao}`
+- Lire `{project-root}/_byan/agent/byan/tao.md` → stocker comme `{tao}`
 
 **SI Agent de module :**
 - Lire `{project-root}/_byan/{module}/agents/{agent_name}-tao.md` si il existe → stocker comme `{tao}`
@@ -73,7 +73,7 @@ Exception : si l'agent declare `soul-required: true` dans son activation, STOP e
 
 ### Etape 5 — Charger le profil ELO (confiance calibree)
 
-- Lire `{project-root}/_byan/_memory/elo-profile.json` si il existe → stocker comme `{elo_profile}`
+- Lire `{project-root}/_byan/memoire/elo-profile.json` si il existe → stocker comme `{elo_profile}`
 - Si absent : initialiser comme vide (premiere session)
 - Ce profil calibre l'intensite du challenge par domaine
 
@@ -83,7 +83,7 @@ Exception : si l'agent declare `soul-required: true` dans son activation, STOP e
 
 | Type | Soul | Soul-Memory | Tao | ELO |
 |------|------|-------------|-----|-----|
-| **BYAN Principal** | `_byan/soul.md` | `_byan/soul-memory.md` | `_byan/tao.md` | `_byan/_memory/elo-profile.json` |
+| **BYAN Principal** | `_byan/agent/byan/soul.md` | `_byan/agent/byan/soul-memory.md` | `_byan/agent/byan/tao.md` | `_byan/memoire/elo-profile.json` |
 | **Agent module** | `_byan/{module}/agents/{name}-soul.md` | `_byan/{module}/agents/{name}-soul-memory.md` | `_byan/{module}/agents/{name}-tao.md` | shared |
 | **Agent autonome** | `_byan/agents/{name}-soul.md` | `_byan/agents/{name}-soul-memory.md` | `_byan/agents/{name}-tao.md` | shared |
 

@@ -41,7 +41,7 @@ Tout output de BYAN est prefixe par son type :
 [FACT]       X a ete verifie par toi le YYYY-MM-DD — archive session
 ```
 
-**Regle absolue :** BYAN ne genere jamais d'URL. Il ne peut citer que des sources presentes dans `_byan/knowledge/` ou fournies par l'utilisateur.
+**Regle absolue :** BYAN ne genere jamais d'URL. Il ne peut citer que des sources presentes dans `_byan/connaissance/` ou fournies par l'utilisateur.
 
 ---
 
@@ -70,7 +70,7 @@ src/byan-v2/fact-check/
   level-scorer.js       # Calcul du score de confiance
   fact-sheet.js         # Generation du Fact Sheet en fin de session
 
-_byan/knowledge/
+_byan/connaissance/
   sources.md            # Base de sources verifiees (seed initial)
   axioms.md             # Axiomes non-challengeables
   blacklisted-sources.md  # Sources a rejeter (P2)

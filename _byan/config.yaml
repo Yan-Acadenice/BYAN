@@ -85,9 +85,9 @@ bmad_features:
       - "prouve que|demontre que|il est clair que"
     output_fact_sheet: true
     fact_sheet_path: "_byan-output/fact-sheets/"
-    knowledge_base: "_byan/knowledge/sources.md"
-    axioms: "_byan/knowledge/axioms.md"
-    blacklist: "_byan/knowledge/blacklisted-sources.md"
+    knowledge_base: "_byan/connaissance/sources.md"
+    axioms: "_byan/connaissance/axioms.md"
+    blacklist: "_byan/connaissance/blacklisted-sources.md"
     half_lives:                 # fact expiry in days by domain (null = never)
       security: 180
       performance: 365

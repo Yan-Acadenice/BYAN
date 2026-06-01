@@ -744,7 +744,7 @@ class InterviewState {
 }
 ```
 
-**Détails:** Voir `_byan/workflows/interview-workflow.md`
+**Détails:** Voir `_byan/workflow/simple/interview-workflow.md`
 
 #### 4.3 AnalysisState (`analysis-state.js`)
 
@@ -1270,7 +1270,7 @@ observability:
 ## References
 
 - Main class: `src/byan-v2/index.js`
-- Workflows: `_byan/workflows/`
+- Workflows: `_byan/workflow/simple/`
 - Tests: `__tests__/byan-v2/`
 - Config: `_byan/config.yaml`
 

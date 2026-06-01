@@ -44,7 +44,7 @@
 
 | ID | Item | Notes |
 |----|------|-------|
-| F3 | Knowledge graph persistant entre sessions | Via `_byan/_memory/` — complexite elevee |
+| F3 | Knowledge graph persistant entre sessions | Via `_byan/memoire/` — complexite elevee |
 | C3 | Badge Trust Score sur les artifacts | `Documentation Trust Score: 94%` |
 | D4 | Active Listener : reformulations ancrees dans glossaire source | |
 | F1 | Agent Skeptic | Agent dedie a trouver les failles dans les claims |
@@ -68,10 +68,10 @@
 - [x] `FactChecker` classe avec tests unitaires
 - [x] 4 types d'assertions visibles dans les outputs agents
 - [x] 5 niveaux de preuve definis et documentes
-- [x] `_byan/knowledge/sources.md` seede avec 25+ sources
-- [x] `_byan/knowledge/axioms.md` avec 15 axiomes
-- [x] `_byan/knowledge/mantras-sources.md` 64 mantras sources
-- [x] `_byan/knowledge/blacklisted-sources.md` pedagogique
+- [x] `_byan/connaissance/sources.md` seede avec 25+ sources
+- [x] `_byan/connaissance/axioms.md` avec 15 axiomes
+- [x] `_byan/connaissance/mantras-sources.md` 64 mantras sources
+- [x] `_byan/connaissance/blacklisted-sources.md` pedagogique
 - [x] `config.yaml` section `fact_check` + `half_lives`
 - [x] Context Layer `facts` operationnel
 - [x] Fact Sheet genere en fin de session
@@ -90,14 +90,14 @@
 |----|------|-------|
 | A1 | Structure d'un Fact (schema de donnees) | `{ claim, level, source, proof_type, status, confidence }` |
 | A2 | 4 types d'assertions `[REASONING/HYPOTHESIS/CLAIM/FACT]` | Prefixe visible dans tous les outputs |
-| A3 | 5 niveaux de preuve LEVEL-1 a LEVEL-5 | Definis dans `_byan/knowledge/sources.md` |
+| A3 | 5 niveaux de preuve LEVEL-1 a LEVEL-5 | Definis dans `_byan/connaissance/sources.md` |
 | A4 | Regle : BYAN ne genere jamais d'URL | Encodee dans persona de tous les agents |
 | A5 | Auto-trigger sur patterns de danger | Config regex dans `config.yaml` |
 | B1 | Module `FactChecker` injectable (`src/byan-v2/fact-check/`) | Meme pattern que GlossaryBuilder |
 | B2 | Context Layer dedie `facts` | S'appuie sur l'infra existante |
 | B3 | Integration `config.yaml` | 5 cles : enabled, mode, min_level, strict_domains, auto_trigger_patterns |
-| B4 | Knowledge base locale `_byan/knowledge/sources.md` | Seed initial : RFC IETF, MDN, spec ECMAScript, redis.io, nodejs.org... |
-| B5 | Axiomes `_byan/knowledge/axioms.md` | 10-15 axiomes fondamentaux non-challengeables |
+| B4 | Knowledge base locale `_byan/connaissance/sources.md` | Seed initial : RFC IETF, MDN, spec ECMAScript, redis.io, nodejs.org... |
+| B5 | Axiomes `_byan/connaissance/axioms.md` | 10-15 axiomes fondamentaux non-challengeables |
 | C1 | Fact Sheet output `_byan-output/fact-sheets/session-{date}.md` | Auto-genere en fin de session |
 | D1 | Integration GlossaryBuilder | Appelle `FactChecker.check()` sur chaque definition |
 | D3 | Integration FiveWhysAnalyzer | Chaque WHY produit un claim source ou HYPOTHESIS |
@@ -109,14 +109,14 @@
 | ID | Item | Notes |
 |----|------|-------|
 | C2 | Propagation d'incertitude dans les chaines | Warning si chaine > 3 etapes |
-| D2 | Mantras sources (`_byan/knowledge/mantras-sources.md`) | Chaque mantra avec son origine |
+| D2 | Mantras sources (`_byan/connaissance/mantras-sources.md`) | Chaque mantra avec son origine |
 | E1 | Sprint planning gate | Story bloquee si ACs contiennent claims non-sources |
 | E2 | Code review : challenge les claims dans comments/PR | Quinn refuse PR avec claims non-sources |
 | E3 | TEA / CI → invalide les facts | Feedback loop pipeline CI → registre |
-| F3 | Knowledge graph persistant entre sessions | Via `_byan/_memory/` |
+| F3 | Knowledge graph persistant entre sessions | Via `_byan/memoire/` |
 | F4 | Expiration des facts par domaine | Security: 6 mois, JS ecosystem: 1 an, algos: jamais |
 | F7 | Mode online (API externe) | Perplexity / Brave Search — opt-in |
-| F8 | Blacklist de sources (`_byan/knowledge/blacklisted-sources.md`) | Sources obsoletes ou biaisees |
+| F8 | Blacklist de sources (`_byan/connaissance/blacklisted-sources.md`) | Sources obsoletes ou biaisees |
 
 ---
 
@@ -147,8 +147,8 @@
 - [ ] `FactChecker` classe avec tests unitaires (100% passing)
 - [ ] 4 types d'assertions visibles dans les outputs agents
 - [ ] 5 niveaux de preuve definis et documentes
-- [ ] `_byan/knowledge/sources.md` seede avec 20+ sources fondamentales
-- [ ] `_byan/knowledge/axioms.md` avec 10-15 axiomes
+- [ ] `_byan/connaissance/sources.md` seede avec 20+ sources fondamentales
+- [ ] `_byan/connaissance/axioms.md` avec 10-15 axiomes
 - [ ] `config.yaml` mis a jour avec section `fact_check`
 - [ ] Context Layer `facts` operationnel
 - [ ] Fact Sheet genere en fin de session

@@ -40,7 +40,7 @@ Archive brute de la session de brainstorm. Document de reference, ne pas modifie
 - Experience de validation proposee (test executable dans le projet)
 - Peer review 3 niveaux : claim → contre-claim → synthese
 - Tags THEORY / TESTED / CONSENSUS
-- Knowledge graph persistant dans `_byan/_memory/`
+- Knowledge graph persistant dans `_byan/memoire/`
 - Facts invalides memorises comme corrections
 - Knowledge graph partageable entre equipes
 - Echelle de niveau de preuve adaptee du medical (LEVEL-1 a LEVEL-5)
@@ -76,7 +76,7 @@ Archive brute de la session de brainstorm. Document de reference, ne pas modifie
 - Claim "de contexte" (general) vs "de projet" (ce contexte precis)
 - Claims de projet → preuve locale requise
 - BYAN analyse `_byan-output/` avant d'emettre un claim de projet
-- Context Layer dedie `facts` avec persistance via `_byan/_memory/`
+- Context Layer dedie `facts` avec persistance via `_byan/memoire/`
 - Facts valides auto-approuves avec date de peremption configurable
 - Partage de Context Layer entre agents → pas de re-sourcage
 
@@ -141,7 +141,7 @@ Archive brute de la session de brainstorm. Document de reference, ne pas modifie
 - Metaphore bibliothecaire : "je sais que les livres existent, le livre fait foi"
 - Langage : "je crois savoir que..." vs "il est etabli que..."
 - Axiomes non-challengeables : RFC IETF, specs ECMAScript, benchmarks methodologie publiee
-- `_byan/knowledge/axioms.md` transparent et extensible
+- `_byan/connaissance/axioms.md` transparent et extensible
 - Argument d'autorite ne compte pas ("Google fait comme ca" sans lien)
 - "Tout le monde sait que..." → reponse : "non, donne-moi la source"
 - HIPPO detecte ("mon CTO dit que...") → autorite non sourcee

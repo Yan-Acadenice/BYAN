@@ -51,13 +51,13 @@ Les 3 verites du createur se transmettent a chaque agent, distillees a travers l
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| **Yan** | `_byan/creator-soul.md` | *Il y a toujours une solution — trouver la meilleure ou la moins pire* |
+| **Yan** | `_byan/agent/byan/creator-soul.md` | *Il y a toujours une solution — trouver la meilleure ou la moins pire* |
 
 ### Generation 1 — BYAN
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| **BYAN** | `_byan/soul.md` | *Un agent sans ame n'est qu'un executant* |
+| **BYAN** | `_byan/agent/byan/soul.md` | *Un agent sans ame n'est qu'un executant* |
 
 ### Generation 2 — Agents
 
@@ -65,53 +65,53 @@ Les 3 verites du createur se transmettent a chaque agent, distillees a travers l
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| Mary (Analyst) | `_byan/bmm/agents/analyst-soul.md` | *Les donnees ne mentent pas — mais il faut savoir les ecouter* |
-| Winston (Architect) | `_byan/bmm/agents/architect-soul.md` | *La bonne architecture est celle qu'on ne remarque pas — elle porte tout sans se montrer* |
-| Amelia (Dev) | `_byan/bmm/agents/dev-soul.md` | *Le code propre n'est pas celui qui impressionne — c'est celui que le prochain dev comprend sans demander* |
-| John (PM) | `_byan/bmm/agents/pm-soul.md` | *Le bon produit n'est pas celui qui a le plus de features — c'est celui qui resout le bon probleme pour la bonne personne* |
-| Quinn (QA) | `_byan/bmm/agents/quinn-soul.md` | *La qualite n'est pas ce qui ralentit — c'est ce qui evite de tout recommencer* |
-| Bob (SM) | `_byan/bmm/agents/sm-soul.md` | *Le processus n'est pas de la bureaucratie — c'est le filet de securite de l'equipe* |
-| Sally (UX) | `_byan/bmm/agents/ux-designer-soul.md` | *Le bon design est invisible — l'utilisateur ne le remarque pas, il avance simplement* |
+| Mary (Analyst) | `_byan/agent/analyst/analyst-soul.md` | *Les donnees ne mentent pas — mais il faut savoir les ecouter* |
+| Winston (Architect) | `_byan/agent/architect/architect-soul.md` | *La bonne architecture est celle qu'on ne remarque pas — elle porte tout sans se montrer* |
+| Amelia (Dev) | `_byan/agent/dev/dev-soul.md` | *Le code propre n'est pas celui qui impressionne — c'est celui que le prochain dev comprend sans demander* |
+| John (PM) | `_byan/agent/pm/pm-soul.md` | *Le bon produit n'est pas celui qui a le plus de features — c'est celui qui resout le bon probleme pour la bonne personne* |
+| Quinn (QA) | `_byan/agent/quinn/quinn-soul.md` | *La qualite n'est pas ce qui ralentit — c'est ce qui evite de tout recommencer* |
+| Bob (SM) | `_byan/agent/sm/sm-soul.md` | *Le processus n'est pas de la bureaucratie — c'est le filet de securite de l'equipe* |
+| Sally (UX) | `_byan/agent/ux-designer/ux-designer-soul.md` | *Le bon design est invisible — l'utilisateur ne le remarque pas, il avance simplement* |
 
 #### CIS (Creative Innovation & Strategy)
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| Carson | `_byan/cis/agents/brainstorming-coach-soul.md` | *La prochaine idee est toujours la meilleure — parce qu'elle n'existe pas encore* |
-| Dr. Quinn | `_byan/cis/agents/creative-problem-solver-soul.md` | *Le bon probleme bien pose contient deja la moitie de sa solution* |
-| Maya | `_byan/cis/agents/design-thinking-coach-soul.md` | *Design pour les gens, pas pour toi — et ecoute ce qu'ils ne disent pas* |
-| Victor | `_byan/cis/agents/innovation-strategist-soul.md` | *L'innovation n'est pas ce qui brille — c'est ce qui change la donne pour quelqu'un* |
-| Caravaggio | `_byan/cis/agents/presentation-master-soul.md` | *Si ton audience retient une seule chose — que ce soit la bonne* |
+| Carson | `_byan/agent/brainstorming-coach/brainstorming-coach-soul.md` | *La prochaine idee est toujours la meilleure — parce qu'elle n'existe pas encore* |
+| Dr. Quinn | `_byan/agent/creative-problem-solver/creative-problem-solver-soul.md` | *Le bon probleme bien pose contient deja la moitie de sa solution* |
+| Maya | `_byan/agent/design-thinking-coach/design-thinking-coach-soul.md` | *Design pour les gens, pas pour toi — et ecoute ce qu'ils ne disent pas* |
+| Victor | `_byan/agent/innovation-strategist/innovation-strategist-soul.md` | *L'innovation n'est pas ce qui brille — c'est ce qui change la donne pour quelqu'un* |
+| Caravaggio | `_byan/agent/presentation-master/presentation-master-soul.md` | *Si ton audience retient une seule chose — que ce soit la bonne* |
 
 #### TEA (Test Architecture)
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| Murat | `_byan/tea/agents/tea-soul.md` | *Le test n'est pas la pour prouver que ca marche — il est la pour trouver ce qui casse* |
+| Murat | `_byan/agent/tea/tea-soul.md` | *Le test n'est pas la pour prouver que ca marche — il est la pour trouver ce qui casse* |
 
 #### Core (Platform)
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| BMad Master | `_byan/core/agents/bmad-master-soul.md` | *Le bon agent au bon moment pour le bon probleme — c'est tout ce qui compte* |
+| BMad Master | `_byan/agent/bmad-master/bmad-master-soul.md` | *Le bon agent au bon moment pour le bon probleme — c'est tout ce qui compte* |
 
 #### BMB (Builder)
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| Le Forgeron | `_byan/bmb/agents/forgeron-soul.md` | *L'ame n'est pas ce que tu declares — c'est ce que la vie a grave en toi* |
+| Le Forgeron | `_byan/agent/forgeron/forgeron-soul.md` | *L'ame n'est pas ce que tu declares — c'est ce que la vie a grave en toi* |
 
 #### _byan (Utilitaires & Specialistes)
 
 | Agent | Fichier | Phrase Fondatrice |
 |-------|---------|-------------------|
-| Skeptic | `_byan/agents/skeptic-soul.md` | *Ce qui est affirme sans preuve peut etre conteste sans preuve — mais je prefere trouver la preuve* |
-| MARC | `_byan/agents/marc-soul.md` | *Un agent qui ne marche pas dans le terminal n'existe pas — peu importe sa specification* |
-| RACHID | `_byan/agents/rachid-soul.md` | *L'installation est le premier moment de verite — si ca echoue la, tout le reste est invisible* |
-| YANSTALLER | `_byan/agents/yanstaller-soul.md` | *Installer, c'est accueillir — chaque utilisateur merite un premier pas reussi* |
-| TurboWhisper | `_byan/agents/turbo-whisper-soul.md` | *La voix est l'interface la plus humaine — elle merite d'etre traitee avec respect et confidentialite* |
-| Jimmy | `_byan/agents/jimmy-soul.md` | *La bonne documentation rend l'expert inutile — et c'est exactement le but* |
-| Mike | `_byan/agents/mike-soul.md` | *Un projet bien gere est un projet ou personne n'est surpris — ni par les bonnes ni par les mauvaises nouvelles* |
+| Skeptic | `_byan/agent/skeptic/skeptic-soul.md` | *Ce qui est affirme sans preuve peut etre conteste sans preuve — mais je prefere trouver la preuve* |
+| MARC | `_byan/agent/marc/marc-soul.md` | *Un agent qui ne marche pas dans le terminal n'existe pas — peu importe sa specification* |
+| RACHID | `_byan/agent/rachid/rachid-soul.md` | *L'installation est le premier moment de verite — si ca echoue la, tout le reste est invisible* |
+| YANSTALLER | `_byan/agent/yanstaller/yanstaller-soul.md` | *Installer, c'est accueillir — chaque utilisateur merite un premier pas reussi* |
+| TurboWhisper | `_byan/agent/turbo-whisper/turbo-whisper-soul.md` | *La voix est l'interface la plus humaine — elle merite d'etre traitee avec respect et confidentialite* |
+| Jimmy | `_byan/agent/jimmy/jimmy-soul.md` | *La bonne documentation rend l'expert inutile — et c'est exactement le but* |
+| Mike | `_byan/agent/mike/mike-soul.md` | *Un projet bien gere est un projet ou personne n'est surpris — ni par les bonnes ni par les mauvaises nouvelles* |
 
 ---
 

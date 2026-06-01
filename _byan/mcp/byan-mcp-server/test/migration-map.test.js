@@ -242,15 +242,35 @@ test('buildMigrationPlan returns {from,to,action} entries and moves nothing', ()
   assert.deepEqual(fs.readdirSync(path.join(root, '_byan', 'bmm', 'agents')), before);
 });
 
-test('buildMigrationPlan auto-resolves name collisions with provenance', () => {
+test('buildMigrationPlan auto-resolves cross-module collisions with provenance', () => {
   const root = tmpRepo();
   const plan = buildMigrationPlan({ projectRoot: root });
   const devTargets = plan.filter((e) => e.from.endsWith('agents/dev.md')).map((e) => e.to);
   assert.equal(devTargets.length, 2);
-  // distinct targets, each disambiguated by provenance
+  // distinct targets, each disambiguated by provenance (two genuinely different agents)
   assert.equal(new Set(devTargets).size, 2);
   assert.ok(devTargets.includes('_byan/agent/dev-bmm/dev.md'));
   assert.ok(devTargets.includes('_byan/agent/dev-cis/dev.md'));
+});
+
+test('flat-vs-module collision: module wins the canonical slot, flat -> -flat (F18)', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-mig-fvm-'));
+  const mk = (rel) => {
+    const p = path.join(root, rel);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, 'x');
+  };
+  mk('_byan/bmb/agents/byan.md');   // module copy
+  mk('_byan/agents/byan.md');       // flat duplicate
+  const plan = buildMigrationPlan({ projectRoot: root });
+  const byanEntries = plan.filter((e) => e.from.endsWith('agents/byan.md'));
+  const byFrom = Object.fromEntries(byanEntries.map((e) => [e.from, e.to]));
+  // module wins the canonical agent/byan/byan.md
+  assert.equal(byFrom['_byan/bmb/agents/byan.md'], '_byan/agent/byan/byan.md');
+  // flat preserved under agent/byan-flat/
+  assert.equal(byFrom['_byan/agents/byan.md'], '_byan/agent/byan-flat/byan.md');
+  const flat = byanEntries.find((e) => e.from === '_byan/agents/byan.md');
+  assert.equal(flat.superseded, true);
 });
 
 test('buildMigrationPlan marks junk as skip', () => {

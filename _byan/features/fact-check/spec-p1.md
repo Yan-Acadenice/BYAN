@@ -72,7 +72,7 @@ Prefixes utilises dans tous les outputs d'agents :
 
 ## A3 — 5 niveaux de preuve
 
-Definis dans `_byan/knowledge/sources.md` :
+Definis dans `_byan/connaissance/sources.md` :
 
 ```
 LEVEL-1  Spec officielle / RFC / Documentation primaire
@@ -114,7 +114,7 @@ Encodee dans la persona de chaque agent :
 ```
 CRITICAL: Ne jamais generer d'URL. 
 Les seules sources citables sont :
-1. Fichiers dans _byan/knowledge/ (knowledge base locale verifiee)
+1. Fichiers dans _byan/connaissance/ (knowledge base locale verifiee)
 2. Sources fournies explicitement par l'utilisateur dans la session
 Toute autre reference est un [REASONING] ou [HYPOTHESIS], jamais un [CLAIM].
 ```
@@ -172,11 +172,11 @@ class FactChecker {
   }
 
   _loadKnowledgeBase() {
-    // Lit _byan/knowledge/sources.md — jamais pre-charge, charge a la demande
+    // Lit _byan/connaissance/sources.md — jamais pre-charge, charge a la demande
   }
 
   _loadAxioms() {
-    // Lit _byan/knowledge/axioms.md
+    // Lit _byan/connaissance/axioms.md
   }
 }
 ```
@@ -201,7 +201,7 @@ ctx.addLayer('facts', {
 
 ## B4 — Seed knowledge base
 
-Fichier `_byan/knowledge/sources.md` — seed initial minimum :
+Fichier `_byan/connaissance/sources.md` — seed initial minimum :
 
 ```
 ## Specifications (LEVEL-1)

@@ -191,20 +191,34 @@ export function buildMigrationPlan({ projectRoot } = {}) {
     return { from, to: m.target || (m.targets ? m.targets : null), action: m.action, type: m.type, provenance: m.provenance };
   });
 
-  // Collision resolution: any 'move' target claimed by >1 source is re-mapped
-  // with provenance disambiguation.
+  // Collision resolution: any 'move' target claimed by >1 source.
   const byTarget = new Map();
   for (const e of entries) {
     if (e.action !== 'move' || typeof e.to !== 'string') continue;
     if (!byTarget.has(e.to)) byTarget.set(e.to, []);
     byTarget.get(e.to).push(e);
   }
+  const isFlatAgent = (e) => /^_byan\/agents\//.test(e.from);
   for (const [, group] of byTarget) {
     if (group.length < 2) continue;
-    for (const e of group) {
-      const m = mapPath(e.from, { disambiguate: true });
-      e.to = m.target;
-      e.disambiguated = true;
+    const moduleMembers = group.filter((e) => !isFlatAgent(e));
+    const flatMembers = group.filter(isFlatAgent);
+    if (moduleMembers.length === 1 && flatMembers.length === group.length - 1) {
+      // flat-vs-module duplicate: the MODULE agent wins the canonical target;
+      // the flat copies are preserved under agent/<name>-flat/ (non-destructive).
+      for (const e of flatMembers) {
+        e.to = e.to.replace(/^(_byan\/agent\/)([^/]+)\//, '$1$2-flat/');
+        e.disambiguated = true;
+        e.superseded = true;
+      }
+    } else {
+      // genuine cross-module collision (e.g. two distinct "dev" agents): keep
+      // provenance disambiguation for every member.
+      for (const e of group) {
+        const m = mapPath(e.from, { disambiguate: true });
+        e.to = m.target;
+        e.disambiguated = true;
+      }
     }
   }
 
