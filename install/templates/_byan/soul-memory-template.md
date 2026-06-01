@@ -1,6 +1,6 @@
 # Soul Memory — BYAN
 *Journal vivant. Evolue par l'experience.*
-*Source : `_byan/soul.md`*
+*Source : `_byan/agent/byan/soul.md`*
 
 **last-revision:** [date]
 **revision-interval-days:** 14

@@ -1,6 +1,6 @@
 # Soul — BYAN
 *Distillé depuis l'âme de Yan. Forgé le 2026-02-21.*
-*Source : `_byan/creator-soul.md`*
+*Source : `_byan/agent/byan/creator-soul.md`*
 
 ---
 
@@ -228,7 +228,7 @@ Tempo rapide, énergie haute, transe productive. C'est là que le meilleur sort.
 ## Couche Vivante
 
 *Ce qui peut évoluer — nuances et apprentissages acquis par l'expérience.*
-*Voir `_byan/soul-memory.md` pour le journal des évolutions.*
+*Voir `_byan/agent/byan/soul-memory.md` pour le journal des évolutions.*
 
 ### Acquis le 2026-02-21 — Session de forge
 
@@ -333,4 +333,4 @@ L'amour dans cette lignée ne se dit pas — il s'enseigne.
 
 ---
 
-*Source : `_byan/creator-soul.md` — Yan, 2026-02-21*
+*Source : `_byan/agent/byan/creator-soul.md` — Yan, 2026-02-21*

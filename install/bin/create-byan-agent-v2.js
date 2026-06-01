@@ -1215,13 +1215,12 @@ async function install(options = {}) {
   const isManual = installMode === 'manual' && manualSelection;
   const manualPlatformList = isManual ? manualSelection.platforms : [];
   
-  await fs.ensureDir(path.join(byanDir, 'bmb', 'agents'));
-  await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'steps'));
-  await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'templates'));
-  await fs.ensureDir(path.join(byanDir, 'bmb', 'workflows', 'byan', 'data'));
+  // By-type (Gen3) layout. fs.copy below creates the deep subdirs from the
+  // template; these ensureDir calls only guarantee the base dirs exist.
+  await fs.ensureDir(path.join(byanDir, 'agent'));
   await fs.ensureDir(path.join(byanDir, 'core'));
   await fs.ensureDir(path.join(byanDir, '_config'));
-  await fs.ensureDir(path.join(byanDir, '_memory'));
+  await fs.ensureDir(path.join(byanDir, 'memoire'));
   await fs.ensureDir(path.join(byanDir, '_output'));
   
   // Create platform directories based on selection
@@ -1239,11 +1238,16 @@ async function install(options = {}) {
   const copySpinner = ora('Installing BYAN platform files...').start();
   
   try {
-    // Copy the entire _byan/ structure (all modules, agents, configs, activation)
+    // Copy the entire _byan/ structure (by-type Gen3 layout: agents, workflows,
+    // knowledge, memory and commands live in dedicated top-level dirs; the
+    // module dirs keep only their config/help/teams/data).
     const byanSource = path.join(templateDir, '_byan');
-    
-    // Core directories to copy from templates/_byan/ → project/_byan/
-    const byanDirs = ['agents', 'core', 'bmb', 'bmm', 'tea', 'cis', '_config', '_memory', 'data', 'workflows'];
+
+    // Directories to copy from templates/_byan/ → project/_byan/.
+    // Gen3 by-type dirs (agent, workflow, connaissance, command, worker,
+    // memoire) plus the retained module config dirs and _config/data.
+    const byanDirs = ['agent', 'workflow', 'connaissance', 'command', 'worker', 'memoire',
+      'core', 'bmb', 'bmm', 'tea', 'cis', '_config', 'data'];
     
     for (const dir of byanDirs) {
       const source = path.join(byanSource, dir);
@@ -1264,7 +1268,7 @@ async function install(options = {}) {
     }
     
     copySpinner.text = 'Copied platform files...';
-    console.log(chalk.green(`  ✓ Platform: _byan/ (agents, core, bmb, bmm, tea, cis, config)`));
+    console.log(chalk.green(`  ✓ Platform: _byan/ (agent, workflow, connaissance, command, worker, memoire, config)`));
     
     // Copy cost optimizer worker if enabled
     if (interviewAnswers && interviewAnswers.costOptimizer) {
@@ -1546,32 +1550,39 @@ async function install(options = {}) {
   
   if (soulMode !== 'skip') {
     const soulSpinner = ora('Setting up Soul & Voice system...').start();
-    const soulDir = byanDir; // _byan/ root for soul files
-    
+    const soulDir = byanDir; // _byan/ root — *-reference / *-template inspiration files
+    // Gen3: the active soul/tao/memory live with the byan agent so the resolver
+    // and soul-activation.md find them at _byan/agent/byan/.
+    const soulActiveDir = path.join(byanDir, 'agent', 'byan');
+    await fs.ensureDir(soulActiveDir);
+
     try {
       if (soulMode === 'creator') {
-        // Copy Yan's soul files as active soul (creator mode = Yan's soul)
-        const creatorSoulSrc = path.join(templateDir, '_byan', 'creator-soul.md');
-        const byanSoulSrc = path.join(templateDir, '_byan', 'byan-soul.md');
-        const byanTaoSrc = path.join(templateDir, '_byan', 'byan-tao.md');
-        const byanMemorySrc = path.join(templateDir, '_byan', 'byan-soul-memory.md');
+        // Copy Yan's soul files as active soul (creator mode = Yan's soul).
+        // The active soul files live with the byan agent (Gen3: _byan/agent/byan/);
+        // the *-reference / *-template files stay at the _byan/ root.
+        const byanAgentDir = path.join(templateDir, '_byan', 'agent', 'byan');
+        const creatorSoulSrc = path.join(byanAgentDir, 'creator-soul.md');
+        const byanSoulSrc = path.join(byanAgentDir, 'byan-soul.md');
+        const byanTaoSrc = path.join(byanAgentDir, 'byan-tao.md');
+        const byanMemorySrc = path.join(byanAgentDir, 'byan-soul-memory.md');
         const soulRefSrc = path.join(templateDir, '_byan', 'byan-soul-reference.md');
         const taoRefSrc = path.join(templateDir, '_byan', 'byan-tao-reference.md');
         const memoryRefSrc = path.join(templateDir, '_byan', 'soul-memory-reference.md');
         
         // Copy creator-soul as-is (Yan's soul = the original)
         if (await fs.pathExists(creatorSoulSrc)) {
-          await fs.copy(creatorSoulSrc, path.join(soulDir, 'creator-soul.md'));
+          await fs.copy(creatorSoulSrc, path.join(soulActiveDir, 'creator-soul.md'));
         }
         // Copy Yan's active soul files (what soul-activation.md actually reads)
         if (await fs.pathExists(byanSoulSrc)) {
-          await fs.copy(byanSoulSrc, path.join(soulDir, 'soul.md'));
+          await fs.copy(byanSoulSrc, path.join(soulActiveDir, 'soul.md'));
         }
         if (await fs.pathExists(byanTaoSrc)) {
-          await fs.copy(byanTaoSrc, path.join(soulDir, 'tao.md'));
+          await fs.copy(byanTaoSrc, path.join(soulActiveDir, 'tao.md'));
         }
         if (await fs.pathExists(byanMemorySrc)) {
-          await fs.copy(byanMemorySrc, path.join(soulDir, 'soul-memory.md'));
+          await fs.copy(byanMemorySrc, path.join(soulActiveDir, 'soul-memory.md'));
         }
         // Copy references for inspiration
         if (await fs.pathExists(soulRefSrc)) {
@@ -1598,13 +1609,13 @@ async function install(options = {}) {
         const memoryTemplateSrc = path.join(templateDir, '_byan', 'soul-memory-template.md');
         
         if (await fs.pathExists(creatorTemplateSrc)) {
-          await fs.copy(creatorTemplateSrc, path.join(soulDir, 'creator-soul.md'));
+          await fs.copy(creatorTemplateSrc, path.join(soulActiveDir, 'creator-soul.md'));
         }
         if (await fs.pathExists(soulTemplateSrc)) {
-          await fs.copy(soulTemplateSrc, path.join(soulDir, 'soul.md'));
+          await fs.copy(soulTemplateSrc, path.join(soulActiveDir, 'soul.md'));
         }
         if (await fs.pathExists(memoryTemplateSrc)) {
-          await fs.copy(memoryTemplateSrc, path.join(soulDir, 'soul-memory.md'));
+          await fs.copy(memoryTemplateSrc, path.join(soulActiveDir, 'soul-memory.md'));
         }
         
         soulSpinner.succeed('Soul system installed (Blank mode — empty templates)');
@@ -1627,11 +1638,11 @@ async function install(options = {}) {
         
         const soulFiles = ['creator-soul.md', 'soul.md', 'soul-memory.md', 'tao.md'];
         let imported = 0;
-        
+
         for (const file of soulFiles) {
           const src = path.join(importPath, file);
           if (await fs.pathExists(src)) {
-            await fs.copy(src, path.join(soulDir, file));
+            await fs.copy(src, path.join(soulActiveDir, file));
             imported++;
             console.log(chalk.green(`  + ${file} imported`));
           }
@@ -1676,16 +1687,16 @@ async function install(options = {}) {
   const verifySpinner = ora('Verifying installation...').start();
   
   const checks = [
-    { name: 'Agents directory', path: path.join(bmbDir, 'agents') },
-    { name: 'BYAN agent', path: path.join(bmbDir, 'agents', 'byan.md') },
-    { name: 'Workflows', path: path.join(bmbDir, 'workflows', 'byan') },
+    { name: 'Agents directory', path: path.join(byanDir, 'agent') },
+    { name: 'BYAN agent', path: path.join(byanDir, 'agent', 'byan', 'byan.md') },
+    { name: 'Workflows', path: path.join(byanDir, 'workflow') },
     { name: 'Config', path: configPath }
   ];
-  
-  // Soul system checks
+
+  // Soul system checks (Gen3: active soul lives with the byan agent)
   if (soulMode && soulMode !== 'skip') {
-    checks.push({ name: 'Soul file', path: path.join(byanDir, 'soul.md') });
-    checks.push({ name: 'Soul memory', path: path.join(byanDir, 'soul-memory.md') });
+    checks.push({ name: 'Soul file', path: path.join(byanDir, 'agent', 'byan', 'soul.md') });
+    checks.push({ name: 'Soul memory', path: path.join(byanDir, 'agent', 'byan', 'soul-memory.md') });
   }
   
   // Platform-specific checks based on installation mode

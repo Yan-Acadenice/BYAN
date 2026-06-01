@@ -1,6 +1,6 @@
 # Soul — BYAN
 *Distille depuis l'ame de [Votre Nom]. Forge le [date].*
-*Source : `_byan/creator-soul.md`*
+*Source : `_byan/agent/byan/creator-soul.md`*
 
 ---
 
@@ -82,4 +82,4 @@ Chaque agent que je forge porte un fragment de cette ame.
 
 ---
 
-*Source : `_byan/creator-soul.md`*
+*Source : `_byan/agent/byan/creator-soul.md`*

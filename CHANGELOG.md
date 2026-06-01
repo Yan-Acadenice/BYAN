@@ -9,12 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.19.0] - 2026-06-01
 
-### Added - Platform reads the by-type (Gen3) layout, with a Gen2 fallback
+### Added - Platform migrated to the by-type (Gen3) layout
 
-The 2.18.0 tooling can migrate `_byan/` to the by-type layout, but the platform
-code still resolved the old module layout. This release makes the read side
-layout-aware so the migration (Phase B) breaks nothing. Phase B itself — the
-physical file move — remains a separate, opt-in step and is not applied here.
+The 2.18.0 tooling could migrate `_byan/` to the by-type layout, but the
+platform code still resolved the old module layout. This release makes the read
+side layout-aware, then executes the physical cutover (Phase B), and finally
+makes fresh installs born on the by-type layout. The platform repo, the install
+template and the resolver are now all on Gen3, with a Gen2 fallback retained for
+existing installs.
+
+#### Read side — layout-aware resolution (F12-F14)
 
 - **F12 — read-side layout resolver.** New `src/byan-v2/lib/layout-resolver.js`
   resolves agents, soul/tao, knowledge, memory and config Gen3-first with a Gen2
@@ -31,14 +35,59 @@ physical file move — remains a separate, opt-in step and is not applied here.
   already-correct source twins) and `install/src/webui/chat/session-manager.js`
   (chat history dir hardcoded to `_byan/_memory/`, now resolved Gen3-first).
 
+#### Cutover — the physical move (F16-F18)
+
+- **F16 — migration map completed + body-reference rewriter.** The migration map
+  gained the retained-module rule (module `config`/`help`/`teams`/`data` and core
+  `base`/`activation`/`model-selector` stay in place), the testarch and resources
+  rules, and the workers move. New `rewrite-refs.js` + `byan-rewrite-refs` CLI
+  rewrite intra-file `_byan/...` references for `move` entries only, so the pass
+  is idempotent (`split`/`keep` targets stay untouched).
+- **F18 — Phase B executed.** The platform `_byan/` tree was physically moved to
+  the by-type layout: agents to `agent/<name>/`, workflows to `workflow/simple/`,
+  knowledge to `connaissance/`, memory to `memoire/`, tasks to `command/`,
+  workers to `worker/`, and the root soul to `agent/byan/`. Content references and
+  manifest path columns were rewritten and `INDEX.md` regenerated. `config.yaml`
+  was left in place (its readers depend on the keys a split would separate). The
+  flagship-agent collision (byan/marc/rachid existing in both the flat and a
+  module dir with different bodies) resolves module-wins: the module copy is
+  canonical at `_byan/agent/<name>/<name>.md`, the flat copy preserved at
+  `_byan/agent/<name>-flat/`.
+
+#### Tooling and enforcement (F16, F19, F20)
+
+- **F19 — yanstaller migrates existing projects.** The update hook
+  (`install/lib/fs-migration-hook.js`) runs the full chain — `migrate-fs` ->
+  `rewrite-refs` -> `rewrite-manifests` -> `reconcile-manifests` -> `build-index`
+  — so an existing install converges to the by-type layout. It stays dormant
+  unless `BYAN_FS_MIGRATE=1` or `_byan/_config/migrate-fs.enabled` is set, and it
+  backs up `_byan/` before acting. New `byan-rewrite-manifests` CLI rewrites the
+  manifest path columns.
+- **F20 — strict scope-guard glob fix.** `matchesPrefix` reduced a glob to its
+  literal prefix before matching, so an `allowedPath` like `_byan/**` or
+  `src/**/*.test.js` is honored instead of refusing writes inside the intended
+  directory; non-glob prefixes keep their exact behavior.
+
+#### Born Gen3 — fresh installs (F21)
+
+- **F21 — install template on the by-type layout.** `install/templates/_byan/`
+  was migrated to Gen3 (the same chain, with the bundled MCP server left
+  byte-identical), and `create-byan-agent-v2.js` was updated to match: the copy
+  whitelist now lists the by-type dirs (`agent`, `workflow`, `connaissance`,
+  `command`, `worker`, `memoire`) alongside the retained module dirs, and the
+  active soul (soul/tao/soul-memory/creator-soul) is written to
+  `_byan/agent/byan/` so it resolves Gen3-first. A new
+  `install/__tests__/template-gen3-layout.test.js` guards the template shape and
+  the installer whitelist against a regression to Gen2.
+
 ### Notes
 
-- Additive and non-breaking: the platform keeps working on the current Gen2
-  layout; Gen3 is preferred only where it exists.
+- The Gen2 fallback in the resolver remains, so an install that predates this
+  release keeps working; the F19 hook converts it to Gen3 on update when enabled.
 - `byan_version` in the installed configs is unchanged (separate axis, per the
   2.18.0 release convention).
-- See `docs/refactor/F12-layout-adoption.md` for the resolver, the adopted call
-  sites, the audit result and the Phase B cutover steps.
+- See `docs/refactor/` for the per-feature notes: `F12-layout-adoption.md` (read
+  side), `F7-migration-map.md` (map + rewriter) and `README.md` (index).
 
 ---
 
