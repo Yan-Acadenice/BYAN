@@ -1,16 +1,19 @@
 /**
  * Chat session persistence -- save, load, list, export conversations.
- * Stores under {projectRoot}/_byan/_memory/chat-sessions/
+ * Stores under the memory dir: Gen3 {projectRoot}/_byan/memoire/chat-sessions/
+ * first, Gen2 {projectRoot}/_byan/_memory/chat-sessions/ fallback (resolved via
+ * the layout resolver so reads/writes survive the Gen2->Gen3 FS migration).
  */
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const layoutResolver = require('../../../../src/byan-v2/lib/layout-resolver');
 
 class SessionManager {
   constructor(projectRoot) {
     this.projectRoot = projectRoot;
-    this.sessionsDir = path.join(projectRoot, '_byan', '_memory', 'chat-sessions');
+    this.sessionsDir = layoutResolver.memoryPath('chat-sessions', { projectRoot }).path;
     this.sessions = new Map();
     this._ensureDir();
   }

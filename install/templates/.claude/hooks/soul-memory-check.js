@@ -14,7 +14,9 @@ const path = require('path');
 const STALE_DAYS = 14;
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const memoryPath = path.join(projectDir, '_byan', 'soul-memory.md');
+// Gen3 _byan/agent/byan/soul-memory.md first, Gen2 _byan/soul-memory.md fallback.
+const memoryGen3 = path.join(projectDir, '_byan', 'agent', 'byan', 'soul-memory.md');
+const memoryPath = fs.existsSync(memoryGen3) ? memoryGen3 : path.join(projectDir, '_byan', 'soul-memory.md');
 
 function findLastRevision(content) {
   const m = content.match(/last[-_ ]revision\s*[:=]\s*(\d{4}-\d{2}-\d{2})/i);

@@ -12,7 +12,11 @@ const fs = require('fs');
 const path = require('path');
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const markerPath = path.join(projectDir, '_byan', '_memory', '.soul-memory-nudge-sent');
+// State marker lives under the memory dir: Gen3 _byan/memoire/ first, Gen2
+// _byan/_memory/ fallback (whichever dir exists; default Gen2).
+const memoireDir = path.join(projectDir, '_byan', 'memoire');
+const memoryDir = fs.existsSync(memoireDir) ? memoireDir : path.join(projectDir, '_byan', '_memory');
+const markerPath = path.join(memoryDir, '.soul-memory-nudge-sent');
 
 const TRIGGERS = {
   resonance: ['resonne', 'ca me parle', 'exactement', 'c\'est ca', 'that resonates'],

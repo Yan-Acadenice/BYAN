@@ -102,3 +102,35 @@ The updater's candidate order is therefore `context/config.yaml` → `bmb/config
   files run by jest). The changes add 35 passing tests and 0 failures.
 - Real-repo dry-run of `rewritePaths` reports 695 path changes across 5 manifests
   and writes nothing (`git diff _byan/_config` is clean).
+
+## F14 — completeness audit + the breaks F12 missed
+
+A 15-agent fan-out audited all 125 layout-path references in the codebase against
+one criterion: *after the FS migrator moves Gen2 files to Gen3, does this code
+still find its target?* Each break candidate was adversarially refuted before being
+confirmed. Result: 113 safe (resolver / unmapped / data / legacy-tolerant /
+dead-Gen1), 7 confirmed breaks, 2 refuted false-positives.
+
+The pattern F12 missed: it fixed the live `.claude/hooks/*` but left their
+`install/templates/.claude/hooks/*` mirrors on the pre-Gen3 logic, and did not
+touch the webui chat persistence.
+
+| Break | Fix |
+|-------|-----|
+| 6 template hooks (inject-soul, inject-tao, mantra-validate, pre-compact-save, soul-memory-check, soul-memory-triggers) drifted from their already-correct source twins | re-synced byte-for-byte to the source (only the layout block differed) |
+| `install/templates/.claude/hooks/stage-to-byan.js` missing the Gen3 `context/config.yaml` candidate (latent drift, not a break — the migrator `split`s config and leaves it in place) | re-synced to source |
+| `install/src/webui/chat/session-manager.js` hardcoded `_byan/_memory/chat-sessions/` with no resolver — a real live-code break that would orphan all chat history post-migration | route through `layoutResolver.memoryPath('chat-sessions')` (Gen3-first, Gen2 fallback) |
+
+The two refuted false-positives (`stage-to-byan`, `staging-consent`) hinge on a
+subtlety worth recording: the FS migrator (`migrate-fs.js`) treats `config.yaml`
+as a `split` action, which it reports as `manual` and leaves in place (No Silent
+Cut). So `_byan/config.yaml` survives Phase B and its readers do not break.
+
+The electron build mirror `app/release/.../webui-server/chat/session-manager.js`
+carries the same old path but is untracked (a regenerable build artifact), so it
+is rebuilt from the fixed source and not edited by hand.
+
+Verification: `session-manager-layout` 5 tests (Gen2/Gen3/fresh/both + a Gen3
+round-trip proving create+read land in `_byan/memoire/`); the 7 templates are now
+identical to their audited-correct source twins; full jest unchanged at 30 failed
+suites / 15 failed tests (all baseline), +5 passing.
