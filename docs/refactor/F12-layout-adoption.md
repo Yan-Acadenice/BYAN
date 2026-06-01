@@ -48,16 +48,29 @@ the MCP server is a separately shipped ESM package, the root is CJS.
 - `mantra-validator.js` — its `mantras.json` / `strict-mantras.json` live under
   `src/byan-v2/data/`, outside `_byan/`, so the FS migration does not touch them.
 
-## Known gap (deferred — different axis)
+## F13 — api.js Gen1 cleanup (resolved)
 
-`install/src/webui/api.js` is still on **Gen1** `_bmad/`: `isByanInstalled()`
-probes `_bmad/` (so it returns false on a real `_byan/` install — a pre-existing
-bug), and `ensureDirectoryStructure()` / `writeBaseConfig()` create the old
-`_bmad/core/...` module tree. This is the unfinished BMAD→BYAN rename, a Gen1→Gen2
-concern on a different axis than this Gen2→Gen3 read-side adoption, and it sits
-outside the locked scope (`install/src/webui/chat`, not `install/src/webui`). It
-needs its own pass: point the webui at `_byan/`, create the Gen3 layout (or stop
-creating module dirs), and resolve installs via `detectLayout`/`resolveConfig`.
+`install/src/webui/api.js` was still on **Gen1** `_bmad/`. F13 moved it to the
+current `_byan/` layout (a Gen1→Gen2 concern, a different axis than F12's
+Gen2→Gen3 read-side adoption):
+
+| Function | Before | After |
+|----------|--------|-------|
+| `isByanInstalled` | probes `_bmad/` (false on a real `_byan/` install) | probes `_byan/`, tolerates legacy `_bmad/` |
+| `installRoot` (new) | — | `_byan` if present, else legacy `_bmad`, else `_byan` |
+| rollback target | `_bmad` | `installRoot()` |
+| `ensureDirectoryStructure` | `_bmad/core/...` + `_bmad-output` | `_byan/core/...` + `_byan-output` (Gen2 skeleton, mirrors yanstaller) |
+| `writeBaseConfig` | writes `_bmad/core/config.yaml` if absent | writes `_byan/config.yaml` only if `resolveConfig()` finds NO config |
+
+The `writeBaseConfig` guard is the subtle one: `resolveConfig()` also matches the
+authoritative `_byan/bmb/config.yaml` (it carries `byan_version` +
+`installed_agents`); the net must not write a root `_byan/config.yaml` over it,
+which would shadow it in the resolver chain and break version detection — the same
+class of bug caught in the updater (below). The skeleton stays **Gen2** on purpose:
+it runs right after yanstaller (which emits Gen2), so emitting Gen3 here would make
+a mixed install the FS migrator does not expect. When the platform cuts over to
+Gen3 (templates + yanstaller), this skeleton follows. Covered by
+`__tests__/webui/api-layout.test.js` (13 tests).
 
 ## The updater config order (a caught regression)
 

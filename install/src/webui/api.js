@@ -21,6 +21,7 @@ try { GistClient = require('../../lib/exchange/gist-client'); } catch { GistClie
 
 const fs = require('fs');
 const path = require('path');
+const layoutResolver = require('../../../src/byan-v2/lib/layout-resolver');
 
 const { createBridge } = require('./chat/bridge');
 const { detectCLIs, detectAgents } = require('./chat/cli-detector');
@@ -63,8 +64,19 @@ function readPackageVersion() {
   }
 }
 
+// The current platform install lives under _byan/. _bmad/ is the dead Gen1
+// marker, tolerated only so a legacy checkout is still recognized as installed.
+function installRoot(projectRoot) {
+  const byan = path.join(projectRoot, '_byan');
+  if (fs.existsSync(byan)) return byan;
+  const bmad = path.join(projectRoot, '_bmad');
+  if (fs.existsSync(bmad)) return bmad;
+  return byan;
+}
+
 function isByanInstalled(projectRoot) {
-  return fs.existsSync(path.join(projectRoot, '_bmad'));
+  return fs.existsSync(path.join(projectRoot, '_byan')) ||
+         fs.existsSync(path.join(projectRoot, '_bmad'));
 }
 
 function detectPlatforms(projectRoot) {
@@ -227,7 +239,7 @@ const routes = {
     }
 
     try {
-      const targetPath = path.join(server.projectRoot, '_bmad');
+      const targetPath = installRoot(server.projectRoot);
       await backuper.restore(backupPath, targetPath);
       json(res, 200, { success: true, message: 'Rollback complete' });
     } catch (err) {
@@ -687,18 +699,22 @@ function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+// Safety-net skeleton created after yanstaller runs. It mirrors yanstaller's
+// Gen2 output (_byan/), so it must stay Gen2 here — emitting Gen3 would create
+// a mixed install the FS migrator does not expect. When the platform cuts over
+// to Gen3 (templates + yanstaller), this skeleton follows.
 function ensureDirectoryStructure(projectRoot) {
   const dirs = [
-    '_bmad',
-    '_bmad/_config',
-    '_bmad/_memory',
-    '_bmad/core',
-    '_bmad/core/agents',
-    '_bmad/core/workflows',
-    '_bmad/core/tasks',
-    '_bmad-output',
-    '_bmad-output/planning-artifacts',
-    '_bmad-output/implementation-artifacts'
+    '_byan',
+    '_byan/_config',
+    '_byan/_memory',
+    '_byan/core',
+    '_byan/core/agents',
+    '_byan/core/workflows',
+    '_byan/core/tasks',
+    '_byan-output',
+    '_byan-output/planning-artifacts',
+    '_byan-output/implementation-artifacts'
   ];
 
   for (const dir of dirs) {
@@ -710,16 +726,21 @@ function ensureDirectoryStructure(projectRoot) {
 }
 
 function writeBaseConfig(projectRoot, config) {
-  const configPath = path.join(projectRoot, '_bmad', 'core', 'config.yaml');
-  if (fs.existsSync(configPath)) return;
+  // Only scaffold a minimal config when the platform has NONE. resolveConfig
+  // also matches _byan/bmb/config.yaml (the authoritative installed config
+  // carrying byan_version + installed_agents); writing a root _byan/config.yaml
+  // over it would shadow it in the resolver chain and break version detection.
+  if (layoutResolver.resolveConfig({ projectRoot })) return;
 
+  const configPath = path.join(projectRoot, '_byan', 'config.yaml');
   const content = [
     `user_name: ${config.userName || 'User'}`,
     `communication_language: ${config.language || 'English'}`,
     `document_output_language: ${config.language || 'English'}`,
-    `output_folder: "{project-root}/_bmad-output"`
+    `output_folder: "{project-root}/_byan-output"`
   ].join('\n') + '\n';
 
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, content, 'utf8');
 }
 
@@ -831,4 +852,12 @@ function sanitizeUploadFilename(name) {
   return String(name).replace(/[^a-zA-Z0-9_.\-]/g, '').substring(0, 200);
 }
 
-module.exports = { resolve, routes };
+module.exports = {
+  resolve,
+  routes,
+  // Exposed for unit tests (layout-aware install helpers).
+  isByanInstalled,
+  installRoot,
+  ensureDirectoryStructure,
+  writeBaseConfig
+};
