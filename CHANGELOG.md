@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.19.0] - 2026-06-01
+
+### Added - Platform reads the by-type (Gen3) layout, with a Gen2 fallback
+
+The 2.18.0 tooling can migrate `_byan/` to the by-type layout, but the platform
+code still resolved the old module layout. This release makes the read side
+layout-aware so the migration (Phase B) breaks nothing. Phase B itself — the
+physical file move — remains a separate, opt-in step and is not applied here.
+
+- **F12 — read-side layout resolver.** New `src/byan-v2/lib/layout-resolver.js`
+  resolves agents, soul/tao, knowledge, memory and config Gen3-first with a Gen2
+  fallback. Adopted across `elo-store`, the fact-check stack, the agent packager,
+  the webui chat bridge/detector, the stub generators and the Claude Code hooks.
+- **F13 — webui `api.js`.** Moved off the dead Gen1 `_bmad/` tree: install
+  detection, rollback target, the scaffolded skeleton and the base-config writer
+  now use `_byan/` (tolerant of a legacy `_bmad/` checkout). The base-config
+  writer guards on `resolveConfig()` so it does not shadow the authoritative
+  `_byan/bmb/config.yaml`.
+- **F14 — completeness audit + the breaks it surfaced.** A multi-agent audit of
+  all layout-path references confirmed 7 breaks the resolver adoption had missed:
+  6 drifted `install/templates/.claude/hooks/*` mirrors (re-synced to their
+  already-correct source twins) and `install/src/webui/chat/session-manager.js`
+  (chat history dir hardcoded to `_byan/_memory/`, now resolved Gen3-first).
+
+### Notes
+
+- Additive and non-breaking: the platform keeps working on the current Gen2
+  layout; Gen3 is preferred only where it exists.
+- `byan_version` in the installed configs is unchanged (separate axis, per the
+  2.18.0 release convention).
+- See `docs/refactor/F12-layout-adoption.md` for the resolver, the adopted call
+  sites, the audit result and the Phase B cutover steps.
+
+---
+
 ## [2.18.0] - 2026-05-27
 
 ### Added - BYAN refactor: workflow atomisation + by-type file system tooling
