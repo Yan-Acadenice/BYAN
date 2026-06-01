@@ -95,6 +95,90 @@ test('config.yaml -> split into context + regle', () => {
   assert.deepEqual(r.targets, ['_byan/context/config.yaml', '_byan/regle/config-rules.yaml']);
 });
 
+// ── Module testarch knowledge -> connaissance/testarch (F16) ─────────────────
+
+test('tea testarch knowledge -> connaissance/testarch (substructure preserved)', () => {
+  const r = mapPath('_byan/tea/testarch/knowledge/overview.md');
+  assert.equal(r.target, '_byan/connaissance/testarch/knowledge/overview.md');
+  assert.equal(r.type, 'connaissance');
+  assert.equal(r.provenance, 'tea');
+  assert.equal(r.action, 'move');
+});
+
+test('tea testarch index rides along to connaissance/testarch', () => {
+  const r = mapPath('_byan/tea/testarch/tea-index.csv');
+  assert.equal(r.target, '_byan/connaissance/testarch/tea-index.csv');
+  assert.equal(r.action, 'move');
+});
+
+// ── Module resource docs -> connaissance/ (F16) ──────────────────────────────
+
+test('core excalidraw resources -> connaissance', () => {
+  const r = mapPath('_byan/core/resources/excalidraw/README.md');
+  assert.equal(r.target, '_byan/connaissance/excalidraw/README.md');
+  assert.equal(r.type, 'connaissance');
+  assert.equal(r.action, 'move');
+});
+
+// ── creator-soul -> agent/byan (F16) ─────────────────────────────────────────
+
+test('creator-soul.md -> agent/byan/', () => {
+  const r = mapPath('_byan/creator-soul.md');
+  assert.equal(r.target, '_byan/agent/byan/creator-soul.md');
+  assert.equal(r.type, 'soul');
+  assert.equal(r.action, 'move');
+});
+
+// ── workers.md + workers/ dir -> worker/ (F16) ───────────────────────────────
+
+test('workers.md -> worker/workers.md (moved whole, no forced split)', () => {
+  const r = mapPath('_byan/workers.md');
+  assert.equal(r.target, '_byan/worker/workers.md');
+  assert.equal(r.type, 'worker');
+  assert.equal(r.action, 'move');
+});
+
+test('workers/ launcher dir -> worker/', () => {
+  const r = mapPath('_byan/workers/launchers/launch-yanstaller-claude.md');
+  assert.equal(r.target, '_byan/worker/launchers/launch-yanstaller-claude.md');
+  assert.equal(r.action, 'move');
+});
+
+// ── Module-scoped infra retained in place (F16) ──────────────────────────────
+
+test('module config / help / teams / data + core machinery -> keep (not review)', () => {
+  for (const p of [
+    '_byan/bmb/config.yaml',
+    '_byan/tea/module-help.csv',
+    '_byan/cis/teams/creative-squad.yaml',
+    '_byan/bmm/data/project-context-template.md',
+    '_byan/core/model-selector.js',
+    '_byan/core/model-selector.yaml',
+    '_byan/core/MODEL-SELECTOR-GUIDE.md',
+    '_byan/core/base/bmad-base-agent.md',
+    '_byan/core/activation/soul-activation.md',
+  ]) {
+    const r = mapPath(p);
+    assert.equal(r.action, 'keep', `expected keep for ${p}`);
+    assert.equal(r.target, p, `keep should map ${p} to itself`);
+    assert.equal(r.type, 'module-infra');
+  }
+});
+
+test('no path falls through to review after F16', () => {
+  // every ex-manual category is now classified; only config.yaml stays split.
+  for (const p of [
+    '_byan/tea/testarch/knowledge/nfr-criteria.md',
+    '_byan/core/resources/excalidraw/library-loader.md',
+    '_byan/creator-soul.md',
+    '_byan/workers.md',
+    '_byan/workers/launchers/README.md',
+    '_byan/bmm/config.yaml',
+  ]) {
+    assert.notEqual(mapPath(p).action, 'review', `${p} should not be review`);
+  }
+});
+
 // ── Junk / skip ──────────────────────────────────────────────────────────────
 
 test('junk files are skipped', () => {
@@ -174,4 +258,41 @@ test('buildMigrationPlan marks junk as skip', () => {
   const plan = buildMigrationPlan({ projectRoot: root });
   const junk = plan.find((e) => e.from === '_byan/workers-old-WRONG.md');
   assert.equal(junk.action, 'skip');
+});
+
+test('buildMigrationPlan leaves no review action and conserves every file (F16)', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-mig-f16-'));
+  const mk = (rel) => {
+    const p = path.join(root, rel);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, 'x');
+  };
+  const files = [
+    '_byan/bmm/agents/dev.md',
+    '_byan/tea/testarch/knowledge/overview.md',
+    '_byan/tea/testarch/tea-index.csv',
+    '_byan/core/resources/excalidraw/README.md',
+    '_byan/creator-soul.md',
+    '_byan/workers.md',
+    '_byan/workers/launchers/launch.md',
+    '_byan/bmb/config.yaml',
+    '_byan/tea/module-help.csv',
+    '_byan/cis/teams/default-party.csv',
+    '_byan/core/model-selector.js',
+    '_byan/config.yaml',
+    '_byan/knowledge/sources.md',
+  ];
+  files.forEach(mk);
+  const plan = buildMigrationPlan({ projectRoot: root });
+  // every source file appears exactly once (conservation)
+  assert.equal(plan.length, files.length);
+  assert.deepEqual(new Set(plan.map((e) => e.from)), new Set(files));
+  // no review left; only config.yaml is split
+  assert.equal(plan.filter((e) => e.action === 'review').length, 0);
+  assert.equal(plan.filter((e) => e.action === 'split').length, 1);
+  // module-scoped infra retained
+  const kept = plan.filter((e) => e.action === 'keep').map((e) => e.from);
+  for (const p of ['_byan/bmb/config.yaml', '_byan/tea/module-help.csv', '_byan/cis/teams/default-party.csv', '_byan/core/model-selector.js']) {
+    assert.ok(kept.includes(p), `expected ${p} kept`);
+  }
 });

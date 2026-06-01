@@ -19,7 +19,8 @@ function fixture() {
   mk(root, '_byan/knowledge/sources.md', 'SOURCES');
   mk(root, '_byan/workers-old-WRONG.md', 'JUNK');
   mk(root, '_byan/config.yaml', 'user_name: Yan');       // split
-  mk(root, '_byan/bmm/config.yaml', 'module: bmm');       // review
+  mk(root, '_byan/bmm/config.yaml', 'module: bmm');       // keep (module-infra, F16)
+  mk(root, '_byan/mystery.dat', 'UNMAPPED');             // review (rule 11)
   return root;
 }
 
@@ -93,11 +94,20 @@ test('split and review are reported as manual, not applied', () => {
   // config.yaml (split) untouched
   assert.ok(exists(root, '_byan/config.yaml'), 'config not auto-split');
   assert.ok(!exists(root, '_byan/context/config.yaml'), 'split not auto-applied');
-  // bmm/config.yaml (review) untouched
-  assert.ok(exists(root, '_byan/bmm/config.yaml'), 'review item untouched');
   const manualFroms = report.manual.map((m) => m.from);
-  assert.ok(manualFroms.includes('_byan/config.yaml'));
-  assert.ok(manualFroms.includes('_byan/bmm/config.yaml'));
+  assert.ok(manualFroms.includes('_byan/config.yaml'), 'split reported manual');
+  // a genuinely unmapped file (rule 11) is reported manual and untouched
+  assert.ok(exists(root, '_byan/mystery.dat'), 'review item untouched');
+  assert.ok(manualFroms.includes('_byan/mystery.dat'), 'review reported manual');
+});
+
+test('module-scoped infra is kept in place, not flagged manual (F16)', () => {
+  const root = fixture();
+  const report = migrate({ projectRoot: root, apply: true });
+  // bmm/config.yaml is retained module-infra: untouched and in kept, not manual
+  assert.ok(exists(root, '_byan/bmm/config.yaml'), 'module config retained');
+  assert.ok(report.kept.map((m) => m.from).includes('_byan/bmm/config.yaml'), 'module config kept');
+  assert.ok(!report.manual.map((m) => m.from).includes('_byan/bmm/config.yaml'), 'module config not manual');
 });
 
 // ── Report shape ─────────────────────────────────────────────────────────────

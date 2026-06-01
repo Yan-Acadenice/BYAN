@@ -23,7 +23,21 @@ const KEEP_FILES = ['_byan/INDEX.md'];
 const BYAN_ROOT_SOUL = new Set([
   'soul.md', 'tao.md', 'soul-memory.md',
   'byan-soul.md', 'byan-tao.md', 'byan-soul-memory.md',
+  'creator-soul.md',
 ]);
+
+// Module-scoped infra with no by-type home: module config + help + teams + data,
+// and core base/activation/model-selector machinery. Retained in place by a
+// deliberate non-breaking choice (read by name; the authoritative byan_version
+// lives in a module config; soul-activation/CLAUDE.md reference these from
+// outside _byan). Folding them is a separate design decision, not a silent move.
+function isRetainedModuleScoped(rel) {
+  if (/^_byan\/(core|bmm|bmb|tea|cis)\/(config\.yaml|module-help\.csv)$/.test(rel)) return true;
+  if (/^_byan\/(core|bmm|bmb|tea|cis)\/(teams|data)\//.test(rel)) return true;
+  if (/^_byan\/core\/(base|activation)\//.test(rel)) return true;
+  if (/^_byan\/core\/(MODEL-SELECTOR-GUIDE\.md|model-selector\.(?:js|ya?ml))$/.test(rel)) return true;
+  return false;
+}
 
 function norm(p) {
   return String(p).split(path.sep).join('/').replace(/^\.\//, '');
@@ -108,6 +122,20 @@ export function mapPath(sourceRel, { disambiguate = false } = {}) {
     return { target: `_byan/connaissance/${knMatch[1]}`, type: 'connaissance', scope: 'systeme', provenance: null, action: 'move' };
   }
 
+  // 7b. Module testarch subtree -> connaissance/testarch/ (substructure
+  // preserved verbatim, incl. the knowledge/ segment, so file refs and dir refs
+  // map consistently; tea-index.csv rides along).
+  const testarchMatch = rel.match(/^_byan\/(core|bmm|bmb|tea|cis)\/testarch\/(.+)$/);
+  if (testarchMatch) {
+    return { target: `_byan/connaissance/testarch/${testarchMatch[2]}`, type: 'connaissance', scope: 'systeme', provenance: testarchMatch[1], action: 'move' };
+  }
+
+  // 7c. Module resource docs (e.g. excalidraw helpers) -> connaissance/.
+  const resMatch = rel.match(/^_byan\/(core|bmm|bmb|tea|cis)\/resources\/(.+)$/);
+  if (resMatch) {
+    return { target: `_byan/connaissance/${resMatch[2]}`, type: 'connaissance', scope: 'systeme', provenance: resMatch[1], action: 'move' };
+  }
+
   // 8. _memory -> memoire/.
   const memMatch = rel.match(/^_byan\/_memory\/(.+)$/);
   if (memMatch) {
@@ -120,9 +148,22 @@ export function mapPath(sourceRel, { disambiguate = false } = {}) {
     return { target: `_byan/agent/byan/${baseName}`, type, scope: 'systeme', provenance: 'byan', action: 'move' };
   }
 
-  // 10. workers.md -> formalisation worker/ (D3), needs manual split.
+  // 10. workers.md -> worker/ (D3). A single concept doc, moved whole;
+  // formalising it into per-worker files is a later refinement, not a split here.
   if (rel === '_byan/workers.md') {
-    return { target: '_byan/worker/', type: 'worker', scope: 'systeme', provenance: null, action: 'review' };
+    return { target: '_byan/worker/workers.md', type: 'worker', scope: 'systeme', provenance: null, action: 'move' };
+  }
+
+  // 10b. workers/ directory (launchers etc.) -> worker/.
+  const workersDirMatch = rel.match(/^_byan\/workers\/(.+)$/);
+  if (workersDirMatch) {
+    return { target: `_byan/worker/${workersDirMatch[1]}`, type: 'worker', scope: 'systeme', provenance: null, action: 'move' };
+  }
+
+  // 10c. Module-scoped infra with no by-type home -> keep in place (see
+  // isRetainedModuleScoped). Explicit retain, not a silent skip.
+  if (isRetainedModuleScoped(rel)) {
+    return { target: rel, type: 'module-infra', scope: 'systeme', provenance: rel.split('/')[1], action: 'keep' };
   }
 
   // 11. Anything else -> review (no silent move/skip).

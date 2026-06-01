@@ -26,7 +26,7 @@ n'est deplacee ou supprimee en silence (Mantra No Silent Cut).
 | `keep` | deja au format cible ou infra (`_config/`, `mcp/`, `INDEX.md`) -> identite (idempotent) |
 | `skip` | junk / scaffolds (`workers-old-WRONG.md`, `_test/`, `*-template.md`...) -> non migre |
 | `split` | `config.yaml` -> `context/config.yaml` + `regle/config-rules.yaml` (D4) |
-| `review` | ambigu (configs modules, `teams/`, `workers.md` D3...) -> decision manuelle requise |
+| `review` | non classe par aucune regle -> decision manuelle (F16 : ramene a 0 sur le depot reel) |
 
 ## Regles principales (couvrent F1 + F4 section 6)
 
@@ -37,10 +37,21 @@ n'est deplacee ou supprimee en silence (Mantra No Silent Cut).
 | `_byan/{mod}/workflows/<w>/...` | `_byan/workflow/simple/<w>/...` | move |
 | `_byan/{mod}/tasks/<t>` | `_byan/command/<t>` (D1) | move |
 | `_byan/knowledge/...` | `_byan/connaissance/...` | move |
+| `_byan/{mod}/testarch/...` | `_byan/connaissance/testarch/...` (substructure preservee) | move |
+| `_byan/{mod}/resources/...` | `_byan/connaissance/...` | move |
 | `_byan/_memory/...` | `_byan/memoire/...` | move |
-| `_byan/{soul,tao,soul-memory,byan-soul,...}.md` | `_byan/agent/byan/...` | move |
+| `_byan/{soul,tao,soul-memory,byan-soul,creator-soul,...}.md` | `_byan/agent/byan/...` | move |
+| `_byan/workers.md` | `_byan/worker/workers.md` | move |
+| `_byan/workers/...` | `_byan/worker/...` | move |
 | `_byan/config.yaml` | `context/` + `regle/` | split |
-| `_byan/workers.md` | `_byan/worker/` | review (D3) |
+| `_byan/{mod}/config.yaml`, `module-help.csv`, `teams/`, `data/` | identite (en place) | keep |
+| `_byan/core/{base,activation}/...`, `model-selector.*` | identite (en place) | keep |
+
+Les artefacts module-scoped sans home de type (configs modules, `module-help.csv`,
+`teams/`, `data/`, machinerie `core/`) sont **gardes en place** (F16, `action: keep`) :
+lus par nom, certains porteurs (la version autoritaire vit dans un config module ;
+`soul-activation.md` est reference depuis `CLAUDE.md`/`.claude`, hors `_byan/`). Les
+plier est une decision de design separee, pas un deplacement silencieux (No Silent Cut).
 
 ## Idempotence
 
@@ -56,15 +67,30 @@ sont detectees par `buildMigrationPlan` et re-mappees avec suffixe de provenance
 
 ## Dry-run sur le depot reel
 
-`buildMigrationPlan` sur `_byan/` actuel : 871 entrees — 691 `move`, 72 `keep`,
-66 `review`, 41 `skip`, 1 `split`, 8 collisions auto-resolues. Les 66 `review`
-(configs modules, `teams/`, `module-help.csv`, `workers.md`...) sont a trancher en F8,
-pas migrees automatiquement.
+`buildMigrationPlan` sur `_byan/` actuel (apres F16) : 878 entrees — 736 `move`,
+100 `keep`, 41 `skip`, 1 `split`, 0 `review`. Conservation verifiee (total inchange).
+Le seul item non automatisable reste `config.yaml` (`split` : le contenu doit etre
+reparti entre `context/` et `regle/`, traite a l'application Phase B).
+
+## Rewriter de references intra-fichier (F16 / Stage B)
+
+Le migrateur (F8) deplace les fichiers mais ne touche pas les **references de chemin
+dans le contenu** (corps d'agents, steps de workflow, docs). Apres un move, un corps
+qui dit `{project-root}/_byan/tea/testarch/knowledge/x.md` pointe dans le vide.
+`lib/rewrite-refs.js` (bin `byan-rewrite-refs`) ferme ce trou : il reecrit chaque
+reference `_byan/...` vers sa cible post-migration via la **meme autorite** que le
+migrateur (`mapPath`). Une reference n'est reecrite que si `mapPath` la classe `move`
+(fichier ou dossier via probe sentinelle) ; `split` et `keep` restent inchangees, donc
+la reecriture est sure et **idempotente** (2e passe = no-op). Dry-run par defaut,
+`--apply` pour ecrire. Sur le depot reel : 772 fichiers scannes, 307 changes, 983
+refs reecrites. Exclut `_byan/mcp/` (code) et `_byan/_config/` (manifestes, geres par
+F6 `manifest-reconcile`).
 
 ## Points ouverts pour F8
 
-- Traiter les 66 `review` : configs modules -> merge dans `context/`+`regle/` ;
-  `teams/` -> emplacement a decider ; `workers.md` -> formalisation D3.
+- `config.yaml` (`split`) : repartir le contenu entre `context/config.yaml` et
+  `regle/config-rules.yaml` a l'application (le migrateur le laisse en place).
 - Appliquer le plan de maniere **idempotente** et **non destructive** (preservation
   des fichiers customises utilisateur), avec tests e2e (install ET update).
-- Mettre a jour les manifestes + regenerer l'INDEX (F5) apres migration.
+- Mettre a jour les manifestes + regenerer l'INDEX (F5) + reecrire les refs de corps
+  (`byan-rewrite-refs --apply`) dans le meme pas atomique que le move.
