@@ -1,6 +1,6 @@
 {
   "name": "update-byan-agent",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "CLI tool for managing BYAN updates with intelligent conflict detection and customization preservation",
   "bin": {
     "update-byan-agent": "bin/update-byan-agent.js"

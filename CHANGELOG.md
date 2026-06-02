@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.19.2] - 2026-06-02
+
+### Fixed - `update-byan-agent update` is non-destructive, non-interactive, and local
+
+Field testing of the 2.19.1 updater surfaced four real bugs in
+`update-byan-agent/bin/update-byan-agent.js` (the published template `_byan` was
+verified healthy and is untouched):
+
+- **No more redundant network install.** The updater runs via
+  `npx -p create-byan-agent@latest`, so the `@latest` package (and its template)
+  is already on disk next to the running bin. It now resolves the template from
+  the running package root (`path.resolve(__dirname, '..', '..')`, with a
+  `node_modules/create-byan-agent` fallback) instead of re-running
+  `npm install --no-save create-byan-agent@latest` into the user project (which
+  pulled ~215 packages, took minutes, had no timeout, and emitted no output).
+  The `.github/agents`, Claude-native, and fs-migration refreshes now resolve
+  from that same local root, so the F22 Gen3 stub refresh is no longer silently
+  skipped when the user project has no local `node_modules`.
+- **Non-destructive rebuild.** The replacement template is validated as a
+  non-empty directory and fully staged beside the live tree before anything is
+  deleted; the swap is then two atomic renames. A failed or empty source aborts
+  the update with the existing `_byan` left intact (previously `_byan` was
+  `rm -rf`'d up front, so a failing install left the project relying on backup
+  rollback).
+- **Non-interactive support.** `update` accepts `-y/--yes` and
+  `--non-interactive`, and auto-confirms when `--force`, `--yes`,
+  `--non-interactive`, or a non-TTY stdout is detected. In CI / headless / piped
+  runs the updater no longer hangs on the `Y/n` prompt.
+- **Honest diagnostics.** A template that cannot be used now reports whether the
+  package could not be resolved at all vs. the template directory being present
+  but empty, and prints the probed paths — instead of the misleading
+  "_byan directory not found in npm package" that blamed a healthy package.
+
+Covered by `update-byan-agent/__tests__/apply-update.test.js` (11 tests:
+local resolution, full Gen2->Gen3 replace, stub refresh, swap atomicity, and the
+destructive-safety guard). The updater bin now reports its real package version
+instead of a stale hard-coded literal.
+
+---
+
 ## [2.19.1] - 2026-06-02
 
 ### Fixed - Agent stubs repointed to the by-type (Gen3) layout

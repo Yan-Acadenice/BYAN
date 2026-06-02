@@ -6,16 +6,22 @@ const ora = require('ora');
 const inquirer = require('inquirer');
 const path = require('path');
 const fs = require('fs');
-const { execSync } = require('child_process');
 
 const Analyzer = require('../lib/analyzer');
 const Backup = require('../lib/backup');
 const CustomizationDetector = require('../lib/customization-detector');
+const { applyUpdate, resolvePackageRoot } = require('../lib/apply-update');
+
+// Read the version from this package, not a hand-maintained literal that drifts.
+let UPDATER_VERSION = '0.0.0';
+try {
+  UPDATER_VERSION = require('../package.json').version;
+} catch { /* keep fallback */ }
 
 program
   .name('update-byan-agent')
   .description('Gestion des mises a jour BYAN avec detection de conflits')
-  .version('2.6.1');
+  .version(UPDATER_VERSION);
 
 program
   .command('check')
@@ -58,37 +64,45 @@ program
   .description('Mettre a jour installation BYAN')
   .option('--dry-run', 'Analyser sans appliquer les changements')
   .option('--force', 'Forcer la mise a jour meme si deja a jour')
+  .option('-y, --yes', 'Mode non-interactif : confirmer automatiquement')
+  .option('--non-interactive', 'Alias de --yes (utile en CI / headless)')
   .action(async (options) => {
     const installPath = process.cwd();
-    
+
     try {
       // Step 1: Check version
       const spinner = ora('Verification version...').start();
       const analyzer = new Analyzer(installPath);
       const versionInfo = await analyzer.checkVersion();
       spinner.succeed(`Version actuelle: ${versionInfo.current}, npm: ${versionInfo.latest}`);
-      
+
       if (versionInfo.upToDate && !options.force) {
         console.log(chalk.green('\nBYAN est deja a jour!'));
         return;
       }
-      
+
       if (options.dryRun) {
         console.log(chalk.cyan('\nMode dry-run: Aucune modification appliquee'));
         return;
       }
-      
-      // Step 2: Confirm update
-      const { confirmUpdate } = await inquirer.prompt([{
-        type: 'confirm',
-        name: 'confirmUpdate',
-        message: `Mettre a jour BYAN ${versionInfo.current} -> ${versionInfo.latest}?`,
-        default: true
-      }]);
-      
-      if (!confirmUpdate) {
-        console.log(chalk.yellow('Mise a jour annulee'));
-        return;
+
+      // Step 2: Confirm update. Skip the prompt when explicitly non-interactive
+      // (--yes / --non-interactive / --force) or when stdout is not a TTY (CI,
+      // pipe, headless) — otherwise the updater hangs on the Y/n in automation.
+      const autoConfirm =
+        options.yes || options.nonInteractive || options.force ||
+        !process.stdout.isTTY || !process.stdin.isTTY;
+      if (!autoConfirm) {
+        const { confirmUpdate } = await inquirer.prompt([{
+          type: 'confirm',
+          name: 'confirmUpdate',
+          message: `Mettre a jour BYAN ${versionInfo.current} -> ${versionInfo.latest}?`,
+          default: true
+        }]);
+        if (!confirmUpdate) {
+          console.log(chalk.yellow('Mise a jour annulee'));
+          return;
+        }
       }
       
       // Step 3: Detect customizations
@@ -130,66 +144,47 @@ program
       }
       preserveSpinner.succeed('Personnalisations sauvegardees');
       
-      // Step 6: Download and install latest version
-      const updateSpinner = ora('Telechargement derniere version...').start();
+      // Step 6: Rebuild from the running package template (no network install).
+      // The updater is launched via `npx -p create-byan-agent@latest`, so the
+      // @latest package (and its template) is already on disk next to this bin.
+      // We resolve it locally instead of re-installing it into the user project
+      // (BUG3), validate the template BEFORE deleting anything, and swap via
+      // rename so a failure never leaves _byan missing (BUG2).
+      const updateSpinner = ora('Reconstruction depuis le template du package...').start();
+      let pkgRoot;
       try {
-        // Remove current _byan directory
-        const byanDir = path.join(installPath, '_byan');
-        if (fs.existsSync(byanDir)) {
-          fs.rmSync(byanDir, { recursive: true, force: true });
-        }
-        
-        // Run npm install to get latest create-byan-agent
-        execSync('npm install --no-save create-byan-agent@latest', {
-          cwd: installPath,
-          stdio: 'pipe'
-        });
-        
-        // Copy _byan from node_modules to project root. The published tarball
-        // ships _byan source under install/templates/_byan/, not at the root.
-        // Fall back to root-level _byan/ for legacy tarballs that may still
-        // have shipped it there.
-        const pkgRoot = path.join(installPath, 'node_modules', 'create-byan-agent');
-        const candidates = [
-          path.join(pkgRoot, 'install', 'templates', '_byan'),
-          path.join(pkgRoot, '_byan'),
-        ];
-        const nodeModulesByan = candidates.find((p) => fs.existsSync(p));
-        if (nodeModulesByan) {
-          copyRecursive(nodeModulesByan, byanDir);
-        } else {
-          throw new Error(
-            `_byan directory not found in npm package (looked in: ${candidates.map((p) => path.relative(pkgRoot, p)).join(', ')})`
-          );
-        }
+        const resolved = resolvePackageRoot({ installPath, binDir: __dirname });
+        pkgRoot = resolved.pkgRoot;
 
-        // Also refresh .github/agents/ from templates (Copilot stubs)
-        const ghAgentsSrc = path.join(pkgRoot, 'install', 'templates', '.github', 'agents');
-        const ghAgentsDst = path.join(installPath, '.github', 'agents');
-        if (fs.existsSync(ghAgentsSrc)) {
-          if (fs.existsSync(ghAgentsDst)) {
-            fs.rmSync(ghAgentsDst, { recursive: true, force: true });
-          }
-          fs.mkdirSync(path.dirname(ghAgentsDst), { recursive: true });
-          copyRecursive(ghAgentsSrc, ghAgentsDst);
-        }
+        const report = applyUpdate({ installPath, pkgRoot });
+        updateSpinner.succeed(
+          `Template applique (${report.byanEntries} entrees _byan` +
+          (report.githubAgentsEntries != null
+            ? `, ${report.githubAgentsEntries} stubs .github/agents` : '') +
+          `) depuis ${resolved.source}`
+        );
 
         // Refresh Claude Code native (.claude/hooks, .claude/skills,
-        // .claude/agents, .claude/settings.json, .mcp.json, _byan/mcp/)
+        // .claude/agents, .claude/settings.json, .mcp.json, _byan/mcp/) from the
+        // SAME local package root.
+        const nativeSpinner = ora('Refresh Claude Code native...').start();
         try {
           const setupModule = path.join(pkgRoot, 'install', 'lib', 'claude-native-setup.js');
           if (fs.existsSync(setupModule)) {
             // eslint-disable-next-line import/no-dynamic-require, global-require
             const { setupClaudeNative } = require(setupModule);
-            await setupClaudeNative(installPath, { installDeps: true, quiet: false });
+            await setupClaudeNative(installPath, { installDeps: true, quiet: true });
+            nativeSpinner.succeed('Claude Code native rafraichi');
+          } else {
+            nativeSpinner.info('Module claude-native-setup absent, refresh ignore');
           }
         } catch (e) {
-          console.warn(chalk.yellow(`  ⚠ Claude native refresh skipped: ${e.message}`));
+          nativeSpinner.warn(`Claude native refresh ignore: ${e.message}`);
         }
 
         // FS migration (F11) — dormant by default. Acts only when explicitly
         // enabled (env BYAN_FS_MIGRATE=1 or _byan/_config/migrate-fs.enabled)
-        // AND the legacy module layout is present. Backs up _byan/ first.
+        // AND the legacy module layout is present. Same local package root.
         try {
           const hookModule = path.join(pkgRoot, 'install', 'lib', 'fs-migration-hook.js');
           if (fs.existsSync(hookModule)) {
@@ -197,22 +192,22 @@ program
             const { runFsMigration } = require(hookModule);
             const r = runFsMigration({ projectRoot: installPath });
             if (r.ran) {
-              console.log(chalk.green(`  ✓ FS migration applied (backup: ${r.backup})`));
+              console.log(chalk.green(`  FS migration applied (backup: ${r.backup})`));
             }
           }
         } catch (e) {
-          console.warn(chalk.yellow(`  ⚠ FS migration skipped: ${e.message}`));
+          console.warn(chalk.yellow(`  FS migration skipped: ${e.message}`));
         }
-
-        updateSpinner.succeed('Derniere version installee');
       } catch (error) {
-        updateSpinner.fail('Erreur installation');
-        
-        // Rollback
+        updateSpinner.fail('Erreur reconstruction');
+
+        // Rollback. With the atomic-swap rebuild, _byan is only ever replaced
+        // after a validated stage, so most failures happen before destruction;
+        // the backup restore is the belt-and-suspenders net.
         const rollbackSpinner = ora('Restauration backup...').start();
         await backup.restore(backupPath);
         rollbackSpinner.succeed('Backup restaure');
-        
+
         throw error;
       }
       
@@ -253,9 +248,9 @@ program
         const { runMigration } = require('../lib/migrate-mcp-config');
         const result = await runMigration(process.cwd(), { verbose: false });
         if (result.migrated) {
-          console.log(chalk.green(`  ✓ .mcp.json migrated (${result.changes.length} change${result.changes.length > 1 ? 's' : ''})`));
+          console.log(chalk.green(`  .mcp.json migrated (${result.changes.length} change${result.changes.length > 1 ? 's' : ''})`));
         } else if (result.reason === 'no-token-available') {
-          console.log(chalk.yellow(`  ⚠ ${result.hint}`));
+          console.log(chalk.yellow(`  ${result.hint}`));
         }
         // silent on already-ok / no-mcp-json / no-byan-server
       } catch (err) {
