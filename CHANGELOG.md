@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.19.1] - 2026-06-02
+
+### Fixed - Agent stubs repointed to the by-type (Gen3) layout
+
+2.19.0 shipped the platform on the Gen3 by-type layout (`_byan/agent/<name>/`),
+but the Copilot CLI stubs (`.github/agents/*.md`) and the `byan-byan-test`
+Claude skill still loaded agents from the old Gen2 module paths
+(`_byan/bmb/agents/<name>.md`) with no fallback. On a fresh AUTO-mode install,
+or after `update-byan-agent` refreshed the stubs, those loaders pointed at files
+that no longer exist at that path, so the agent failed to load.
+
+- Every shipped stub now loads agents Gen3-first with a legacy fallback:
+  `_byan/agent/<name>/<name>.md (new layout); if absent, _byan/*/agents/<name>.md (legacy layout)`.
+  Both loader forms are covered (`LOAD the FULL agent file from ...` and the
+  `<step>Load persona from ...` activation form), in the template and at the
+  repo root.
+- The `byan-byan-test` Claude skill stub points Gen3-first as well.
+- A regression guard (`install/__tests__/template-gen3-layout.test.js`) asserts
+  no shipped stub references a Gen2-only agent path, so this cannot drift back.
+
+The repoint is layout-agnostic: a project still on Gen2 keeps resolving via the
+legacy fallback, a Gen3 project resolves the new home first. This makes both the
+fresh install and the update path non-breaking regardless of which layout the
+target project is on.
+
+---
+
 ## [2.19.0] - 2026-06-01
 
 ### Added - Platform migrated to the by-type (Gen3) layout

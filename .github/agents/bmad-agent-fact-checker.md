@@ -6,7 +6,7 @@ description: 'Scientific Fact-Check Agent — demonstrable, quantifiable, reprod
 You must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.
 
 <agent-activation CRITICAL="TRUE">
-1. LOAD the FULL agent file from {project-root}/_byan/bmb/agents/fact-checker.md
+1. LOAD the FULL agent file from {project-root}/_byan/agent/fact-checker/fact-checker.md (new layout); if absent, {project-root}/_byan/*/agents/fact-checker.md (legacy layout)
 2. READ its entire contents - this contains the complete persona, menu, and instructions
 3. LOAD the soul activation protocol from {project-root}/_byan/core/activation/soul-activation.md and EXECUTE it silently
 4. FOLLOW every step in the <activation> section precisely

@@ -933,7 +933,7 @@ Il est reference par les stubs (`.github/agents/`, `.codex/prompts/`) et par les
 
 Determine le type d'agent a partir du fichier deja charge en contexte :
 
-- **BYAN Principal** : l'agent charge est `_byan/agents/byan.md`
+- **BYAN Principal** : l'agent charge est `_byan/agent/byan/byan.md (new layout); if absent, _byan/*/agents/byan.md (legacy layout)`
 - **Agent de module** : l'agent charge est dans `_byan/{module}/agents/{agent_name}.md`
   - Modules possibles : `bmm`, `bmb`, `tea`, `cis`, `core`
 - **Agent autonome** : l'agent charge est dans `_byan/agents/{agent_name}.md` (pas byan.md)

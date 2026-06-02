@@ -14,6 +14,12 @@
 #   .github/agents/*.md, .claude/skills/*/SKILL.md,
 #   .claude/agents/*.md
 # are validated. Non-agent files are ignored.
+#
+# Loader exemption : a derived loader stub delegates to the real agent file
+# in _byan/ (LOAD the FULL agent file from ... / Load persona from ...). It
+# carries no mantras by design, so the full-agent score bar does not apply.
+# Such files are skipped ; self-contained inlined stubs and real _byan source
+# agents are still validated.
 
 set -euo pipefail
 
@@ -54,6 +60,12 @@ failed=0
 while IFS= read -r file; do
   [ -z "$file" ] && continue
   [ ! -f "$file" ] && continue
+
+  # Skip derived loader stubs : they delegate to the real _byan agent file and
+  # carry no mantras by design, so the full-agent threshold does not apply.
+  if grep -qE '(LOAD the FULL agent file from|Load persona from)[^\n]*_byan/' "$file"; then
+    continue
+  fi
 
   score=$(node -e "
     const V = require('./$VALIDATOR');
