@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added - Native workflow bridge, Phase 1 (Hybrid: gate outside, engine inside)
+
+BYAN workflows are LLM-interpreted and human-gated; Claude Code's in-CLI Workflow
+tool runs a deterministic JS script with no in-run human gate. Phase 1 ports the
+non-gated subset (autonomous + deterministic pipeline) to the native tool, while
+the gated majority stays markdown by design. Scope is coupled to target: broad
+coverage (gated workflows) would need the Agent SDK and is parked (Phase 2).
+
+- **F1 — registry + dual-path resolver.** `byan-build-workflows`
+  (`_byan/mcp/byan-mcp-server/bin/`, ESM, sibling to `byan-build-index`) reads
+  the workflow manifest and writes `.claude/workflows/INDEX.md` idempotently
+  (20 portable workflows: 11 autonomous + 9 pipeline). `resolveWorkflow(name)`
+  prefers `.claude/workflows/<name>.js`, else falls back to the markdown workflow
+  (Gen3-first dual-path).
+- **F2 — pilot port `dev-story`.** `.claude/workflows/dev-story.js` runs the
+  red-green-refactor loop as a JS `while` loop with a real 3-cycle convergence
+  counter (replacing the doc-only "3 failures -> HALT" rule). The deterministic
+  core lives in `lib/native-loop.js` (unit-tested) and is mirrored inline since
+  the sandbox forbids imports. The script returns a structured verdict; the
+  `byan-native-dev-story` skill owns the human gate and records state via MCP.
+- **F3 — enforcement bridge.** `byan-lint-workflows` fails if a
+  `.claude/workflows/*.js` imports/requires `lib/fd-state.js` (or the strict-mode
+  lib); wired into `.githooks/pre-commit` since the in-session hooks do not fire
+  inside a script. Contract documented in `docs/native-workflows-contract.md` and
+  `.claude/rules/native-workflows.md`.
+
+25 new unit tests (node --test). Mirrored into `install/templates/`.
+
+---
+
 ## [2.19.2] - 2026-06-02
 
 ### Fixed - `update-byan-agent update` is non-destructive, non-interactive, and local

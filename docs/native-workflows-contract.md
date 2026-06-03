@@ -1,0 +1,84 @@
+# Native Workflows — Contract (Phase 1)
+
+> How BYAN workflows run on Claude Code's native Workflow tool, and the rules a
+> native workflow script must respect. Phase 1 of the native-workflow bridge.
+
+## The two execution models
+
+| | BYAN markdown/YAML workflow | Native (in-CLI Workflow tool) |
+|---|---|---|
+| Engine | the LLM interprets step files | a deterministic JS script |
+| Human gate | a menu/HALT per step | none in-run (autonomous once launched) |
+| Enforcement hooks | fire on the main-thread turn | do not fire inside the script |
+
+A launched Workflow script is autonomous and runs OUTSIDE the conversation turn.
+It cannot pause mid-run to ask a human, and the BYAN main-thread hooks
+(`fd-phase-guard`, `strict-scope-guard`, `strict-stop-guard`, `mantra-validate`)
+do not fire for work done inside it. That single fact drives the whole contract.
+
+## What is portable, and what is not
+
+Only workflows whose steps run WITHOUT a per-step human gate are portable. The
+read-based classification of the 45-workflow manifest gives three buckets
+(source of truth: `_byan/mcp/byan-mcp-server/lib/workflows-generator.js`):
+
+- **autonomous** (11) — `dev-story`, `create-story`, `qa-automate`, the 8
+  `testarch-*`. Run to completion with only error HALTs.
+- **pipeline** (9) — `sprint-planning`, `code-review`, `document-project`,
+  `check-implementation-readiness`, `quick-dev`, the 4 `create-excalidraw-*`.
+  Deterministic multi-stage, minimal interaction.
+- **gated** (25) — the `create-*` authoring flows, the CIS coaching workflows,
+  `party-mode`, the builders, etc. Their defining feature is a human menu per
+  step, so they stay LLM-interpreted markdown. They are out of scope for a
+  native port.
+
+The registry of portable workflows is generated into `.claude/workflows/INDEX.md`
+by `byan-build-workflows` (run: `node _byan/mcp/byan-mcp-server/bin/byan-build-workflows.js`).
+
+## Dual-path resolution
+
+`resolveWorkflow(name)` prefers the native script `.claude/workflows/<name>.js`
+when it exists, and otherwise falls back to the markdown workflow path from the
+manifest. This is the same Gen3-first dual-path idea used for agent stubs:
+adding a native script is additive, and removing it falls back cleanly.
+
+## The Hybrid rule — gate outside, engine inside
+
+The gated parts of a workflow stay in a skill on a real main-thread turn (where
+the hooks fire); only the autonomous work runs inside the native script.
+
+- The script returns DATA (a structured verdict). It does not decide completion.
+- The orchestrating skill (e.g. `byan-native-dev-story`) owns the human gate and
+  records FD/strict state via the MCP tools.
+
+## The state-coupling rule (enforced)
+
+A native workflow script must respect:
+
+1. It returns data; it does not mutate BYAN platform state on its own.
+2. FD and strict state are mutated only through the `byan_fd_*` / `byan_strict_*`
+   MCP tools. Importing or requiring `lib/fd-state.js` (or the `strict-mode` lib)
+   from a script is forbidden, and a direct write to `fd-state.json` /
+   `.byan-strict/` is out of bounds.
+3. The story file (or any workflow artifact) the script produces is fine to
+   write — that is the product, not platform state.
+
+This rule is enforced two ways, because the in-session hooks do not fire inside
+a script:
+
+- **`byan-lint-workflows`** (`node _byan/mcp/byan-mcp-server/bin/byan-lint-workflows.js`)
+  scans `.claude/workflows/*.js` and fails on a forbidden import/require.
+- **the pre-commit gate** (`.githooks/pre-commit`) runs that linter, so a
+  coupling violation blocks the commit. Bypass is `git commit --no-verify`
+  (emergency only).
+
+Because a script cannot rely on the hooks, it should also re-assert the contract
+inline (a comment block naming this file) so the next reader sees the rule.
+
+## Resume safety
+
+The Workflow runtime forbids wall-clock and RNG calls inside a script (they
+break runId resume). Timestamps and ids are passed in via `args`. Helper logic
+that needs testing lives in a lib module (e.g.
+`_byan/mcp/byan-mcp-server/lib/native-loop.js`) and is mirrored inline in the
+script, since the sandbox forbids `import` inside a script.

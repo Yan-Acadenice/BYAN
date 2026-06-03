@@ -46,6 +46,22 @@ if [ -f "$STRICT_GATE" ]; then
   fi
 fi
 
+# Native workflow lint — a .claude/workflows/*.js script runs outside the
+# conversation turn where the strict/FD hooks fire, so the surviving net is this
+# gate : a native script must not couple directly to BYAN state internals
+# (import/require lib/fd-state.js or the strict-mode lib). State goes through the
+# byan_fd_* / byan_strict_* MCP tools. No-op if the linter is absent.
+WF_LINT="_byan/mcp/byan-mcp-server/bin/byan-lint-workflows.js"
+if [ -f "$WF_LINT" ]; then
+  if ! node "$WF_LINT" --root "$(git rev-parse --show-toplevel)"; then
+    echo ""
+    echo "Commit blocked : native workflow script couples to BYAN state internals."
+    echo "Use the byan_fd_* / byan_strict_* MCP tools instead of importing lib/fd-state.js."
+    echo "Bypass with 'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
 if [ ! -f "$VALIDATOR" ]; then
   exit 0
 fi
@@ -64,6 +80,19 @@ while IFS= read -r file; do
   # Skip derived loader stubs : they delegate to the real _byan agent file and
   # carry no mantras by design, so the full-agent threshold does not apply.
   if grep -qE '(LOAD the FULL agent file from|Load persona from)[^\n]*_byan/' "$file"; then
+    continue
+  fi
+
+  # Skip native-workflow conductor skills : a SKILL.md that delegates its work to
+  # a .claude/workflows/ script via the Workflow tool is a thin procedural
+  # conductor, not an agent persona, so it carries no persona mantras by design
+  # (same rationale as the loader exemption above). See
+  # docs/native-workflows-contract.md. Note (F7) : the persona-mantra bar is a
+  # keyword-density proxy that mis-fits .claude/skills/ broadly (a real lean
+  # persona can score low) ; the root fix is to retarget this gate onto the
+  # canonical agent sources (_byan/agent/<name> + .github/agents). This exemption
+  # is the F22-consistent interim until then.
+  if grep -qE 'Workflow\(' "$file" && grep -qE '\.claude/workflows/' "$file"; then
     continue
   fi
 
