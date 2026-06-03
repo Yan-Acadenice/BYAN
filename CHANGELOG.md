@@ -57,6 +57,29 @@ coverage (gated workflows) would need the Agent SDK and is parked (Phase 2).
   brainstorm items (golden-file LLM diff, dry-run mode, schema-first frontmatter)
   were dropped per Ockham.
 
+### Fixed - hygiene debts surfaced while porting (F7)
+
+- **Dispatch matrix doc realigned to code.** The DISPATCH table in
+  `_byan/workflow/simple/byan/feature-workflow.md` advertised `<30 / 30-60 / >=60`
+  (Worker/Sonnet/Opus) which did not match `byan_dispatch` / `lib/dispatch.js`
+  (`main-thread <15` / `agent-subagent-worktree <40+parallel` / `mcp-worker-haiku
+  <40` / `main-thread-opus >=40`). The doc now mirrors the code, the single
+  source of truth.
+- **Strict scope-guard mid-segment glob fixed.** `matchesPrefix` reduced a glob
+  to the literal lead before the first wildcard and then forced a `/` boundary,
+  so a mid-segment glob like `.claude/skills/byan-*/**` wrongly denied
+  `.claude/skills/byan-native-dev-story/...`. It now matches mid-segment globs as
+  a raw prefix while preserving the directory-boundary behavior (`_byan/**`
+  matches `_byan/x` but not `_byanX`). Tested in `strict-hooks.test.js`.
+
+Two related items were investigated and deliberately left unchanged: retargeting
+the mantra pre-commit bar onto canonical Gen3 agent sources does not help (those
+sources also score below the 80% keyword-density bar - `byan` 73%, `dev` 38% - so
+the bar itself, not its target, is the open question, left as a policy decision);
+and the "FD state pushed to byan_web" claim is absent from the repo (FD state is
+pure-local by design; only strict mode pushes to byan_web), so there was nothing
+to fix.
+
 ---
 
 ## [2.19.2] - 2026-06-02

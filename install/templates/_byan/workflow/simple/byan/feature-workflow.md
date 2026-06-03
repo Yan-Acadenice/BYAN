@@ -105,13 +105,16 @@ INIT
 **Qui :** Worker — EconomicDispatcher logic
 **Rôle :** Pour chaque feature du backlog, déterminer quelle brique BYAN est impliquée.
 
-**Matrice de dispatch :**
+**Matrice de dispatch** (source de vérité : `byan_dispatch` MCP / `_byan/mcp/byan-mcp-server/lib/dispatch.js`) :
 
-| Score complexité | Type | Exemples |
-|-----------------|------|---------|
-| < 30 | Worker (existant ou nouveau) | Format, recherche, liste |
-| 30–60 | Agent Sonnet (existant ou nouveau) | Implémentation, création |
-| ≥ 60 | Agent Opus (existant ou nouveau) | Architecture, stratégie, analyse |
+| Score complexité | Route | Stratégie |
+|------------------|-------|-----------|
+| < 15 | `main-thread` | Inline dans le contexte courant, zéro overhead de délégation |
+| < 40 + parallélisable | `agent-subagent-worktree` | Agent tool Claude Code avec isolation worktree |
+| < 40 séquentiel | `mcp-worker-haiku` | Worker Haiku léger via MCP |
+| ≥ 40 | `main-thread-opus` | Garde en main thread, raisonnement Opus |
+
+> Le score (0-100) est estimé depuis la complexité de la tâche (longueur si absent). Appeler `byan_dispatch` pour le calcul — ne pas réinventer les seuils ici.
 
 **Questions posées pour chaque feature :**
 1. Un **Agent existant** peut-il gérer ça ? (lister les candidats)
@@ -136,7 +139,7 @@ INIT
 
 ## Étape 5 : BUILD
 
-**Qui :** Agent (Sonnet/Opus) ou Worker selon score dispatch
+**Qui :** Agent ou worker selon la route `byan_dispatch` (voir la matrice Étape 4)
 **Rôle :** Implémenter la feature — code, agent, workflow, ou context.
 
 **Règles BUILD :**

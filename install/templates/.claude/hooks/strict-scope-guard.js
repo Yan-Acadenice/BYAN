@@ -27,15 +27,33 @@ function toRelative(filePath, root) {
 
 function matchesPrefix(rel, prefix) {
   let p = String(prefix).trim();
-  // Glob-tolerant: reduce a glob to the literal directory part before the first
-  // wildcard, then prefix-match. So "_byan/**" and "src/**/*.test.js" match
-  // their subtree instead of being compared as a literal string (which never
-  // matched, wrongly denying every write under a globbed allowed path). A prefix
-  // with no wildcard keeps the exact + dir-prefix behavior unchanged.
+  // Glob-tolerant: reduce a glob to the literal part before the first wildcard,
+  // then prefix-match. So "_byan/**" and "src/**/*.test.js" match their subtree
+  // instead of being compared as a literal string (which never matched, wrongly
+  // denying every write under a globbed allowed path).
   const star = p.indexOf('*');
-  if (star !== -1) p = p.slice(0, star);
+
+  // No wildcard: exact match or directory-prefix match.
+  if (star === -1) {
+    p = p.replace(/\/+$/, '');
+    if (p === '') return true;
+    return rel === p || rel.startsWith(p + '/');
+  }
+
+  // A wildcard whose preceding char is NOT "/" sits INSIDE a path segment
+  // (e.g. ".claude/skills/byan-*/**"). The literal lead before it must match as
+  // a raw prefix, with no "/" boundary forced after it - otherwise
+  // ".claude/skills/byan-native-dev-story/..." is wrongly denied because it does
+  // not start with ".claude/skills/byan-/".
+  const midSegment = star > 0 && p[star - 1] !== '/';
+  p = p.slice(0, star);
+  if (p === '') return true; // bare "*" / "**" -> matches everything
+  if (midSegment) return rel.startsWith(p);
+
+  // Directory-boundary wildcard (e.g. "_byan/**"): reduce to the dir and match
+  // exact-or-subtree so "_byan/**" matches "_byan/x" but not "_byanX".
   p = p.replace(/\/+$/, '');
-  if (p === '') return true; // bare "**" / "*" -> matches everything
+  if (p === '') return true;
   return rel === p || rel.startsWith(p + '/');
 }
 

@@ -139,6 +139,22 @@ test('scope: matchesPrefix is glob-tolerant (the /** bug)', () => {
   assert.equal(scopeGuard.matchesPrefix('_byan-output/x', '_byan-output/'), true);
 });
 
+test('scope: matchesPrefix handles a MID-SEGMENT glob (the byan-*/** bug)', () => {
+  // The bug: ".claude/skills/byan-*/**" reduced to ".claude/skills/byan-" then
+  // forced a "/" boundary, so ".claude/skills/byan-native-dev-story/SKILL.md"
+  // (no "/" right after "byan-") was wrongly denied.
+  assert.equal(
+    scopeGuard.matchesPrefix('.claude/skills/byan-native-dev-story/SKILL.md', '.claude/skills/byan-*/**'),
+    true
+  );
+  assert.equal(scopeGuard.matchesPrefix('.claude/skills/byan-strict/SKILL.md', '.claude/skills/byan-*/**'), true);
+  // a name that does not carry the literal lead is still denied
+  assert.equal(scopeGuard.matchesPrefix('.claude/skills/other-agent/SKILL.md', '.claude/skills/byan-*/**'), false);
+  // boundary behavior preserved : a directory-boundary glob does NOT match a
+  // sibling with the same literal lead but no separator
+  assert.equal(scopeGuard.matchesPrefix('_byanX/file.js', '_byan/**'), false);
+});
+
 // --- Context inject -----------------------------------------------------
 
 test('context: injects banner + status when engaged', () => {
