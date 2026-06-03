@@ -37,6 +37,16 @@ coverage (gated workflows) would need the Agent SDK and is parked (Phase 2).
 
 25 new unit tests (node --test). Mirrored into `install/templates/`.
 
+- **F4 + F5 - the 19 remaining portable workflows ported.** Every autonomous
+  (10: create-story, qa-automate, the 8 testarch-*) and pipeline (9:
+  check-implementation-readiness, code-review, the 4 create-excalidraw-*,
+  document-project, quick-dev, sprint-planning) workflow now has a faithful
+  native `.claude/workflows/<name>.js` that mirrors its real source steps. Each
+  keeps human gates OUT of the script (returns a structured verdict), uses no
+  import/state-coupling/wall-clock/RNG, and passes `node --check` +
+  `byan-lint-workflows`. `.claude/workflows/INDEX.md` now reports 20/20 native
+  (11 autonomous + 9 pipeline). Mirrored into `install/templates/`.
+
 ---
 
 ## [2.19.2] - 2026-06-02
