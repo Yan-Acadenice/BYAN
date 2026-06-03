@@ -47,6 +47,16 @@ coverage (gated workflows) would need the Agent SDK and is parked (Phase 2).
   `byan-lint-workflows`. `.claude/workflows/INDEX.md` now reports 20/20 native
   (11 autonomous + 9 pipeline). Mirrored into `install/templates/`.
 
+- **F6 - native-workflow contract validator.** `byan-lint-workflows` now enforces
+  the full contract on every `.claude/workflows/*.js`: no state coupling
+  (comment-stripped), no wall-clock/RNG token anywhere in the raw text (the
+  launch validator rejects those even in comments or strings - the exact failure
+  a manual review caught while porting), a pure `export const meta` literal first,
+  and `node --check` syntax. `validateContract()` is exported and unit-tested
+  (clock-in-comment case included). Wired into the pre-commit gate. Speculative
+  brainstorm items (golden-file LLM diff, dry-run mode, schema-first frontmatter)
+  were dropped per Ockham.
+
 ---
 
 ## [2.19.2] - 2026-06-02
