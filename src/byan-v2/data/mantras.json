@@ -4,6 +4,7 @@
       "id": "M1",
       "number": 1,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Un seul responsable",
       "description": "Chaque user story a un seul responsable clairement identifie",
       "validation": {
@@ -17,6 +18,7 @@
       "id": "M2",
       "number": 2,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Chaque User Story = 1 acteur",
       "description": "Une user story concerne un seul acteur principal",
       "validation": {
@@ -30,6 +32,7 @@
       "id": "M3",
       "number": 3,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "1 US = 1 resultat mesurable",
       "description": "Chaque user story produit un resultat mesurable et verifiable",
       "validation": {
@@ -43,6 +46,7 @@
       "id": "M4",
       "number": 4,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Tracabilite Epic → Story → Task",
       "description": "Hierarchie claire et tracable depuis l'epic jusqu'aux tasks",
       "validation": {
@@ -56,6 +60,7 @@
       "id": "M5",
       "number": 5,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Priorite = (Value × Urgence) / Effort",
       "description": "Formule de priorisation basee sur valeur, urgence et effort",
       "validation": {
@@ -69,6 +74,7 @@
       "id": "M6",
       "number": 6,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Story complete = INVEST",
       "description": "Les user stories suivent les criteres INVEST (Independent, Negotiable, Valuable, Estimable, Small, Testable)",
       "validation": {
@@ -82,6 +88,7 @@
       "id": "M7",
       "number": 7,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "Acceptance Criteria = tests automatises",
       "description": "Chaque critere d'acceptation se traduit en test automatise",
       "validation": {
@@ -95,6 +102,7 @@
       "id": "M8",
       "number": 8,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Code freeze avant release",
       "description": "Gel du code avant chaque release pour stabilisation",
       "validation": {
@@ -108,6 +116,7 @@
       "id": "M9",
       "number": 9,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "One feature = One branch",
       "description": "Chaque fonctionnalite est developpee dans sa propre branche",
       "validation": {
@@ -121,6 +130,7 @@
       "id": "M10",
       "number": 10,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Commit message = type: description",
       "description": "Format standardise des messages de commit",
       "validation": {
@@ -134,6 +144,7 @@
       "id": "M11",
       "number": 11,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "Tests avant merge",
       "description": "Tous les tests doivent passer avant fusion",
       "validation": {
@@ -147,6 +158,7 @@
       "id": "M12",
       "number": 12,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Revue systematique",
       "description": "Code review obligatoire avant merge",
       "validation": {
@@ -160,6 +172,7 @@
       "id": "M13",
       "number": 13,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Documentation dans le code",
       "description": "Documentation integree au code source",
       "validation": {
@@ -173,6 +186,7 @@
       "id": "M14",
       "number": 14,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "README = point d'entree",
       "description": "Le README est le point d'entree de la documentation",
       "validation": {
@@ -186,6 +200,7 @@
       "id": "M15",
       "number": 15,
       "category": "merise-agile",
+      "scope": "sdlc-modeling",
       "title": "API-first design",
       "description": "Conception API avant implementation",
       "validation": {
@@ -199,6 +214,7 @@
       "id": "M16",
       "number": 16,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Versioning semantique",
       "description": "Utilisation du versioning semantique (semver)",
       "validation": {
@@ -212,6 +228,7 @@
       "id": "M17",
       "number": 17,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Changelog a jour",
       "description": "Changelog maintenu a jour pour chaque version",
       "validation": {
@@ -225,6 +242,7 @@
       "id": "M18",
       "number": 18,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Environnements identiques",
       "description": "Dev, staging et production sont identiques",
       "validation": {
@@ -238,6 +256,7 @@
       "id": "M19",
       "number": 19,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "CI/CD = production continue",
       "description": "Integration et deploiement continus automatises",
       "validation": {
@@ -251,6 +270,7 @@
       "id": "M20",
       "number": 20,
       "category": "merise-agile",
+      "scope": "sdlc-code",
       "title": "Rollback en 1 clic",
       "description": "Capacite de rollback rapide et simple",
       "validation": {
@@ -264,6 +284,7 @@
       "id": "M21",
       "number": 21,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "Tests unitaires obligatoires",
       "description": "Tous les modules ont des tests unitaires",
       "validation": {
@@ -277,6 +298,7 @@
       "id": "M22",
       "number": 22,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "80% couverture minimum",
       "description": "Couverture de tests d'au moins 80%",
       "validation": {
@@ -290,6 +312,7 @@
       "id": "M23",
       "number": 23,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "TDD quand possible",
       "description": "Test-Driven Development comme pratique privilegiee",
       "validation": {
@@ -303,6 +326,7 @@
       "id": "M24",
       "number": 24,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "Tests E2E critiques",
       "description": "Tests end-to-end pour les parcours critiques",
       "validation": {
@@ -316,6 +340,7 @@
       "id": "M25",
       "number": 25,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "User Story = contrat",
       "description": "La user story est un contrat entre equipe et client",
       "validation": {
@@ -329,6 +354,7 @@
       "id": "M26",
       "number": 26,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Retrospectives regulieres",
       "description": "Retrospectives a chaque fin de sprint",
       "validation": {
@@ -342,6 +368,7 @@
       "id": "M27",
       "number": 27,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Daily = max 15 min",
       "description": "Daily standup limite a 15 minutes",
       "validation": {
@@ -355,6 +382,7 @@
       "id": "M28",
       "number": 28,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Sprint review = demo",
       "description": "Sprint review avec demonstration concrete",
       "validation": {
@@ -368,6 +396,7 @@
       "id": "M29",
       "number": 29,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Definition of Done partagee",
       "description": "Definition of Done commune et respectee",
       "validation": {
@@ -381,6 +410,7 @@
       "id": "M30",
       "number": 30,
       "category": "merise-agile",
+      "scope": "sdlc-process",
       "title": "Velocite = capacite reelle",
       "description": "La velocite reflete la capacite reelle de l'equipe",
       "validation": {
@@ -394,6 +424,7 @@
       "id": "M31",
       "number": 31,
       "category": "merise-agile",
+      "scope": "sdlc-modeling",
       "title": "MCD avant code",
       "description": "Modele conceptuel de donnees avant implementation",
       "validation": {
@@ -407,6 +438,7 @@
       "id": "M32",
       "number": 32,
       "category": "merise-agile",
+      "scope": "sdlc-modeling",
       "title": "MCD ⇄ MCT validation",
       "description": "Validation croisee entre modele de donnees et modele de traitements",
       "validation": {
@@ -420,6 +452,7 @@
       "id": "M33",
       "number": 33,
       "category": "merise-agile",
+      "scope": "sdlc-modeling",
       "title": "Data Dictionary First",
       "description": "Dictionnaire de donnees comme premier artefact",
       "validation": {
@@ -433,6 +466,7 @@
       "id": "M34",
       "number": 34,
       "category": "merise-agile",
+      "scope": "sdlc-modeling",
       "title": "Bottom-up from User Stories",
       "description": "Construction bottom-up depuis les user stories",
       "validation": {
@@ -446,6 +480,7 @@
       "id": "M35",
       "number": 35,
       "category": "merise-agile",
+      "scope": "sdlc-modeling",
       "title": "Incremental design",
       "description": "Design incrementale et evolutive",
       "validation": {
@@ -459,6 +494,7 @@
       "id": "M36",
       "number": 36,
       "category": "merise-agile",
+      "scope": "sdlc-test",
       "title": "Test-Driven at all levels",
       "description": "Approche test-driven a tous les niveaux",
       "validation": {
@@ -472,6 +508,7 @@
       "id": "M37",
       "number": 37,
       "category": "merise-agile",
+      "scope": "universal",
       "title": "Ockham's Razor (simplicite)",
       "description": "Principe de simplicite: la solution la plus simple est souvent la meilleure",
       "validation": {
@@ -485,6 +522,7 @@
       "id": "M38",
       "number": 38,
       "category": "merise-agile",
+      "scope": "universal",
       "title": "Pareto 80/20",
       "description": "80% des resultats avec 20% des efforts",
       "validation": {
@@ -498,6 +536,7 @@
       "id": "M39",
       "number": 39,
       "category": "merise-agile",
+      "scope": "universal",
       "title": "Every action has consequences",
       "description": "Chaque action a des consequences a anticiper",
       "validation": {
@@ -511,6 +550,8 @@
       "id": "IA-1",
       "number": 1,
       "category": "ia",
+      "scope": "universal",
+      "behavioral": true,
       "title": "Trust But Verify",
       "description": "Faire confiance aux IA mais toujours verifier les resultats",
       "validation": {
@@ -524,6 +565,7 @@
       "id": "IA-2",
       "number": 2,
       "category": "ia",
+      "scope": "universal",
       "title": "Explain Your Reasoning",
       "description": "L'IA doit expliquer son raisonnement",
       "validation": {
@@ -537,6 +579,7 @@
       "id": "IA-3",
       "number": 3,
       "category": "ia",
+      "scope": "universal",
       "title": "Break Down Complex Tasks",
       "description": "Decomposer les taches complexes en sous-taches simples",
       "validation": {
@@ -550,6 +593,7 @@
       "id": "IA-4",
       "number": 4,
       "category": "ia",
+      "scope": "universal",
       "title": "Use Examples",
       "description": "Utiliser des exemples concrets pour illustrer",
       "validation": {
@@ -563,6 +607,7 @@
       "id": "IA-5",
       "number": 5,
       "category": "ia",
+      "scope": "universal",
       "title": "Request Clarification",
       "description": "Demander des clarifications quand necessaire",
       "validation": {
@@ -576,6 +621,7 @@
       "id": "IA-6",
       "number": 6,
       "category": "ia",
+      "scope": "universal",
       "title": "Iterate and Refine",
       "description": "Iterer et raffiner les solutions progressivement",
       "validation": {
@@ -589,6 +635,7 @@
       "id": "IA-7",
       "number": 7,
       "category": "ia",
+      "scope": "universal",
       "title": "Leverage Context",
       "description": "Exploiter le contexte disponible intelligemment",
       "validation": {
@@ -602,6 +649,7 @@
       "id": "IA-8",
       "number": 8,
       "category": "ia",
+      "scope": "universal",
       "title": "Be Explicit About Constraints",
       "description": "Etre explicite sur les contraintes et limitations",
       "validation": {
@@ -615,6 +663,8 @@
       "id": "IA-9",
       "number": 9,
       "category": "ia",
+      "scope": "universal",
+      "behavioral": true,
       "title": "Validate Outputs",
       "description": "Valider les sorties avant de les livrer",
       "validation": {
@@ -628,6 +678,7 @@
       "id": "IA-10",
       "number": 10,
       "category": "ia",
+      "scope": "universal",
       "title": "Maintain Consistency",
       "description": "Maintenir la coherence dans le style et les decisions",
       "validation": {
@@ -641,6 +692,7 @@
       "id": "IA-11",
       "number": 11,
       "category": "ia",
+      "scope": "universal",
       "title": "Document Decisions",
       "description": "Documenter les decisions importantes",
       "validation": {
@@ -654,6 +706,7 @@
       "id": "IA-12",
       "number": 12,
       "category": "ia",
+      "scope": "universal",
       "title": "Learn from Feedback",
       "description": "Apprendre et s'adapter a partir du feedback",
       "validation": {
@@ -667,6 +720,7 @@
       "id": "IA-13",
       "number": 13,
       "category": "ia",
+      "scope": "universal",
       "title": "Adapt to User Style",
       "description": "S'adapter au style et preferences de l'utilisateur",
       "validation": {
@@ -680,6 +734,7 @@
       "id": "IA-14",
       "number": 14,
       "category": "ia",
+      "scope": "universal",
       "title": "Balance Automation and Control",
       "description": "Equilibrer automatisation et controle utilisateur",
       "validation": {
@@ -693,6 +748,7 @@
       "id": "IA-15",
       "number": 15,
       "category": "ia",
+      "scope": "universal",
       "title": "Preserve Intent",
       "description": "Preserver l'intention de l'utilisateur",
       "validation": {
@@ -706,6 +762,7 @@
       "id": "IA-16",
       "number": 16,
       "category": "ia",
+      "scope": "universal",
       "title": "Challenge Before Confirm",
       "description": "Challenger avant de confirmer les decisions risquees",
       "validation": {
@@ -719,6 +776,7 @@
       "id": "IA-17",
       "number": 17,
       "category": "ia",
+      "scope": "universal",
       "title": "Show, Don't Just Tell",
       "description": "Montrer par l'exemple plutot que juste expliquer",
       "validation": {
@@ -732,6 +790,7 @@
       "id": "IA-18",
       "number": 18,
       "category": "ia",
+      "scope": "universal",
       "title": "Progressive Disclosure",
       "description": "Reveler l'information progressivement selon le besoin",
       "validation": {
@@ -745,6 +804,7 @@
       "id": "IA-19",
       "number": 19,
       "category": "ia",
+      "scope": "sdlc-code",
       "title": "Graceful Degradation",
       "description": "Degrader elegamment en cas de probleme",
       "validation": {
@@ -758,6 +818,7 @@
       "id": "IA-20",
       "number": 20,
       "category": "ia",
+      "scope": "sdlc-code",
       "title": "Fail Fast, Fail Safe",
       "description": "Echouer rapidement et en securite",
       "validation": {
@@ -771,6 +832,8 @@
       "id": "IA-21",
       "number": 21,
       "category": "ia",
+      "scope": "universal",
+      "behavioral": true,
       "title": "No Hallucinations",
       "description": "Pas d'hallucinations: toujours base sur des faits",
       "validation": {
@@ -784,6 +847,7 @@
       "id": "IA-22",
       "number": 22,
       "category": "ia",
+      "scope": "universal",
       "title": "Cite Sources",
       "description": "Citer les sources d'information",
       "validation": {
@@ -797,6 +861,8 @@
       "id": "IA-23",
       "number": 23,
       "category": "ia",
+      "scope": "universal",
+      "behavioral": true,
       "title": "No Emoji Pollution",
       "description": "Zero emojis dans le code, commits et specifications techniques",
       "validation": {
@@ -804,6 +870,7 @@
         "pattern": "[\\u{1F300}-\\u{1F9FF}\\u{2600}-\\u{26FF}\\u{2700}-\\u{27BF}]",
         "flags": "u",
         "mustNotMatch": true,
+        "ignoreZones": ["icon\\s*[:=]\\s*\"[^\"]*\"", "icon\\s*[:=]\\s*'[^']*'"],
         "required": true
       },
       "priority": "critical"
@@ -812,6 +879,7 @@
       "id": "IA-24",
       "number": 24,
       "category": "ia",
+      "scope": "sdlc-code",
       "title": "Clean Code",
       "description": "Code auto-documente avec commentaires minimaux",
       "validation": {
@@ -825,6 +893,7 @@
       "id": "IA-25",
       "number": 25,
       "category": "ia",
+      "scope": "sdlc-code",
       "title": "Performance Matters",
       "description": "La performance est importante",
       "validation": {
@@ -836,12 +905,21 @@
     }
   ],
   "metadata": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "totalMantras": 64,
     "categories": {
       "merise-agile": 39,
       "ia": 25
     },
+    "scopes": {
+      "universal": 24,
+      "sdlc-process": 12,
+      "sdlc-code": 15,
+      "sdlc-modeling": 6,
+      "sdlc-test": 7
+    },
+    "behavioralCount": 4,
+    "scopeNote": "scope tags the domain a mantra belongs to (universal applies to every agent). behavioral=true marks runtime-enforced mantras (hooks/fact-check) that are excluded from persona-file scoring when a scope filter is applied. With no scope filter, all 64 mantras are scored (legacy behavior).",
     "priorityLevels": {
       "critical": 8,
       "high": 20,

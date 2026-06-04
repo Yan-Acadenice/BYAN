@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
+// Score bands, single source of truth (referenced by generateReport + export).
+const PASS_THRESHOLD = 80;
+const WARNING_THRESHOLD = 60;
+
 class MantraValidator {
   constructor(mantrasData = null) {
     if (mantrasData) {
@@ -42,7 +46,28 @@ class MantraValidator {
     return strictIds.length >= 3;
   }
 
-  validate(agentDefinition) {
+  // Normalize a caller-supplied scope (string | string[] | Set | null) into a
+  // Set, or null when no scope was given. Null means legacy all-mantras scoring.
+  _normalizeScope(scope) {
+    if (scope === null || scope === undefined) return null;
+    if (scope instanceof Set) return scope;
+    if (Array.isArray(scope)) return new Set(scope);
+    return new Set([scope]);
+  }
+
+  // A mantra is applicable to a scoped run when it is universal (or unscoped)
+  // or its scope is in the requested set. Behavioral mantras are runtime-
+  // enforced (hooks / fact-check), not declared in a persona file, so they are
+  // excluded from scoped scoring. With no scope (null), every mantra applies.
+  _isApplicable(mantra, scopeSet) {
+    if (scopeSet === null) return true;
+    if (mantra.behavioral === true) return false;
+    const ms = mantra.scope || 'universal';
+    if (ms === 'universal') return true;
+    return scopeSet.has(ms);
+  }
+
+  validate(agentDefinition, options = {}) {
     if (agentDefinition === null || agentDefinition === undefined) {
       throw new Error('Agent definition is required');
     }
@@ -59,8 +84,16 @@ class MantraValidator {
       this.mantras = this.personaMantras;
     }
 
+    // Domain-aware scoring : when the caller passes a scope, only the mantras
+    // applicable to that scope are counted (universal always counts, behavioral
+    // runtime-enforced mantras are excluded). With no scope, every mantra in the
+    // chosen ruleset is scored, byte-identical to the legacy behavior.
+    const scopeSet = this._normalizeScope(options.scope);
+    const applicableMantras = this.mantras.filter(m => this._isApplicable(m, scopeSet));
+
     this.results = {
-      totalMantras: this.mantras.length,
+      totalMantras: applicableMantras.length,
+      scope: scopeSet ? [...scopeSet] : null,
       compliant: [],
       nonCompliant: [],
       warnings: [],
@@ -70,7 +103,7 @@ class MantraValidator {
 
     const startTime = Date.now();
 
-    for (const mantra of this.mantras) {
+    for (const mantra of applicableMantras) {
       const result = this.checkMantra(mantra.id, agentDefinition);
       
       if (result.compliant) {
@@ -154,8 +187,17 @@ class MantraValidator {
 
   _validatePattern(content, validation, mantra) {
     try {
+      // Some forbidden-pattern mantras (e.g. IA-23 no-emoji) must ignore
+      // declared zones such as an agent's icon="..." frontmatter attribute,
+      // where an emoji is a legitimate display glyph, not pollution.
+      let scanContent = content;
+      if (Array.isArray(validation.ignoreZones)) {
+        for (const zone of validation.ignoreZones) {
+          scanContent = scanContent.replace(new RegExp(zone, 'g'), '');
+        }
+      }
       const regex = new RegExp(validation.pattern, validation.flags || '');
-      const matches = content.match(regex);
+      const matches = scanContent.match(regex);
       const hasMatches = matches && matches.length > 0;
 
       if (validation.mustNotMatch) {
@@ -255,7 +297,7 @@ class MantraValidator {
     }
 
     const score = this.results.score;
-    const level = score >= 80 ? 'PASS' : score >= 60 ? 'WARNING' : 'FAIL';
+    const level = score >= PASS_THRESHOLD ? 'PASS' : score >= WARNING_THRESHOLD ? 'WARNING' : 'FAIL';
 
     let report = '';
     report += '='.repeat(60) + '\n';
@@ -424,7 +466,7 @@ class MantraValidator {
     } else if (format === 'summary') {
       return {
         score: this.results.score,
-        status: this.results.score >= 80 ? 'PASS' : this.results.score >= 60 ? 'WARNING' : 'FAIL',
+        status: this.results.score >= PASS_THRESHOLD ? 'PASS' : this.results.score >= WARNING_THRESHOLD ? 'WARNING' : 'FAIL',
         compliant: this.results.compliant.length,
         nonCompliant: this.results.nonCompliant.length,
         criticalErrors: this.results.errors.length,
@@ -441,6 +483,14 @@ class MantraValidator {
 
   getMantrasByCategory(category) {
     return this.mantras.filter(m => m.category === category);
+  }
+
+  // The mantras that apply to a given scope (universal + the scope's domain,
+  // behavioral excluded). With no scope, every mantra in the current ruleset.
+  // Shared with the domain-aware path in validate() and the embodiment audit.
+  applicableMantras(scope) {
+    const scopeSet = this._normalizeScope(scope);
+    return this.mantras.filter(m => this._isApplicable(m, scopeSet));
   }
 
   getMantrasByPriority(priority) {

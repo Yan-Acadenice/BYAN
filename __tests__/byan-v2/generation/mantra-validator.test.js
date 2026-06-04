@@ -637,4 +637,94 @@ describe('MantraValidator', () => {
       expect(emojiPattern.test(code)).toBe(false);
     });
   });
+
+  describe('domain-aware scoping (Option C)', () => {
+    const richPersona = {
+      name: 'rich',
+      description: 'verify validate check test owner actor measurable story epic README'
+    };
+
+    test('no scope scores all 64 mantras (legacy backward-compat)', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona);
+      expect(res.totalMantras).toBe(64);
+      expect(res.scope).toBeNull();
+    });
+
+    test('a scope shrinks the applicable set to universal + that scope', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona, { scope: ['sdlc-test'] });
+      expect(res.totalMantras).toBe(27);
+      expect(res.scope).toEqual(['sdlc-test']);
+    });
+
+    test('universal-only scope counts only the 20 universal non-behavioral mantras', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona, { scope: ['universal'] });
+      expect(res.totalMantras).toBe(20);
+    });
+
+    test('behavioral mantras are excluded from any scoped run', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona, {
+        scope: ['universal', 'sdlc-code', 'sdlc-test', 'sdlc-process', 'sdlc-modeling']
+      });
+      const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
+      ['IA-1', 'IA-9', 'IA-21', 'IA-23'].forEach(id => expect(ids).not.toContain(id));
+      expect(res.totalMantras).toBe(60);
+    });
+
+    test('behavioral mantras ARE scored on the legacy no-scope path', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona);
+      const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
+      expect(ids).toContain('IA-23');
+    });
+
+    test('scope accepts a string, array, or Set equivalently', () => {
+      const asString = new MantraValidator().validate(richPersona, { scope: 'sdlc-code' }).totalMantras;
+      const asArray = new MantraValidator().validate(richPersona, { scope: ['sdlc-code'] }).totalMantras;
+      const asSet = new MantraValidator().validate(richPersona, { scope: new Set(['sdlc-code']) }).totalMantras;
+      expect(asString).toBe(asArray);
+      expect(asArray).toBe(asSet);
+    });
+
+    test('a scoped validate does not mutate the stored mantra set', () => {
+      const v = new MantraValidator();
+      v.validate(richPersona, { scope: ['sdlc-test'] });
+      expect(v.mantras.length).toBe(64);
+      expect(v.personaMantras.length).toBe(64);
+    });
+
+    test('universal mantras apply under every scope (floor)', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona, { scope: ['sdlc-modeling'] });
+      const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
+      expect(ids).toContain('M37');
+      expect(ids).toContain('IA-16');
+    });
+  });
+
+  describe('emoji icon exclusion (IA-23)', () => {
+    test('an icon attribute holding an emoji does not trip the no-emoji mantra', () => {
+      const v = new MantraValidator();
+      const content = '<agent icon="\u{1F3A8}" name="sally">clean body without pollution</agent>';
+      const res = v.checkMantra('IA-23', content);
+      expect(res.compliant).toBe(true);
+    });
+
+    test('an emoji in the body still trips the no-emoji mantra', () => {
+      const v = new MantraValidator();
+      const content = 'description with a real emoji \u{1F600} in the body';
+      const res = v.checkMantra('IA-23', content);
+      expect(res.compliant).toBe(false);
+    });
+
+    test('an icon with single quotes is also ignored', () => {
+      const v = new MantraValidator();
+      const content = "icon: '\u{1F9EA}' and a clean description";
+      const res = v.checkMantra('IA-23', content);
+      expect(res.compliant).toBe(true);
+    });
+  });
 });
