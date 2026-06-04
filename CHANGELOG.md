@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.0] - 2026-06-04
+
 ### Changed - Mantra taxonomy v2: sdlc-ops split + creative family (corpus 64 -> 71)
 
 The N2 embodiment audit surfaced two taxonomy biases. (1) sdlc-code conflated
@@ -67,7 +69,7 @@ metric to score each persona only against the mantras that apply to it.
   canonical Gen3 persona sources (`_byan/agent/<name>/<name>.md`) domain-aware at a
   floor of 30 (the real roster spans 34-73, median 50). It is an anti-stub /
   anti-zombie floor, not a deep quality bar.
-- **N2 embodiment audit (out-of-band).** `bin/byan-mantra-audit.js` (`prepare` /
+- **N2 embodiment audit (out-of-band).** `src/byan-v2/generation/mantra-audit.js` (`prepare` /
   `score`) plus the `byan-mantra-audit` skill measure genuine embodiment via an
   LLM judge, kept out of the commit path (the judgment is semantic).
 - **Bugs fixed in passing.** B1: the stale `install/templates/.githooks/pre-commit`
