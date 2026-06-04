@@ -15,7 +15,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "test:e2e": "jest __tests__/e2e-install-update.test.js",
+    "test:e2e": "jest install/__tests__/post-install.e2e.test.js",
     "setup-turbo-whisper": "node install/setup-turbo-whisper.js",
     "byan": "echo \"BYAN agent installed. Use: copilot and type /agent\"",
     "version": "node scripts/sync-install-version.js && git add install/package.json",
