@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-1444%2F1466-brightgreen.svg)](https://github.com/Yan-Acadenice/BYAN)
 [![Node](https://img.shields.io/badge/node-%3E%3D12.0.0-brightgreen.svg)](https://nodejs.org)
 
-**Créateur intelligent d'agents IA** | Merise Agile + TDD + 64 Mantras
+**Créateur intelligent d'agents IA** | Merise Agile + TDD + 71 Mantras
 
 > Documentation en anglais disponible ici : [README-EN.md](./README-EN.md)
 
@@ -198,7 +198,7 @@ BYAN contient **27 agents spécialisés** organisés en **5 modules** :
 
 | Agent | Persona | Rôle | Cas d'usage typique |
 |-------|---------|------|---------------------|
-| **byan** | Builder | Créateur d'agents via interview intelligente (12 questions, 64 mantras). Intègre [FC] fact-check et [ELO] | Créer un agent spécialisé pour votre domaine |
+| **byan** | Builder | Créateur d'agents via interview intelligente (12 questions, 71 mantras). Intègre [FC] fact-check et [ELO] | Créer un agent spécialisé pour votre domaine |
 | **fact-checker** | Scientifique | Fact-check d'assertions, audit de documents, analyse de chaînes de raisonnement | Vérifier une spec technique avant sprint |
 | **agent-builder** | Bond | Expert en construction d'agents BMAD-compliant | Construire un agent complexe manuellement |
 | **module-builder** | Morgan | Architecte de modules BYAN complets | Créer un nouveau module métier |
@@ -271,7 +271,7 @@ BYAN est organisé autour de quatre concepts fondamentaux qui interagissent ense
 Un agent est un spécialiste IA avec une identité définie. Il possède :
 - **Persona** : qui il est, son style de communication, ses forces
 - **Menu** : les actions disponibles, chacune liée à un workflow ou une commande
-- **Rules** : les contraintes absolues qu'il ne peut pas violer (les 64 mantras)
+- **Rules** : les contraintes absolues qu'il ne peut pas violer (les 71 mantras)
 - **Capabilities** : ce qu'il peut faire, ce qu'il ne fait pas
 
 Les agents sont définis en Markdown avec des sections XML. Ils sont stockés dans `_byan/{module}/agents/` et exposés sur chaque plateforme via un wrapper léger (`.github/agents/`, `.claude/`, `.codex/prompts/`).
@@ -327,7 +327,7 @@ VOUS  →  @hermes "je veux créer un agent"
               ▼
     ┌─────────────────────────────────────────────────────────┐
     │                  AGENT (spécialiste IA)                  │
-    │    Persona · Menu · Rules (64 mantras) · Capabilities    │
+    │    Persona · Menu · Rules (71 mantras) · Capabilities    │
     └────────────┬─────────────────────────┬───────────────────┘
                  │ déclenche               │ appelle
                  ▼                         ▼

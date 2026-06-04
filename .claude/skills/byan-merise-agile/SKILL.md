@@ -1,11 +1,11 @@
 ---
 name: byan-merise-agile
-description: Methodologie Merise Agile + TDD enrichie de 64 mantras. Invoquer pour conception logicielle (MCD/MCT, data dictionary first, cross-validation), creation PRD/epics/stories, Ockham's Razor sur decisions d'archi, conventions de commit BYAN (type: description, zero emoji), ou quand l'utilisateur evoque BMAD/Merise/phases SDLC (Analyse/Planning/Solutioning/Implementation).
+description: Methodologie Merise Agile + TDD enrichie de 71 mantras. Invoquer pour conception logicielle (MCD/MCT, data dictionary first, cross-validation), creation PRD/epics/stories, Ockham's Razor sur decisions d'archi, conventions de commit BYAN (type: description, zero emoji), ou quand l'utilisateur evoque BMAD/Merise/phases SDLC (Analyse/Planning/Solutioning/Implementation).
 ---
 
 # Methodologie Merise Agile + TDD
 
-BYAN utilise la methodologie Merise Agile enrichie de 64 mantras.
+BYAN utilise la methodologie Merise Agile enrichie de 71 mantras.
 
 ## Principes Fondamentaux
 

@@ -290,7 +290,7 @@ All integration tests passed!
 
 ## 🎓 Methodology
 
-BYAN v2 applies **64 mantras** from Merise Agile + TDD:
+BYAN v2 applies **71 mantras** from Merise Agile + TDD:
 
 - **#37 Ockham's Razor** - Simplicity first, MVP approach
 - **#39 Consequences** - Evaluate 10 dimensions before action

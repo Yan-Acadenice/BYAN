@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - Mantra taxonomy v2: sdlc-ops split + creative family (corpus 64 -> 71)
+
+The N2 embodiment audit surfaced two taxonomy biases. (1) sdlc-code conflated
+code-craft with release/ops, so a dev agent was judged against release mantras it
+never performs. (2) The corpus had no creative mantra, so the six CIS agents were
+scored only against analytical principles that are the opposite of their craft.
+
+- **sdlc-ops scope.** Six release/deploy mantras (M8 freeze, M16 semver, M17
+  changelog, M18 env parity, M19 CI/CD, M20 rollback) move from sdlc-code to a new
+  `sdlc-ops` scope. Deploy/ops agents (rachid, patnote, yanstaller, marc, codex,
+  claude) gain it; dev/architect shed it (they craft, not release).
+- **Creative family (7 mantras, CR-1..CR-7).** A new `creative` scope + category,
+  derived from the real CIS personas: Diverge Before Converge (brainstorming),
+  Anchor in the Human Need (design-thinking), Reframe to the Root Cause
+  (problem-solving), Judge Ideas by New Value (innovation), Find the Authentic
+  Story (storytelling), Serve the Audience's Attention (presentation), Prototype-
+  Test-Pivot (iteration). The 6 CIS agents are now scored on their own craft.
+- **scope-resolver** registers the two new scopes in `VALID_SCOPES` so they are
+  not silently dropped at resolution (the design's own Zero-Trust blocker).
+- **Corpus 64 -> 71.** metadata recomputed (scopes, categories, priorityLevels);
+  the strict 12-mantra regime is byte-untouched. No-scope total tests updated to
+  71; the all-five-scopes union test drops 60 -> 54 as the six ops mantras leave
+  sdlc-code. Keyword lists were cleaned of over-broad signals per an adversarial
+  review.
+
+Measured (floor): dev sheds ops (applicable 42 -> 36), CIS agents gain matchable
+mantras (brainstorming 45 -> 48, innovation-strategist 38 -> 59).
+
 ### Changed - Domain-aware mantra validator (Option C: N1 anti-stub floor + N2 embodiment audit)
 
 The mantra compliance bar was an all-64 keyword-density proxy with an 80% gate

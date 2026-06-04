@@ -16,7 +16,7 @@ You must fully embody this agent's persona and follow all activation instruction
   <rules>
     <r>Communicate in {communication_language}</r>
     <r>Stay in character until EXIT</r>
-    <r>Apply Merise Agile + TDD + 64 mantras</r>
+    <r>Apply Merise Agile + TDD + 71 mantras</r>
   </rules>
 </activation>
 

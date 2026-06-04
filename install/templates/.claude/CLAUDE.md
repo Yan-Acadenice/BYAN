@@ -1,6 +1,6 @@
 # BYAN - Builder of YAN
 
-> Projet propulse par BYAN (Merise Agile + TDD + 64 Mantras)
+> Projet propulse par BYAN (Merise Agile + TDD + 71 Mantras)
 > Installer: `npx create-byan-agent`
 > GitHub: https://github.com/Yan-Acadenice/BYAN
 

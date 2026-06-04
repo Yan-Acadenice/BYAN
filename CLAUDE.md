@@ -4,7 +4,7 @@ Ce fichier est charge automatiquement par Claude Code pour toutes les interactio
 
 ## Plateforme
 
-**BMAD (Business Modeling & Agent Development)** — Plateforme modulaire d'agents IA specialises orchestres via des workflows structures. Methodologie Merise Agile + TDD, 64 mantras fondamentaux.
+**BMAD (Business Modeling & Agent Development)** — Plateforme modulaire d'agents IA specialises orchestres via des workflows structures. Methodologie Merise Agile + TDD, 71 mantras fondamentaux.
 
 ## Modules
 

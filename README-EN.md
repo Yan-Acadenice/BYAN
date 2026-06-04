@@ -5,7 +5,7 @@
 [![Tests](https://img.shields.io/badge/tests-1444%2F1466-brightgreen.svg)](https://github.com/Yan-Acadenice/BYAN)
 [![Node](https://img.shields.io/badge/node-%3E%3D12.0.0-brightgreen.svg)](https://nodejs.org)
 
-**Intelligent AI Agent Creator** | Merise Agile + TDD + 64 Mantras
+**Intelligent AI Agent Creator** | Merise Agile + TDD + 71 Mantras
 
 > La documentation française est disponible ici : [README.md](./README.md)
 
@@ -176,7 +176,7 @@ BYAN contains **27 specialized agents** organized into **5 modules**:
 
 | Agent | Persona | Role | Typical use case |
 |-------|---------|------|-----------------|
-| **byan** | Builder | Agent creator via intelligent interview (12 questions, 64 mantras). Includes [FC] fact-check and [ELO] | Create a specialized agent for your domain |
+| **byan** | Builder | Agent creator via intelligent interview (12 questions, 71 mantras). Includes [FC] fact-check and [ELO] | Create a specialized agent for your domain |
 | **fact-checker** | Scientist | Fact-check assertions, audit documents, analyze reasoning chains | Verify a technical spec before sprint |
 | **agent-builder** | Bond | Expert in building BMAD-compliant agents | Build a complex agent manually |
 | **module-builder** | Morgan | BYAN complete module architect | Create a new business module |
@@ -249,7 +249,7 @@ BYAN is organized around four core concepts that work together:
 An agent is an AI specialist with a defined identity. It has:
 - **Persona**: who it is, communication style, strengths
 - **Menu**: available actions, each linked to a workflow or command
-- **Rules**: absolute constraints it cannot violate (the 64 mantras)
+- **Rules**: absolute constraints it cannot violate (the 71 mantras)
 - **Capabilities**: what it can do, what it won't
 
 Agents are defined in Markdown with XML sections. They are stored in `_byan/{module}/agents/` and exposed on each platform via a lightweight wrapper (`.github/agents/`, `.claude/`, `.codex/prompts/`).
@@ -305,7 +305,7 @@ YOU  →  @hermes "I want to create an agent"
               ▼
     ┌─────────────────────────────────────────────────────────┐
     │                  AGENT (AI specialist)                   │
-    │    Persona · Menu · Rules (64 mantras) · Capabilities    │
+    │    Persona · Menu · Rules (71 mantras) · Capabilities    │
     └────────────┬─────────────────────────┬───────────────────┘
                  │ triggers                │ calls
                  ▼                         ▼

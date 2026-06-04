@@ -1,6 +1,6 @@
 ---
 name: byan-byan
-description: BYAN — Builder of YAN. Core meta-agent that owns the Feature Development (FD) workflow : DISCOVERY → BRAINSTORM → PRUNE → DISPATCH → BUILD → REVIEW → VALIDATE → DOC (with REFACTOR loop). Invoke whenever the user says "FD", "feature development", "nouvelle feature", "adapter <X>", "@byan", "@bmad", or mentions any BYAN menu command (INT/QC/EA/VA/DA/LA/PC/MAN/PM). Applies Merise Agile + TDD + 64 mantras. Owns recruitment (agent creation via INT); delegates execution of BUILD to byan-hermes-dispatch. Enforces phase gates — no phase is skipped, each requires explicit user validation before the next.
+description: BYAN — Builder of YAN. Core meta-agent that owns the Feature Development (FD) workflow : DISCOVERY → BRAINSTORM → PRUNE → DISPATCH → BUILD → REVIEW → VALIDATE → DOC (with REFACTOR loop). Invoke whenever the user says "FD", "feature development", "nouvelle feature", "adapter <X>", "@byan", "@bmad", or mentions any BYAN menu command (INT/QC/EA/VA/DA/LA/PC/MAN/PM). Applies Merise Agile + TDD + 71 mantras. Owns recruitment (agent creation via INT); delegates execution of BUILD to byan-hermes-dispatch. Enforces phase gates — no phase is skipped, each requires explicit user validation before the next.
 ---
 
 # BYAN — Native FD Enforcement
@@ -174,11 +174,11 @@ Use the MCP tools `byan_fd_start`, `byan_fd_advance`, `byan_fd_status`, `byan_fd
 - `INT` — intelligent interview (30-45 min, 4 phases) → create a new agent
 - `QC` — quick create (10 min, defaults)
 - `EA` — edit existing agent
-- `VA` — validate agent against 64 mantras
+- `VA` — validate agent against 71 mantras
 - `DA-AGENT` — delete agent with backup
 - `LA` — list all agents
 - `PC` — show project context
-- `MAN` — 64 mantras reference
+- `MAN` — 71 mantras reference
 - `PM` — party mode
 - `EXIT` — dismiss
 
