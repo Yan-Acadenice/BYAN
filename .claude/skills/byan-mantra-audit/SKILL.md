@@ -18,6 +18,20 @@ keyword presence. It runs on demand, outside the commit path.
 - As a CI / review step, out-of-band. Not as a commit gate (the judgment is
   semantic and non-deterministic, so it must stay out of the commit path).
 
+## Precondition (runtime check, do this FIRST)
+
+This audit needs the BYAN v2 runtime (`src/byan-v2/generation/mantra-audit.js`). It
+runs from the BYAN repository; a generated/npm-installed BYAN project does not ship
+that runtime yet. Check before running anything:
+
+```
+test -f src/byan-v2/generation/mantra-audit.js && echo OK || echo "N2 runtime absent"
+```
+
+If it prints `N2 runtime absent`, STOP and tell the user plainly: the embodiment
+audit runs from the BYAN repository and is not yet delivered to generated projects.
+Do NOT run the node commands below, they would fail with MODULE_NOT_FOUND.
+
 ## Protocol (hybrid: deterministic CLI, semantic judgment)
 
 1. PREPARE (deterministic). Build the judgment packet for the target persona:

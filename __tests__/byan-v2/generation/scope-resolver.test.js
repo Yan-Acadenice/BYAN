@@ -67,6 +67,25 @@ describe('scope-resolver', () => {
       expect(scopes).toEqual(['universal', 'sdlc-code']);
     });
 
+    test('all-invalid frontmatter falls through to the map (no silent collapse)', () => {
+      // a single typo in mantra_scopes must NOT discard the agent's real scopes
+      const content = 'mantra_scopes: [sdlc-cod]\n_byan/bmm/config.yaml';
+      const scopes = resolver.resolveAgentScopes({ name: 'dev', content, map: MAP });
+      expect(scopes).toEqual(['universal', 'sdlc-code', 'sdlc-test']);
+    });
+
+    test('explicit [universal] is honored, not treated as a collapse', () => {
+      const content = 'mantra_scopes: [universal]';
+      const scopes = resolver.resolveAgentScopes({ name: 'dev', content, map: MAP });
+      expect(scopes).toEqual(['universal']);
+    });
+
+    test('partially-valid frontmatter still wins (keeps the valid names)', () => {
+      const content = 'mantra_scopes: [sdlc-code, bogus]';
+      const scopes = resolver.resolveAgentScopes({ name: 'dev', content, map: MAP });
+      expect(scopes).toEqual(['universal', 'sdlc-code']);
+    });
+
     test('the v2 scopes sdlc-ops and creative are valid (not dropped)', () => {
       expect(resolver.VALID_SCOPES).toContain('sdlc-ops');
       expect(resolver.VALID_SCOPES).toContain('creative');

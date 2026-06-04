@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.1] - 2026-06-04
+
+### Fixed - Post-audit hotfix (adversarial self-audit of 2.20.0)
+
+- **N2 skill crash guard.** The shipped `byan-mantra-audit` skill invoked
+  `src/byan-v2/generation/mantra-audit.js` blindly; a generated / npm-installed
+  project does not ship that runtime, so the skill crashed with MODULE_NOT_FOUND.
+  The skill now checks for the runtime first and degrades with a clear message. The
+  deeper installer bug (the v2 runtime is not delivered to generated projects today,
+  so the mantra gate stays a silent no-op there) is tracked as a separate chantier;
+  the pre-commit gate and Stop hook already self-guard rather than crash.
+- **scope-resolver precedence collapse.** An all-invalid `mantra_scopes` frontmatter
+  (e.g. a `sdlc-cod` typo) silently collapsed a persona to universal-only, weakening
+  the anti-stub floor it feeds. It now falls through to the agent/module map when no
+  named scope is valid; an explicit `[universal]` is still honored. Regression-tested.
+- **CHANGELOG accuracy (2.20.0).** The CIS floor figures paired inconsistent
+  before-baselines; corrected to a single univ-only baseline.
+- **Dead mantras documented.** M8 is not the only zero-match mantra under the keyword
+  validator: M1 (Un seul responsable), M6 (INVEST), M28 (Sprint review) also match
+  0/12 of their sdlc-process personas. Flagged for a future keyword / coverage pass.
+
 ## [2.20.0] - 2026-06-04
 
 ### Changed - Mantra taxonomy v2: sdlc-ops split + creative family (corpus 64 -> 71)
@@ -36,8 +57,10 @@ scored only against analytical principles that are the opposite of their craft.
   sdlc-code. Keyword lists were cleaned of over-broad signals per an adversarial
   review.
 
-Measured (floor): dev sheds ops (applicable 42 -> 36), CIS agents gain matchable
-mantras (brainstorming 45 -> 48, innovation-strategist 38 -> 59).
+Measured (floor, univ-only baseline -> univ+creative): dev sheds ops (applicable
+42 -> 36). The CIS agents are scored on their own craft, which shifts the floor by
+relevance rather than uniformly: brainstorming-coach 45 -> 48, innovation-strategist
+65 -> 59 (it matches fewer of its own creative mantras in vocabulary).
 
 ### Changed - Domain-aware mantra validator (Option C: N1 anti-stub floor + N2 embodiment audit)
 

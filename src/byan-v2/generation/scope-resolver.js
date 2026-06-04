@@ -66,8 +66,14 @@ function normalizeScopes(scopes) {
 function resolveAgentScopes({ name = null, content = null, map = null } = {}) {
   const scopeMap = map || loadScopeMap();
 
+  // Explicit frontmatter wins ONLY when it names at least one valid scope. An
+  // all-invalid list (e.g. a `sdlc-cod` typo) is treated as absent so we fall
+  // through to the agent/module map instead of silently collapsing to
+  // universal-only, which would weaken the gate the resolver feeds.
   const explicit = parseFrontmatterScopes(content);
-  if (explicit) return normalizeScopes(explicit);
+  if (explicit && explicit.some(s => VALID_SCOPES.includes(s))) {
+    return normalizeScopes(explicit);
+  }
 
   if (name && scopeMap.agentScopes && scopeMap.agentScopes[name]) {
     return normalizeScopes(scopeMap.agentScopes[name]);
