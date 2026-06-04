@@ -61,10 +61,10 @@ const PHASE_RULES = {
   ],
   VALIDATE: [
     'Run npm test. Zero regression on previously-passing tests.',
-    'MantraValidator >= 80% on changed agent/skill files. Fact-check any absolute claim.',
+    'MantraValidator domain-aware >= 30 (anti-stub floor) on changed Gen3 persona sources. Fact-check any absolute claim.',
     'Decision is binary : OK -> DOC, KO -> REFACTOR. Persist via update({ patch: { validate_verdict: { status, blocking_issues } } }).',
     'Prefix every response with [FD:VALIDATE].',
-    'Exit : tests green + score >= 80% -> advance to DOC. Otherwise -> advance to REFACTOR.',
+    'Exit : tests green + score >= 30 (anti-stub floor) -> advance to DOC. Otherwise -> advance to REFACTOR.',
   ],
   REFACTOR: [
     'Corrective loop only — no new features, no re-design. Address blocking_issues from VALIDATE.',

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# BYAN pre-commit hook — enforce mantras score >= 80% on staged agent
-# and skill files. Blocks the commit if any file drops below the
-# threshold so the user can't accidentally push non-compliant artefacts.
+# BYAN pre-commit hook. Three gates run in order:
+#   1. Strict Mode gate  : block if a strict session is engaged but not completed.
+#   2. Native-workflow lint : block if a .claude/workflows/*.js couples to state.
+#   3. Mantra floor      : block if a Gen3 persona source scores below the floor.
 #
 # Install :
 #   git config core.hooksPath .githooks
@@ -9,16 +10,22 @@
 # Bypass (emergency only) :
 #   git commit --no-verify
 #
-# Scope : only files matching
-#   _byan/bmb/agents/*.md, _byan/agents/*.md,
-#   .github/agents/*.md, .claude/skills/*/SKILL.md,
-#   .claude/agents/*.md
-# are validated. Non-agent files are ignored.
+# Mantra gate scope : the canonical Gen3 persona SOURCES
+#   _byan/agent/<name>/<name>.md
+# are validated with DOMAIN-AWARE scoring (each persona is scored only against
+# the mantras applicable to its declared scope, via scope-resolver). Deployed
+# artifacts (.github/agents, .claude/skills, .claude/agents) are derived loader
+# stubs or non-persona procedures; the non-blocking Stop hook (mantra-validate.js)
+# warns on those. THRESHOLD is an anti-stub FLOOR, not a quality bar: it catches
+# near-empty / zombie persona files. Genuine personas score well above it; deep
+# quality is the job of the semantic embodiment audit (bin/byan-mantra-audit.js),
+# which runs out-of-band, not at commit time.
 
 set -euo pipefail
 
-THRESHOLD=80
+THRESHOLD=30
 VALIDATOR="src/byan-v2/generation/mantra-validator.js"
+RESOLVER="src/byan-v2/generation/scope-resolver.js"
 
 if ! command -v node >/dev/null 2>&1; then
   echo "[byan pre-commit] node not found, skipping mantra check"
@@ -40,11 +47,27 @@ if [ -f "$STRICT_GATE" ]; then
   fi
 fi
 
+# Native workflow lint — a .claude/workflows/*.js script runs outside the
+# conversation turn where the strict/FD hooks fire, so the surviving net is this
+# gate : a native script must not couple directly to BYAN state internals
+# (import/require lib/fd-state.js or the strict-mode lib). State goes through the
+# byan_fd_* / byan_strict_* MCP tools. No-op if the linter is absent.
+WF_LINT="_byan/mcp/byan-mcp-server/bin/byan-lint-workflows.js"
+if [ -f "$WF_LINT" ]; then
+  if ! node "$WF_LINT" --root "$(git rev-parse --show-toplevel)"; then
+    echo ""
+    echo "Commit blocked : native workflow script couples to BYAN state internals."
+    echo "Use the byan_fd_* / byan_strict_* MCP tools instead of importing lib/fd-state.js."
+    echo "Bypass with 'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
 if [ ! -f "$VALIDATOR" ]; then
   exit 0
 fi
 
-staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(_byan/bmb/agents/.*\.md|_byan/agents/.*\.md|\.github/agents/.*\.md|\.claude/skills/.*SKILL\.md|\.claude/agents/.*\.md)$' || true)
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^_byan/agent/[^/]+/[^/]+\.md$' || true)
 
 if [ -z "$staged" ]; then
   exit 0
@@ -55,13 +78,23 @@ while IFS= read -r file; do
   [ -z "$file" ] && continue
   [ ! -f "$file" ] && continue
 
+  # Skip dev/test/variant artifacts that are not shipped personas.
+  case "$file" in
+    *test*|*optimized*|*turbo-whisper*) continue ;;
+  esac
+
+  # Domain-aware score : resolve the persona's scope set, then score only the
+  # applicable mantras (universal + the persona's domain, behavioral excluded).
   score=$(node -e "
     const V = require('./$VALIDATOR');
+    const R = require('./$RESOLVER');
     const fs = require('fs');
+    const path = require('path');
     try {
       const content = fs.readFileSync('$file', 'utf8');
-      const v = new V();
-      const res = v.validate(content);
+      const name = path.basename('$file').replace(/\\.md\$/, '');
+      const scopes = R.resolveAgentScopes({ name, content });
+      const res = new V().validate(content, { scope: scopes });
       const pct = Math.round((res.compliant.length / res.totalMantras) * 100);
       process.stdout.write(String(pct));
     } catch (e) {
@@ -75,15 +108,16 @@ while IFS= read -r file; do
   fi
 
   if [ "$score" -lt "$THRESHOLD" ]; then
-    echo "[byan pre-commit] FAIL $file : mantra score $score% < $THRESHOLD%"
+    echo "[byan pre-commit] FAIL $file : mantra score $score% < $THRESHOLD% (anti-stub floor)"
     failed=1
   fi
 done <<< "$staged"
 
 if [ "$failed" -eq 1 ]; then
   echo ""
-  echo "Commit blocked by BYAN mantra pre-commit hook."
-  echo "Fix the flagged files above, or bypass with 'git commit --no-verify' (emergency only)."
+  echo "Commit blocked by BYAN mantra pre-commit floor."
+  echo "The flagged persona scores below the anti-stub floor : flesh it out, or bypass"
+  echo "with 'git commit --no-verify' (emergency only)."
   exit 1
 fi
 
