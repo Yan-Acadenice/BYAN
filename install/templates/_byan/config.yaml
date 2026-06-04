@@ -61,12 +61,22 @@ bmad_features:
   # MantraValidator: Validate agents against 64 mantras
   mantras:
     validate: true
-    min_score: 80
+    # Domain-aware anti-stub floor for the pre-commit gate and Stop hook. Each
+    # persona is scored only against its applicable mantras (universal + its
+    # declared scope) via src/byan-v2/generation/scope-resolver.js. This is a
+    # floor that catches empty / zombie personas, not a deep quality bar; deep
+    # embodiment is the out-of-band audit (bin/byan-mantra-audit.js).
+    min_score: 30
     enforce_on_generation: true
     fail_on_low_score: false  # If true, fails generation on low score
-    categories:
-      - merise-agile
-      - ia
+    # Mantra scopes (revived from the former dead `categories` list). The
+    # per-agent scope map lives in src/byan-v2/data/agent-scopes.json.
+    scopes:
+      - universal
+      - sdlc-process
+      - sdlc-code
+      - sdlc-modeling
+      - sdlc-test
 
   # VoiceIntegration: Turbo Whisper voice input for hands-free interaction
   voice_integration:

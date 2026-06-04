@@ -27,7 +27,7 @@ INIT
   → DISPATCH     (Worker: EconomicDispatcher — quelle brique BYAN ?)
   → BUILD        (Agent ou Worker selon complexité)
   → REVIEW       (Agent: Quinn — pre-flight humain vs critères VALIDATE)
-  → VALIDATE     (MantraValidator + tests — score ≥ 80%)
+  → VALIDATE     (MantraValidator domain-aware + tests — score ≥ 30 floor anti-stub)
        ├─ OK   → DOC       (Agent: Paige — documenter ce qui a été livré)
        └─ KO   → REFACTOR  (boucle vers BUILD avec correctifs ciblés)
   → COMPLETED
@@ -168,7 +168,7 @@ INIT
 **Protocole :**
 1. Charger les critères VALIDATE attendus :
    - Tests prévus pour cette feature (liste TDD de l'étape BUILD)
-   - Score MantraValidator cible (≥ 80%)
+   - Score MantraValidator cible (≥ 30, floor anti-stub domain-aware)
    - Mantras les plus à risque selon le type de changement
 2. Quinn (ou reviewer) inspecte le diff :
    - Lisibilité, nommage, taille des fonctions
@@ -200,13 +200,13 @@ INIT
 
 **Protocole :**
 1. Lancer `npm test` — tous les tests doivent passer (zéro régression)
-2. Score MantraValidator ≥ 80%
+2. Score MantraValidator domain-aware ≥ 30 (floor anti-stub)
 3. Fact-check final sur tout claim absolu introduit dans la doc
 4. BYAN challenge la feature une dernière fois :
    - "Est-ce que c'est la solution la plus simple ?" (mantra #37)
    - "Quelles sont les conséquences non voulues ?" (mantra #39)
 5. **Décision binaire :**
-   - Tests verts ET score ≥ 80% ET fact-check OK → `VALIDATE: OK` → étape DOC
+   - Tests verts ET score ≥ 30 (floor anti-stub) ET fact-check OK → `VALIDATE: OK` → étape DOC
    - Sinon → `VALIDATE: KO` → étape REFACTOR
 
 **Output :** Verdict `{ status: "OK" | "KO", tests, mantra_score, blocking_issues }`

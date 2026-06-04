@@ -430,7 +430,7 @@ DISCOVERY → BRAINSTORM → PRUNE → DISPATCH → BUILD → REVIEW → VALIDAT
 
 **7. VALIDATE** (MantraValidator + tests)
 - `npm test` : 100% passant (zero regression)
-- Score mantras >= 80%, fact-check des claims absolus
+- Score mantras domain-aware >= 30 (floor anti-stub), fact-check des claims absolus
 - Decision binaire : `OK` → DOC | `KO` → REFACTOR
 
 **8a. DOC** (Agent Paige tech-writer, si VALIDATE OK)

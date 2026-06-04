@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - Domain-aware mantra validator (Option C: N1 anti-stub floor + N2 embodiment audit)
+
+The mantra compliance bar was an all-64 keyword-density proxy with an 80% gate
+that focused personas did not reach (measured median 11%, 0 of 120 gated files at
+>= 80%): it implicitly graded each agent as a software-delivery agent, so a UX or
+storyteller persona was failed for missing Scrum/Merise vocabulary. The gate
+stayed green only through broad exemptions, masking the mis-fit. This reworks the
+metric to score each persona only against the mantras that apply to it.
+
+- **Taxonomy.** Each of the 64 mantras carries a `scope`
+  (`universal` | `sdlc-process` | `sdlc-code` | `sdlc-modeling` | `sdlc-test`) in
+  `mantras.json`. The four runtime-enforced mantras (IA-1, IA-9, IA-21, IA-23,
+  checked by hooks / fact-check rather than declared in a persona file) are
+  flagged `behavioral` and excluded from persona-file scoring.
+- **Domain-aware validator.** `validate(def, { scope })` scores only the
+  applicable subset (universal + the persona's declared scope, behavioral
+  excluded); `totalMantras` becomes the applicable count. With no scope it scores
+  all 64 (legacy behavior preserved, existing tests untouched). A reusable
+  `applicableMantras(scope)` is exposed. Score bands moved to single constants.
+- **Per-agent scope resolution.** `scope-resolver.js` resolves a persona to its
+  scope set, precedence explicit-frontmatter > per-agent map > module-derived >
+  `universal`, with `universal` force-unioned. The map lives in
+  `src/byan-v2/data/agent-scopes.json`.
+- **Emoji-icon fix.** The no-emoji mantra (IA-23) excludes `icon="..."`
+  frontmatter attributes from its scan (an icon glyph is display metadata, not
+  pollution); a real emoji in the body is still caught.
+- **Anti-stub floor, honestly named.** The pre-commit gate and Stop hook score the
+  canonical Gen3 persona sources (`_byan/agent/<name>/<name>.md`) domain-aware at a
+  floor of 30 (the real roster spans 34-73, median 50). It is an anti-stub /
+  anti-zombie floor, not a deep quality bar.
+- **N2 embodiment audit (out-of-band).** `bin/byan-mantra-audit.js` (`prepare` /
+  `score`) plus the `byan-mantra-audit` skill measure genuine embodiment via an
+  LLM judge, kept out of the commit path (the judgment is semantic).
+- **Bugs fixed in passing.** B1: the stale `install/templates/.githooks/pre-commit`
+  mirror is re-synced (it lagged the source, missing the workflow-lint block). B2:
+  the gate no longer targets empty legacy dirs (`_byan/agents`, `_byan/bmb/agents`),
+  it targets the real sources. B3: the FD VALIDATE wording (SKILL, fd-phase-guard,
+  feature-workflow, GUIDE) is realigned to the floor, no longer asserting an
+  unreachable 80%. Config `categories` is revived as `scopes`.
+
+New unit tests: scope filtering, behavioral exclusion, emoji-icon, scope-resolver,
+N2 audit. Strict regime (12 mantras, byan-strict at 100%) untouched.
+
 ### Added - Native workflow bridge, Phase 1 (Hybrid: gate outside, engine inside)
 
 BYAN workflows are LLM-interpreted and human-gated; Claude Code's in-CLI Workflow
