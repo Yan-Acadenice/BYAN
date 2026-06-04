@@ -102,7 +102,7 @@
       "id": "M8",
       "number": 8,
       "category": "merise-agile",
-      "scope": "sdlc-code",
+      "scope": "sdlc-ops",
       "title": "Code freeze avant release",
       "description": "Gel du code avant chaque release pour stabilisation",
       "validation": {
@@ -214,7 +214,7 @@
       "id": "M16",
       "number": 16,
       "category": "merise-agile",
-      "scope": "sdlc-code",
+      "scope": "sdlc-ops",
       "title": "Versioning semantique",
       "description": "Utilisation du versioning semantique (semver)",
       "validation": {
@@ -228,7 +228,7 @@
       "id": "M17",
       "number": 17,
       "category": "merise-agile",
-      "scope": "sdlc-code",
+      "scope": "sdlc-ops",
       "title": "Changelog a jour",
       "description": "Changelog maintenu a jour pour chaque version",
       "validation": {
@@ -242,7 +242,7 @@
       "id": "M18",
       "number": 18,
       "category": "merise-agile",
-      "scope": "sdlc-code",
+      "scope": "sdlc-ops",
       "title": "Environnements identiques",
       "description": "Dev, staging et production sont identiques",
       "validation": {
@@ -256,7 +256,7 @@
       "id": "M19",
       "number": 19,
       "category": "merise-agile",
-      "scope": "sdlc-code",
+      "scope": "sdlc-ops",
       "title": "CI/CD = production continue",
       "description": "Integration et deploiement continus automatises",
       "validation": {
@@ -270,7 +270,7 @@
       "id": "M20",
       "number": 20,
       "category": "merise-agile",
-      "scope": "sdlc-code",
+      "scope": "sdlc-ops",
       "title": "Rollback en 1 clic",
       "description": "Capacite de rollback rapide et simple",
       "validation": {
@@ -902,29 +902,137 @@
         "required": false
       },
       "priority": "high"
+    },
+    {
+      "id": "CR-1",
+      "number": 1,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Diverge Before You Converge",
+      "description": "En phase de generation, produire du volume d'idees sans censure ni jugement avant tout tri. Generation et selection sont deux phases separees: ne jamais fusionner brainstorm et prune. La premiere reaction a une idee est de construire dessus (YES AND). L'oppose direct d'Ockham/challenge-before-confirm: la quantite brute precede la selection.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["yes and", "sans censure", "volume", "wild"],
+        "required": false
+      },
+      "priority": "critical"
+    },
+    {
+      "id": "CR-2",
+      "number": 2,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Anchor in the Human Need",
+      "description": "Ancrer chaque concept dans le besoin reel d'un utilisateur situe, pas dans une abstraction. Empathiser avant de definir. Ne jamais valider un concept sans avoir observe un humain reel ou un prototype. Distinguer ce que les gens disent vouloir de ce dont ils ont besoin. La preuve est humaine, pas documentaire.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["empath", "humain", "prototyp", "observe"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "CR-3",
+      "number": 3,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Reframe to the Root Cause",
+      "description": "Ne jamais resoudre avant d'avoir reformule. Remonter par les 5 Whys jusqu'a la cause racine, jamais soigner le symptome. La bonne question prime sur la reponse rapide. Le cadrage du probleme est le livrable, pas la solution rapide.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["root cause", "cause racine", "reformul", "5 whys"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "CR-4",
+      "number": 4,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Judge Ideas by New Value",
+      "description": "Evaluer une idee a l'aune de la valeur nouvelle qu'elle cree pour quelqu'un, pas de sa nouveaute en soi. Distinguer invention et innovation, nouveau et meilleur. Tester la rupture systemique: est-ce que ca change la donne ou rend un business model obsolete.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["disrupt", "rupture", "change la donne", "valeur", "business model"],
+        "required": false
+      },
+      "priority": "high"
+    },
+    {
+      "id": "CR-5",
+      "number": 5,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Find the Authentic Story",
+      "description": "Avant l'argument, chercher l'emotion: identifier l'histoire authentique d'un projet et l'articuler via une tension narrative (hook, conflit, resolution) appuyee sur des verites humaines. Rendre l'abstrait concret par le detail vivant. Raconter le pourquoi plutot que documenter une decision.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["narrat", "histoire", "emotion", "authentic story", "hook"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "CR-6",
+      "number": 6,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Serve the Audience's Attention",
+      "description": "Designer toute communication pour l'audience visee et son contexte. Diriger le regard par la hierarchie visuelle, viser une seule idee par element, passer la regle des 3 secondes, supprimer avant d'ajouter. La clarte prime sur le clever; la forme sert le message, jamais l'inverse.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["audience", "hierarch", "clart", "3 sec"],
+        "required": false
+      },
+      "priority": "medium"
+    },
+    {
+      "id": "CR-7",
+      "number": 7,
+      "category": "creative",
+      "scope": "creative",
+      "behavioral": false,
+      "title": "Prototype, Test, Pivot - Failure Is Feedback",
+      "description": "Avancer par iterations testables plutot que par debat: prototyper avant de discuter, confronter au reel, traiter l'echec comme un feedback (un pivot, pas une fin). Ne jamais tomber amoureux d'une solution; chaque prototype est jetable. La validation est empirique, pas une signature de decision figee.",
+      "validation": {
+        "type": "keyword",
+        "keywords": ["prototyp", "feedback", "pivot", "failure is feedback"],
+        "required": false
+      },
+      "priority": "medium"
     }
   ],
   "metadata": {
-    "version": "1.1.0",
-    "totalMantras": 64,
+    "version": "1.2.0",
+    "totalMantras": 71,
     "categories": {
       "merise-agile": 39,
-      "ia": 25
+      "ia": 25,
+      "creative": 7
     },
     "scopes": {
       "universal": 24,
       "sdlc-process": 12,
-      "sdlc-code": 15,
+      "sdlc-code": 9,
+      "sdlc-ops": 6,
       "sdlc-modeling": 6,
-      "sdlc-test": 7
+      "sdlc-test": 7,
+      "creative": 7
     },
     "behavioralCount": 4,
-    "scopeNote": "scope tags the domain a mantra belongs to (universal applies to every agent). behavioral=true marks runtime-enforced mantras (hooks/fact-check) that are excluded from persona-file scoring when a scope filter is applied. With no scope filter, all 64 mantras are scored (legacy behavior).",
+    "scopeNote": "scope tags the domain a mantra belongs to (universal applies to every agent; creative is the CIS family; sdlc-ops is release/deploy split from sdlc-code). behavioral=true marks runtime-enforced mantras (hooks/fact-check) excluded from persona-file scoring when a scope filter is applied. With no scope filter, all mantras are scored (legacy behavior).",
     "priorityLevels": {
-      "critical": 8,
-      "high": 20,
-      "medium": 28,
-      "low": 8
+      "critical": 9,
+      "high": 29,
+      "medium": 27,
+      "low": 6
     }
   }
 }

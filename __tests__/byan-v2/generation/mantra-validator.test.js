@@ -37,7 +37,7 @@ describe('MantraValidator', () => {
     test('loads mantras data from file by default', () => {
       const validator = new MantraValidator();
       expect(validator.mantras).toBeDefined();
-      expect(validator.mantras.length).toBe(64);
+      expect(validator.mantras.length).toBe(71);
     });
 
     test('accepts custom mantras data', () => {
@@ -74,7 +74,7 @@ describe('MantraValidator', () => {
       const results = validator.validate(sampleCompliantAgent);
       
       expect(results).toBeDefined();
-      expect(results.totalMantras).toBe(64);
+      expect(results.totalMantras).toBe(71);
       expect(results.compliant).toBeInstanceOf(Array);
       expect(results.nonCompliant).toBeInstanceOf(Array);
       expect(results.score).toBeGreaterThan(0);
@@ -644,10 +644,10 @@ describe('MantraValidator', () => {
       description: 'verify validate check test owner actor measurable story epic README'
     };
 
-    test('no scope scores all 64 mantras (legacy backward-compat)', () => {
+    test('no scope scores all 71 mantras (legacy backward-compat)', () => {
       const v = new MantraValidator();
       const res = v.validate(richPersona);
-      expect(res.totalMantras).toBe(64);
+      expect(res.totalMantras).toBe(71);
       expect(res.scope).toBeNull();
     });
 
@@ -671,7 +671,8 @@ describe('MantraValidator', () => {
       });
       const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
       ['IA-1', 'IA-9', 'IA-21', 'IA-23'].forEach(id => expect(ids).not.toContain(id));
-      expect(res.totalMantras).toBe(60);
+      // 71 total - 4 behavioral - 6 sdlc-ops - 7 creative (neither scope listed) = 54
+      expect(res.totalMantras).toBe(54);
     });
 
     test('behavioral mantras ARE scored on the legacy no-scope path', () => {
@@ -692,8 +693,8 @@ describe('MantraValidator', () => {
     test('a scoped validate does not mutate the stored mantra set', () => {
       const v = new MantraValidator();
       v.validate(richPersona, { scope: ['sdlc-test'] });
-      expect(v.mantras.length).toBe(64);
-      expect(v.personaMantras.length).toBe(64);
+      expect(v.mantras.length).toBe(71);
+      expect(v.personaMantras.length).toBe(71);
     });
 
     test('universal mantras apply under every scope (floor)', () => {
@@ -702,6 +703,31 @@ describe('MantraValidator', () => {
       const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
       expect(ids).toContain('M37');
       expect(ids).toContain('IA-16');
+    });
+
+    test('creative scope (CIS) = 20 universal + 7 creative, sdlc excluded', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona, { scope: ['creative'] });
+      expect(res.totalMantras).toBe(27);
+      const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
+      expect(ids).toContain('CR-1');
+      expect(ids).toContain('M37');   // universal floor still applies
+      expect(ids).not.toContain('M9'); // sdlc-code excluded
+      expect(ids).not.toContain('M8'); // sdlc-ops excluded
+    });
+
+    test('sdlc-ops scope holds the 6 release mantras', () => {
+      const v = new MantraValidator();
+      const res = v.validate(richPersona, { scope: ['sdlc-ops'] });
+      expect(res.totalMantras).toBe(26); // 20 universal + 6 ops
+      const ids = [...res.compliant, ...res.nonCompliant].map(m => m.id);
+      ['M8', 'M16', 'M17', 'M18', 'M19', 'M20'].forEach(id => expect(ids).toContain(id));
+      expect(ids).not.toContain('CR-1'); // creative excluded
+    });
+
+    test('getMantrasByCategory creative returns the 7 CR mantras', () => {
+      const v = new MantraValidator();
+      expect(v.getMantrasByCategory('creative').length).toBe(7);
     });
   });
 

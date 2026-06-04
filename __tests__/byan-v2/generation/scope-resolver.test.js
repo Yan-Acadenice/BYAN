@@ -66,6 +66,15 @@ describe('scope-resolver', () => {
       const scopes = resolver.resolveAgentScopes({ content, map: MAP });
       expect(scopes).toEqual(['universal', 'sdlc-code']);
     });
+
+    test('the v2 scopes sdlc-ops and creative are valid (not dropped)', () => {
+      expect(resolver.VALID_SCOPES).toContain('sdlc-ops');
+      expect(resolver.VALID_SCOPES).toContain('creative');
+      expect(resolver.normalizeScopes(['sdlc-ops'])).toEqual(['universal', 'sdlc-ops']);
+      expect(resolver.normalizeScopes(['creative'])).toEqual(['universal', 'creative']);
+      const content = 'mantra_scopes: [universal, sdlc-ops, creative]';
+      expect(resolver.resolveAgentScopes({ content, map: MAP })).toEqual(['universal', 'sdlc-ops', 'creative']);
+    });
   });
 
   describe('helpers', () => {

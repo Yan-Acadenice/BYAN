@@ -558,7 +558,7 @@ describe('Full BMAD Workflow Integration', () => {
       const validation = byan.mantraValidator.validate(agentDefinition);
 
       expect(validation).toBeDefined();
-      expect(validation.totalMantras).toBe(64);
+      expect(validation.totalMantras).toBe(71);
       expect(validation.results).toBeDefined();
     });
 
@@ -722,7 +722,7 @@ describe('Full BMAD Workflow Integration', () => {
       // 7. Validation phase
       const validation = byan.mantraValidator.validate(agentDefinition);
 
-      expect(validation.totalMantras).toBe(64);
+      expect(validation.totalMantras).toBe(71);
       expect(validation.complianceScore).toBeGreaterThanOrEqual(80);
 
       const report = byan.mantraValidator.generateReport(validation);

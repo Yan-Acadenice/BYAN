@@ -22,10 +22,10 @@ describe('MantraValidator — strict-mode extension', () => {
     });
   });
 
-  test('persona artifact is scored against the 64 persona mantras', () => {
+  test('persona artifact is scored against the 71 persona mantras', () => {
     const v = new MantraValidator();
     const r = v.validate('# Agent\npersona: Mary\nresponsable owner assignee');
-    expect(r.totalMantras).toBe(64);
+    expect(r.totalMantras).toBe(71);
   });
 
   test('strict artifact is auto-detected and scored against strict mantras', () => {

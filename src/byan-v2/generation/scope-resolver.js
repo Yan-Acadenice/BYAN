@@ -9,7 +9,7 @@ const path = require('path');
 // override. Callers (the pre-commit gate, the Stop hook, the FD VALIDATE step)
 // resolve scopes here, then pass them to validator.validate(content, { scope }).
 
-const VALID_SCOPES = ['universal', 'sdlc-process', 'sdlc-code', 'sdlc-modeling', 'sdlc-test'];
+const VALID_SCOPES = ['universal', 'sdlc-process', 'sdlc-code', 'sdlc-ops', 'sdlc-modeling', 'sdlc-test', 'creative'];
 const KNOWN_MODULES = ['bmm', 'cis', 'tea', 'bmb', 'core'];
 
 function loadScopeMap(mapPath) {
