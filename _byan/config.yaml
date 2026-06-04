@@ -58,14 +58,14 @@ bmad_features:
     validate_at_phase_end: true
     auto_summarize: true
   
-  # MantraValidator: Validate agents against 64 mantras
+  # MantraValidator: Validate agents against 71 mantras
   mantras:
     validate: true
     # Domain-aware anti-stub floor for the pre-commit gate and Stop hook. Each
     # persona is scored only against its applicable mantras (universal + its
     # declared scope) via src/byan-v2/generation/scope-resolver.js. This is a
     # floor that catches empty / zombie personas, not a deep quality bar; deep
-    # embodiment is the out-of-band audit (bin/byan-mantra-audit.js).
+    # embodiment is the out-of-band audit (src/byan-v2/generation/mantra-audit.js).
     min_score: 30
     enforce_on_generation: true
     fail_on_low_score: false  # If true, fails generation on low score

@@ -90,7 +90,7 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
 - **Who** : MantraValidator + jest/node test + `byan-fact-check` skill. No human judgement, only numbers.
 - **Checks** :
   - `npm test` : zero regression on pre-existing passing tests
-  - MantraValidator domain-aware ≥ 30 (anti-stub floor) on changed Gen3 persona sources (deep embodiment : `bin/byan-mantra-audit.js`, out-of-band)
+  - MantraValidator domain-aware ≥ 30 (anti-stub floor) on changed Gen3 persona sources (deep embodiment : `src/byan-v2/generation/mantra-audit.js`, out-of-band)
   - No emoji in code, commits, specs
   - Final fact-check on any absolute claim introduced in docs
 - **Decision** : binary. Persist via `byan_fd_update({ patch: { validate_verdict: { status, blocking_issues } } })`.

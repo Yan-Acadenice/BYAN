@@ -18,7 +18,7 @@
 # stubs or non-persona procedures; the non-blocking Stop hook (mantra-validate.js)
 # warns on those. THRESHOLD is an anti-stub FLOOR, not a quality bar: it catches
 # near-empty / zombie persona files. Genuine personas score well above it; deep
-# quality is the job of the semantic embodiment audit (bin/byan-mantra-audit.js),
+# quality is the job of the semantic embodiment audit (src/byan-v2/generation/mantra-audit.js),
 # which runs out-of-band, not at commit time.
 
 set -euo pipefail

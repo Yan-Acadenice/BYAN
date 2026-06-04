@@ -22,7 +22,7 @@ keyword presence. It runs on demand, outside the commit path.
 
 1. PREPARE (deterministic). Build the judgment packet for the target persona:
    ```
-   node bin/byan-mantra-audit.js prepare <path/to/agent.md>
+   node src/byan-v2/generation/mantra-audit.js prepare <path/to/agent.md>
    ```
    It resolves the persona's scope (scope-resolver), lists only the applicable
    mantras, and emits a rubric plus the persona text. Add `--json` for the raw packet.
@@ -35,7 +35,7 @@ keyword presence. It runs on demand, outside the commit path.
 
 3. SCORE (deterministic):
    ```
-   node bin/byan-mantra-audit.js score <path/to/agent.md> <verdicts.json>
+   node src/byan-v2/generation/mantra-audit.js score <path/to/agent.md> <verdicts.json>
    ```
    It returns the embodiment score and the embodied / partial / absent / unjudged
    breakdown.

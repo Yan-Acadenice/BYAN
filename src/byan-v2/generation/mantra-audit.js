@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 //
-// byan-mantra-audit — semantic embodiment audit for BYAN personas (Option C, N2).
+// mantra-audit — semantic embodiment audit for BYAN personas (Option C, N2).
+//
+// Lives under src/byan-v2/generation/ so it ships with the v2 runtime (the
+// installer copies src/ into the user project) next to the validator and
+// scope-resolver it depends on. Invoke with:
+//   node src/byan-v2/generation/mantra-audit.js prepare <agentFile> [--json]
+//   node src/byan-v2/generation/mantra-audit.js score   <agentFile> <verdicts.json>
 //
 // The pre-commit mantra gate is a fast, deterministic anti-stub FLOOR : it asks
 // "does this persona contain the vocabulary of its domain mantras". That catches
@@ -9,18 +15,14 @@
 // packet (the applicable mantras + the persona + a rubric) for an LLM judge, then
 // turns the judge's verdicts into an embodiment score. It is deliberately NOT in
 // the commit path : the judgment is semantic (an LLM call), so it runs on demand
-// or in CI, never blocking a commit with a non-deterministic check.
-//
-// Usage :
-//   byan-mantra-audit prepare <agentFile> [--json]   # emit the judgment prompt (or packet)
-//   byan-mantra-audit score   <agentFile> <verdicts.json>   # embodiment score from verdicts
+// or in CI, outside the commit path (a non-deterministic check must not block it).
 //
 // verdicts.json : { "<mantraId>": "embodied" | "partial" | "absent", ... }
 
 const fs = require('fs');
 const path = require('path');
-const MantraValidator = require('../src/byan-v2/generation/mantra-validator');
-const resolver = require('../src/byan-v2/generation/scope-resolver');
+const MantraValidator = require('./mantra-validator');
+const resolver = require('./scope-resolver');
 
 const VERDICT_WEIGHT = { embodied: 1, partial: 0.5, absent: 0 };
 
@@ -101,8 +103,8 @@ function main(argv) {
   if (!cmd || !agentFile || ['-h', '--help'].includes(cmd)) {
     process.stdout.write(
       'Usage :\n' +
-      '  byan-mantra-audit prepare <agentFile> [--json]\n' +
-      '  byan-mantra-audit score   <agentFile> <verdicts.json>\n'
+      '  node src/byan-v2/generation/mantra-audit.js prepare <agentFile> [--json]\n' +
+      '  node src/byan-v2/generation/mantra-audit.js score   <agentFile> <verdicts.json>\n'
     );
     return cmd ? 0 : 1;
   }
@@ -125,7 +127,7 @@ function main(argv) {
 
   if (cmd === 'score') {
     if (!arg3 || !fs.existsSync(arg3)) {
-      process.stderr.write('A verdicts JSON file is required : byan-mantra-audit score <agentFile> <verdicts.json>\n');
+      process.stderr.write('A verdicts JSON file is required : score <agentFile> <verdicts.json>\n');
       return 1;
     }
     const verdicts = JSON.parse(fs.readFileSync(arg3, 'utf8'));

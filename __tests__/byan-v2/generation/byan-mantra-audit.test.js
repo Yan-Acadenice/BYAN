@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const audit = require('../../../bin/byan-mantra-audit');
+const audit = require('../../../src/byan-v2/generation/mantra-audit');
 
 describe('byan-mantra-audit (N2 embodiment)', () => {
   let agentFile;

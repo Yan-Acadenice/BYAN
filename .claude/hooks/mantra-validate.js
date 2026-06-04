@@ -8,7 +8,7 @@
  * Domain-aware: each persona is scored only against its applicable mantras
  * (scope-resolver), matching the blocking pre-commit gate. Non-blocking: never
  * prevents Stop, only warns via additionalContext. Deep embodiment quality is
- * the out-of-band semantic audit (bin/byan-mantra-audit.js).
+ * the out-of-band semantic audit (src/byan-v2/generation/mantra-audit.js).
  */
 
 const fs = require('fs');
