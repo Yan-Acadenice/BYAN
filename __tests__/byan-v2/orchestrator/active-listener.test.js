@@ -429,70 +429,70 @@ describe('ActiveListener', () => {
 
     it('should accept boolean true', () => {
       const result = listener.validateUnderstanding(true);
-      
-      expect(result.confirmed).toBe(true);
+
+      expect(result.validated).toBe(true);
       expect(result.timestamp).toBeDefined();
     });
 
     it('should accept boolean false', () => {
       const result = listener.validateUnderstanding(false);
-      
-      expect(result.confirmed).toBe(false);
+
+      expect(result.validated).toBe(false);
     });
 
     it('should accept "yes" string', () => {
       const result = listener.validateUnderstanding('yes');
-      expect(result.confirmed).toBe(true);
+      expect(result.validated).toBe(true);
     });
 
     it('should accept "no" string', () => {
       const result = listener.validateUnderstanding('no');
-      expect(result.confirmed).toBe(false);
+      expect(result.validated).toBe(false);
     });
 
     it('should accept variations of yes', () => {
-      expect(listener.validateUnderstanding('Yes').confirmed).toBe(true);
-      expect(listener.validateUnderstanding('YES').confirmed).toBe(true);
-      expect(listener.validateUnderstanding('y').confirmed).toBe(true);
-      expect(listener.validateUnderstanding('yeah').confirmed).toBe(true);
-      expect(listener.validateUnderstanding('yep').confirmed).toBe(true);
-      expect(listener.validateUnderstanding('correct').confirmed).toBe(true);
-      expect(listener.validateUnderstanding('right').confirmed).toBe(true);
+      expect(listener.validateUnderstanding('Yes').validated).toBe(true);
+      expect(listener.validateUnderstanding('YES').validated).toBe(true);
+      expect(listener.validateUnderstanding('y').validated).toBe(true);
+      expect(listener.validateUnderstanding('yeah').validated).toBe(true);
+      expect(listener.validateUnderstanding('yep').validated).toBe(true);
+      expect(listener.validateUnderstanding('correct').validated).toBe(true);
+      expect(listener.validateUnderstanding('right').validated).toBe(true);
     });
 
     it('should accept variations of no', () => {
-      expect(listener.validateUnderstanding('No').confirmed).toBe(false);
-      expect(listener.validateUnderstanding('NO').confirmed).toBe(false);
-      expect(listener.validateUnderstanding('n').confirmed).toBe(false);
-      expect(listener.validateUnderstanding('nope').confirmed).toBe(false);
-      expect(listener.validateUnderstanding('wrong').confirmed).toBe(false);
+      expect(listener.validateUnderstanding('No').validated).toBe(false);
+      expect(listener.validateUnderstanding('NO').validated).toBe(false);
+      expect(listener.validateUnderstanding('n').validated).toBe(false);
+      expect(listener.validateUnderstanding('nope').validated).toBe(false);
+      expect(listener.validateUnderstanding('wrong').validated).toBe(false);
     });
 
     it('should default to false for unclear input', () => {
       const result = listener.validateUnderstanding('maybe');
-      expect(result.confirmed).toBe(false);
+      expect(result.validated).toBe(false);
     });
 
     it('should update history with validation result', () => {
       listener.validateUnderstanding(true);
-      
+
       const lastEntry = listener.history[listener.history.length - 1];
       expect(lastEntry.validationResult).toBeDefined();
-      expect(lastEntry.validationResult.confirmed).toBe(true);
+      expect(lastEntry.validationResult.validated).toBe(true);
     });
 
     it('should log validation', () => {
       listener.validateUnderstanding(true);
-      
+
       expect(mockLogger.info).toHaveBeenCalledWith(
         'Understanding validated',
-        expect.objectContaining({ confirmed: true })
+        expect.objectContaining({ validated: true })
       );
     });
 
     it('should handle whitespace in input', () => {
       const result = listener.validateUnderstanding('  yes  ');
-      expect(result.confirmed).toBe(true);
+      expect(result.validated).toBe(true);
     });
   });
 
@@ -611,8 +611,8 @@ describe('ActiveListener', () => {
       listener.validateUnderstanding(false);
       
       const history = listener.history;
-      expect(history[2].validationResult.confirmed).toBe(true);
-      expect(history[5].validationResult.confirmed).toBe(false);
+      expect(history[2].validationResult.validated).toBe(true);
+      expect(history[5].validationResult.validated).toBe(false);
     });
 
     it('should handle edge case: very long response', () => {

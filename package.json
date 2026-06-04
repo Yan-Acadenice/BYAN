@@ -98,8 +98,17 @@
       "src/**/*.js",
       "!src/index.js"
     ],
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
     "testMatch": [
       "**/__tests__/**/*.test.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/api/",
+      "fs-migration-hook\\.test\\.js",
+      "e2e-remote-import\\.test\\.js"
     ],
     "coverageThreshold": {
       "global": {

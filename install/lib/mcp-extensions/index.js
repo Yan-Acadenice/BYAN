@@ -39,6 +39,7 @@ const inquirer = require('inquirer');
 const {
   mcpConfig: { addMcpEntry },
 } = require('byan-platform-config');
+const { whitelistMcpServer } = require('../settings-local');
 
 const gdrive = require('./gdrive');
 
@@ -127,6 +128,7 @@ async function setupMcpExtensions(projectRoot, options = {}) {
 
     try {
       await addMcpEntry(projectRoot, ext.id, entry);
+      await whitelistMcpServer(projectRoot, ext.id);
       log(chalk.green(`  ✓ ${ext.id} registered in .mcp.json`));
       results.push({ id: ext.id, configured: true, message: 'registered' });
     } catch (err) {

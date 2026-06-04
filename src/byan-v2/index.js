@@ -144,15 +144,24 @@ class ByanV2 {
     if (bmadConfig.voice_integration?.enabled !== false) {
       this.voiceIntegration = new VoiceIntegration(this.sessionState, this.logger);
       
-      // Initialize asynchronously (non-blocking)
+      // Initialize asynchronously (non-blocking). This runs detached from the
+      // constructor, so any throw here would surface as an unhandled rejection
+      // and crash the process. The handlers are wrapped so a non-fatal voice
+      // init (or a partial injected logger) can never escalate to a crash.
       this.voiceIntegration.initialize().then(success => {
-        if (success) {
-          this.logger.info('[ByanV2] Voice integration enabled');
-        } else {
-          this.logger.debug('[ByanV2] Voice integration not available');
-        }
+        try {
+          if (success) {
+            this.logger.info('[ByanV2] Voice integration enabled');
+          } else if (typeof this.logger.debug === 'function') {
+            this.logger.debug('[ByanV2] Voice integration not available');
+          }
+        } catch (_) { /* logging is best-effort; never crash on it */ }
       }).catch(error => {
-        this.logger.warn('[ByanV2] Voice integration init failed', { error: error.message });
+        try {
+          if (typeof this.logger.warn === 'function') {
+            this.logger.warn('[ByanV2] Voice integration init failed', { error: error.message });
+          }
+        } catch (_) { /* logging is best-effort; never crash on it */ }
       });
     }
 

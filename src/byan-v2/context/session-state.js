@@ -10,6 +10,7 @@ class SessionState {
     this.agentProfileDraft = {};
     this.context = {};
     this.facts = { verified: [], claims: [], disputed: [], opinions: [] };
+    this.store = {};
   }
 
   addQuestion(question) {
@@ -38,6 +39,16 @@ class SessionState {
 
   getFacts() {
     return JSON.parse(JSON.stringify(this.facts));
+  }
+
+  // Generic per-session key-value store, used by modules (e.g. VoiceIntegration)
+  // to persist and read back arbitrary data on the session.
+  set(key, value) {
+    this.store[key] = value;
+  }
+
+  get(key) {
+    return this.store[key];
   }
 
   setAnalysisResults(data) {
@@ -93,7 +104,8 @@ class SessionState {
       analysisResults: this.analysisResults,
       agentProfileDraft: this.agentProfileDraft,
       context: this.context,
-      facts: this.facts
+      facts: this.facts,
+      store: this.store
     };
   }
 
@@ -107,6 +119,7 @@ class SessionState {
     state.agentProfileDraft = data.agentProfileDraft || {};
     state.context = data.context || {};
     state.facts = data.facts || { verified: [], claims: [], disputed: [], opinions: [] };
+    state.store = data.store || {};
     return state;
   }
 }

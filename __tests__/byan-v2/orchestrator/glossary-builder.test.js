@@ -198,23 +198,28 @@ describe('GlossaryBuilder', () => {
   describe('challengeDefinition()', () => {
     it('should challenge definition without examples', () => {
       const challenge = glossary.challengeDefinition('A purchase request from customers');
-      expect(challenge).toContain('example');
+      expect(challenge.reason).toContain('examples');
+      expect(challenge.suggestions).toContain('Provide a concrete example');
     });
 
     it('should challenge very short definition', () => {
       const challenge = glossary.challengeDefinition('A thing');
-      expect(challenge).toContain('expand');
+      expect(challenge.reason).toContain('vague');
+      expect(challenge.suggestions[0]).toContain('Expand');
     });
 
     it('should challenge ambiguous definition', () => {
       const challenge = glossary.challengeDefinition('Maybe something that could be used');
-      expect(challenge).toContain('ambiguous');
+      expect(challenge.reason).toContain('ambiguous');
+      expect(challenge.suggestions).toContain('Remove uncertain language');
     });
 
     it('should return generic challenge for unclear issues', () => {
       const challenge = glossary.challengeDefinition('A validated purchase request created after payment');
-      expect(typeof challenge).toBe('string');
-      expect(challenge.length).toBeGreaterThan(10);
+      expect(challenge.reason).toBeDefined();
+      expect(typeof challenge.reason).toBe('string');
+      expect(Array.isArray(challenge.suggestions)).toBe(true);
+      expect(challenge.suggestions.length).toBeGreaterThan(0);
     });
   });
 
@@ -236,7 +241,10 @@ describe('GlossaryBuilder', () => {
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.length).toBeLessThanOrEqual(5);
       expect(suggestions).toEqual(expect.arrayContaining([
-        expect.stringMatching(/inventory|shipping|discount|refund|checkout/)
+        expect.objectContaining({
+          name: expect.stringMatching(/inventory|shipping|discount|refund|checkout/),
+          rationale: expect.any(String)
+        })
       ]));
     });
 
@@ -250,7 +258,10 @@ describe('GlossaryBuilder', () => {
       const suggestions = glossary.suggestRelatedConcepts(concepts);
       
       expect(suggestions).toEqual(expect.arrayContaining([
-        expect.stringMatching(/reconciliation|statement|fee|interest|deposit/)
+        expect.objectContaining({
+          name: expect.stringMatching(/reconciliation|statement|fee|interest|deposit/),
+          rationale: expect.any(String)
+        })
       ]));
     });
 
@@ -262,10 +273,11 @@ describe('GlossaryBuilder', () => {
       ];
 
       const suggestions = glossary.suggestRelatedConcepts(concepts);
-      
-      expect(suggestions).not.toContain('order');
-      expect(suggestions).not.toContain('product');
-      expect(suggestions).not.toContain('inventory');
+      const names = suggestions.map(s => s.name);
+
+      expect(names).not.toContain('order');
+      expect(names).not.toContain('product');
+      expect(names).not.toContain('inventory');
     });
 
     it('should return max 5 suggestions', () => {

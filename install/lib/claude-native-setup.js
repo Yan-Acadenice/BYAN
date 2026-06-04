@@ -21,6 +21,7 @@ const { execSync } = require('child_process');
 const chalk = require('chalk');
 
 const TEMPLATE_ROOT = path.resolve(__dirname, '..', 'templates');
+const { whitelistMcpServer } = require('./settings-local');
 
 async function copyClaudeHooks(projectRoot) {
   const src = path.join(TEMPLATE_ROOT, '.claude', 'hooks');
@@ -113,6 +114,17 @@ async function generateMcpConfig(projectRoot, options = {}) {
   const merged = JSON.parse(rendered);
   merged.mcpServers = { ...(existing.mcpServers || {}), ...merged.mcpServers };
 
+  // Security: BYAN_API_TOKEN is never written into .mcp.json (git-tracked); the
+  // token reaches the MCP server via .claude/settings.local.json env. Also honor
+  // the caller's apiUrl: the template URL is only a default.
+  const byanEntry = merged.mcpServers && merged.mcpServers.byan;
+  if (byanEntry && byanEntry.env) {
+    delete byanEntry.env.BYAN_API_TOKEN;
+    if (options.apiUrl) {
+      byanEntry.env.BYAN_API_URL = options.apiUrl;
+    }
+  }
+
   await fs.writeJson(dstPath, merged, { spaces: 2 });
   return { path: dstPath };
 }
@@ -186,6 +198,11 @@ async function setupClaudeNative(projectRoot, options = {}) {
 
   results.mcpConfig = await generateMcpConfig(projectRoot, options);
   log(chalk.green(`  ✓ .mcp.json generated (absolute path)`));
+
+  // Whitelist the byan MCP server: a project .mcp.json entry is inert in Claude
+  // Code until its id is listed in .claude/settings.local.json.
+  results.whitelist = await whitelistMcpServer(projectRoot, 'byan');
+  log(chalk.green(`  byan MCP server whitelisted (settings.local.json)`));
 
   results.gitHooks = await copyGitHooks(projectRoot);
   if (results.gitHooks.copied && results.gitHooks.hooksPath) {

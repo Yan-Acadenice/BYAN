@@ -135,6 +135,15 @@ class Logger {
   }
 
   /**
+   * Generic debug log
+   * @param {string} message - Log message
+   * @param {Object} data - Additional data
+   */
+  debug(message, data = {}) {
+    this.logger.debug(message, data);
+  }
+
+  /**
    * Generic error log
    * @param {string} message - Log message
    * @param {Object} data - Additional data
