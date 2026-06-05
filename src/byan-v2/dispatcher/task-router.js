@@ -8,6 +8,11 @@
  * - > 60: local execution
  */
 
+// Scope note: this inner ComplexityScorer is the dispatch-executor scorer
+// (task-tool vs local), with its own scale, distinct from the standalone
+// complexity-scorer.js and from native-tiers.js (the leaf model-tier router).
+// Three scorers, three concerns — kept separate on purpose, not a duplicate to
+// merge. See _byan/mcp/byan-mcp-server/lib/native-tiers.js for routing.
 class ComplexityScorer {
   /**
    * Calculate task complexity score (0-100)

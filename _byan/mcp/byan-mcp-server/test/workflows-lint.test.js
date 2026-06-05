@@ -9,6 +9,7 @@ import {
   stripComments,
   clockRngViolations,
   metaLiteralViolations,
+  modelRoutingViolations,
   validateContract,
 } from '../lib/workflows-lint.js';
 
@@ -124,4 +125,68 @@ test('validateContract: aggregates state + clock + meta violations', () => {
   assert.ok(ids.includes('import-fd-state'));
   assert.ok(ids.includes('clock-or-rng'));
   assert.ok(ids.includes('meta-literal-first'));
+});
+
+// --- F3: model-routing anti-downgrade guard -------------------------------
+
+test('modelRoutingViolations: a leaf with no model: is clean (deep = inherit)', () => {
+  const src = "const r = await agent('do', { label: 'rgr-cycle-1', phase: 'RGR' })";
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
+test('modelRoutingViolations: an exploration leaf downgraded to haiku is allowed', () => {
+  const src = "const r = await agent('read', { label: 'load-story', phase: 'LOAD', model: 'haiku' })";
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
+test('modelRoutingViolations: a PROTECTED leaf carrying a downgrade is a violation', () => {
+  const src = "const r = await agent('verify', { label: 'verify-cycle-1', model: 'haiku' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'protected-leaf-downgraded'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations: an unknown / pin-up model is a violation', () => {
+  // 'opus' is not a known downgrade tier — we never pin up.
+  const src = "const r = await agent('x', { label: 'load-story', model: 'opus' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'unknown-tier-model'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations: a downgrade without an identifiable label is a violation', () => {
+  const src = "const r = await agent('x', { model: 'haiku' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'downgrade-without-label'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations: works across a multiline opts object (real script style)', () => {
+  const ok = [
+    'const loaded = await agent(',
+    '  `Read the story file. Report the story key.`,',
+    "  { label: 'load-story', phase: 'LOAD', model: 'haiku' }",
+    ')',
+  ].join('\n');
+  assert.deepEqual(modelRoutingViolations(ok), []);
+
+  const bad = [
+    'const impl = await agent(',
+    '  `red-green-refactor cycle`,',
+    "  { label: 'rgr-cycle-1', phase: 'RGR', model: 'haiku' }",
+    ')',
+  ].join('\n');
+  assert.ok(modelRoutingViolations(bad).some((x) => x.id === 'protected-leaf-downgraded'));
+});
+
+test('modelRoutingViolations: a model token in a COMMENT does not trip (comment-stripped)', () => {
+  const src = "// example: model: 'haiku' on a verify leaf would be illegal\nconst r = await agent('x', { label: 'verify-cycle-1' })";
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
+test('validateContract: aggregates a routing violation with the rest', () => {
+  const src = [
+    'export const meta = { name: "x", description: "y" }',
+    "const r = await agent('v', { label: 'validate-content', model: 'haiku' })",
+    'return 1',
+  ].join('\n');
+  const ids = validateContract(src).map((x) => x.id);
+  assert.ok(ids.includes('protected-leaf-downgraded'));
 });

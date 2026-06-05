@@ -89,7 +89,7 @@ const resources = await agent(
     `Merge the chosen theme into the template. Theme = ${JSON.stringify(theme)}.\n` +
     `Report the resolved template skeleton, the available library items, and the merged theme color map ` +
     `(component fill, database fill, service fill, border/accent stroke, text stroke #1e1e1e, arrow stroke).`,
-  { label: 'load-resources', phase: 'LOAD-RESOURCES' }
+  { label: 'load-resources', phase: 'LOAD-RESOURCES', model: 'haiku' }
 )
 
 // --- Source step 7: Build Diagram Elements ---------------------------------

@@ -12,6 +12,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { isKnownTierModel, isDowngradeModel, classifyLeaf, LEAF_TYPES } from './native-tiers.js';
 
 // Strip /* block */ and // line comments. Preserve "://" inside strings (URLs)
 // by only treating // as a comment when not preceded by a colon.
@@ -87,10 +88,79 @@ export function metaLiteralViolations(src) {
   }];
 }
 
+// Model-routing anti-downgrade guard (enforcement-bridge F3).
+//
+// A native leaf may pin a CHEAPER model (opts.model) ONLY when it is an
+// EXPLORATION leaf (read/load/parse/detect). Implement, verify and analysis
+// leaves must inherit the session model (no opts.model). This is the structural
+// net that stops a cheap model from silently landing on a heavy leaf — the exact
+// STRICT-2 (No Downgrade) line. The source of truth for tiers and leaf
+// classification is native-tiers.js; this rule only enforces it.
+//
+// Parsing is comment-stripped (a model: token in a comment is not a real call).
+// Each model: is keyed to the nearest preceding label: within the SAME opts
+// object (no intervening }). Downgraded leaves carry static-string labels by
+// convention, so a quoted-literal match is sufficient.
+const MODEL_RE = /\bmodel:\s*(['"`])([^'"`]*)\1/g;
+const LABEL_RE = /\blabel:\s*(['"`])([^'"`]*)\1/g;
+
+function nearestLabelBefore(code, modelIndex) {
+  const before = code.slice(0, modelIndex);
+  let last = null;
+  let m;
+  LABEL_RE.lastIndex = 0;
+  while ((m = LABEL_RE.exec(before))) {
+    last = { value: m[2], end: m.index + m[0].length };
+  }
+  if (!last) return null;
+  // Same object only: an object-close between the label and the model means the
+  // label belongs to a different (earlier) call.
+  if (before.slice(last.end).includes('}')) return null;
+  return last.value;
+}
+
+export function modelRoutingViolations(src) {
+  const code = stripComments(src);
+  const out = [];
+  let m;
+  MODEL_RE.lastIndex = 0;
+  while ((m = MODEL_RE.exec(code))) {
+    const model = m[2];
+    if (!isKnownTierModel(model)) {
+      out.push({
+        id: 'unknown-tier-model',
+        msg: `opts.model '${model}' is not a known downgrade tier (cheap/balanced); never pin up — omit opts.model to inherit the session model on deep leaves`,
+      });
+      continue;
+    }
+    const label = nearestLabelBefore(code, m.index);
+    if (!label) {
+      out.push({
+        id: 'downgrade-without-label',
+        msg: `a model downgrade ('${model}') must sit on a labelled exploration leaf; no label found in this opts object`,
+      });
+      continue;
+    }
+    if (isDowngradeModel(model) && classifyLeaf({ label }) !== LEAF_TYPES.EXPLORATION) {
+      out.push({
+        id: 'protected-leaf-downgraded',
+        msg: `leaf '${label}' is not exploration but carries downgrade model '${model}'; only read/load/parse/detect leaves may downgrade (STRICT-2 No Downgrade)`,
+      });
+    }
+  }
+  return out;
+}
+
 // Full native-workflow contract: state-coupling (comment-stripped) + clock/RNG
-// (raw) + meta-literal-first. Returns the combined [{ id, msg }] violations.
+// (raw) + meta-literal-first + model-routing anti-downgrade. Returns the
+// combined [{ id, msg }] violations.
 export function validateContract(src) {
-  return [...lintSource(src), ...clockRngViolations(src), ...metaLiteralViolations(src)];
+  return [
+    ...lintSource(src),
+    ...clockRngViolations(src),
+    ...metaLiteralViolations(src),
+    ...modelRoutingViolations(src),
+  ];
 }
 
 // Lint every *.js in a directory (non-recursive; native workflows are flat)

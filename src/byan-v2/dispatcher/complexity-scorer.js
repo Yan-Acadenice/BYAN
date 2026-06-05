@@ -8,6 +8,12 @@
  * - Factor 4: Keywords (max 25 points)
  * 
  * Total score is capped at 100 points.
+ *
+ * Scope note: this scorer answers "how hard is this TASK" to route it to an
+ * executor. It is NOT the model-tier router for native-workflow leaves — that
+ * lives in _byan/mcp/byan-mcp-server/lib/native-tiers.js, which answers "which
+ * model tier does this LEAF deserve". Same exploration intent, different output;
+ * the two are intentionally kept separate.
  */
 
 class ComplexityScorer {

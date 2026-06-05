@@ -110,7 +110,7 @@ const resources = await agent(
     `- the chosen theme: ${JSON.stringify(theme)} (use a theme.json if one exists).\n` +
     `Summarize the wireframe template primitives, the relevant library elements, the theme color tokens, ` +
     `and the element-creation constraints from helpers (grid 20px, containerId on text, grouping).`,
-  { label: 'load-resources', phase: 'LOAD' }
+  { label: 'load-resources', phase: 'LOAD', model: 'haiku' }
 )
 
 // --- STEP 7: Build Wireframe Elements --------------------------------------

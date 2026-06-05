@@ -129,7 +129,7 @@ const resources = await agent(
     `- helpers: ${HELPERS} (standard DFD notation + Excalidraw element shapes)\n` +
     `Report the element templates (process ellipse, data-store rectangle/parallel-lines, external-entity ` +
     `rectangle, labeled-arrow) and the color/stroke values you will apply. Plan structure: ${JSON.stringify(plan)}`,
-  { label: 'load-resources', phase: 'RESOURCES' }
+  { label: 'load-resources', phase: 'RESOURCES', model: 'haiku' }
 )
 
 // --- Step 6: Build DFD Elements --------------------------------------------

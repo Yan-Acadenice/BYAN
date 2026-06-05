@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Model routing for native workflows (tier the leaves, keep heavy ones inherited)
+
+The 20 native-workflow scripts (`.claude/workflows/*.js`) all ran every `agent()`
+leaf on the session model (Opus by default): the read-the-file leaf paid the same
+tier as the implement-and-verify leaf. This wires BYAN's complexity doctrine into
+the Workflow tool's `opts.model` lever, conservatively.
+
+- **Single source of truth** `_byan/mcp/byan-mcp-server/lib/native-tiers.js`: the
+  tier vocabulary (`cheap`/`balanced`/`deep`), a label-driven leaf classifier, and
+  the model map. `deep` is an OMISSION (inherit the session model), not a pin — we
+  only ever route DOWN, and only exploration leaves.
+- **Anti-downgrade guard** in `workflows-lint.js` (`modelRoutingViolations`),
+  folded into `validateContract`, so `byan-lint-workflows` and the pre-commit gate
+  reject any protected (implement/verify/analysis) leaf carrying a downgrade or any
+  unknown model literal.
+- **Conservative application.** Of 19 exploration-labelled leaves, only 5 are
+  downgraded to `haiku` (`dev-story:load-story` + the 4 excalidraw
+  `load-resources`). An adversarial review pass (3 skeptics) caught 4 candidates
+  whose output feeds a downstream gate/score without a re-read
+  (`document-discovery`, `parse-epics`, the two `discover-tests`); those were
+  reverted to `deep`.
+- **Regression guard** `test/native-routing-integration.test.js` pins the invariant
+  on the shipped scripts. Contract documented in `docs/native-workflows-contract.md`.
+
 ## [2.20.1] - 2026-06-04
 
 ### Fixed - Post-audit hotfix (adversarial self-audit of 2.20.0)

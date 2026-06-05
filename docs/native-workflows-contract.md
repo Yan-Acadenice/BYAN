@@ -82,3 +82,67 @@ break runId resume). Timestamps and ids are passed in via `args`. Helper logic
 that needs testing lives in a lib module (e.g.
 `_byan/mcp/byan-mcp-server/lib/native-loop.js`) and is mirrored inline in the
 script, since the sandbox forbids `import` inside a script.
+
+## Model routing — tier the leaves, keep heavy ones inherited
+
+Each `agent()` leaf runs on the session's main-loop model unless the call sets
+`opts.model`. The ported scripts left it unset, so the read-the-file leaf paid
+the same (Opus) tier as the implement-and-verify leaf. The routing convention
+fixes that, conservatively.
+
+Source of truth: `_byan/mcp/byan-mcp-server/lib/native-tiers.js`. It owns the
+tier vocabulary, the leaf classifier, and the model map.
+
+| Tier | `opts.model` | Used for |
+|------|--------------|----------|
+| `deep` | **omitted** (inherit the session model) | implement, verify, analysis — the default |
+| `balanced` | `sonnet` | mid-weight leaf, explicit manual opt-in only |
+| `cheap` | `haiku` | a pure exploration leaf: read / load / parse / detect |
+
+Two hard rules:
+
+- **No pin-up.** `deep` is an omission, not `model: 'opus'`. Omitting lets a
+  leaf inherit whatever the session runs — Opus by default, Sonnet if the user
+  chose Sonnet. Pinning a fixed high tier would override that and could silently
+  downgrade a Sonnet/Opus session's heavy leaf.
+- **Only exploration downgrades.** A leaf is pinned to `cheap` only when it is
+  unambiguous read/extract work. `classifyLeaf` keys off the LABEL (the prompt
+  is too noisy — an exploration leaf often says "report what you found").
+  Protected types (implementation / verification / analysis) and any unknown
+  label default to `deep`.
+
+The classifier is permissive (it labels by keyword), so it is a FLOOR, not a
+ceiling: the linter forbids downgrading a protected leaf, but it does not force
+every exploration-labelled leaf to downgrade. Author judgment decides the actual
+downgrade — keep an exploration-labelled leaf on `deep` when any of these hold,
+even if the label reads like a plain read:
+
+- it embeds a HALT/prerequisite gate or a classification judgment
+  (`detect-mode`, a `load-context` that gates on missing inputs);
+- its output feeds a downstream gate or score and is NOT re-read later
+  (`document-discovery` picks the doc version a readiness gate then analyses;
+  the two `discover-tests` leaves feed a coverage/quality score and a
+  PASS/CONCERNS/FAIL gate);
+- it performs an EXACT conversion consumed verbatim downstream
+  (`parse-epics` derives kebab keys that must match the status build exactly —
+  one mis-kebab is unrecoverable).
+
+These cases were surfaced by an adversarial review pass (three skeptics voting
+on each candidate); the safe set ended at the leaves that are genuinely a read
+with a forgiving or re-read consumer (`load-story`, the excalidraw
+`load-resources`). Blast radius outweighs the token saving on the rest.
+
+Enforcement (because the in-session hooks do not fire inside a script):
+
+- `workflows-lint.js` -> `modelRoutingViolations` rejects (a) a `model:` value
+  that is not a known downgrade tier, (b) a downgrade on a non-exploration leaf
+  (`protected-leaf-downgraded`), (c) a downgrade with no in-object label.
+  It is part of `validateContract`, so `byan-lint-workflows` and the pre-commit
+  gate enforce it.
+- `test/native-routing-integration.test.js` pins the invariant on the SHIPPED
+  scripts: every script passes the contract, and every downgrade sits on an
+  exploration leaf.
+
+If a future runtime needs full model ids instead of the `haiku`/`sonnet`
+aliases, `TIER_MODEL` in `native-tiers.js` is the only edit; the linter then
+flags every script literal that drifts from it, so the fan-out stays bounded.
