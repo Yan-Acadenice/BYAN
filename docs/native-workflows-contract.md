@@ -146,3 +146,37 @@ Enforcement (because the in-session hooks do not fire inside a script):
 If a future runtime needs full model ids instead of the `haiku`/`sonnet`
 aliases, `TIER_MODEL` in `native-tiers.js` is the only edit; the linter then
 flags every script literal that drifts from it, so the fan-out stays bounded.
+
+## Model-suitability ledger — an advisory learning layer above the floor
+
+The routing above is a STATIC floor: it does not downgrade a protected leaf, and
+the safe exploration set is fixed by author judgment. The suitability ledger is
+an optional learning layer that sits ABOVE that floor. It records, per
+`(model x leaf)`, whether a cheap model proved adequate, and advises whether a
+downgrade should be kept, watched, or demoted. It does not edit routing and does
+not touch the linter floor — a human reads its advice and decides.
+
+| Piece | File | Role |
+|-------|------|------|
+| Math | `lib/suitability.js` | Beta-Bernoulli posterior, pure + deterministic (no clock/RNG/IO); verdict from the credible interval |
+| Store | `lib/suitability-store.js` | the only write path; atomic tmp+rename; best-effort no-op on a failed write |
+| Feeder | `lib/suitability-feeder.js` | adversarial-panel verdict -> binary outcome (at least half refute = flagged) |
+| Tools | `byan_suitability_record` / `byan_suitability_report` | MCP surface (record is the sole state-write entry) |
+| CLI | `bin/byan-suitability.js` | read-only advisory report |
+| Skill | `.claude/skills/byan-suitability/SKILL.md` | the hybrid wiring (script returns DATA, skill records via MCP) |
+
+The verdict reads the credible LOWER bound, not the point estimate: `keep-cheap`
+needs the lower bound at or above 0.85 (roughly 30 clean outcomes), `demote`
+needs the upper bound at or below 0.70, and anything thinner stays `watch`. So a
+high mean on a small sample reads as `watch` rather than `keep-cheap`.
+
+The state-coupling rule still holds: a workflow script cannot write the ledger
+(the sandbox forbids it). The adversarial pass returns its per-leaf verdicts as
+DATA; the orchestrating skill maps them with `verdictsToOutcomes` and records
+each via `byan_suitability_record` on a main-thread turn. Auto-promotion is a
+deferred phase-2 capability, held back so a streak cannot slip a downgrade past
+human review.
+
+Short-term, with only a handful of already-cheap exploration leaves, the ledger
+yields little actionable signal — it is an evidence rail for when the leaf-set
+grows, not an immediate token win.

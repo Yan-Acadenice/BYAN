@@ -20,6 +20,11 @@ import {
   ALL_PHASES as FD_PHASES,
 } from './lib/fd-state.js';
 import {
+  record as suitabilityRecord,
+  reportLedger as suitabilityReport,
+  ledgerPath as suitabilityLedgerPath,
+} from './lib/suitability-store.js';
+import {
   requestReview,
   recordVerdict,
   getReview,
@@ -501,6 +506,37 @@ const tools = [
     inputSchema: {
       type: 'object',
       properties: { reason: { type: 'string' } },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_suitability_record',
+    description:
+      'Record one adequacy outcome for a (model x leaf) pair into the model-suitability ledger (advisory only). success=true means the cheap model was adequate on this leaf; false means it was not. Best-effort: a persistence failure degrades to { recorded: false } and never throws. This is the ONLY write path to the ledger (workflow scripts cannot write state).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        model: { type: 'string', description: 'Model tier/id the leaf ran on (e.g. haiku).' },
+        leafId: { type: 'string', description: 'Stable leaf label (e.g. load-story).' },
+        success: {
+          type: 'boolean',
+          description: 'true = cheap model adequate on this leaf; false = inadequate.',
+        },
+        source: { type: 'string', description: 'Optional provenance tag (e.g. adversarial-pass).' },
+      },
+      required: ['model', 'leafId', 'success'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_suitability_report',
+    description:
+      'Read the model-suitability ledger as advisory ratings (most-actionable first). Each row carries the credible LOWER bound and the sample size n, never a bare point estimate, plus a verdict keep-cheap | watch | demote. ADVISORY ONLY: it never edits routing; a human decides. Optional model filter.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        model: { type: 'string', description: 'Optional: restrict to this model tier/id.' },
+      },
       additionalProperties: false,
     },
   },
@@ -1318,6 +1354,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'byan_fd_abort') {
       const state = fdAbort({ reason: args.reason });
       return { content: [{ type: 'text', text: JSON.stringify(state, null, 2) }] };
+    }
+
+    if (name === 'byan_suitability_record') {
+      const r = suitabilityRecord({
+        model: args.model,
+        leafId: args.leafId,
+        success: args.success,
+        source: args.source,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_suitability_report') {
+      const rows = suitabilityReport({ model: args.model });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ ledger: suitabilityLedgerPath(), advisory: true, rows }, null, 2),
+          },
+        ],
+      };
     }
 
     if (name === 'byan_strict_lock_scope') {

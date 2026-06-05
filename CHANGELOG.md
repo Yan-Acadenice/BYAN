@@ -33,6 +33,27 @@ the Workflow tool's `opts.model` lever, conservatively.
 - **Regression guard** `test/native-routing-integration.test.js` pins the invariant
   on the shipped scripts. Contract documented in `docs/native-workflows-contract.md`.
 
+### Added - Model-suitability ledger (advisory learning layer above the routing floor)
+
+The static routing floor does not widen itself. The suitability ledger learns,
+per `(model x leaf)`, whether a cheap model proved adequate, and advises keep /
+watch / demote — above the floor, with a human deciding. It does not edit routing
+and the linter floor stays the hard gate.
+
+- **Math** `_byan/mcp/byan-mcp-server/lib/suitability.js`: a Beta-Bernoulli
+  posterior, pure and deterministic (no clock/RNG/IO). The verdict reads the
+  credible LOWER bound, so a thin sample stays `watch` (a high mean over 3 runs
+  is not `keep-cheap`); `keep-cheap` needs roughly 30 clean outcomes.
+- **Store** `lib/suitability-store.js`: the sole write path, atomic tmp+rename,
+  best-effort no-op that does not throw or corrupt the ledger on a failed write.
+- **Feeder** `lib/suitability-feeder.js`: maps an adversarial-panel verdict to a
+  binary outcome (at least half refute = flagged).
+- **MCP tools** `byan_suitability_record` / `byan_suitability_report`, **CLI**
+  `bin/byan-suitability.js` (read-only), and **skill** `byan-suitability` (the
+  hybrid wiring: the script returns DATA, the skill records via MCP).
+- 38 unit tests. Auto-promotion is deferred (phase 2) so a hot-hand streak cannot
+  slip a downgrade past human review.
+
 ## [2.20.1] - 2026-06-04
 
 ### Fixed - Post-audit hotfix (adversarial self-audit of 2.20.0)
