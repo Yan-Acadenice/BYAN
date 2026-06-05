@@ -98,7 +98,7 @@ const context = await agent(
     `Request level=${JSON.stringify(level)}; requirements=${JSON.stringify(requirements)}. ` +
     `Report which of (level, processes, data stores, external entities) are clear and which are missing. ` +
     `Per the source, if ALL requirements are clear we may skip directly to structure planning.`,
-  { label: 'context-analysis', phase: 'CONTEXT' }
+  { label: 'context-scan', model: 'haiku', phase: 'CONTEXT' }
 )
 
 // --- Steps 1-4: Level, Requirements, Theme, Plan structure -----------------

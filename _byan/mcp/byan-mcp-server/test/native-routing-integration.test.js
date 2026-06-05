@@ -62,6 +62,10 @@ test('every model: downgrade in a shipped script sits on an exploration leaf', (
       );
     }
   }
-  // The feature must actually be applied somewhere, not silently a no-op.
-  assert.ok(downgrades >= 1, 'expected at least one exploration leaf to be downgraded');
+  // The feature must actually be applied, not silently a no-op. The floor tracks
+  // the known downgraded set: 5 original (dev-story:load-story + 4 excalidraw
+  // load-resources) + 6 from widen-safe-downgrades (document-project scan-existing-docs
+  // & source-tree, plus the 4 excalidraw context-read leaves) = 11. A revert that
+  // drops below this is a deliberate edit and must move the floor with it.
+  assert.ok(downgrades >= 11, `expected the 11 known exploration downgrades, found ${downgrades}`);
 });

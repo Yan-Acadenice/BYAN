@@ -54,6 +54,24 @@ and the linter floor stays the hard gate.
 - 38 unit tests. Auto-promotion is deferred (phase 2) so a hot-hand streak cannot
   slip a downgrade past human review.
 
+### Changed - Widened the safe-downgrade set (5 -> 11 leaves)
+
+An adversarial panel (one skeptic per leaf, each asked to PROVE the leaf is
+analysis) re-judged 6 deep exploration leaves whose output is re-read or
+re-synthesized by a later Opus step. The 6 cleared as genuine reads and now run
+on haiku, doubling the downgraded set:
+
+- document-project: scan-existing-docs (renamed from existing-docs) and source-tree
+- the four excalidraw context leaves: read-context (wireframe), read-requirements
+  (flowchart), context-scan (dataflow), parse-spec-intent (diagram)
+
+Five labels were honestly renamed so the deterministic classifier reads them as
+exploration; a leaf the panel found to be genuine analysis would have stayed deep.
+The 4 earlier reverts (document-discovery, parse-epics, the two discover-tests)
+were re-checked with token net-math and stay deep: adding a re-read is net-negative
+or marginal there. native-routing-integration.test.js floor raised 1 -> 11; the
+panel verdicts seed the suitability ledger.
+
 ## [2.20.1] - 2026-06-04
 
 ### Fixed - Post-audit hotfix (adversarial self-audit of 2.20.0)

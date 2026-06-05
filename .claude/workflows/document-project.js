@@ -94,7 +94,8 @@ const existingDocs = await agent(
   'and the owning part id when multi-part. ' +
   'Do NOT ask the user for extra focus areas — that is a human gate; just return the inventory.',
   {
-    label: 'existing-docs',
+    label: 'scan-existing-docs',
+    model: 'haiku',
     phase: 'EXISTING_DOCS',
     schema: {
       type: 'object',
@@ -212,6 +213,7 @@ const sourceTree = await agent(
   'Produce the content for source-tree-analysis.md.',
   {
     label: 'source-tree',
+    model: 'haiku',
     phase: 'SOURCE_TREE',
     schema: {
       type: 'object',

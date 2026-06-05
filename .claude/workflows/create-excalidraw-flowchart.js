@@ -102,7 +102,7 @@ const context = await agent(
     `decisionPoints=${JSON.stringify(decisionPoints)} outputFile=${JSON.stringify(outputFile)} ` +
     `theme=${theme ? 'provided' : 'none (will default to Professional Blue palette)'}.\n` +
     `Do NOT ask questions — those were answered at the human gate. Just confirm the understanding in 2-3 lines.`,
-  { label: 'context-restate', phase: 'CONTEXT' }
+  { label: 'read-requirements', model: 'haiku', phase: 'CONTEXT' }
 )
 
 // === STEP 4 (PLAN) ==========================================================

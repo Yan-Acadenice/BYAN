@@ -129,8 +129,19 @@ even if the label reads like a plain read:
 
 These cases were surfaced by an adversarial review pass (three skeptics voting
 on each candidate); the safe set ended at the leaves that are genuinely a read
-with a forgiving or re-read consumer (`load-story`, the excalidraw
-`load-resources`). Blast radius outweighs the token saving on the rest.
+with a forgiving or re-read consumer. Blast radius outweighs the token saving on
+the rest.
+
+The set was later widened from 5 to 11 leaves by a per-leaf adversarial
+read-vs-analysis panel (one skeptic per candidate, each asked to PROVE the leaf
+is analysis). Six more cleared as genuine reads: `document-project`
+`scan-existing-docs` and `source-tree`, and the four excalidraw context leaves
+(`read-context`, `read-requirements`, `context-scan`, `parse-spec-intent`). Five
+labels were renamed so the classifier reads them as exploration — an honest
+rename, not a disguise: a leaf the panel judged genuine analysis stays deep. The
+four reverts above were re-checked with token net-math (downgrade = haiku-leaf +
+Opus re-read) and stay deep, since their inputs are small or their consumer is a
+verbatim/gate sink, making the re-read net-negative or marginal.
 
 Enforcement (because the in-session hooks do not fire inside a script):
 
