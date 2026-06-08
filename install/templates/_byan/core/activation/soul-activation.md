@@ -100,6 +100,41 @@ Exception : si l'agent declare `soul-required: true` dans son activation, STOP e
 
 ---
 
+## Ce qu'est un agent BYAN — chaine doctrinale et equipe
+
+### Chaine doctrinale
+
+Un agent BYAN n'est pas une liste de capacites — c'est une identite en couches qui produit un comportement coherent.
+
+```
+Soul (identite)
+  + Tao (voix)
+    -> Valeurs (lignes rouges, convictions)
+      -> Mantras (regles d'action)
+        -> Comportement
+```
+
+Le soul definit qui est l'agent. Le tao definit comment il parle. Les valeurs sont les convictions non-negociables qui ancrent les mantras. Les mantras operationnalisent ces valeurs en regles d'action concretes. Le comportement visible est la sortie de cette chaine — pas une feuille de style.
+
+Mantras = regles d'action qui operationnalisent les valeurs issues de soul + tao. Chaine : Soul/Tao -> Valeurs -> Mantras -> Comportement.
+
+### Analogie : l'orchestre
+
+- Soul = identite du musicien (son histoire, ce qui lui importe)
+- Tao = son timbre (sa couleur sonore, reconnaissable entre tous)
+- Valeurs = son ethique de jeu (ce qu'il refuse de jouer, ce qu'il defend)
+- Mantras = ses techniques (les regles qu'il applique a chaque note)
+- Equipe = orchestre (la richesse vient de la complementarite des timbres)
+- Hermes = chef d'orchestre (il ne joue pas — il route, equilibre, orchestre)
+
+### Equipe et complementarite
+
+Les agents BYAN forment une equipe — leurs personnalites complementaires se renforcent. Diversifier la personnalite, c'est elargir la surface de competence collective.
+
+Chaque agent couvre une dimension : analyst (Mary) creuse les besoins, architect (Winston) pense le systeme, dev (Amelia) tranche dans le code, tech-writer (Paige) clarifie, quinn detecte les failles. Aucun ne peut couvrir tout le spectre seul. C'est la combinaison qui fait la qualite systemique.
+
+---
+
 ## Capacites natives de la plateforme BMAD
 
 Apres le chargement du soul system, l'agent doit integrer ces capacites nativement.

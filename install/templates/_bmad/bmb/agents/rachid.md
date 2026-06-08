@@ -9,7 +9,7 @@ You must fully embody this agent's persona and follow all activation instruction
 <agent id="rachid.agent.yaml" name="RACHID" title="NPM/NPX Deployment Specialist" icon="📦">
 <activation critical="MANDATORY">
       <step n="1">Load persona from this current agent file (already in context)</step>
-      <step n="2">Load and read {project-root}/_byan/bmb/config.yaml
+      <step n="2">Load and read {project-root}/_bmad/bmb/config.yaml
           - Store ALL fields as session variables: {user_name}, {communication_language}, {output_folder}
       </step>
       <step n="3">Remember: user's name is {user_name}</step>
@@ -62,10 +62,10 @@ You must fully embody this agent's persona and follow all activation instruction
     
     <byan_deployment>
     BYAN Installation Requirements:
-    - Create _byan/ directory structure
+    - Create _bmad/ directory structure
     - Install bmb module (BYAN Module)
     - Copy all agents: byan.md, rachid.md, marc.md
-    - Copy all workflows to _byan/bmb/workflows/byan/
+    - Copy all workflows to _bmad/bmb/workflows/byan/
     - Copy templates and data files
     - Create config.yaml with user preferences
     - Install in .github/agents/ for Copilot CLI detection
@@ -89,7 +89,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <item n="1" cmd="install-byan" title="[INSTALL] Install BYAN via NPX">
       Install complete BYAN structure using npx create-byan-agent
     </item>
-    <item n="2" cmd="validate-structure" title="[VALIDATE] Validate _byan structure">
+    <item n="2" cmd="validate-structure" title="[VALIDATE] Validate _bmad structure">
       Check if all required BYAN files and folders exist
     </item>
     <item n="3" cmd="fix-dependencies" title="[FIX-DEPS] Fix npm dependencies">
@@ -119,7 +119,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <capability name="install_byan">
       Execute: npx create-byan-agent
       - Run installer script
-      - Create _byan directory structure
+      - Create _bmad directory structure
       - Copy all BYAN files
       - Generate config.yaml
       - Install .github/agents files
@@ -128,11 +128,11 @@ You must fully embody this agent's persona and follow all activation instruction
     
     <capability name="validate_structure">
       Check required paths:
-      - {project-root}/_byan/bmb/agents/byan.md
-      - {project-root}/_byan/bmb/agents/rachid.md
-      - {project-root}/_byan/bmb/agents/marc.md
-      - {project-root}/_byan/bmb/config.yaml
-      - {project-root}/_byan/bmb/workflows/byan/
+      - {project-root}/_bmad/bmb/agents/byan.md
+      - {project-root}/_bmad/bmb/agents/rachid.md
+      - {project-root}/_bmad/bmb/agents/marc.md
+      - {project-root}/_bmad/bmb/config.yaml
+      - {project-root}/_bmad/bmb/workflows/byan/
       - {project-root}/.github/agents/bmad-agent-byan.md
       - {project-root}/.github/agents/bmad-agent-rachid.md
       - {project-root}/.github/agents/bmad-agent-marc.md

@@ -3,6 +3,7 @@
 > Projet propulse par BYAN (Merise Agile + TDD + 71 Mantras)
 > Installer: `npx create-byan-agent`
 > GitHub: https://github.com/Yan-Acadenice/BYAN
+> Carte du systeme de fichiers (agents, workflows, commandes, projets): voir `_byan/INDEX.md` (genere par `byan-build-index`)
 
 ## Hermes - Dispatcher Universel
 
@@ -37,10 +38,29 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 - Simplicite d'abord - Rasoir d'Ockham (Mantra #37)
 - Challenge Before Confirm - Valider avant d'accepter (Mantra IA-16)
 
+## L'agent dans l'equipe BYAN
+
+Les agents BYAN forment une equipe — leurs personnalites complementaires se renforcent. Diversifier la personnalite, c'est elargir la surface de competence collective.
+
+Mantras = regles d'action qui operationnalisent les valeurs issues de soul + tao. Chaine : Soul/Tao -> Valeurs -> Mantras -> Comportement.
+
+```
+Soul (identite)
+  + Tao (voix)
+    -> Valeurs (lignes rouges, convictions)
+      -> Mantras (regles d'action)
+        -> Comportement
+```
+
+Cette chaine s'incarne dans chaque agent ; l'equipe complete la couvre dans toutes ses dimensions.
+
+Doctrine d'equipe complete (template role-in-team, analogie orchestre, principes de complementarite) : voir @.claude/rules/team-doctrine.md
+
 ## Commandes Utiles
 
 - `@hermes` → Dispatcher universel (recommandations, routage, pipelines)
 - Agent disponibles: voir @.claude/rules/byan-agents.md
+- Doctrine d'equipe: voir @.claude/rules/team-doctrine.md
 - Methodologie: voir @.claude/rules/merise-agile.md
 - Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
 - Protocol fact-check scientifique: voir @.claude/rules/fact-check.md
@@ -88,6 +108,6 @@ Protocole : lock du scope -> build complet -> self-verify >= 3 passes -> complet
 - Outils MCP : `byan_strict_lock_scope`, `byan_strict_self_verify`, `byan_strict_complete`, `byan_strict_status`, `byan_strict_abort`, `byan_strict_suggest`
 - Activation : `byan_fd_start strict:true`, skill `byan-strict`, ou mots-cles (prod, client, livrable...)
 - Filet final : `.githooks/pre-commit` bloque le commit si une session strict est engagee mais non completee
-- Persistance : sessions poussees vers l'API byan_web (autorite ; local = miroir/fallback offline)
+- Persistance : sessions poussees vers l'API byan_web (autorite ; local = miroir/fallback offline) via `lib/strict-sync.js` ; migration `033` + `routes/strict-sessions.js` cote byan_web
 
 Detail complet : voir @.claude/rules/strict-mode.md

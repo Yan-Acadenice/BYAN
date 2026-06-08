@@ -87,7 +87,7 @@ const context = await agent(
     `device=${JSON.stringify(device)}, theme=${JSON.stringify(theme)}, output=${JSON.stringify(outputFile)}.\n` +
     `Restate these requirements cleanly and flag any that are still ambiguous (do NOT ask the user — ` +
     `this engine runs headless; surface ambiguity as a note for the gate).`,
-  { label: 'context', phase: 'CONTEXT' }
+  { label: 'read-context', model: 'haiku', phase: 'CONTEXT' }
 )
 
 // --- STEP 5: Plan Wireframe Structure --------------------------------------
@@ -110,7 +110,7 @@ const resources = await agent(
     `- the chosen theme: ${JSON.stringify(theme)} (use a theme.json if one exists).\n` +
     `Summarize the wireframe template primitives, the relevant library elements, the theme color tokens, ` +
     `and the element-creation constraints from helpers (grid 20px, containerId on text, grouping).`,
-  { label: 'load-resources', phase: 'LOAD' }
+  { label: 'load-resources', phase: 'LOAD', model: 'haiku' }
 )
 
 // --- STEP 7: Build Wireframe Elements --------------------------------------

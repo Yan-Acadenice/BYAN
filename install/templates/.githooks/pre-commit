@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# BYAN pre-commit hook. Three gates run in order:
+# BYAN pre-commit hook. Four gates run in order:
 #   1. Strict Mode gate  : block if a strict session is engaged but not completed.
 #   2. Native-workflow lint : block if a .claude/workflows/*.js couples to state.
-#   3. Mantra floor      : block if a Gen3 persona source scores below the floor.
+#   3. Template fidelity : block if install/templates/ drifted from root.
+#   4. Mantra floor      : block if a Gen3 persona source scores below the floor.
 #
 # Install :
 #   git config core.hooksPath .githooks
@@ -59,6 +60,23 @@ if [ -f "$WF_LINT" ]; then
     echo "Commit blocked : native workflow script couples to BYAN state internals."
     echo "Use the byan_fd_* / byan_strict_* MCP tools instead of importing lib/fd-state.js."
     echo "Bypass with 'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
+# Template fidelity gate — only install/templates/ ships on npm (package.json
+# files[]), but the dev code lives at root _byan/ and .claude/. Without a sync the
+# template drifts, and a published version can promise features its package does
+# not contain. This gate blocks a commit whose template has drifted from root on
+# any mirrored path; runtime seeds under _byan/memoire/ are excluded. Re-sync with
+# the apply command, then restage. No-op if the tool is absent.
+TEMPLATE_SYNC="_byan/mcp/byan-mcp-server/bin/byan-sync-template.js"
+if [ -f "$TEMPLATE_SYNC" ]; then
+  if ! node "$TEMPLATE_SYNC" --check --root "$(git rev-parse --show-toplevel)"; then
+    echo ""
+    echo "Commit blocked : install/templates/ has drifted from root."
+    echo "Re-sync with 'node $TEMPLATE_SYNC' then restage the template, or bypass"
+    echo "with 'git commit --no-verify' (emergency only)."
     exit 1
   fi
 fi

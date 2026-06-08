@@ -437,7 +437,7 @@ def validate_mantra_IA_24(agent_spec):
 ### Step 5: BMAD Format Compliance
 
 ```python
-def validate_byan_format(agent_spec):
+def validate_bmad_format(agent_spec):
     issues = []
     
     # Check required sections

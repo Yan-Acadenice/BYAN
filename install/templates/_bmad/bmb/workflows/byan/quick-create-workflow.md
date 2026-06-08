@@ -197,7 +197,7 @@ def suggest_mantras(role, capabilities):
 
 If user says "show-all":
 ```
-"Full list of 64 mantras available in {project-root}/_byan-output/guide-reference-rapide-merise-agile-tdd.md
+"Full list of 64 mantras available in {project-root}/_bmad-output/guide-reference-rapide-merise-agile-tdd.md
 
 Or I can list them here by category:
 1. Show Conception Mantras (39)
@@ -307,7 +307,7 @@ Try again? (yes/no)"
 
 AGENT: {agent_name}
 STATUS: Validated and ready for file generation
-LOCATION: _byan/{module}/agents/{agent_name}.md (pending generation)
+LOCATION: _bmad/{module}/agents/{agent_name}.md (pending generation)
 
 NEXT STEPS:
 1. Generate agent file for platform

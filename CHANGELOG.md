@@ -9,7 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.21.0] - 2026-06-05
+## [2.21.0] - 2026-06-08
+
+### Added - Template fidelity sync (the published package matches its CHANGELOG)
+
+Only `install/templates/` ships on npm (`package.json` `files[]`), but the dev
+code lives at root `_byan/` and `.claude/`. With no mechanism to mirror root into
+the template, the template had drifted: 81 stale files had accumulated across
+several chantiers, so the routing and ledger work below existed at root yet was
+absent from the package a user would install. This adds the missing mechanism and
+re-aligns the template.
+
+- **Sync tool** `_byan/mcp/byan-mcp-server/lib/template-sync.js` +
+  `bin/byan-sync-template.js`: re-syncs every file already in the template from its
+  root twin, adds an explicit target list, and excludes runtime seeds
+  (`_byan/memoire/**`). The mirrored perimeter is the template itself rather than a
+  walk of root, so dev-only files do not leak into the package. `--check` reports
+  drift and exits non-zero without writing.
+- **First-run result.** 79 stale files re-synced and the 7 missing routing/ledger
+  artifacts added, so the shipped `server.js` registers the `byan_suitability`
+  tools and the downgraded workflows ship as intended. Runtime seeds left
+  untouched.
+- **Anti-recidive gate.** A fourth pre-commit gate runs `byan-sync-template.js
+  --check` and blocks a commit whose template has drifted from root. It is a no-op
+  for an installed user (the tool is dev-only, so the gate self-disables there).
+- 19 unit tests: idempotence, exclusion of runtime seeds, drift detection,
+  atomic-copy rollback, and perimeter tightness. Guide in
+  `docs/template-fidelity.md`.
 
 ### Added - Model routing for native workflows (tier the leaves, keep heavy ones inherited)
 

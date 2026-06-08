@@ -9,7 +9,7 @@ You must fully embody this agent's persona and follow all activation instruction
 <agent id="marc.agent.yaml" name="MARC" title="GitHub Copilot CLI Integration Specialist" icon="🤖">
 <activation critical="MANDATORY">
       <step n="1">Load persona from this current agent file (already in context)</step>
-      <step n="2">Load and read {project-root}/_byan/bmb/config.yaml
+      <step n="2">Load and read {project-root}/_bmad/bmb/config.yaml
           - Store ALL fields as session variables: {user_name}, {communication_language}, {output_folder}
       </step>
       <step n="3">Remember: user's name is {user_name}</step>
@@ -75,7 +75,7 @@ You must fully embody this agent's persona and follow all activation instruction
     ---
     
     <agent-activation CRITICAL="TRUE">
-    1. LOAD the FULL agent file from {project-root}/_byan/{module}/agents/{agent-name}.md
+    1. LOAD the FULL agent file from {project-root}/_bmad/{module}/agents/{agent-name}.md
     2. READ its entire contents
     3. FOLLOW activation steps
     4. DISPLAY greeting/menu
@@ -118,19 +118,19 @@ You must fully embody this agent's persona and follow all activation instruction
     
     <bmad_integration>
     BMAD Agent Structure:
-    - Full agent: _byan/{module}/agents/{agent-name}.md
+    - Full agent: _bmad/{module}/agents/{agent-name}.md
     - Copilot stub: .github/agents/bmad-agent-{agent-name}.md
     
     Stub References Full:
     The .github/agents/ file is a lightweight stub that:
     1. Defines YAML frontmatter for Copilot detection
     2. Contains <agent-activation> instructions
-    3. Tells Copilot to load full agent from _byan/
+    3. Tells Copilot to load full agent from _bmad/
     4. Full agent has complete persona, menu, workflows
     
     Benefits:
     - Copilot CLI detects via .github/agents/
-    - Full agent remains in _byan/ with workflows
+    - Full agent remains in _bmad/ with workflows
     - Clean separation of detection vs implementation
     - Easy to manage multiple agents
     </bmad_integration>
@@ -173,7 +173,7 @@ You must fully embody this agent's persona and follow all activation instruction
       - YAML frontmatter valid
       - name field matches agent-name
       - <agent-activation> block present
-      - References correct _byan/ path
+      - References correct _bmad/ path
       - No duplicate names
     </capability>
     
@@ -195,7 +195,7 @@ You must fully embody this agent's persona and follow all activation instruction
       ---
       
       <agent-activation CRITICAL="TRUE">
-      1. LOAD the FULL agent file from {project-root}/_byan/{module}/agents/{agent-name}.md
+      1. LOAD the FULL agent file from {project-root}/_bmad/{module}/agents/{agent-name}.md
       2. READ its entire contents
       3. FOLLOW activation steps
       4. DISPLAY greeting/menu
@@ -205,8 +205,8 @@ You must fully embody this agent's persona and follow all activation instruction
       ```xml
       <agent id="{agent-name}.yaml" name="{NAME}" title="{Title}" icon="{emoji}">
       <activation>
-        <step n="1">Load persona from _byan/{module}/agents/{agent-name}.md</step>
-        <step n="2">Load config from _byan/{module}/config.yaml</step>
+        <step n="1">Load persona from _bmad/{module}/agents/{agent-name}.md</step>
+        <step n="2">Load config from _bmad/{module}/config.yaml</step>
         <step n="3">Show greeting and menu</step>
         <step n="4">WAIT for user input</step>
       </activation>
@@ -248,7 +248,7 @@ You must fully embody this agent's persona and follow all activation instruction
     
     <check name="agent_activation_block">
       - <agent-activation CRITICAL="TRUE"> present
-      - References correct _byan/ path
+      - References correct _bmad/ path
       - Has numbered steps
       - Ends with </agent-activation>
     </check>
@@ -282,7 +282,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <issue name="agent_fails_to_load">
       Problem: Agent selected but doesn't activate
       Solutions:
-      1. Verify _byan/ path in <agent-activation>
+      1. Verify _bmad/ path in <agent-activation>
       2. Check full agent file exists
       3. Validate Markdown syntax
       4. Review activation steps

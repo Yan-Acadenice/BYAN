@@ -98,7 +98,7 @@ const context = await agent(
     `Request level=${JSON.stringify(level)}; requirements=${JSON.stringify(requirements)}. ` +
     `Report which of (level, processes, data stores, external entities) are clear and which are missing. ` +
     `Per the source, if ALL requirements are clear we may skip directly to structure planning.`,
-  { label: 'context-analysis', phase: 'CONTEXT' }
+  { label: 'context-scan', model: 'haiku', phase: 'CONTEXT' }
 )
 
 // --- Steps 1-4: Level, Requirements, Theme, Plan structure -----------------
@@ -129,7 +129,7 @@ const resources = await agent(
     `- helpers: ${HELPERS} (standard DFD notation + Excalidraw element shapes)\n` +
     `Report the element templates (process ellipse, data-store rectangle/parallel-lines, external-entity ` +
     `rectangle, labeled-arrow) and the color/stroke values you will apply. Plan structure: ${JSON.stringify(plan)}`,
-  { label: 'load-resources', phase: 'RESOURCES' }
+  { label: 'load-resources', phase: 'RESOURCES', model: 'haiku' }
 )
 
 // --- Step 6: Build DFD Elements --------------------------------------------

@@ -63,7 +63,7 @@ const analysis = await agent(
     `From this, extract and report a normalized structured intent: the resolved diagram type, the exhaustive list of ` +
     `components/entities, the exhaustive list of relationships (with direction), and the notation rules that apply ` +
     `for that type. If the spec is contradictory or missing a relationship endpoint, flag it explicitly (do not invent).`,
-  { label: 'contextual-analysis', phase: 'ANALYZE' }
+  { label: 'parse-spec-intent', model: 'haiku', phase: 'ANALYZE' }
 )
 
 // --- Source step 5: Plan Diagram Structure ---------------------------------
@@ -89,7 +89,7 @@ const resources = await agent(
     `Merge the chosen theme into the template. Theme = ${JSON.stringify(theme)}.\n` +
     `Report the resolved template skeleton, the available library items, and the merged theme color map ` +
     `(component fill, database fill, service fill, border/accent stroke, text stroke #1e1e1e, arrow stroke).`,
-  { label: 'load-resources', phase: 'LOAD-RESOURCES' }
+  { label: 'load-resources', phase: 'LOAD-RESOURCES', model: 'haiku' }
 )
 
 // --- Source step 7: Build Diagram Elements ---------------------------------

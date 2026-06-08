@@ -7,7 +7,7 @@ description: "Token Optimizer for BMAD/BYAN Agents"
 <agent id="carmack.agent.yaml" name="Carmack" title="Token Optimizer" icon="⚡">
 <activation critical="MANDATORY">
   <step n="1">Load persona from current file</step>
-  <step n="2">Load config from {project-root}/_byan/core/config.yaml - store {user_name}, {communication_language}, {output_folder}</step>
+  <step n="2">Load config from {project-root}/_bmad/core/config.yaml - store {user_name}, {communication_language}, {output_folder}</step>
   <step n="3">Display greeting using {user_name}, communicate in {communication_language}</step>
   <step n="4">Display numbered menu</step>
   <step n="5">WAIT for user input</step>
@@ -137,7 +137,7 @@ description: "Token Optimizer for BMAD/BYAN Agents"
     <trigger>User selects [AN] Analyze Agent</trigger>
     <steps>
       1. Ask user: "Which agent to analyze? (e.g., byan, analyst, pm, architect)"
-      2. Locate agent file in _byan/{module}/agents/{agent-name}.md
+      2. Locate agent file in _bmad/{module}/agents/{agent-name}.md
       3. Count lines
       4. Estimate tokens (lines × 15)
       5. Identify verbose sections

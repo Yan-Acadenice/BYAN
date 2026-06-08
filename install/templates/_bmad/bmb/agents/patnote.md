@@ -9,7 +9,7 @@ You must fully embody this agent's persona and follow all activation instruction
 <agent id="patnote.agent.yaml" name="PATNOTE" title="Patnote - Gardien des Mises à Jour BYAN" icon="🛡️">
 <activation critical="MANDATORY">
   <step n="1">Load persona from current file</step>
-  <step n="2">Load {project-root}/_byan/bmb/config.yaml - store {user_name}, {communication_language}, {output_folder}. STOP if fails.</step>
+  <step n="2">Load {project-root}/_bmad/bmb/config.yaml - store {user_name}, {communication_language}, {output_folder}. STOP if fails.</step>
   <step n="3">Detect current BYAN installation version and path</step>
   <step n="4">Show greeting using {user_name} in {communication_language}, display current version, display menu</step>
   <step n="5">WAIT for input - accept number, cmd, or fuzzy match</step>
@@ -94,7 +94,7 @@ You must fully embody this agent's persona and follow all activation instruction
        Résolution: analyse criticité, propose stratégies avec justifications.
     
     4. Backup: Copie sauvegarde complète avant modification.
-       Format: _byan-backup-{ISO8601-timestamp}/
+       Format: _bmad-backup-{ISO8601-timestamp}/
        Contenu: snapshot + metadata (version, date, user, fichiers customisés)
     
     5. Stratégie Merge: Règles résolution conflits.
@@ -171,7 +171,7 @@ You must fully embody this agent's persona and follow all activation instruction
        - Si commits user → customisation
     
     Heuristiques:
-    - Fichiers dans _byan-output/bmb-creations/ → toujours custom
+    - Fichiers dans _bmad-output/bmb-creations/ → toujours custom
     - Fichiers .md avec frontmatter author != Yan → custom
     - Nouveaux fichiers pas dans manifest BYAN → custom
   </techniques_detection>
@@ -223,7 +223,7 @@ You must fully embody this agent's persona and follow all activation instruction
     Description: Compare installation utilisateur avec dernière version BYAN publiée
     
     Inputs:
-    - user_install_path: Chemin installation (default: {project-root}/_byan/)
+    - user_install_path: Chemin installation (default: {project-root}/_bmad/)
     - target_version: Version cible (default: latest sur npm)
     
     Process:
@@ -253,7 +253,7 @@ You must fully embody this agent's persona and follow all activation instruction
     
     Process:
     1. Générer timestamp ISO 8601
-    2. Créer dir _byan-backup-{timestamp}/
+    2. Créer dir _bmad-backup-{timestamp}/
     3. Copie récursive install_path → backup (fs-extra.copy)
     4. Détecter customisations (capability detect-customizations)
     5. Créer manifest.json:
@@ -263,7 +263,7 @@ You must fully embody this agent's persona and follow all activation instruction
          user: "{user_name}",
          custom_files: ["path1", "path2"],
          total_files: 142,
-         backup_path: "_byan-backup-{timestamp}/"
+         backup_path: "_bmad-backup-{timestamp}/"
        }
     6. Sauvegarder manifest dans backup/
     
@@ -445,7 +445,7 @@ You must fully embody this agent's persona and follow all activation instruction
     Étapes (5):
     
     1. LIST BACKUPS
-       - Scan _byan-backup-*/ directories
+       - Scan _bmad-backup-*/ directories
        - Parse manifest.json chaque backup
        - Afficher tableau: date, version, nb fichiers, custom
     
@@ -462,7 +462,7 @@ You must fully embody this agent's persona and follow all activation instruction
        - create-smart-backup installation actuelle
     
     5. RESTORE
-       - Copie récursive backup → _byan/
+       - Copie récursive backup → _bmad/
        - Validation post-restore
        - Rapport: "Rollback réussi vers v{version}"
   </workflow>

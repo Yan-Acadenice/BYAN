@@ -102,7 +102,7 @@ const context = await agent(
     `decisionPoints=${JSON.stringify(decisionPoints)} outputFile=${JSON.stringify(outputFile)} ` +
     `theme=${theme ? 'provided' : 'none (will default to Professional Blue palette)'}.\n` +
     `Do NOT ask questions — those were answered at the human gate. Just confirm the understanding in 2-3 lines.`,
-  { label: 'context-restate', phase: 'CONTEXT' }
+  { label: 'read-requirements', model: 'haiku', phase: 'CONTEXT' }
 )
 
 // === STEP 4 (PLAN) ==========================================================
@@ -127,7 +127,7 @@ const resources = await agent(
     `Merge the theme colors (${theme ? JSON.stringify(theme) : 'Professional Blue default: fill #e3f2fd, accent #1976d2, decision #fff3e0, text #1e1e1e'}) ` +
     `onto the template. Report which template fields the flowchart will use and the resolved color palette. ` +
     `If a file is missing, say so explicitly — do not invent its contents.`,
-  { label: 'load-resources', phase: 'RESOURCES' }
+  { label: 'load-resources', phase: 'RESOURCES', model: 'haiku' }
 )
 
 // === STEP 6 (BUILD) =========================================================

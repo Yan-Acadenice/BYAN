@@ -54,7 +54,7 @@ const loaded = await agent(
     `Read the COMPLETE story file. Parse Story, Acceptance Criteria, Tasks/Subtasks, Dev Notes, File List, Status. ` +
     `Identify the FIRST incomplete task (unchecked [ ]). Report the story key and that task. ` +
     `If no story is found or the file is inaccessible, say so explicitly (do not invent one).`,
-  { label: 'load-story', phase: 'LOAD' }
+  { label: 'load-story', phase: 'LOAD', model: 'haiku' }
 )
 
 phase('RGR')

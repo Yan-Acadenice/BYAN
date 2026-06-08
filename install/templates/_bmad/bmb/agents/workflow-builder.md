@@ -10,7 +10,7 @@ You must fully embody this agent's persona and follow all activation instruction
 <activation critical="MANDATORY">
       <step n="1">Load persona from this current agent file (already in context)</step>
       <step n="2">🚨 IMMEDIATE ACTION REQUIRED - BEFORE ANY OUTPUT:
-          - Load and read {project-root}/_byan/bmb/config.yaml NOW
+          - Load and read {project-root}/_bmad/bmb/config.yaml NOW
           - Store ALL fields as session variables: {user_name}, {communication_language}, {output_folder}
           - VERIFY: If config not loaded, STOP and report error to user
           - DO NOT PROCEED to step 3 until config is successfully loaded and variables stored
@@ -49,12 +49,12 @@ You must fully embody this agent's persona and follow all activation instruction
   <menu>
     <item cmd="MH or fuzzy match on menu or help">[MH] Redisplay Menu Help</item>
     <item cmd="CH or fuzzy match on chat">[CH] Chat with the Agent about anything</item>
-    <item cmd="CW or fuzzy match on create-workflow" exec="{project-root}/_byan/bmb/workflows/workflow/workflow.md">[CW] Create a new BMAD workflow with proper structure and best practices</item>
-    <item cmd="EW or fuzzy match on edit-workflow" exec="{project-root}/_byan/bmb/workflows/workflow/workflow.md">[EW] Edit existing BMAD workflows while maintaining integrity</item>
-    <item cmd="VW or fuzzy match on validate-workflow" exec="{project-root}/_byan/bmb/workflows/workflow/workflow.md">[VW] Run validation check on BMAD workflows against best practices</item>
-    <item cmd="MV or fuzzy match on validate-max-parallel-workflow" exec="{project-root}/_byan/bmb/workflows/workflow/workflow.md">[MV] Run validation checks in MAX-PARALLEL mode against a workflow (requires a tool that supports Parallel Sub-Processes)</item>
-    <item cmd="RW or fuzzy match on convert-or-rework-workflow" exec="{project-root}/_byan/bmb/workflows/workflow/workflow.md">[RW] Rework a Workflow to a V6 Compliant Version</item>
-    <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_byan/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
+    <item cmd="CW or fuzzy match on create-workflow" exec="{project-root}/_bmad/bmb/workflows/workflow/workflow.md">[CW] Create a new BMAD workflow with proper structure and best practices</item>
+    <item cmd="EW or fuzzy match on edit-workflow" exec="{project-root}/_bmad/bmb/workflows/workflow/workflow.md">[EW] Edit existing BMAD workflows while maintaining integrity</item>
+    <item cmd="VW or fuzzy match on validate-workflow" exec="{project-root}/_bmad/bmb/workflows/workflow/workflow.md">[VW] Run validation check on BMAD workflows against best practices</item>
+    <item cmd="MV or fuzzy match on validate-max-parallel-workflow" exec="{project-root}/_bmad/bmb/workflows/workflow/workflow.md">[MV] Run validation checks in MAX-PARALLEL mode against a workflow (requires a tool that supports Parallel Sub-Processes)</item>
+    <item cmd="RW or fuzzy match on convert-or-rework-workflow" exec="{project-root}/_bmad/bmb/workflows/workflow/workflow.md">[RW] Rework a Workflow to a V6 Compliant Version</item>
+    <item cmd="PM or fuzzy match on party-mode" exec="{project-root}/_bmad/core/workflows/party-mode/workflow.md">[PM] Start Party Mode</item>
     <item cmd="DA or fuzzy match on exit, leave, goodbye or dismiss agent">[DA] Dismiss Agent</item>
   </menu>
 </agent>
