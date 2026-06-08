@@ -149,7 +149,22 @@ export function planSync({ rootDir, templateDir, io = fs } = {}) {
     return io.readFileSync(p);
   };
   const readTemplate = (rel) => io.readFileSync(path.join(tmplAbs, rel));
-  return buildPlan({ templateFiles, readRoot, readTemplate });
+  const plan = buildPlan({ templateFiles, readRoot, readTemplate });
+
+  // Mode fidelity. buildPlan compares content only; a file whose bytes match but
+  // whose permission bits differ (a hook that lost its exec bit) is still drift.
+  // Promote those from identical to toUpdate so applyPlan restores the mode.
+  const modeDrift = plan.identical.filter((rel) => {
+    const rmode = io.statSync(path.join(rootDir, rel)).mode & 0o777;
+    const tmode = io.statSync(path.join(tmplAbs, rel)).mode & 0o777;
+    return rmode !== tmode;
+  });
+  if (modeDrift.length) {
+    const drifted = new Set(modeDrift);
+    plan.identical = plan.identical.filter((rel) => !drifted.has(rel));
+    plan.toUpdate.push(...modeDrift);
+  }
+  return plan;
 }
 
 // Apply a plan: copy root/rel -> template/rel for every toUpdate and toAdd.
@@ -165,6 +180,10 @@ export function applyPlan(plan, { rootDir, templateDir, io = fs } = {}) {
     const tmp = `${dest}.tmp`;
     try {
       io.writeFileSync(tmp, io.readFileSync(src));
+      // Preserve the source permission bits. writeFileSync creates the temp file
+      // with the default mode, which would silently strip the exec bit off a
+      // mirrored hook or script and leave it non-runnable for an installed user.
+      io.chmodSync(tmp, io.statSync(src).mode & 0o777);
       io.renameSync(tmp, dest);
     } catch (err) {
       try {

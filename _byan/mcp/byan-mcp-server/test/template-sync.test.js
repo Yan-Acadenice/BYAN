@@ -15,11 +15,24 @@ import {
 
 // In-memory fs double, extended from suitability-store style.
 // Keys are absolute paths. readdirSync supports { withFileTypes: true }.
-function memIO(initial = {}) {
+function memIO(initial = {}, initialModes = {}) {
   const files = { ...initial };
+  const fmodes = { ...initialModes };
   return {
     files,
+    fmodes,
     existsSync: (p) => Object.prototype.hasOwnProperty.call(files, p),
+    statSync: (p) => {
+      if (!Object.prototype.hasOwnProperty.call(files, p)) {
+        const err = new Error(`ENOENT: stat '${p}'`);
+        err.code = 'ENOENT';
+        throw err;
+      }
+      return { mode: p in fmodes ? fmodes[p] : 0o644, isFile: () => true, isDirectory: () => false };
+    },
+    chmodSync: (p, mode) => {
+      fmodes[p] = mode;
+    },
     readFileSync: (p) => {
       if (!Object.prototype.hasOwnProperty.call(files, p)) {
         const err = new Error(`ENOENT: no such file or directory '${p}'`);
@@ -30,6 +43,7 @@ function memIO(initial = {}) {
     },
     writeFileSync: (p, data) => {
       files[p] = data;
+      if (!(p in fmodes)) fmodes[p] = 0o644;
     },
     renameSync: (from, to) => {
       if (!Object.prototype.hasOwnProperty.call(files, from)) {
@@ -38,7 +52,9 @@ function memIO(initial = {}) {
         throw err;
       }
       files[to] = files[from];
+      fmodes[to] = fmodes[from];
       delete files[from];
+      delete fmodes[from];
     },
     unlinkSync: (p) => {
       if (!Object.prototype.hasOwnProperty.call(files, p)) {
@@ -47,6 +63,7 @@ function memIO(initial = {}) {
         throw err;
       }
       delete files[p];
+      delete fmodes[p];
     },
     mkdirSync: () => {},
     // readdirSync with withFileTypes: true.
@@ -337,4 +354,41 @@ test('ANTI-FUITE: a root file in neither templateFiles nor additions is never em
   assert.ok(!emitted.includes('dev-only.js'), 'a root-only dev file must never be emitted');
   assert.deepEqual(plan.toAdd, []);
   assert.ok(plan.identical.includes('kept.js'));
+});
+
+test('applyPlan: preserves the source permission bits (exec bit on a mirrored hook)', () => {
+  // A mirrored hook is 0o755 at root but the stale template copy is 0o644.
+  // applyPlan must re-sync the content AND restore the exec bit, otherwise the
+  // shipped hook would not run for an installed user.
+  const io = memIO(
+    {
+      [path.join(ROOT, '.githooks', 'pre-commit')]: 'root-hook',
+      [path.join(TMPL, '.githooks', 'pre-commit')]: 'stale-hook',
+    },
+    {
+      [path.join(ROOT, '.githooks', 'pre-commit')]: 0o755,
+      [path.join(TMPL, '.githooks', 'pre-commit')]: 0o644,
+    },
+  );
+  const plan = { toUpdate: ['.githooks/pre-commit'], toAdd: [], excluded: [], orphans: [], identical: [], missingTargets: [] };
+  applyPlan(plan, { rootDir: ROOT, templateDir: TMPL, io });
+  assert.equal(io.statSync(path.join(TMPL, '.githooks', 'pre-commit')).mode, 0o755, 'exec bit must be restored');
+});
+
+test('planSync: a content-identical file with a different mode is drift (mode fidelity)', () => {
+  // Same bytes, different permission bits: the template hook lost its exec bit.
+  // planSync must surface it as drift, not leave it silently in identical.
+  const io = memIO(
+    {
+      [path.join(ROOT, '.githooks', 'pre-commit')]: 'same-content',
+      [path.join(TMPL, '.githooks', 'pre-commit')]: 'same-content',
+    },
+    {
+      [path.join(ROOT, '.githooks', 'pre-commit')]: 0o755,
+      [path.join(TMPL, '.githooks', 'pre-commit')]: 0o644,
+    },
+  );
+  const plan = planSync({ rootDir: ROOT, templateDir: TMPL, io });
+  assert.ok(plan.toUpdate.includes('.githooks/pre-commit'), 'mode-only drift must be in toUpdate');
+  assert.ok(!plan.identical.includes('.githooks/pre-commit'), 'must not be left as identical');
 });
