@@ -3,4 +3,4 @@ description: 'Transform PRD requirements and Architecture decisions into compreh
 disable-model-invocation: true
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad/bmm/workflows/3-solutioning/create-epics-and-stories/workflow.md, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL _byan/bmm/workflows/3-solutioning/create-epics-and-stories/workflow.md, READ its entire contents and follow its directions exactly!

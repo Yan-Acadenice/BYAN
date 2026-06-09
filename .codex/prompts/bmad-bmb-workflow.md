@@ -3,4 +3,4 @@ description: 'Create structured standalone workflows using markdown-based step a
 disable-model-invocation: true
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad/bmb/workflows/workflow/workflow.md, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL _byan/bmb/workflows/workflow/workflow.md, READ its entire contents and follow its directions exactly!

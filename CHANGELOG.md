@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.23.0] - 2026-06-09
+
+### Added - Stub path normalizer + a 5th pre-commit gate (no _bmad/@bmad drift)
+
+The installer generated platform stubs (`.codex/prompts`, `.github/agents`,
+`.claude/skills`) across many versions; older generators wrote the legacy path
+layout (`_bmad/*/agents/X.md`, `@bmad/bmm/agents/X.md`,
+`@bmad-output/bmb-creations/X/X.md`), so the tracked corpus carried a mix of stale
+path forms while the agent source files stayed clean. This adds the mechanism that
+removes the drift and blocks its return.
+
+- **Tool** `_byan/mcp/byan-mcp-server/lib/stub-sync.js` + `bin/byan-sync-stubs.js`:
+  normalizes stale `_bmad/` and `@bmad/` PATH tokens to the `_byan/` canonical
+  layout, in place and surgically. The `@bmad-<word>` invocation syntax and the
+  `_bmad-output/` artifact dir are preserved; no stub is overwritten wholesale, so
+  the github full-copies and hand-authored skills keep their content. `--check`
+  reports any residual stale ref and exits non-zero.
+- **5th pre-commit gate.** `.githooks/pre-commit` runs `byan-sync-stubs --check`
+  after the template-fidelity gate, blocking a commit whose tracked stubs have
+  drifted. It self-disables when the tool or the stub dirs are absent
+  (installed-user no-op).
+- **First run.** 101 stub files normalized (codex prompts + the Codex global
+  `instructions.md` + 5 github stubs + their template twins); the byan github
+  full-copy changed only its 3 stale path lines, its other 1059 lines untouched.
+- Design mirrors the template-fidelity sync (pure rewrite rules + IO-isolated
+  apply); 20 unit tests pin every rule, the two preservation cases, the IO layer,
+  and idempotence. The tool ships in the template, so the gate is live for
+  installed users too.
+
 ## [2.22.0] - 2026-06-09
 
 ### Changed - byan_dispatch routes the model tier by task nature, not by size

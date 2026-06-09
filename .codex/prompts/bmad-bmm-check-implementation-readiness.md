@@ -3,4 +3,4 @@ description: 'Critical validation workflow that assesses PRD, Architecture, and 
 disable-model-invocation: true
 ---
 
-IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @bmad/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md, READ its entire contents and follow its directions exactly!
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL _byan/bmm/workflows/3-solutioning/check-implementation-readiness/workflow.md, READ its entire contents and follow its directions exactly!

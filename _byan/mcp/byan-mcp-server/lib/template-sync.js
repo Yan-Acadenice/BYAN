@@ -42,6 +42,8 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/bin/byan-suitability.js',
   '.claude/skills/byan-suitability/SKILL.md',
   '.claude/rules/team-doctrine.md',
+  '_byan/mcp/byan-mcp-server/lib/stub-sync.js',
+  '_byan/mcp/byan-mcp-server/bin/byan-sync-stubs.js',
 ];
 
 // The template lives under this root-relative directory.

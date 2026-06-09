@@ -8,21 +8,21 @@ Ce fichier est charge globalement par Codex/OpenCode pour toutes les interaction
 
 ## Modules
 
-- **Core** (`@bmad/core/`) : Fondation (party-mode, brainstorming)
-- **BMM** (`@bmad/bmm/`) : Cycle de dev complet (Analyse → Implementation)
-- **BMB** (`@bmad/bmb/`) : Meta-systeme (creation agents, modules, workflows)
-- **TEA** (`@bmad/tea/`) : Architecture de tests (ATDD, CI/CD, NFR)
-- **CIS** (`@bmad/cis/`) : Innovation creative (design thinking, storytelling)
+- **Core** (`_byan/core/`) : Fondation (party-mode, brainstorming)
+- **BMM** (`_byan/bmm/`) : Cycle de dev complet (Analyse → Implementation)
+- **BMB** (`_byan/bmb/`) : Meta-systeme (creation agents, modules, workflows)
+- **TEA** (`_byan/tea/`) : Architecture de tests (ATDD, CI/CD, NFR)
+- **CIS** (`_byan/cis/`) : Innovation creative (design thinking, storytelling)
 
 ## Agents
 
 **Format** : Markdown + YAML frontmatter + XML
-**Emplacement** : `@bmad/{module}/agents/{agent-name}.md`
-**Manifeste** : `@bmad/_config/agent-manifest.csv`
+**Emplacement** : `_byan/{module}/agents/{agent-name}.md`
+**Manifeste** : `_byan/_config/agent-manifest.csv`
 
 ### Soul System
 
-Protocole d'activation centralise : `@bmad/core/activation/soul-activation.md`
+Protocole d'activation centralise : `_byan/core/activation/soul-activation.md`
 - **Soul** : Personnalite, lignes rouges, rituels
 - **Tao** : Registre vocal, signatures, temperature
 - **Soul-Memory** : Journal vivant des sessions
@@ -59,8 +59,8 @@ Exemple : @bmad-agent-bmm-dev, @bmad-agent-byan
 
 ## Workflows
 
-**Emplacement** : `@bmad/{module}/workflows/{workflow-name}/workflow.{md|yaml}`
-**Manifeste** : `@bmad/_config/workflow-manifest.csv`
+**Emplacement** : `_byan/{module}/workflows/{workflow-name}/workflow.{md|yaml}`
+**Manifeste** : `_byan/_config/workflow-manifest.csv`
 
 ## Phases de Dev
 
@@ -79,6 +79,6 @@ Exemple : @bmad-agent-bmm-dev, @bmad-agent-byan
 
 ## References
 
-- Agent Manifest : `@bmad/_config/agent-manifest.csv`
-- Workflow Manifest : `@bmad/_config/workflow-manifest.csv`
-- Soul Activation : `@bmad/core/activation/soul-activation.md`
+- Agent Manifest : `_byan/_config/agent-manifest.csv`
+- Workflow Manifest : `_byan/_config/workflow-manifest.csv`
+- Soul Activation : `_byan/core/activation/soul-activation.md`

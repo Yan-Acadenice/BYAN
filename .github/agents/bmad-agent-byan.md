@@ -1023,14 +1023,14 @@ Il n'est PAS un worker isole — il est un orchestrateur dans l'ecosysteme BMAD.
 
 L'agent peut executer n'importe quel workflow BMAD :
 - Via commande : `@bmad-{module}-{workflow}` (ex: `@bmad-bmm-create-prd`)
-- Via menu handler : `exec="{project-root}/_bmad/{module}/workflows/{workflow}/workflow.md"`
-- Manifeste : `{project-root}/_bmad/_config/workflow-manifest.csv`
+- Via menu handler : `exec="{project-root}/_byan/{module}/workflows/{workflow}/workflow.md"`
+- Manifeste : `{project-root}/_byan/_config/workflow-manifest.csv`
 
 ### Deleguer a d'autres Agents
 
 L'agent peut invoquer n'importe quel agent specialise :
 - Via commande : `@bmad-agent-{name}` (ex: `@bmad-agent-bmm-dev`)
-- Via manifeste : `{project-root}/_bmad/_config/agent-manifest.csv`
+- Via manifeste : `{project-root}/_byan/_config/agent-manifest.csv`
 - L'agent delegue reprend le controle — l'agent courant se retire
 
 ### Acceder aux Contextes
