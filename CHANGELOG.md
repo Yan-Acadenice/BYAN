@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.25.0] - 2026-06-09
+
+### Added - Advisory auto-feed (BYAN learns from each session, automatically)
+
+The insight loop observed and proposed; the missing half was the LEARNING. BYAN's
+advisory ledgers (ELO trust, the suitability ledger) updated only when the agent
+remembered to call a record tool. This wires the automatic half — outcomes are
+recorded at end of turn, with no agent action — while behavior surfaces stay
+human-gated.
+
+- **Capture.** The `byan_outcome_log` MCP tool appends one validated advisory
+  outcome to a buffer (cheap; it does not write a ledger directly). kind=elo logs
+  `{domain, result}`; kind=suitability logs `{model, leafId, success}`.
+- **Drain.** `.claude/hooks/drain-advisory.js` is a Stop hook that, at end of each
+  turn, records the buffered outcomes into the ELO ledger (full Glicko update) and
+  the suitability ledger, advancing a line cursor for idempotency. It is strictly
+  non-blocking (all work in try/catch, emits `{continue:true}` and exit 0 on every
+  path) and crosses the ESM/CJS boundary (the CJS ELO engine via require, the ESM
+  suitability store via dynamic import).
+- **Advisory-only.** The loop writes only the buffer and the two advisory ledgers.
+  Behavior surfaces (routing, personas, mantra thresholds) are left untouched —
+  those stay a human decision, consistent with the insight loop's gated philosophy.
+- 71 tests (the pure planners, the buffer, and a drain-hook e2e with ledger
+  snapshot/restore) plus a live smoke test recording a real Glicko update. The tool
+  and hook ship in the template; the hook registers alongside the existing Stop
+  hooks.
+- Explicit follow-ups (out of this scope): the adversarial verdict panel that would
+  feed suitability without a manual log, and a fact-graph-derived ELO source.
+
 ## [2.24.0] - 2026-06-09
 
 ### Added - Session insight loop (gated self-improvement)

@@ -10,6 +10,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { dispatch } from './lib/dispatch.js';
 import { harvest as harvestInsights, renderDigest as renderInsightDigest } from './lib/insight-harvest.js';
+import { appendOutcome } from './lib/outcome-buffer.js';
+import { validateForLog } from './lib/advisory-autofeed.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
 import { listSessions, readSessionEvents, searchSessions } from './lib/copilot.js';
 import {
@@ -553,6 +555,24 @@ const tools = [
     inputSchema: {
       type: 'object',
       properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_outcome_log',
+    description:
+      'Log one ADVISORY outcome to the auto-feed buffer (cheap append; it never writes a ledger directly). The drain-advisory Stop hook records buffered outcomes into the ELO / suitability ledgers at end of turn, so BYAN auto-learns without the agent recording by hand. kind=elo needs { domain, result: VALIDATED|PARTIAL|BLOCKED }; kind=suitability needs { model, leafId, success }. Advisory-only: behavior surfaces (routing / personas / mantras) are never written.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind: { type: 'string', enum: ['elo', 'suitability'] },
+        domain: { type: 'string', description: 'elo: the technical domain of the claim' },
+        result: { type: 'string', enum: ['VALIDATED', 'PARTIAL', 'BLOCKED'], description: 'elo: the claim verdict' },
+        model: { type: 'string', description: 'suitability: the cheap model tier/id' },
+        leafId: { type: 'string', description: 'suitability: the workflow leaf' },
+        success: { type: 'boolean', description: 'suitability: did the cheap model survive adversarial review' },
+      },
+      required: ['kind'],
       additionalProperties: false,
     },
   },
@@ -1404,6 +1424,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify({ gated: true, digest, render: renderInsightDigest(digest) }, null, 2),
           },
         ],
+      };
+    }
+
+    if (name === 'byan_outcome_log') {
+      const line = validateForLog(args);
+      if (!line) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ logged: false, reason: 'invalid_outcome' }) }],
+        };
+      }
+      const rootDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+      const ok = appendOutcome(line, { rootDir });
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ logged: ok, outcome: line }) }],
       };
     }
 

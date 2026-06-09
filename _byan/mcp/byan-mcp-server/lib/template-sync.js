@@ -48,6 +48,11 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/bin/byan-insight-digest.js',
   '_byan/mcp/byan-mcp-server/test/insight-harvest.test.js',
   '.claude/skills/byan-insight/SKILL.md',
+  '_byan/mcp/byan-mcp-server/lib/advisory-autofeed.js',
+  '_byan/mcp/byan-mcp-server/lib/outcome-buffer.js',
+  '_byan/mcp/byan-mcp-server/test/advisory-autofeed.test.js',
+  '_byan/mcp/byan-mcp-server/test/outcome-buffer.test.js',
+  '.claude/hooks/drain-advisory.js',
 ];
 
 // The template lives under this root-relative directory.
