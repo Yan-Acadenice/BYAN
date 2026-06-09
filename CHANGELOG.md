@@ -9,6 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.22.0] - 2026-06-09
+
+### Changed - byan_dispatch routes the model tier by task nature, not by size
+
+`byan_dispatch` fused two unrelated decisions into one route string
+(`mcp-worker-haiku`, `main-thread-opus`): a short sequential task was downgraded
+to haiku purely on its length, and a long one was pinned up to opus. That is the
+size-driven mis-tiering the native-workflow doctrine (`native-tiers.js`) was built
+to forbid, so the two routers disagreed. This decouples the two axes and makes
+`native-tiers.js` the single source of truth for the model tier across both worlds.
+
+- **Two independent axes.** `dispatch.js` now returns
+  `{ score, strategy, nature, tier, model, parallelizable, reasoning }`. STRATEGY
+  (where the work runs: `main-thread` / `agent-subagent-worktree` / `mcp-worker`)
+  stays derived from the scalar score + `parallelizable`. TIER (which model) is
+  derived from the task NATURE, decoupled from size.
+- **One source of truth.** `dispatch.js` imports `classifyLeaf` / `tierFor` /
+  `TIER_MODEL` directly from `native-tiers.js` — a one-way dependency toward the
+  tier authority rather than a duplicated rule. Only an `exploration` nature
+  downgrades to `haiku`; `implementation` / `verification` / `analysis` (and any
+  unmatched task) stay `deep` (inherit the session model). No pin-up to opus.
+- **Conservative by default.** An optional `nature` arg sets the tier directly;
+  absent or invalid, the task text is classified, whose own default is
+  `implementation` (deep) — so a miss protects the work instead of downgrading it.
+- **Consumers realigned.** The `byan_dispatch` tool schema gains an optional
+  `nature` enum; the three consuming skills (byan-byan Phase 4, byan-hermes-dispatch
+  step 3, byan-orchestrate) read `strategy` + `model` from the new shape. The
+  fused-route strings are dropped from the live routing path.
+- 22 dispatch unit tests pin the contract (no downgrade for protected natures,
+  exploration to haiku, no pin-up, conservative fallback, strategy preserved across
+  the score bands) plus the hermes-e2e non-regression. Template re-synced.
+
+### Known debt
+
+The legacy fused-route vocabulary (`mcp-worker-haiku` / `main-thread-opus`) still
+appears in two doctrine docs (`_byan/worker/workers.md`,
+`_byan/workflow/simple/byan/feature-workflow.md`) and a dead, unreferenced parallel
+router (`src/core/dispatcher/execution-router.js` + its test). These have no live
+consumer and are scoped to a follow-up cleanup.
+
 ## [2.21.0] - 2026-06-08
 
 ### Added - Template fidelity sync (the published package matches its CHANGELOG)

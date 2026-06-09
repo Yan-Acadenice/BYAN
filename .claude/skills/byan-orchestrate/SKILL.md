@@ -9,7 +9,7 @@ You compose three existing building blocks into one multi-role flow :
 
 | Block | Role |
 |-------|------|
-| `byan_dispatch` MCP tool | Per-task execution strategy (main-thread / agent-subagent-worktree / mcp-worker-haiku / main-thread-opus) + complexity score |
+| `byan_dispatch` MCP tool | Per-task strategy (main-thread / agent-subagent-worktree / mcp-worker) from the score + model tier by NATURE (haiku for exploration, else inherit the session model) + complexity score |
 | `byan-hermes-dispatch` skill | Specialist lookup (architect, dev, analyst, …) from a routing table |
 | `party-mode-native` workflow | Parallel spawn via Agent tool + worktree + coordination JSON |
 
@@ -42,7 +42,7 @@ Use this a priori mapping — override only if the task clearly needs more :
 | architect, quinn, tea, creative-problem-solver | opus | Deep reasoning, trade-offs |
 | carmack, rachid, marc, patnote | haiku | Narrow mechanical tasks |
 
-Then call `byan_dispatch` with each role's goal to get a complexity score. If the score demands a different tier (score >= 40 → bump to opus ; score < 15 → inline, no subagent), **override the default for that role**.
+Then call `byan_dispatch` with each role's goal (and `nature` when known). Use its `score` for the STRATEGY only (score < 15 → inline, no subagent ; 15-39 → subagent/worker ; ≥ 40 → keep the heavy role in the main thread) and its nature-based `model` as the tier signal. The score sets WHERE the role runs, not WHICH model — keep protected roles (verify/analysis/implement) off haiku regardless of size, and avoid pinning a role up to opus on size alone. The per-role table above is the a-priori floor; `byan_dispatch`'s nature `model` refines it.
 
 ### 3. Compute the execution plan
 
@@ -69,7 +69,7 @@ Group roles by `parallelizable_with` graph. For each parallel cluster :
 
 - If cluster has N > 1 roles AND all use `agent-subagent-worktree` strategy → use the **party-mode-native** workflow : `coordination.initSession(roles, …)`, then dispatch all Agent tool calls in a single message.
 - If cluster has N = 1 OR strategy = `main-thread` → execute inline in the current turn.
-- If strategy = `mcp-worker-haiku` → spawn an Agent tool call WITHOUT worktree (faster boot, single-turn).
+- If strategy = `mcp-worker` → spawn an Agent tool call WITHOUT worktree (faster boot, single-turn) ; set the Agent's model to the role's nature-based `model` (haiku for exploration, omit otherwise to inherit the session model).
 
 For each Agent tool call, the prompt must start with :
 ```

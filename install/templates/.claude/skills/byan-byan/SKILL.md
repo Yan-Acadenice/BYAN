@@ -56,11 +56,16 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
 
 ### Phase 4 — DISPATCH
 - **Who** : you + user. Route each feature to the right BYAN component.
-- **Decision table** per feature :
-  - **Score < 15** → inline main-thread, no subagent
-  - **Score 15-39 parallelizable** → agent-subagent-worktree (use `byan_dispatch` MCP tool to verify)
-  - **Score 15-39 sequential** → mcp-worker-haiku
-  - **Score ≥ 40** → main-thread-opus or delegate to `byan-hermes-dispatch`
+- **Decision table** per feature — TWO independent axes (`byan_dispatch` returns both) :
+  - **Strategy** (WHERE it runs), from the score :
+    - **Score < 15** → inline main-thread, no subagent
+    - **Score 15-39 parallelizable** → agent-subagent-worktree
+    - **Score 15-39 sequential** → mcp-worker
+    - **Score ≥ 40** → main-thread (heavy) or delegate to `byan-hermes-dispatch`
+  - **Model tier** (WHICH model), from the task NATURE — not its size (`byan_dispatch` returns it as `model`, via native-tiers, the single source of truth) :
+    - nature `exploration` (load/read/scan/list/parse/fetch...) → `haiku`
+    - nature `implementation` / `verification` / `analysis` / unknown → deep = **inherit the session model**
+    - Keep protected work (verify/analysis/implement) off haiku regardless of size ; no pin-up to opus. Pass an explicit `nature` to `byan_dispatch` when you know it.
 - **Output** : a table `{ feature → specialist → model → strategy → estimated_tokens }`.
 - **If no specialist matches** : halt. Ask user whether to run INT (agent recruitment) first. Do NOT fallback silently to general-purpose.
 - **Exit gate** : user validates the mapping.

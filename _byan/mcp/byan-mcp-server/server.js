@@ -292,7 +292,7 @@ const tools = [
   {
     name: 'byan_dispatch',
     description:
-      'BYAN Dispatcher: given a task description and complexity score (0-100), route it to the optimal execution target. Rule-based, no API call. Returns route and reasoning.',
+      'BYAN Dispatcher: routes a unit of work along two independent axes. STRATEGY (where it runs: main-thread / agent-subagent-worktree / mcp-worker) from the scalar score + parallelizable. TIER (which model) from the task NATURE via native-tiers (the single source of truth): only exploration downgrades to haiku; implementation/verification/analysis stay deep (inherit the session model); never pins up to opus. Rule-based, no API call. Returns { score, strategy, nature, tier, model, reasoning }.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -304,6 +304,11 @@ const tools = [
         parallelizable: {
           type: 'boolean',
           description: 'Is the task parallelizable with other tasks?',
+        },
+        nature: {
+          type: 'string',
+          enum: ['exploration', 'implementation', 'verification', 'analysis'],
+          description: 'Optional task nature. A valid value sets the model tier directly; otherwise the nature is classified from the task text. Only exploration is downgrade-safe.',
         },
       },
       required: ['task'],

@@ -50,18 +50,19 @@ Match keywords against the routing table below. Pick the single best match. If n
 
 ### 3. Pick the execution strategy (MCP call)
 
-Call the `byan_dispatch` MCP tool with `{ task: <goal>, parallelizable: <bool> }`. It returns `{ strategy, score, reasoning }` where strategy is one of :
+Call the `byan_dispatch` MCP tool with `{ task: <goal>, parallelizable: <bool>, nature?: <leaf-type> }`. It returns `{ score, strategy, nature, tier, model, reasoning }` — TWO independent axes :
 
-- `main-thread` — do it inline, no delegation
-- `agent-subagent-worktree` — spawn Agent tool with isolation worktree
-- `mcp-worker-haiku` — spawn Agent tool with Haiku model, no worktree
-- `main-thread-opus` — keep in the current thread (don't delegate, Opus needed)
+- **strategy** (WHERE it runs), from the score :
+  - `main-thread` — do it inline, no delegation
+  - `agent-subagent-worktree` — spawn Agent tool with isolation worktree
+  - `mcp-worker` — spawn Agent tool, no worktree
+- **model** (WHICH model), from the task NATURE via native-tiers, not its size : `haiku` (exploration only) or `null` = deep (inherit the session model). Pass an explicit `nature` (`exploration`/`implementation`/`verification`/`analysis`) when you know it; protected natures stay off haiku.
 
 ### 4. Spawn the work
 
-Depending on strategy :
+Depending on strategy (apply the returned `model` whenever you spawn) :
 
-**`main-thread` or `main-thread-opus`** : do not spawn. Execute inline yourself.
+**`main-thread`** : do not spawn. Execute inline yourself — the work runs on the session model.
 
 **`agent-subagent-worktree`** : call the Agent tool with :
 ```
@@ -76,7 +77,9 @@ prompt: |
   When done, write a concise report (< 200 words).
 ```
 
-**`mcp-worker-haiku`** : same Agent tool call but without `isolation`, and add `model: "haiku"` in the prompt's instruction block if the receiving subagent honors it.
+**`mcp-worker`** : same Agent tool call but without `isolation`. Set the Agent's `model` to the returned `model` — `haiku` for exploration nature, otherwise omit `model` to inherit the session model. The tier follows the task nature, not its size.
+
+For any spawned strategy : pass `model` to the Agent tool when it is non-null; omit it when null so the subagent inherits the session model.
 
 ### 5. Specialist stub path lookup
 

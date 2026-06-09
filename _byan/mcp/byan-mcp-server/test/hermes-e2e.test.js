@@ -34,16 +34,18 @@ function pickSpecialist(task) {
 
 function simulateHermesDispatch(task, { parallelizable = false } = {}) {
   const pick = pickSpecialist(task);
-  const strategy = dispatch({ task, parallelizable });
+  const routed = dispatch({ task, parallelizable });
   return {
     task,
     specialist: pick.specialist,
     subagent_type: pick.subagent_type,
     matched_keyword: pick.matched,
-    strategy: strategy.route,
-    score: strategy.score,
-    reasoning: strategy.reasoning,
-    parallelizable: strategy.parallelizable,
+    strategy: routed.strategy,
+    model: routed.model,
+    nature: routed.nature,
+    score: routed.score,
+    reasoning: routed.reasoning,
+    parallelizable: routed.parallelizable,
   };
 }
 
@@ -74,7 +76,7 @@ test('E2E: parallelizable medium task routes to agent-subagent-worktree', () => 
   assert.equal(plan.parallelizable, true);
   assert.ok(plan.score >= 15, `score too low: ${plan.score}`);
   assert.ok(
-    ['agent-subagent-worktree', 'main-thread-opus'].includes(plan.strategy),
+    ['agent-subagent-worktree', 'main-thread'].includes(plan.strategy),
     `unexpected strategy: ${plan.strategy}`
   );
 });
