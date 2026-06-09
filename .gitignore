@@ -96,3 +96,9 @@ _byan/_memory/.soul-memory-nudge-sent
 
 # BYAN Strict Mode runtime state (per-session, never committed)
 .byan-strict/
+
+# BYAN runtime memoire state — mutated at runtime by EloStore / KnowledgeGraph,
+# so it generated constant git noise. Root-only paths (the separators anchor them
+# to repo root); the template keeps its own seed copies under install/templates/.
+_byan/memoire/elo-profile.json
+_byan/memoire/fact-graph.json
