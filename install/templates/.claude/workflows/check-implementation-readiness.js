@@ -18,7 +18,7 @@ export const meta = {
 // this script). No wall-clock, no randomness: any date/id is passed via args
 // so the runtime can resume deterministically.
 
-const planningArtifacts = (args && args.planningArtifacts) || '_bmad-output/planning-artifacts'
+const planningArtifacts = (args && args.planningArtifacts) || '_byan-output/planning-artifacts'
 const reportDate = (args && args.date) || 'unspecified'
 const role = 'an expert Product Manager and Scrum Master specialized in requirements traceability and spotting gaps in planning artifacts. Be adversarial: your job is to find the failures others missed, not to reassure.'
 

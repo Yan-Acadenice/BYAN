@@ -49,9 +49,9 @@ Exemple : @bmad-agent-bmm-dev, @bmad-agent-byan
 
 ### Variables de Contexte
 - `{project-root}` : Racine du repository
-- `{output_folder}` : `_bmad-output/`
-- `{planning_artifacts}` : `_bmad-output/planning-artifacts/`
-- `{implementation_artifacts}` : `_bmad-output/implementation-artifacts/`
+- `{output_folder}` : `_byan-output/`
+- `{planning_artifacts}` : `_byan-output/planning-artifacts/`
+- `{implementation_artifacts}` : `_byan-output/implementation-artifacts/`
 - `{user_name}`, `{communication_language}` : Depuis config.yaml
 
 ### Orchestration Multi-Agent
@@ -135,7 +135,7 @@ Les agents executent des actions via des handlers de menu :
 │   ├── tao.md                # Voix de BYAN
 │   ├── soul-memory.md        # Journal vivant
 │   └── config.yaml           # Configuration
-├── _bmad-output/             # Artefacts generes
+├── _byan-output/             # Artefacts generes
 ├── .github/agents/           # Stubs Copilot CLI
 └── .codex/prompts/           # Stubs Codex
 ```

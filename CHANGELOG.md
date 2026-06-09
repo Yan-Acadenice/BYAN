@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - Closed the fused-route and output-folder legacy debts
+
+- Removed the dead parallel router `src/core/dispatcher/execution-router.js` (zero
+  live consumers) and its test; the routing docs (`workers.md`,
+  `feature-workflow.md`) and the loadbalancer architecture comment now point only
+  to `byan_dispatch` and its two-axis model (strategy from score, model tier from
+  nature).
+- Standardized the documented output folder from the legacy `_bmad-output/` to the
+  runtime's `_byan-output/` across the agent and platform docs plus an inert config
+  default. Left untouched on purpose: the deliberate back-compat read in
+  `agent-packager.js` (recovers agent creations from older installs under
+  `_bmad-output/bmb-creations`), the migration guides, and the anti-regression
+  tests that assert the old name is gone.
+
 ## [2.23.0] - 2026-06-09
 
 ### Added - Stub path normalizer + a 5th pre-commit gate (no _bmad/@bmad drift)

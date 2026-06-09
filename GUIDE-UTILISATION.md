@@ -563,7 +563,7 @@ steps:
     inputs:
       prompt: "Génère un message de bienvenue pour BYAN v2.0"
     outputs:
-      file: "_bmad-output/hello.md"
+      file: "_byan-output/hello.md"
 ```
 
 **2. Exécute le workflow :**
@@ -597,7 +597,7 @@ main().catch(console.error);
 node run-workflow.js
 ```
 
-Le fichier `_bmad-output/hello.md` contiendra le message généré !
+Le fichier `_byan-output/hello.md` contiendra le message généré !
 
 ---
 
@@ -885,9 +885,9 @@ Succès: true
 
 **Fichiers générés :**
 
-- `_bmad-output/code-scan.json` - Résultats du scan
-- `_bmad-output/analysis-report.md` - Rapport d'analyse
-- `_bmad-output/recommendations.md` - Recommandations
+- `_byan-output/code-scan.json` - Résultats du scan
+- `_byan-output/analysis-report.md` - Rapport d'analyse
+- `_byan-output/recommendations.md` - Recommandations
 
 ---
 
@@ -1083,7 +1083,7 @@ _bmad/_context/
 
 4. **Utilise des placeholders pour la flexibilité**
    ```yaml
-   output_path: "{project_root}/_bmad-output/{project_name}"
+   output_path: "{project_root}/_byan-output/{project_name}"
    ```
 
 5. **Évite la duplication**
@@ -1540,10 +1540,10 @@ Maintenant que tu connais BYAN v2.0, voici comment aller plus loin.
 ### Ressources
 
 **Documentation technique :**
-- [Architecture complète](_bmad-output/architecture/byan-v2-0-architecture-node.md)
-- [Structure des fichiers](_bmad-output/architecture/byan-v2-file-structure.md)
+- [Architecture complète](_byan-output/architecture/byan-v2-0-architecture-node.md)
+- [Structure des fichiers](_byan-output/architecture/byan-v2-file-structure.md)
 - [README technique](README-BYAN-V2.md)
-- [Diagrammes UML](_bmad-output/architecture/diagrams/)
+- [Diagrammes UML](_byan-output/architecture/diagrams/)
 
 **Code source :**
 - `src/` - Implémentation des composants

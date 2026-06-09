@@ -45,9 +45,9 @@ Exemple : @bmad-agent-bmm-dev, @bmad-agent-byan
 
 ### Variables de Contexte
 - `{project-root}` : Racine du repository
-- `{output_folder}` : `_bmad-output/`
-- `{planning_artifacts}` : `_bmad-output/planning-artifacts/`
-- `{implementation_artifacts}` : `_bmad-output/implementation-artifacts/`
+- `{output_folder}` : `_byan-output/`
+- `{planning_artifacts}` : `_byan-output/planning-artifacts/`
+- `{implementation_artifacts}` : `_byan-output/implementation-artifacts/`
 
 ### Orchestration Multi-Agent
 - Invocation inter-agents en cours de workflow

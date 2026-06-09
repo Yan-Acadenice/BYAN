@@ -51,13 +51,13 @@
 user_name: Yan
 communication_language: Francais|English
 document_output_language: Francais|English
-output_folder: "{project-root}/_bmad-output"
+output_folder: "{project-root}/_byan-output"
 ```
 
 **Critical Variables:**
 - `{project-root}`: Repository root
-- `{planning_artifacts}`: `_bmad-output/planning-artifacts/`
-- `{implementation_artifacts}`: `_bmad-output/implementation-artifacts/`
+- `{planning_artifacts}`: `_byan-output/planning-artifacts/`
+- `{implementation_artifacts}`: `_byan-output/implementation-artifacts/`
 - `{project_knowledge}`: `docs/`
 
 ### Directory Structure
@@ -76,7 +76,7 @@ output_folder: "{project-root}/_bmad-output"
 │   ├── bmb/                        # Builder module
 │   ├── tea/                        # Test Architecture module
 │   └── cis/                        # Innovation module
-├── _bmad-output/                   # Generated artifacts
+├── _byan-output/                   # Generated artifacts
 │   ├── planning-artifacts/
 │   ├── implementation-artifacts/
 │   └── bmb-creations/              # BYAN-created agents
@@ -401,8 +401,8 @@ When analyzing brownfield projects:
 | **CIS** | Innovation & creativity | Carson, Dr. Quinn, Maya, Victor | brainstorming, design-thinking, problem-solving, innovation-strategy |
 
 **Project Context Files:**
-- `_bmad-output/planning-artifacts/` - PRDs, architecture, epics/stories
-- `_bmad-output/implementation-artifacts/` - Sprint plans, stories, code reviews
+- `_byan-output/planning-artifacts/` - PRDs, architecture, epics/stories
+- `_byan-output/implementation-artifacts/` - Sprint plans, stories, code reviews
 - `docs/` or `{project_knowledge}` - Long-term documentation
 
 **State Management:**

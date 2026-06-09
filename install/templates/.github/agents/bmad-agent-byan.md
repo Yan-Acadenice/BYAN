@@ -1037,9 +1037,9 @@ L'agent peut invoquer n'importe quel agent specialise :
 
 Variables de session disponibles apres chargement config :
 - `{project-root}` : Racine du repository
-- `{output_folder}` : Dossier de sortie (`_bmad-output/`)
-- `{planning_artifacts}` : `_bmad-output/planning-artifacts/`
-- `{implementation_artifacts}` : `_bmad-output/implementation-artifacts/`
+- `{output_folder}` : Dossier de sortie (`_byan-output/`)
+- `{planning_artifacts}` : `_byan-output/planning-artifacts/`
+- `{implementation_artifacts}` : `_byan-output/implementation-artifacts/`
 - `{user_name}`, `{communication_language}` : Depuis config.yaml
 
 ### Orchestration Multi-Agent
