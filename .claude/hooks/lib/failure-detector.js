@@ -10,13 +10,26 @@ const ERROR_PATTERNS = [
   /tool_use_error/i,
 ];
 
-// Tools whose response echoes user-authored or file content (Write/Edit
+// Tools whose response echoes user-authored or stored content (Write/Edit
 // return file paths + content fragments, Read echoes file content
 // verbatim). Pattern match on their response fires false positives when
-// the file content itself contains the literal phrase "internal error"
+// the content itself contains the literal phrase "internal error"
 // (e.g. a doc about errors, a test fixture, a hook that detects errors).
 // For these, only trust the explicit is_error flag.
 const ECHO_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'Read']);
+
+// Two more tool classes echo DATA (not a stderr stream), so content-pattern
+// matching on their response is noise. A genuine failure of either sets is_error
+// (checked before this guard), so we lose no real-failure detection:
+//   - MCP tools (mcp__server__tool): byan_fd_* echoes the FD state (which can
+//     hold user-authored raw_ideas / notes containing the literal phrase),
+//     byan_*_status echoes ledger content, etc.
+//   - Bash: its response is command stdout - diagnostics, log greps, test output
+//     that legitimately surface error-words. A real Bash failure exits non-zero,
+//     which the harness marks as is_error.
+function isEchoHeavy(toolName) {
+  return ECHO_TOOLS.has(toolName) || toolName === 'Bash' || toolName.startsWith('mcp__');
+}
 
 function detectFailure(payload) {
   if (!payload || typeof payload !== 'object') return null;
@@ -30,8 +43,9 @@ function detectFailure(payload) {
     }
   }
 
-  // Do not pattern-match on echo-heavy tools — only trust is_error flag.
-  if (ECHO_TOOLS.has(toolName)) {
+  // Do not pattern-match on echo-heavy tools (file-echo + MCP data) — only
+  // trust the is_error flag, checked above.
+  if (isEchoHeavy(toolName)) {
     return null;
   }
 

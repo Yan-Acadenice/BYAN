@@ -104,6 +104,76 @@ describe('evaluate — thresholds', () => {
   });
 });
 
+describe('echo-heavy false-positive fix', () => {
+  describe('MCP tools — content patterns ignored, is_error still fires', () => {
+    test('mcp__ prefix with "internal error" in content returns null', () => {
+      const result = detector.detectFailure({
+        tool_name: 'mcp__byan__byan_fd_update',
+        tool_response: { content: '... internal error ...' },
+      });
+      expect(result).toBeNull();
+    });
+
+    test('mcp__ tool with is_error:true returns truthy with kind=is_error', () => {
+      const result = detector.detectFailure({
+        tool_name: 'mcp__byan__byan_fd_update',
+        tool_response: { is_error: true, content: 'network timeout' },
+      });
+      expect(result).toBeTruthy();
+      expect(result.kind).toBe('is_error');
+    });
+  });
+
+  describe('Bash — content patterns ignored, is_error still fires', () => {
+    test('Bash with "internal error" in stdout returns null', () => {
+      const result = detector.detectFailure({
+        tool_name: 'Bash',
+        tool_response: { content: 'grep output with internal error text' },
+      });
+      expect(result).toBeNull();
+    });
+
+    test('Bash with is_error:true returns truthy with kind=is_error', () => {
+      const result = detector.detectFailure({
+        tool_name: 'Bash',
+        tool_response: { is_error: true, content: 'boom' },
+      });
+      expect(result).toBeTruthy();
+      expect(result.kind).toBe('is_error');
+    });
+  });
+
+  describe('Write — echo set, content patterns ignored, is_error still fires', () => {
+    test('Write with "internal error" in content returns null', () => {
+      const result = detector.detectFailure({
+        tool_name: 'Write',
+        tool_response: { content: 'internal error' },
+      });
+      expect(result).toBeNull();
+    });
+
+    test('Write with is_error:true returns truthy with kind=is_error', () => {
+      const result = detector.detectFailure({
+        tool_name: 'Write',
+        tool_response: { is_error: true, content: 'permission denied' },
+      });
+      expect(result).toBeTruthy();
+      expect(result.kind).toBe('is_error');
+    });
+  });
+
+  describe('non-exempt tools still pattern-match', () => {
+    test('WebFetch with "internal error" in content returns truthy with kind=pattern', () => {
+      const result = detector.detectFailure({
+        tool_name: 'WebFetch',
+        tool_response: { content: 'internal error' },
+      });
+      expect(result).toBeTruthy();
+      expect(result.kind).toBe('pattern');
+    });
+  });
+});
+
 describe('appendFailure + readRecent', () => {
   test('round-trips entries', () => {
     detector.appendFailure(

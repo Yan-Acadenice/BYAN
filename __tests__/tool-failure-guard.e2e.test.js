@@ -70,7 +70,7 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
   test('1st "tool result missing" → exit 2 (BLOCKING)', () => {
     const r = runHook(
       {
-        tool_name: 'Bash',
+        tool_name: 'WebFetch',
         tool_response: { content: 'tool result missing due to internal error' },
       },
       { logPath }
@@ -82,10 +82,10 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
     expect(r.parsed.reason).toMatch(/tool result missing/i);
   });
 
-  test('1st "internal error" on Bash → exit 2 (BLOCKING)', () => {
+  test('1st "internal error" on a non-echo tool → exit 2 (BLOCKING)', () => {
     const r = runHook(
       {
-        tool_name: 'Bash',
+        tool_name: 'WebFetch',
         tool_response: { content: 'internal error from the backend' },
       },
       { logPath }
@@ -112,7 +112,7 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
   test('blocking stdout contains hookEventName and additionalContext', () => {
     const r = runHook(
       {
-        tool_name: 'Bash',
+        tool_name: 'WebFetch',
         tool_response: { content: 'tool result missing' },
       },
       { logPath }
@@ -131,7 +131,7 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
   test('stderr carries the human-readable block message', () => {
     const r = runHook(
       {
-        tool_name: 'Bash',
+        tool_name: 'WebFetch',
         tool_response: { content: 'internal error' },
       },
       { logPath }
@@ -209,7 +209,7 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
   test('log file appended on every detected failure', () => {
     runHook(
       {
-        tool_name: 'Bash',
+        tool_name: 'WebFetch',
         tool_response: { content: 'tool result missing' },
       },
       { logPath }
@@ -220,14 +220,14 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
       .filter(Boolean);
     expect(lines).toHaveLength(1);
     const entry = JSON.parse(lines[0]);
-    expect(entry.tool_name).toBe('Bash');
+    expect(entry.tool_name).toBe('WebFetch');
     expect(entry.kind).toBe('pattern');
   });
 
   test('blocking does NOT prevent log append (auditability)', () => {
     const r = runHook(
       {
-        tool_name: 'Bash',
+        tool_name: 'WebFetch',
         tool_response: { content: 'internal error' },
       },
       { logPath }
@@ -235,6 +235,21 @@ describe('tool-failure-guard e2e — silence-is-lying enforcement', () => {
     expect(r.code).toBe(2);
     const lines = fs.readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
     expect(lines.length).toBeGreaterThan(0);
+  });
+
+  test('Bash content with error-words does NOT block (echo-heavy: stdout is data, trust is_error)', () => {
+    // A diagnostic Bash command that greps a log or echoes a fixture surfaces
+    // "internal error" as DATA, not as a failure. Bash is echo-heavy: only its
+    // is_error flag (a non-zero exit) is trusted, never a content pattern.
+    const r = runHook(
+      {
+        tool_name: 'Bash',
+        tool_response: { content: 'grep hit: "internal error" and "tool result missing" in the log' },
+      },
+      { logPath }
+    );
+    expect(r.code).toBe(0);
+    expect(fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8').trim() : '').toBe('');
   });
 
   test('malformed stdin payload → exit 0, no crash', () => {

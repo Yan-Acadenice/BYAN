@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.24.0] - 2026-06-09
+
+### Added - Session insight loop (gated self-improvement)
+
+BYAN already has advisory learning surfaces (ELO trust, the suitability ledger)
+and the native Claude Code hooks already leave outcome trails on disk, but the
+loop was open: the agent had to read and act on them by hand. This closes it,
+under a strict gated philosophy.
+
+- **Harvester** `_byan/mcp/byan-mcp-server/lib/insight-harvest.js` +
+  `bin/byan-insight-digest.js` + the `byan_insight_digest` MCP tool: read the
+  native trails (`tool-log.jsonl` health, strict `audit.log` recurring gaps,
+  the suitability ledger routing outcomes, the ELO profile trends) and aggregate
+  them into a digest with conservative, GATED proposals. Pure aggregation +
+  IO-isolated reader, mirroring the template-fidelity pattern.
+- **Gated by design.** The harvester only READS; it writes nothing to a behavior
+  surface (routing, personas, mantra thresholds). Every proposal carries
+  `gated: true` and is surfaced for a human to ratify — an agent that rewrote its
+  own routing on a heuristic would be the silent-downgrade BYAN exists to prevent.
+- **Skill** `byan-insight` presents the digest as a gated improvement proposal
+  (observe, propose, human ratifies), consistent with the advisory ELO /
+  suitability doctrine.
+- **Guard false-positive fix.** `tool-failure-guard` flagged any tool whose result
+  echoed the literal phrase "internal error" as a failure, exempting only
+  Write/Edit/Read. Bash (diagnostic stdout) and MCP tools (echoed stored data) now
+  join the echo-heavy set: their `is_error` flag is trusted, content patterns are
+  not. A genuine failure still sets `is_error`. Caught live (a Bash log-grep
+  blocked the session twice) and covered by unit + e2e tests.
+- 43 harvester unit tests + the detector tests; the e2e guard tests moved their
+  content-pattern cases onto a non-echo tool. The tool and skill ship in the
+  template.
+
 ### Changed - Closed the fused-route and output-folder legacy debts
 
 - Removed the dead parallel router `src/core/dispatcher/execution-router.js` (zero

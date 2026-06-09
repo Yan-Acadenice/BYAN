@@ -9,6 +9,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { dispatch } from './lib/dispatch.js';
+import { harvest as harvestInsights, renderDigest as renderInsightDigest } from './lib/insight-harvest.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
 import { listSessions, readSessionEvents, searchSessions } from './lib/copilot.js';
 import {
@@ -542,6 +543,16 @@ const tools = [
       properties: {
         model: { type: 'string', description: 'Optional: restrict to this model tier/id.' },
       },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_insight_digest',
+    description:
+      'Harvest native Claude Code outcome trails (tool-log, strict-audit gaps, the suitability ledger, ELO) into a GATED improvement digest for BYAN. Read-only: it OBSERVES and PROPOSES; every proposal is gated for a human to ratify, nothing is auto-applied to routing / personas / mantras. Returns { toolHealth, recurringGaps, routingOutcomes, eloTrends, proposals }.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
       additionalProperties: false,
     },
   },
@@ -1378,6 +1389,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           {
             type: 'text',
             text: JSON.stringify({ ledger: suitabilityLedgerPath(), advisory: true, rows }, null, 2),
+          },
+        ],
+      };
+    }
+
+    if (name === 'byan_insight_digest') {
+      const rootDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+      const digest = harvestInsights({ rootDir });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ gated: true, digest, render: renderInsightDigest(digest) }, null, 2),
           },
         ],
       };
