@@ -8,7 +8,7 @@
  *   - Integration with RateLimitTracker + SharedStateStore + SessionBridge
  *
  * Sits ABOVE existing BYAN routers:
- *   LoadBalancer (picks PLATFORM) → ExecutionRouter (picks STRATEGY) → Dispatcher (picks MODEL)
+ *   LoadBalancer (picks PLATFORM) → byan_dispatch (picks STRATEGY + model TIER)
  */
 
 const { EventEmitter } = require('events');

@@ -287,24 +287,25 @@ very different optimal targets depending on whether they run **alongside
 siblings** (parallel) or **in sequence**. The v2 router adds a
 `parallelizable` axis and emits an **execution strategy**, not a model.
 
-Implementation : `src/core/dispatcher/execution-router.js` and the MCP
-tool `byan_dispatch` (both share the same table).
+Implementation : the MCP tool `byan_dispatch`
+(`_byan/mcp/byan-mcp-server/lib/dispatch.js`), the single source of truth. The
+strategy comes from the score + `parallelizable` ; the model tier is a separate
+axis, derived from the task NATURE via `native-tiers.js`.
 
 ```
 score < 15                           → main-thread
 score 15-39 + parallelizable: true   → agent-subagent-worktree
-score 15-39 + parallelizable: false  → mcp-worker-haiku
-score >= 40                          → main-thread-opus
+score 15-39 + parallelizable: false  → mcp-worker
+score >= 40                          → main-thread (heavy)
 ```
 
 Rationale :
 
 | Strategy | When | Why |
 |---|---|---|
-| `main-thread` | Trivial task | Spawning anything costs more than solving inline. |
+| `main-thread` | Trivial or heavy task | Spawning costs more than solving inline (trivial), or the work is heavy and stays in the main thread. |
 | `agent-subagent-worktree` | Medium parallel | Claude Code Agent tool with `isolation: "worktree"` amortizes boot cost across the wall-clock savings. |
-| `mcp-worker-haiku` | Medium sequential | Delegate to a lightweight Haiku via MCP tool — no subagent boot, cheaper than main thread. |
-| `main-thread-opus` | Complex | Reasoning depth needed; subagent boot + context handoff would waste more than the delegation saves. |
+| `mcp-worker` | Medium sequential | Delegate to a worker via MCP tool — no subagent boot, cheaper than the main thread. The model tier is set separately, by nature. |
 
 The score threshold of 15 is where Claude Code `Agent` tool boot overhead
 (~5-10k tokens for system prompt + tools) stops being worth it for

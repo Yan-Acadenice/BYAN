@@ -111,8 +111,8 @@ INIT
 |------------------|-------|-----------|
 | < 15 | `main-thread` | Inline dans le contexte courant, zéro overhead de délégation |
 | < 40 + parallélisable | `agent-subagent-worktree` | Agent tool Claude Code avec isolation worktree |
-| < 40 séquentiel | `mcp-worker-haiku` | Worker Haiku léger via MCP |
-| ≥ 40 | `main-thread-opus` | Garde en main thread, raisonnement Opus |
+| < 40 séquentiel | `mcp-worker` | Worker léger via MCP (le tier de modèle vient de la nature, pas de la taille) |
+| ≥ 40 | `main-thread` | Garde en main thread (lourd) ; modèle hérité de la session |
 
 > Le score (0-100) est estimé depuis la complexité de la tâche (longueur si absent). Appeler `byan_dispatch` pour le calcul — ne pas réinventer les seuils ici.
 
