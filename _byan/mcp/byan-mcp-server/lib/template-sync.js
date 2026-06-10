@@ -53,6 +53,29 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/advisory-autofeed.test.js',
   '_byan/mcp/byan-mcp-server/test/outcome-buffer.test.js',
   '.claude/hooks/drain-advisory.js',
+  // Auto-benchmark chantier (C1-C5). The runtime/doctrine files that make the
+  // feature exist in a fresh install: the reactive Stop hook + its runtime libs,
+  // the generated config, the proactive doctrine rule, the conductor skill, the
+  // DATA-only workflow engine + its markdown fallback, and the YAML source of
+  // truth. The Stop hook ships DISARMED (enforcement.armed=false in the config),
+  // so a fresh install carries the net inert until the user opts in.
+  '.claude/hooks/autobench-stop-guard.js',
+  '.claude/hooks/lib/autobench-runtime.js',
+  '.claude/hooks/lib/autobench-config.json',
+  '.claude/hooks/lib/autobench-fc-enrich.js',
+  '.claude/hooks/lib/autobench-ledger-report.js',
+  '.claude/rules/benchmark.md',
+  '.claude/skills/byan-benchmark/SKILL.md',
+  '.claude/workflows/byan-benchmark.js',
+  '_byan/workflow/simple/bmb/byan-benchmark/workflow.md',
+  '_byan/_config/autobench.yaml',
+  // MCP-package test ships with the server (same convention as the insight /
+  // advisory tests above). The root __tests__/ and .claude/__tests__/ suites do
+  // NOT ship: they verify this dev checkout's generated artifacts, a fresh
+  // install regenerates its own, and there is no root/.claude test in the
+  // template perimeter — mirroring the way .claude/hooks/drain-advisory.js ships
+  // without its root test.
+  '_byan/mcp/byan-mcp-server/test/sync-rules-autobench.test.js',
 ];
 
 // The template lives under this root-relative directory.

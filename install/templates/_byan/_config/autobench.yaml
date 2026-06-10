@@ -1,0 +1,510 @@
+# BYAN Auto-Benchmark — Source of truth
+#
+# This file is the single canonical definition of BYAN Auto-Benchmark.
+# It is consumed by the `byan-sync-rules` generator (syncAutobench), which emits
+# the per-platform artifacts from the values below:
+#   - .claude/rules/benchmark.md                     (owned, full-file)
+#   - .claude/hooks/lib/autobench-config.json        (owned, full-file)
+#   - CLAUDE.md / AGENTS.md / copilot-instructions    (upsert pointer block)
+#
+# Edit this file, then run the generator. Do not hand-edit the generated blocks
+# (they live between BYAN-AUTOBENCH:BEGIN / BYAN-AUTOBENCH:END markers).
+#
+# Shape mirrors strict-mode.yaml: version, name, slug, description, three
+# doctrine bricks (trigger / scaler / format), an antibloat section, injection
+# banners, hook config, and a non-empty mantras array.
+
+version: 1
+name: BYAN Auto-Benchmark
+slug: byan-autobench
+description: >-
+  Proactive doctrine that makes the agent benchmark a real decision fork
+  (>= 2 non-substitutable options diverging on >= 1 weighted criterion) as a
+  compact 1-table reco before asking the user to choose, and a reactive Stop
+  hook that catches an unmarked choice once and forces a single regen.
+
+# ===========================================================================
+# BRICK 1 — TRIGGER. When does a turn deserve a benchmark, and when does it not.
+# ===========================================================================
+trigger:
+  # The 2-gate rule. BOTH gates must hold for a benchmark to fire.
+  gates:
+    - id: G1
+      rule: >-
+        At least 2 non-trivial, non-substitutable options. Two phrasings of the
+        same thing are ONE option. Two libraries that genuinely differ are TWO.
+    - id: G2
+      rule: >-
+        The options diverge on at least 1 weighted criterion. If every criterion
+        ranks them identically, there is no real fork — collapse it.
+
+  # NEVER benchmark these. A confirm or a destructive prompt is not a fork.
+  never_list:
+    - "yes/no and y/n confirmations (proceed?, continue?, ok?, on continue?)"
+    - "destructive prompts (delete, drop, rm -rf, overwrite, force push, reset --hard)"
+    - "single trivial acknowledgements (ok, done, noted)"
+    - "a fork already coherent with the locked stack (see anti-redundancy)"
+
+  # Routing decides links BEFORE depth decides verbosity.
+  routing:
+    internal: >-
+      The fork stays within the existing repo / stack (which existing module,
+      which local pattern). NO external links. Coherence with the current stack
+      is the dominant criterion. Decide from model-knowledge of the repo.
+    external: >-
+      The fork introduces a new dependency, vendor, or standard. Sourcing is
+      allowed: an evidence level per option, and a URL ONLY if WebFetch opened
+      it this turn.
+
+  # Depth dial: stakes x reversibility sets verbosity, AFTER routing.
+  depth_dial:
+    low_stakes_reversible: >-
+      One line. "lean X over Y (Y costs an extra dep for no gain here)." No table.
+    high_stakes_irreversible: >-
+      Full compact table + an explicit dissenting view (the strongest case for
+      the option you did NOT pick).
+
+  # The escape from the 2-gate rule: an obvious default is not a fork.
+  obvious_default_escape: >-
+    When one option is the obvious, coherent default and the alternatives are
+    strictly worse or never-listed, do NOT table it. Emit the skip marker
+    (<!-- BYAN-BENCH:skip reason=obvious-default -->) so the consideration is
+    auditable, then proceed with the default.
+
+  # Keywords in the user's text that auto-arm the benchmark posture.
+  choice_language_autofire:
+    - "should I"
+    - "veux-tu que je"
+    - "do you want me to"
+    - "préfères-tu"
+    - "which one"
+    - "which approach"
+    - "A or B"
+    - "option 1 or option 2"
+    - "vs"
+    - "ou bien"
+    - "soit ... soit"
+    - "pros and cons"
+    - "trade-off"
+    - "trade-offs"
+
+  # >= 7 paired POSITIVE/NEGATIVE verbatim few-shot examples. Each: situation ->
+  # FIRE (benchmark) vs SKIP (no benchmark) + the reason. The agent matches its
+  # current turn against these before deciding.
+  decision_tree:
+    - id: EX1
+      situation: "User: 'should I use Redis or Postgres for this session cache?'"
+      verdict: FIRE
+      reason: >-
+        G1 holds (two non-substitutable stores), G2 holds (they diverge on
+        latency, ops-cost, durability). External (new dependency) -> sourcing
+        allowed. Benchmark.
+    - id: EX2
+      situation: "User: 'rename the variable foo to userCount, ok?'"
+      verdict: SKIP
+      reason: >-
+        Never-list: this is a y/n confirm on a trivial reversible edit. Emit
+        skip reason=escape-hatch, just do it.
+    - id: EX3
+      situation: "User: 'which test runner — Jest or Vitest — for this repo that already uses Jest everywhere?'"
+      verdict: SKIP
+      reason: >-
+        Obvious-default escape: the stack is already on Jest; adding Vitest
+        breaks coherence for no gain. Emit skip reason=obvious-default, stay on
+        Jest. (If the repo had NO runner yet, this would FIRE.)
+    - id: EX4
+      situation: "User: 'design the auth layer — JWT in a cookie vs JWT in localStorage vs server sessions.'"
+      verdict: FIRE
+      reason: >-
+        G1 (three real options), G2 (diverge on XSS exposure, CSRF, scalability).
+        Security domain -> floor L2, strict-domain sourcing. High-stakes,
+        hard-to-reverse -> full table + dissent.
+    - id: EX5
+      situation: "User: 'delete the legacy migrations folder, proceed?'"
+      verdict: SKIP
+      reason: >-
+        Never-list: destructive prompt. Do NOT benchmark a delete. Emit skip
+        reason=escape-hatch, confirm the destructive action plainly instead.
+    - id: EX6
+      situation: "Agent has two ways to name a helper (parseRow vs rowParse) inside one private module."
+      verdict: SKIP
+      reason: >-
+        G1 fails: substitutable phrasings of the same thing, no weighted
+        criterion diverges. Pick one and move on. Emit skip reason=already-coherent.
+    - id: EX7
+      situation: "User: 'pick a charting lib for the new dashboard.' Repo has none yet."
+      verdict: FIRE
+      reason: >-
+        G1 (Chart.js / Recharts / D3 are non-substitutable), G2 (bundle size,
+        API ergonomics, customization diverge). External -> sourcing allowed,
+        links only if WebFetch opened them this turn.
+    - id: EX8
+      situation: "User: 'should I add a debounce of 200ms or 300ms to the search box?'"
+      verdict: SKIP
+      reason: >-
+        Low-stakes, reversible, and the criteria do not meaningfully diverge
+        (G2 weak). Collapse to one line ('lean 250ms, tune later'), emit skip
+        reason=obvious-default. A full table here is bloat.
+    - id: EX9
+      situation: "User: 'monorepo with Turborepo vs Nx vs polyrepo for the platform.'"
+      verdict: FIRE
+      reason: >-
+        G1 (three structurally different options), G2 (build caching, learning
+        curve, blast radius diverge). High-stakes, hard-to-reverse -> full table
+        + dissent. External (new tooling) -> sourcing allowed.
+    - id: EX10
+      situation: "User: 'commit this, on continue ?'"
+      verdict: SKIP
+      reason: >-
+        Never-list: a proceed/continue confirm. Not a fork. Emit skip
+        reason=escape-hatch.
+
+  # Sanity floor enforced by the marker semantics and the Stop hook.
+  marker_gates:
+    g1_min: 2     # >= 2 options or the done-marker is invalid
+    g2_min: 1     # divergence on >= 1 weighted criterion
+
+# ===========================================================================
+# BRICK 2 — SCALER / SOURCING. How evidence is gathered and how confident the
+# reco is allowed to sound. Routing decides links BEFORE depth decides words.
+# ===========================================================================
+scaler:
+  routing_before_depth: >-
+    Decide internal-vs-external FIRST: it sets whether links are even allowed.
+    Only THEN does stakes-x-reversibility set how many words. Never let a
+    verbose table smuggle in links for an internal fork.
+
+  # The 5-level evidence rubric, written as text so the rule.md carries it.
+  evidence_rubric:
+    - level: L1
+      score: 95
+      sources: "RFC, W3C, ECMAScript, POSIX, an official spec."
+    - level: L2
+      score: 80
+      sources: "A reproducible benchmark, a CVE reference, official product docs."
+    - level: L3
+      score: 65
+      sources: "A peer-reviewed article or a recognized technical book."
+    - level: L4
+      score: 50
+      sources: "Community consensus (StackOverflow > 1000 votes)."
+    - level: L5
+      score: 20
+      sources: "Opinion or personal experience. Presented as such, never as fact."
+
+  # Strict-domain floors. Below the floor, the cell is BLOCKED, not guessed.
+  strict_floors:
+    security: L2       # CVE or reproducible benchmark required
+    performance: L2    # profiler output or reproducible benchmark required
+    compliance: L1     # regulatory text required
+
+  link_rule: >-
+    A URL appears in the table ONLY if WebFetch opened it THIS turn. Otherwise
+    cite from model-knowledge and tag the claim [UNVERIFIED]. Never fabricate a
+    URL. Never reconstruct a URL from memory and present it as opened.
+
+  # The confidence floor changes the VERB, not just a number.
+  confidence_verb:
+    assertive: >-
+      Evidence at or above the floor for the domain. Phrase the reco as
+      "recommend X" / "go with X".
+    lean: >-
+      Evidence below the floor, or model-knowledge only on a strict domain.
+      Phrase the reco as "lean X (low-confidence, verify before committing)".
+
+# ===========================================================================
+# BRICK 3 — FORMAT + ANTI-BLOAT. The output shape and the guards against it
+# becoming a wall of text the user did not ask for.
+# ===========================================================================
+format:
+  default: >-
+    One compact table: a row per option, up to 4 criteria columns, a Niv
+    (evidence level) column, and ONE best-first recommendation line under it.
+  caps:
+    options: 4
+    criteria: 4
+    links: 3
+    screens: 1     # the whole benchmark fits in one screen
+  collapse_degenerate: >-
+    If only one option survives the gates, do not render a 1-row table. Collapse
+    to one line and emit the skip marker. A table of one is theatre.
+  expanded_optin:
+    named_trigger: "[bench:expand]"
+    behavior: >-
+      Only when the user types [bench:expand] does the agent render the expanded
+      form (more criteria, per-cell sourcing, the full dissent). The default
+      stays compact.
+
+antibloat:
+  latency_guard: >-
+    Default to model-knowledge + [UNVERIFIED] tags. Auto-WebFetch ONLY for a
+    strict domain (security / performance / compliance) or a volatile fact
+    (current version, current price, current status). Do not fetch to decorate
+    an internal fork.
+  escape_hatch:
+    session_default: >-
+      Presence of the file .byan-autobench/off disables blocking for the
+      session. touch it to silence, rm it to re-enable.
+    cross_session_optin: >-
+      The config key escape_hatch.disabled=true (set via the cross-session
+      opt-in, regenerated from this YAML) disables blocking persistently. Both
+      paths still log 'satisfied-escape' so misses stay auditable.
+    disabled: false
+  no_rebenchmark: >-
+    Do not re-table a fork already decided and coherent with the locked stack.
+    If the architecture already chose Postgres, do not benchmark Redis-vs-Postgres
+    again unless the user explicitly reopens it.
+
+# ===========================================================================
+# Injection — the banners the generator embeds. Kept here so the lean pointer
+# block and the stop-hook reason stay in sync from one source.
+# ===========================================================================
+injection:
+  context_banner: |
+    [AUTO-BENCHMARK ACTIVE]
+    Before asking the user to choose between options, benchmark the fork:
+      1. Gates: >= 2 non-substitutable options diverging on >= 1 weighted criterion.
+         A y/n confirm, a destructive prompt, or an obvious default is NOT a fork.
+      2. Route: internal (no links, coherence-first) vs external (sourcing allowed).
+      3. Render ONE compact table (<= 4 options, <= 4 criteria, Niv column) with a
+         best-first reco line. Links only if WebFetch opened them this turn, else [UNVERIFIED].
+      4. Emit the marker verbatim before the table:
+         <!-- BYAN-BENCH:done g1=<#options> g2=<#divergent-criteria> scope=<internal|external> conf=<assertive|lean> -->
+         For a deliberate non-benchmark: <!-- BYAN-BENCH:skip reason=<obvious-default|never-listed|escape-hatch|already-coherent> -->
+    Full doctrine: see @.claude/rules/benchmark.md
+
+  stop_block_reason: >-
+    Auto-benchmark: you are presenting a choice between options but emitted no
+    BYAN-BENCH marker. Re-present the fork as the compact 1-table benchmark
+    (Option | criteria | Niv + best-first reco), then emit
+    <!-- BYAN-BENCH:done g1=.. g2=.. scope=.. -->. If this is a
+    confirm/destructive/obvious-default prompt, emit
+    <!-- BYAN-BENCH:skip reason=.. -->. To disable for this session: touch .byan-autobench/off.
+
+# ===========================================================================
+# Hooks config — consumed by the generated .claude/hooks/lib/autobench-config.json
+# that the Stop hook reads at runtime. Single source of truth so the runtime
+# detection stays aligned with this doctrine.
+# ===========================================================================
+hooks:
+  # Marker patterns: {source, flags} pairs. Reconstructed into RegExp at load time.
+  marker_patterns:
+    any:
+      source: "<!--\\s*BYAN-BENCH:(done|skip)\\b"
+      flags: "i"
+    done:
+      source: "<!--\\s*BYAN-BENCH:done\\b"
+      flags: "i"
+    skip:
+      source: "<!--\\s*BYAN-BENCH:skip\\b"
+      flags: "i"
+  # Marker field extractors. Used by the Stop hook to parse g1/g2/scope for the
+  # audit ledger. Best-effort: a missing field does not invalidate the marker.
+  marker_fields:
+    g1:
+      source: "g1=(\\d+)"
+      flags: "i"
+    g2:
+      source: "g2=(\\d+)"
+      flags: "i"
+    scope:
+      source: "scope=(internal|external)"
+      flags: "i"
+  # NEVER-list {source, flags} pairs. A match suppresses the fallback entirely.
+  never_list:
+    - source: "\\b(yes/no|y/n|confirm|proceed\\?|continue\\?|ok\\?|on continue\\?|je confirme)\\b"
+      flags: "i"
+    - source: "\\b(delete|drop|rm -rf|overwrite|force push|reset --hard|supprimer|écraser)\\b"
+      flags: "i"
+  # Choice-language signals. Each entry is {source, flags} plus optional
+  # min_matches (count threshold) or requires_candidates (co-occurrence gate).
+  # The bullet-list detector uses min_matches so two bullet items are required.
+  choice_language:
+    - source: "\\boption\\s*[1-3a-c]\\b"
+      flags: "ig"
+      min_matches: 2
+    - source: "^[ \\t]*[-*][ \\t]+[A-Z][^\\n]{0,80}(:|[ \\t]-[ \\t])"
+      flags: "gm"
+      min_matches: 2
+    - source: "\\b(should I|veux-tu que je|do you want me to|préfères-tu|which (one|approach|option)|A or B|soit .* soit )\\b"
+      flags: "i"
+    - source: "\\b(pros?|cons?|trade-?offs?|avantages?|inconvénients?)\\b"
+      flags: "i"
+      requires_candidates: 2
+  # Candidate-token counter used by requires_candidates signals.
+  candidate_token:
+    source: "\\b(option|approach|approche|alternative|choix|solution|stack|library|librairie|vendor|standard)s?\\b"
+    flags: "ig"
+  # Escape-hatch: session flag (file presence) and cross-session toggle (disabled).
+  escape_hatch:
+    session_flag: ".byan-autobench/off"
+    block_token_dir: ".byan-autobench"
+    disabled: false
+  # Enforcement arming (approach C). The Stop hook ships DISARMED: it observes and
+  # ledgers every turn but NEVER blocks until explicitly armed, so day one is zero
+  # noise / zero latency. Two opt-IN paths mirror the escape-hatch dual layer: the
+  # persistent config flag (armed: true) OR a local flag file (arm_flag, touch to
+  # arm this machine). Default OFF — the net is pre-built but inert until chosen.
+  enforcement:
+    armed: false
+    arm_flag: ".byan-autobench/armed"
+  # The audit trail the Stop hook appends to (one JSONL line per invocation).
+  ledger_path: "_byan-output/benchmark-ledger.jsonl"
+  # Stop-block banner emitted when the hook fires. Kept in the YAML so the
+  # runtime message stays in sync with the doctrine text above.
+  stop_block: >-
+    Auto-benchmark: you are presenting a choice between options but emitted no
+    BYAN-BENCH marker. Re-present the fork as the compact 1-table benchmark
+    (Option | criteria | Niv + best-first reco), then emit
+    <!-- BYAN-BENCH:done g1=.. g2=.. scope=.. -->. If this is a
+    confirm/destructive/obvious-default prompt, emit
+    <!-- BYAN-BENCH:skip reason=.. -->. To disable for this session: touch .byan-autobench/off.
+
+# ===========================================================================
+# The hard ceiling — documented honestly. This is NOT a false promise.
+# ===========================================================================
+ceiling:
+  github_issue: "GH #28273"
+  note: >-
+    Claude Code exposes no pre-display interception hook: there is no event that
+    fires BEFORE the assistant's text reaches the user. The benchmark therefore
+    cannot be injected into a turn before it is shown. Two mechanisms cover this
+    honestly: (1) the PROACTIVE doctrine (this file -> CLAUDE.md/rules) makes the
+    agent self-apply the benchmark before it writes; (2) the REACTIVE Stop hook
+    catches a turn that presented a choice WITHOUT a marker and forces exactly
+    one regen. The Stop hook is post-hoc by construction — it cannot rewrite the
+    shown text, only block the turn end and require a re-presentation. Promising
+    pre-display interception would be a lie; this design does not make it.
+
+# ===========================================================================
+# Mantras — the rules the doctrine makes non-negotiable. Phrased as imperatives,
+# kept free of absolute words so the fact-check filter passes.
+# ===========================================================================
+mantras:
+  - id: BENCH-1
+    name: Gate Before Table
+    rule: >-
+      Render a benchmark only when both gates hold: >= 2 non-substitutable
+      options diverging on >= 1 weighted criterion. Otherwise collapse and skip.
+    rationale: A table of non-choices is noise that buries the real signal.
+    priority: critical
+    validation_keywords: ["two gates", "non-substitutable", "weighted criterion"]
+
+  - id: BENCH-2
+    name: Never Benchmark A Confirm
+    rule: >-
+      A yes/no confirmation, a proceed/continue prompt, or a destructive action
+      is never a benchmark. Confirm it plainly and emit the skip marker.
+    rationale: Tabling a confirm wastes the user's attention and delays a yes.
+    priority: critical
+    validation_keywords: ["never benchmark", "confirm", "destructive"]
+
+  - id: BENCH-3
+    name: Route Before Depth
+    rule: >-
+      Decide internal-vs-external before deciding how many words. Routing sets
+      whether links are allowed; only then does stakes set the verbosity.
+    rationale: A verbose table must not smuggle external links into an internal fork.
+    priority: high
+    validation_keywords: ["internal", "external", "before depth"]
+
+  - id: BENCH-4
+    name: No Fabricated URL
+    rule: >-
+      A URL appears only if WebFetch opened it this turn. Otherwise cite from
+      model-knowledge and tag the claim [UNVERIFIED]. Never invent a link.
+    rationale: A fabricated source is worse than an honest [UNVERIFIED].
+    priority: critical
+    validation_keywords: ["webfetch opened", "[unverified]", "fabricated"]
+
+  - id: BENCH-5
+    name: Strict-Domain Floor
+    rule: >-
+      Security and performance cells need LEVEL-2 evidence; compliance needs
+      LEVEL-1. Below the floor the cell is BLOCKED, not guessed.
+    rationale: A guessed security verdict carries a consequence an opinion cannot.
+    priority: critical
+    validation_keywords: ["level-2", "level-1", "blocked"]
+
+  - id: BENCH-6
+    name: Confidence Changes The Verb
+    rule: >-
+      Above the floor, "recommend X". Below it, "lean X (low-confidence)". The
+      verb carries the confidence, not a hidden footnote.
+    rationale: A confident verb on weak evidence is the silent overclaim.
+    priority: high
+    validation_keywords: ["recommend", "lean", "low-confidence"]
+
+  - id: BENCH-7
+    name: One Compact Table
+    rule: >-
+      The default output is one table: <= 4 options, <= 4 criteria, <= 3 links,
+      one screen, a Niv column, and a best-first reco line.
+    rationale: The benchmark serves the decision; it is not a report to admire.
+    priority: high
+    validation_keywords: ["one table", "four criteria", "best-first"]
+
+  - id: BENCH-8
+    name: Collapse The Degenerate
+    rule: >-
+      When one option dominates, do not render a 1-row table. Collapse to one
+      line and emit the skip marker.
+    rationale: A table of one is theatre that hides the obvious answer.
+    priority: high
+    validation_keywords: ["collapse", "degenerate", "skip marker"]
+
+  - id: BENCH-9
+    name: Expand Only On Demand
+    rule: >-
+      Render the expanded form (more criteria, per-cell sourcing, full dissent)
+      only when the user types the named trigger [bench:expand].
+    rationale: The user asked for a decision, not by default for a dissertation.
+    priority: medium
+    validation_keywords: ["[bench:expand]", "expanded form", "on demand"]
+
+  - id: BENCH-10
+    name: Latency Guard
+    rule: >-
+      Default to model-knowledge with [UNVERIFIED] tags. Auto-fetch only for a
+      strict domain or a volatile fact. Do not fetch to decorate.
+    rationale: A network round-trip the decision did not need is pure latency.
+    priority: medium
+    validation_keywords: ["model-knowledge", "auto-fetch", "volatile"]
+
+  - id: BENCH-11
+    name: Respect The Escape-Hatch
+    rule: >-
+      When .byan-autobench/off exists or escape_hatch.disabled is true, do not
+      block. Still log the skip so the miss stays auditable.
+    rationale: An opt-out the user set must be honored without losing the audit.
+    priority: high
+    validation_keywords: ["escape-hatch", ".byan-autobench/off", "auditable"]
+
+  - id: BENCH-12
+    name: Emit The Marker
+    rule: >-
+      On any turn that presents the compact reco table, emit the BYAN-BENCH:done
+      marker verbatim before the table. On a deliberate non-benchmark, emit
+      BYAN-BENCH:skip. The marker is the contract with the Stop hook.
+    rationale: An unmarked benchmark is invisible to the audit and re-triggers the gate.
+    priority: critical
+    validation_keywords: ["byan-bench:done", "byan-bench:skip", "before the table"]
+
+  - id: BENCH-13
+    name: No Re-Benchmark
+    rule: >-
+      Do not re-table a fork already decided and coherent with the locked stack
+      unless the user explicitly reopens it.
+    rationale: Re-litigating a settled choice is bloat dressed as diligence.
+    priority: medium
+    validation_keywords: ["re-table", "already decided", "coherent"]
+
+  - id: BENCH-14
+    name: Honest Ceiling
+    rule: >-
+      State plainly that no pre-display interception exists (GH #28273). The
+      doctrine is proactive self-application plus a post-hoc Stop hook, never a
+      promise to rewrite shown text.
+    rationale: A false promise of interception would erode trust in the whole gate.
+    priority: high
+    validation_keywords: ["pre-display", "gh #28273", "post-hoc"]

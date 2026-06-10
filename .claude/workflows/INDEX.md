@@ -22,8 +22,9 @@
 - `testarch-test-review` — native — source `_byan/workflow/simple/testarch/test-review/workflow.yaml`
 - `testarch-trace` — native — source `_byan/workflow/simple/testarch/trace/workflow.yaml`
 
-## pipeline (9)
+## pipeline (10)
 
+- `byan-benchmark` — native — source `_byan/workflow/simple/bmb/byan-benchmark/workflow.md`
 - `check-implementation-readiness` — native — source `_byan/workflow/simple/3-solutioning/check-implementation-readiness/workflow.md`
 - `code-review` — native — source `_byan/workflow/simple/4-implementation/code-review/workflow.yaml`
 - `create-excalidraw-dataflow` — native — source `_byan/workflow/simple/excalidraw-diagrams/create-dataflow/workflow.yaml`

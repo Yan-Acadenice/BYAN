@@ -1,0 +1,82 @@
+{
+  "_generated_by": "byan-sync-rules",
+  "_note": "Runtime subset read by autobench-stop-guard.js. Edit _byan/_config/autobench.yaml and regenerate; do not hand-edit. Regexes are {source, flags} pairs reconstructed into RegExp at load time.",
+  "version": 1,
+  "marker_patterns": {
+    "any": {
+      "source": "<!--\\s*BYAN-BENCH:(done|skip)\\b",
+      "flags": "i"
+    },
+    "done": {
+      "source": "<!--\\s*BYAN-BENCH:done\\b",
+      "flags": "i"
+    },
+    "skip": {
+      "source": "<!--\\s*BYAN-BENCH:skip\\b",
+      "flags": "i"
+    }
+  },
+  "marker_fields": {
+    "g1": {
+      "source": "g1=(\\d+)",
+      "flags": "i"
+    },
+    "g2": {
+      "source": "g2=(\\d+)",
+      "flags": "i"
+    },
+    "scope": {
+      "source": "scope=(internal|external)",
+      "flags": "i"
+    }
+  },
+  "never_list": [
+    {
+      "source": "\\b(yes/no|y/n|confirm|proceed\\?|continue\\?|ok\\?|on continue\\?|je confirme)\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\b(delete|drop|rm -rf|overwrite|force push|reset --hard|supprimer|écraser)\\b",
+      "flags": "i"
+    }
+  ],
+  "choice_language": [
+    {
+      "source": "\\boption\\s*[1-3a-c]\\b",
+      "flags": "ig",
+      "min_matches": 2
+    },
+    {
+      "source": "^[ \\t]*[-*][ \\t]+[A-Z][^\\n]{0,80}(:|[ \\t]-[ \\t])",
+      "flags": "gm",
+      "min_matches": 2
+    },
+    {
+      "source": "\\b(should I|veux-tu que je|do you want me to|préfères-tu|which (one|approach|option)|A or B|soit .* soit )\\b",
+      "flags": "i"
+    },
+    {
+      "source": "\\b(pros?|cons?|trade-?offs?|avantages?|inconvénients?)\\b",
+      "flags": "i",
+      "requires_candidates": 2
+    }
+  ],
+  "candidate_token": {
+    "source": "\\b(option|approach|approche|alternative|choix|solution|stack|library|librairie|vendor|standard)s?\\b",
+    "flags": "ig"
+  },
+  "escape_hatch": {
+    "session_flag": ".byan-autobench/off",
+    "disabled": false
+  },
+  "enforcement": {
+    "armed": false,
+    "arm_flag": ".byan-autobench/armed"
+  },
+  "ledger": {
+    "path": "_byan-output/benchmark-ledger.jsonl"
+  },
+  "banners": {
+    "stop_block": "Auto-benchmark: you are presenting a choice between options but emitted no BYAN-BENCH marker. Re-present the fork as the compact 1-table benchmark (Option | criteria | Niv + best-first reco), then emit <!-- BYAN-BENCH:done g1=.. g2=.. scope=.. -->. If this is a confirm/destructive/obvious-default prompt, emit <!-- BYAN-BENCH:skip reason=.. -->. To disable for this session: touch .byan-autobench/off."
+  }
+}

@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Auto-Benchmark: native sourced decision benchmarks (C1-C5)
+
+When the agent is about to ask you to choose between options, it now benchmarks
+the fork by default: one compact `Option | criteria | Niv` table with a best-first
+recommendation, sourced and confidence-tagged, at the right level of detail — so
+you no longer have to ask each time. Two layers cover this honestly (Claude Code
+exposes no pre-display interception hook today, GH #28273):
+
+- **Proactive doctrine** (the broadly-portable layer). The full doctrine lives in
+  `.claude/rules/benchmark.md`, generated from the single source of truth
+  `_byan/_config/autobench.yaml` by `byan-sync-rules`, and a lean pointer is
+  upserted cross-platform into `.claude/CLAUDE.md`, `AGENTS.md`, and
+  `.github/copilot-instructions.md` (idempotent `BYAN-AUTOBENCH` markers). It
+  covers the TRIGGER 2-gate rule (>= 2 non-substitutable options diverging on
+  >= 1 weighted criterion) + the exemption list (y/n confirms, destructive
+  prompts) + internal/external routing + a verbatim few-shot decision tree, the
+  SCALER 5-level evidence rubric + strict-domain floors + the link-only-if-WebFetch
+  rule, the FORMAT compact table with hard caps (<= 4 options / <= 4 criteria /
+  <= 3 links) + collapse-the-degenerate + `[bench:expand]` opt-in, and the
+  ANTI-BLOAT latency guard + escape-hatch + no-re-benchmark.
+- **Reactive Stop hook** (`.claude/hooks/autobench-stop-guard.js`), the safety
+  net. It **ships DISARMED**: it observes and ledgers every turn but stays inert
+  (does not block) until you opt in — set `enforcement.armed: true` in the config
+  or `touch .byan-autobench/armed` — so day one is zero noise / zero latency.
+  Detection is **artifact-primary**: a real fork is recognized from an
+  `AskUserQuestion` tool_use in the finished turn, with the choice-language regex
+  as a last-resort fallback. Block-once is content-hashed (no loop); a session
+  escape-hatch (`touch .byan-autobench/off`) plus a cross-session toggle suppress
+  it.
+- **Tooling.** A `byan-benchmark` skill (conductor) and a DATA-only native
+  workflow (`.claude/workflows/byan-benchmark.js`), both registered in the
+  workflow manifest / PORTABLE bucket / INDEX. A BYAN-only opt-in layer enriches
+  the matrix via `byan_fc_check`. Every fire/miss is audited to
+  `_byan-output/benchmark-ledger.jsonl`.
+
 ### Added - byan-install-core (F1): headless, deterministic install engine
 
 First feature of the installer refactor (FD lot 1). A new internal workspace

@@ -47,6 +47,7 @@ export const PORTABLE = {
     'create-excalidraw-dataflow',
     'create-excalidraw-flowchart',
     'create-excalidraw-wireframe',
+    'byan-benchmark',
   ],
 };
 
