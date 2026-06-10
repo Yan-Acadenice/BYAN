@@ -225,7 +225,10 @@ if (require.main === module) {
       const hash = turnHash(lastAssistantText);
       const escapeHatch = escapeHatchActive(config);
       const armed = isArmed(config);
-      const blocked = readBlockToken(hash);
+      // Loop-guard : the content-hash block token is primary; stop_hook_active is
+      // an additional belt from the runtime (a prior Stop hook already blocked
+      // this turn), so we never depend on it alone.
+      const blocked = readBlockToken(hash) || payload.stop_hook_active === true;
 
       const decision = decideBench({ lastAssistantText, artifact, armed, config, escapeHatch, blocked });
 

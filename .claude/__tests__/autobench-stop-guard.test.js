@@ -29,6 +29,11 @@ const HOOK = path.join(ROOT, '.claude', 'hooks', 'autobench-stop-guard.js');
 const CONFIG_PATH = path.join(ROOT, '.claude', 'hooks', 'lib', 'autobench-config.json');
 
 const { decideBench } = require(path.join(ROOT, '.claude', 'hooks', 'autobench-stop-guard.js'));
+const {
+  extractLastAssistantText,
+  extractLastAssistantContent,
+  hasChoiceArtifact,
+} = require(path.join(ROOT, '.claude', 'hooks', 'lib', 'autobench-runtime.js'));
 
 // The real generated runtime config drives both the unit table and the e2e
 // runs, so the tests verify the SHIPPED regexes, not a test-only stand-in.
@@ -243,6 +248,76 @@ describe('decideBench — artifact-primary detection (approach C)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Payload extraction : the REAL Stop-hook payload carries no inline transcript.
+// It hands a transcript_path (JSONL file) and a last_assistant_message string.
+// These guard the production access path — a regression here makes the hook read
+// an empty turn and silently never fire (the bug this suite was extended to catch).
+// ---------------------------------------------------------------------------
+
+describe('payload extraction (production shape: transcript_path + last_assistant_message)', () => {
+  let tmpRoot;
+  beforeEach(() => {
+    tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'autobench-payload-'));
+  });
+  afterEach(() => {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  // Write a JSONL transcript in the real Claude Code shape and return its path.
+  function writeTranscript(lines) {
+    const p = path.join(tmpRoot, 'transcript.jsonl');
+    fs.writeFileSync(p, lines.map((o) => JSON.stringify(o)).join('\n') + '\n');
+    return p;
+  }
+
+  test('last_assistant_message string is used directly for the text signal', () => {
+    const payload = { last_assistant_message: MSG_CHOICE_OPTIONS, transcript_path: '/nonexistent' };
+    expect(extractLastAssistantText(payload)).toBe(MSG_CHOICE_OPTIONS);
+  });
+
+  test('transcript_path JSONL: last assistant content is read (real {type,message:{role,content}} shape)', () => {
+    const tp = writeTranscript([
+      { type: 'user', message: { role: 'user', content: 'help' } },
+      {
+        type: 'assistant',
+        message: {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Here are the options.' },
+            { type: 'tool_use', id: 'x', name: 'AskUserQuestion', input: {} },
+          ],
+        },
+      },
+    ]);
+    const content = extractLastAssistantContent({ transcript_path: tp });
+    expect(Array.isArray(content)).toBe(true);
+    expect(hasChoiceArtifact(content)).toBe(true);
+    expect(extractLastAssistantText({ transcript_path: tp })).toContain('Here are the options.');
+  });
+
+  test('transcript_path JSONL: text-only final turn flattens to its prose', () => {
+    const tp = writeTranscript([
+      { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: MSG_CHOICE_OPTIONS }] } },
+    ]);
+    expect(extractLastAssistantText({ transcript_path: tp })).toContain('Which option');
+  });
+
+  test('empty / unreadable payload yields empty text (hook degrades to no-fork, never throws)', () => {
+    expect(extractLastAssistantText({})).toBe('');
+    expect(extractLastAssistantText({ transcript_path: '/no/such/file.jsonl' })).toBe('');
+    expect(extractLastAssistantContent({ transcript_path: '/no/such/file.jsonl' })).toBeNull();
+  });
+
+  test('inline transcript/messages still resolve (test-fixture / legacy fallback)', () => {
+    expect(extractLastAssistantText({ messages: [{ role: 'assistant', content: MSG_PLAIN }] })).toBe(MSG_PLAIN);
+    const c = extractLastAssistantContent({
+      transcript: [{ role: 'assistant', content: [{ type: 'tool_use', name: 'AskUserQuestion' }] }],
+    });
+    expect(hasChoiceArtifact(c)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // E2e : spawn the real hook against an isolated temp project root.
 // ---------------------------------------------------------------------------
 
@@ -347,6 +422,74 @@ describe('autobench-stop-guard e2e (spawned process)', () => {
     expect(r.code).toBe(2);
     expect(r.parsed.decision).toBe('block');
     expect(ledgerLines().some((l) => l.event === 'fired-block' && l.detection === 'artifact')).toBe(true);
+  });
+
+  // The REAL runtime shape: no inline messages, a transcript_path JSONL + a
+  // last_assistant_message string. These prove the hook fires in production, not
+  // just against the inline test fixtures.
+  function writeTranscriptIn(tmp, lines) {
+    const p = path.join(tmp, 'transcript.jsonl');
+    fs.writeFileSync(p, lines.map((o) => JSON.stringify(o)).join('\n') + '\n');
+    return p;
+  }
+
+  test('PRODUCTION shape (last_assistant_message choice) + armed -> exit 2 block', () => {
+    arm();
+    const tp = writeTranscriptIn(tmpRoot, [
+      { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: MSG_CHOICE_OPTIONS }] } },
+    ]);
+    const payload = JSON.stringify({
+      transcript_path: tp,
+      last_assistant_message: MSG_CHOICE_OPTIONS,
+      stop_hook_active: false,
+    });
+    const r = runHook(null, { stdin: payload });
+    expect(r.code).toBe(2);
+    expect(r.parsed.decision).toBe('block');
+    expect(ledgerLines().some((l) => l.event === 'fired-block')).toBe(true);
+  });
+
+  test('PRODUCTION shape (transcript_path AskUserQuestion tool_use) + armed -> exit 2 block (artifact)', () => {
+    arm();
+    const tp = writeTranscriptIn(tmpRoot, [
+      { type: 'user', message: { role: 'user', content: 'help' } },
+      {
+        type: 'assistant',
+        message: {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Picking a store.' },
+            { type: 'tool_use', id: 'a', name: 'AskUserQuestion', input: {} },
+          ],
+        },
+      },
+    ]);
+    const payload = JSON.stringify({ transcript_path: tp, last_assistant_message: 'Picking a store.', stop_hook_active: false });
+    const r = runHook(null, { stdin: payload });
+    expect(r.code).toBe(2);
+    expect(ledgerLines().some((l) => l.event === 'fired-block' && l.detection === 'artifact')).toBe(true);
+  });
+
+  test('PRODUCTION shape + stop_hook_active=true -> does NOT block again (loop guard)', () => {
+    arm();
+    const tp = writeTranscriptIn(tmpRoot, [
+      { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: MSG_CHOICE_OPTIONS }] } },
+    ]);
+    const payload = JSON.stringify({ transcript_path: tp, last_assistant_message: MSG_CHOICE_OPTIONS, stop_hook_active: true });
+    const r = runHook(null, { stdin: payload });
+    expect(r.code).toBe(0);
+    expect(r.parsed).toEqual({ continue: true });
+  });
+
+  test('DISARMED default + production choice payload -> no block (observed-disarmed-fork, reads real text)', () => {
+    // No arm(): proves the fix reads the real payload (non-empty) yet stays inert.
+    const tp = writeTranscriptIn(tmpRoot, [
+      { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: MSG_CHOICE_OPTIONS }] } },
+    ]);
+    const payload = JSON.stringify({ transcript_path: tp, last_assistant_message: MSG_CHOICE_OPTIONS, stop_hook_active: false });
+    const r = runHook(null, { stdin: payload });
+    expect(r.code).toBe(0);
+    expect(ledgerLines().some((l) => l.event === 'observed-disarmed-fork')).toBe(true);
   });
 
   test('satisfied (marker) -> exit 0 + {continue:true}', () => {

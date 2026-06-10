@@ -97,6 +97,9 @@ _byan/_memory/.soul-memory-nudge-sent
 # BYAN Strict Mode runtime state (per-session, never committed)
 .byan-strict/
 
+# BYAN Auto-Benchmark runtime state (arm/escape flags, block-once tokens)
+.byan-autobench/
+
 # BYAN runtime memoire state — mutated at runtime by EloStore / KnowledgeGraph,
 # so it generated constant git noise. Root-only paths (the separators anchor them
 # to repo root); the template keeps its own seed copies under install/templates/.
