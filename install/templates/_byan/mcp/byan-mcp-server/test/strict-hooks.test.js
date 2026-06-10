@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -64,6 +66,59 @@ test('stop: completion markers are word-bounded', () => {
   // "readiness" should not trigger the "ready" marker (not in this config but check 'done')
   assert.equal(stopGuard.claimsCompletion('abandoned the plan', ['done']), false);
   assert.equal(stopGuard.claimsCompletion('it is done now', ['done']), true);
+});
+
+// --- Stop guard : payload extraction (production shape) ------------------
+// The real Stop-hook payload has NO inline transcript: a last_assistant_message
+// string + a transcript_path JSONL. Reading payload.transcript||messages alone
+// extracted nothing in production, so the completion-claim guard never fired
+// live. These tests guard the access path.
+
+function writeTranscript(lines) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'strict-stop-'));
+  const p = path.join(dir, 'transcript.jsonl');
+  fs.writeFileSync(p, lines.map((o) => JSON.stringify(o)).join('\n') + '\n');
+  return p;
+}
+
+test('stop/extract: last_assistant_message is used directly', () => {
+  const t = stopGuard.extractLastAssistantText({ last_assistant_message: "C'est done." });
+  assert.equal(t, "C'est done.");
+});
+
+test('stop/extract: transcript_path JSONL (real {type,message:{role,content}} shape) is read', () => {
+  const tp = writeTranscript([
+    { type: 'user', message: { role: 'user', content: 'go' } },
+    { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: 'All finished and delivered.' }] } },
+  ]);
+  assert.match(stopGuard.extractLastAssistantText({ transcript_path: tp }), /finished and delivered/);
+});
+
+test('stop/extract: inline transcript/messages still resolve (fixture fallback)', () => {
+  assert.equal(
+    stopGuard.extractLastAssistantText({ messages: [{ role: 'assistant', content: 'it is done' }] }),
+    'it is done'
+  );
+});
+
+test('stop/extract: empty / unreadable payload yields empty string (never throws)', () => {
+  assert.equal(stopGuard.extractLastAssistantText({}), '');
+  assert.equal(stopGuard.extractLastAssistantText({ transcript_path: '/no/such/file.jsonl' }), '');
+  assert.equal(stopGuard.extractLastAssistantText(null), '');
+});
+
+test('stop: PRODUCTION shape (transcript_path + completion claim) -> guard fires (was inert before fix)', () => {
+  const tp = writeTranscript([
+    { type: 'assistant', message: { role: 'assistant', content: [{ type: 'text', text: "Voila, c'est done." }] } },
+  ]);
+  const text = stopGuard.extractLastAssistantText({ transcript_path: tp, stop_hook_active: false });
+  const d = stopGuard.decideStop({
+    state: engagedState({ passes: [{ verdict: 'ok' }] }),
+    config: CONFIG,
+    lastAssistantText: text,
+  });
+  assert.equal(d.block, true);
+  assert.match(d.reason, /byan_strict_complete/);
 });
 
 // --- Scope guard --------------------------------------------------------
