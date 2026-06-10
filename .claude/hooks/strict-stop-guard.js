@@ -14,9 +14,12 @@
  * cannot read the state.
  */
 
-const fs = require('fs');
 const { loadConfig, loadState, isEngaged, passCount, lastVerdict, readStdin, parseJson } =
   require('./lib/strict-runtime');
+// Shared transcript reader — the real Stop payload has no inline transcript
+// (last_assistant_message + transcript_path JSONL). Same reader as the other
+// Stop hooks so the completion-claim guard sees the actual finished message.
+const { extractLastAssistantText } = require('./lib/transcript-read');
 
 const DEFAULT_MARKERS = ['done', 'finished', 'complete', 'delivered', 'ready'];
 
@@ -30,67 +33,6 @@ function claimsCompletion(text, markers) {
     }
     return lower.includes(marker);
   });
-}
-
-// Flatten an assistant message content (string or block array) to plain text.
-function contentToText(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content.map((c) => (c && typeof c.text === 'string' ? c.text : '')).join(' ');
-  }
-  return '';
-}
-
-// Read a transcript JSONL file (the real Claude Code shape: one object per line,
-// an assistant turn is {type:'assistant', message:{role, content:[...]}}) from
-// the end and return the last assistant message's content, or null. Best-effort.
-function lastAssistantContentFromTranscriptFile(filePath) {
-  try {
-    if (!fs.existsSync(filePath)) return null;
-    const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const raw = lines[i];
-      if (!raw || !raw.trim()) continue;
-      let o;
-      try {
-        o = JSON.parse(raw);
-      } catch {
-        continue;
-      }
-      const m = o && o.message;
-      const isAssistant = (o && o.type === 'assistant') || (m && m.role === 'assistant');
-      if (isAssistant && m && m.content != null) return m.content;
-    }
-  } catch {
-    // ignore — unreadable transcript yields null
-  }
-  return null;
-}
-
-// Resolve the finished assistant turn as plain text. The real Stop-hook payload
-// carries NO inline transcript: it hands a `last_assistant_message` string and a
-// `transcript_path` (JSONL file). Reading `payload.transcript || payload.messages`
-// alone (the prior shape) extracted nothing in production, so the completion-claim
-// guard never fired live — the pre-commit gate was the only net. Resolution order:
-// last_assistant_message, then an inline array (fixtures), then the transcript_path
-// JSONL. Empty string when nothing is readable, so the hook never traps a turn.
-function extractLastAssistantText(payload) {
-  if (!payload || typeof payload !== 'object') return '';
-  if (typeof payload.last_assistant_message === 'string') return payload.last_assistant_message;
-  if (typeof payload.lastAssistantMessage === 'string') return payload.lastAssistantMessage;
-
-  const inline = payload.transcript || payload.messages;
-  if (Array.isArray(inline)) {
-    for (let i = inline.length - 1; i >= 0; i--) {
-      const m = inline[i];
-      if (m && m.role === 'assistant') return contentToText(m.content);
-    }
-  }
-
-  const tp = payload.transcript_path || payload.transcriptPath;
-  if (typeof tp === 'string') return contentToText(lastAssistantContentFromTranscriptFile(tp));
-
-  return '';
 }
 
 // Pure decision : returns { block, reason }.
@@ -143,10 +85,4 @@ if (require.main === module) {
   })();
 }
 
-module.exports = {
-  decideStop,
-  claimsCompletion,
-  extractLastAssistantText,
-  contentToText,
-  lastAssistantContentFromTranscriptFile,
-};
+module.exports = { decideStop, claimsCompletion, extractLastAssistantText };

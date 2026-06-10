@@ -15,6 +15,10 @@
 
 const fs = require('fs');
 const path = require('path');
+// Shared transcript reader — the real Stop payload has no inline transcript
+// (last_assistant_message + transcript_path JSONL). Without it this hook read an
+// empty turn and never enforced the [FD:PHASE] header live.
+const { extractLastAssistantText } = require('./lib/transcript-read');
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const statePath = path.join(projectDir, '_byan-output', 'fd-state.json');
@@ -38,55 +42,42 @@ function readState() {
   }
 }
 
-function extractLastAssistantText(payload) {
-  if (!payload || typeof payload !== 'object') return '';
-  const tx = payload.transcript || payload.messages || [];
-  if (!Array.isArray(tx)) return '';
-  for (let i = tx.length - 1; i >= 0; i--) {
-    const m = tx[i];
-    if (m && m.role === 'assistant') {
-      if (typeof m.content === 'string') return m.content;
-      if (Array.isArray(m.content)) {
-        return m.content
-          .map((c) => (typeof c === 'object' && c.text ? c.text : ''))
-          .join(' ');
-      }
-    }
-  }
-  return '';
-}
+// Pure decision : returns { block, reason? }. No IO — unit-testable.
+function decideFdResponse({ state, lastAssistantText }) {
+  if (!state || ['COMPLETED', 'ABORTED'].includes(state.phase)) return { block: false };
 
-(async () => {
-  const state = readState();
-  if (!state || ['COMPLETED', 'ABORTED'].includes(state.phase)) {
-    process.stdout.write(JSON.stringify({ continue: true }));
-    process.exit(0);
-  }
-
-  const raw = await readStdin();
-  let payload = {};
-  try {
-    payload = raw ? JSON.parse(raw) : {};
-  } catch {
-    payload = {};
-  }
-
-  const text = extractLastAssistantText(payload);
   const expected = `[FD:${state.phase}]`;
-
-  if (!text || text.includes(expected)) {
-    process.stdout.write(JSON.stringify({ continue: true }));
-    process.exit(0);
-  }
+  const text = lastAssistantText || '';
+  // Empty text (cannot read the turn) degrades to allow — never trap a turn we
+  // cannot inspect. A present header satisfies.
+  if (!text || text.includes(expected)) return { block: false };
 
   const reason = `FD active (phase=${state.phase}) but your last response did not include the required header "${expected}". Reformulate your answer starting with ${expected} to confirm you are operating in the correct phase. If you wanted to exit or change phase, call byan_fd_advance first.`;
+  return { block: true, reason };
+}
 
-  process.stdout.write(
-    JSON.stringify({
-      decision: 'block',
-      reason,
-      systemMessage: reason,
-    })
-  );
-  process.exit(2);
-})();
+if (require.main === module) {
+  (async () => {
+    const state = readState();
+    const raw = await readStdin();
+    let payload = {};
+    try {
+      payload = raw ? JSON.parse(raw) : {};
+    } catch {
+      payload = {};
+    }
+
+    const decision = decideFdResponse({ state, lastAssistantText: extractLastAssistantText(payload) });
+    if (!decision.block) {
+      process.stdout.write(JSON.stringify({ continue: true }));
+      process.exit(0);
+    }
+
+    process.stdout.write(
+      JSON.stringify({ decision: 'block', reason: decision.reason, systemMessage: decision.reason })
+    );
+    process.exit(2);
+  })();
+}
+
+module.exports = { decideFdResponse, extractLastAssistantText };

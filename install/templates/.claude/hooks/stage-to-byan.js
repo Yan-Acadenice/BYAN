@@ -16,6 +16,9 @@
 
 const fs = require('fs');
 const path = require('path');
+// Shared transcript reader — the real Stop payload has no inline transcript
+// (transcript_path JSONL). Without it extractTurn got null and never staged.
+const { extractRecentMessages } = require('./lib/transcript-read');
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
@@ -75,14 +78,14 @@ function buildConfig() {
 function extractTurn(payload) {
   if (!payload || typeof payload !== 'object') return null;
 
-  const transcript = payload.transcript || payload.messages;
-  if (!Array.isArray(transcript)) return null;
+  // Resolve from any payload shape: inline array (fixtures) or transcript_path
+  // JSONL (production). The last 4 user/assistant messages are the staged turn.
+  const messages = extractRecentMessages(payload, 4);
+  if (!messages) return null;
 
   return {
     sessionId: payload.session_id || payload.sessionId || null,
-    messages: transcript
-      .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
-      .slice(-4),
+    messages,
   };
 }
 

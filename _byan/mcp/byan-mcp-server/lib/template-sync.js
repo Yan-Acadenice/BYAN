@@ -53,6 +53,10 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/advisory-autofeed.test.js',
   '_byan/mcp/byan-mcp-server/test/outcome-buffer.test.js',
   '.claude/hooks/drain-advisory.js',
+  // Shared Stop-hook transcript reader. Required by strict-stop-guard,
+  // fd-response-check, stage-to-byan AND the autobench hook below — they
+  // `require('./lib/transcript-read')`, so a fresh install crashes without it.
+  '.claude/hooks/lib/transcript-read.js',
   // Auto-benchmark chantier (C1-C5). The runtime/doctrine files that make the
   // feature exist in a fresh install: the reactive Stop hook + its runtime libs,
   // the generated config, the proactive doctrine rule, the conductor skill, the

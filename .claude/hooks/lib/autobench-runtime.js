@@ -135,83 +135,16 @@ function appendLedger(entry, config) {
   }
 }
 
-// Flatten an assistant message content (string or block array) to plain text.
-function contentToText(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content.map((c) => (c && typeof c.text === 'string' ? c.text : '')).join(' ');
-  }
-  return '';
-}
-
-// Walk a transcript JSONL file (the real Claude Code shape: one JSON object per
-// line, an assistant turn is {type:'assistant', message:{role, content:[...]}})
-// from the end and return the last assistant message's RAW content (block array
-// or string), or null. Best-effort: an unreadable/short file yields null so the
-// hook stays non-blocking rather than trapping a turn it cannot read.
-function lastAssistantContentFromTranscriptFile(filePath) {
-  try {
-    if (!fs.existsSync(filePath)) return null;
-    const lines = fs.readFileSync(filePath, 'utf8').split('\n');
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const raw = lines[i];
-      if (!raw || !raw.trim()) continue;
-      let o;
-      try {
-        o = JSON.parse(raw);
-      } catch {
-        continue;
-      }
-      const m = o && o.message;
-      const isAssistant = (o && o.type === 'assistant') || (m && m.role === 'assistant');
-      if (isAssistant && m && m.content != null) return m.content;
-    }
-  } catch {
-    // ignore — treat an unreadable transcript as no content
-  }
-  return null;
-}
-
-// Return the RAW content (string or block array) of the finished assistant turn,
-// so artifact detection can inspect the tool_use blocks that the text view drops.
-//
-// The real Stop-hook payload does NOT carry the transcript inline: it hands a
-// `transcript_path` to a JSONL file (and a `last_assistant_message` string).
-// Resolution order: an inline array (test fixtures / legacy) first, then the
-// transcript_path file. last_assistant_message is text-only, so it cannot feed
-// artifact detection and is handled in extractLastAssistantText, not here.
-function extractLastAssistantContent(payload) {
-  if (!payload || typeof payload !== 'object') return null;
-
-  // 1. Inline array — used by the unit/e2e fixtures and any legacy caller.
-  const inline = payload.transcript || payload.messages;
-  if (Array.isArray(inline)) {
-    for (let i = inline.length - 1; i >= 0; i--) {
-      const m = inline[i];
-      if (m && m.role === 'assistant') return m.content;
-    }
-  }
-
-  // 2. Production — read the JSONL transcript the runtime points us at.
-  const tp = payload.transcript_path || payload.transcriptPath;
-  if (typeof tp === 'string') {
-    const content = lastAssistantContentFromTranscriptFile(tp);
-    if (content != null) return content;
-  }
-
-  return null;
-}
-
-// Return the finished assistant turn as plain text (the choice-language signal).
-// Prefer the runtime-provided last_assistant_message; else derive it from the
-// content (inline array or transcript_path JSONL). Empty string when nothing is
-// readable, so the hook degrades to "no fork" rather than throwing.
-function extractLastAssistantText(payload) {
-  if (!payload || typeof payload !== 'object') return '';
-  if (typeof payload.last_assistant_message === 'string') return payload.last_assistant_message;
-  if (typeof payload.lastAssistantMessage === 'string') return payload.lastAssistantMessage;
-  return contentToText(extractLastAssistantContent(payload));
-}
+// Transcript extraction (text + raw content) is shared with the other Stop hooks
+// through transcript-read.js — one canonical reader for the real Stop payload
+// (last_assistant_message + transcript_path JSONL) instead of divergent per-hook
+// copies. extractLastAssistantContent feeds hasChoiceArtifact below.
+const {
+  extractLastAssistantText,
+  extractLastAssistantContent,
+  lastAssistantContentFromTranscriptFile,
+  contentToText,
+} = require('./transcript-read');
 
 // ARTIFACT-primary fork signal : a real choice surfaced through the
 // AskUserQuestion tool (the multiple-choice UI) is unambiguous, unlike prose
