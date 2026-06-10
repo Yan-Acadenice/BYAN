@@ -1,0 +1,45 @@
+{
+  "name": "byan-install-core",
+  "version": "0.1.0",
+  "description": "Headless install engine for BYAN: detect/plan/apply/verify (LLM-free, no prompts)",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "byan",
+    "install",
+    "detect",
+    "plan",
+    "apply",
+    "verify"
+  ],
+  "author": "Yan",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yan-Acadenice/BYAN.git",
+    "directory": "install/packages/install-core"
+  },
+  "homepage": "https://github.com/Yan-Acadenice/BYAN#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "byan-platform-config": "^1.0.0",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "index.js",
+    "preflight.js",
+    "lib/",
+    "data/",
+    "README.md"
+  ]
+}

@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - byan-install-core (F1): headless, deterministic install engine
+
+First feature of the installer refactor (FD lot 1). A new internal workspace
+package `byan-install-core` (`install/packages/install-core/`) that replaces the
+LLM-driven AUTO interview with a deterministic engine. It is the shared core both
+front-ends bind to: the npm CLI wizard (F2, next) and the Electron app (F5).
+
+- **Four-verb lifecycle.** `detect(opts)` builds a serializable MachineProfile
+  (os, arch, node, npm, git, claude, codex) and is spawn-free by default
+  (`probeVersions` is opt-in). `plan(profile, answers)` is pure and turns the
+  non-interactive answers contract into an ordered InstallPlan. `apply(plan, opts)`
+  is the only mutator. `verify(plan|target)` is read-only.
+- **No LLM, no `which`.** Detection uses a pure-Node PATH walk (`lookpath`,
+  honoring Windows PATHEXT); recommendations come from a versioned JSON decision
+  table (`data/recommender.json`), not a model call.
+- **Per-OS env + validate-or-die .mcp.json.** `env-writer` and `mcp-renderer`
+  reuse the existing `byan-platform-config` package (idempotent marker blocks;
+  a config is parsed and validated before any write, so a broken file is not
+  emitted on an invalid input).
+- **Per-user install, no sudo.** `--install-cli claude|codex` installs via
+  `npm -g`; the AUTH step is an explicit handoff (the engine returns the manual
+  command and reports a pending state rather than a fake authenticated success).
+- **ES5 preflight.** `byan-install-core/preflight` is a dependency-free, ES5-only
+  entry a launcher can require on an ancient Node to gate the version before any
+  modern module loads.
+- Tests: 9 suites / 161 tests for the package; full repo suite green
+  (no regression). The CLI wizard, `doctor`, journal/resume and the v2.19
+  `--yes` end-to-end snapshot land in the following features (F2, F3).
+
 ## [2.25.0] - 2026-06-09
 
 ### Added - Advisory auto-feed (BYAN learns from each session, automatically)

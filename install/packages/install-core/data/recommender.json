@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "preferenceOrder": ["claude", "copilot", "codex"],
+  "byanWeb": {
+    "defaultApiUrl": "http://localhost:3737"
+  },
+  "flowDefaults": {
+    "auto": {
+      "platforms": "auto",
+      "soul": "creator",
+      "turboWhisper": "skip",
+      "costOptimizer": false
+    },
+    "custom": {
+      "platforms": "auto",
+      "soul": "creator",
+      "turboWhisper": "skip",
+      "costOptimizer": false
+    },
+    "manual": {
+      "platforms": "auto",
+      "soul": "blank",
+      "turboWhisper": "skip",
+      "costOptimizer": false
+    }
+  },
+  "recipes": {
+    "claude": {
+      "cliName": "Claude Code",
+      "npmScope": "@anthropic-ai",
+      "npmPackage": "@anthropic-ai/claude-code",
+      "versionRange": "^2.1.114",
+      "binary": "claude",
+      "installCommandTemplate": ["npm", "install", "-g", "{npmPackage}@{versionRange}"],
+      "global": true,
+      "sudo": false,
+      "detectCommand": ["claude", "--version"],
+      "authCommand": "claude login",
+      "configDirCandidates": ["~/.claude", "~/.config/claude"]
+    },
+    "codex": {
+      "cliName": "Codex",
+      "npmScope": "@openai",
+      "npmPackage": "@openai/codex",
+      "versionRange": "latest",
+      "binary": "codex",
+      "installCommandTemplate": ["npm", "install", "-g", "{npmPackage}@{versionRange}"],
+      "global": true,
+      "sudo": false,
+      "detectCommand": ["codex", "--version"],
+      "authCommand": "codex auth login",
+      "configDirCandidates": ["~/.codex", "~/.config/codex"]
+    },
+    "copilot": {
+      "cliName": "GitHub Copilot CLI",
+      "npmScope": null,
+      "npmPackage": null,
+      "bundledWith": "gh",
+      "versionRange": "latest",
+      "binary": "copilot",
+      "installCommandTemplate": ["gh", "extension", "install", "github/gh-copilot"],
+      "global": true,
+      "sudo": false,
+      "detectCommand": ["copilot", "--version"],
+      "authCommand": "gh auth login",
+      "configDirCandidates": ["~/.config/github-copilot", "~/.copilot"]
+    }
+  },
+  "rules": [
+    {
+      "id": "node-too-old",
+      "when": "node.meetsMin === false",
+      "action": "block",
+      "message": "Node.js is below the minimum supported version (18.0.0). Install Node >= 18 before continuing.",
+      "fix": "Install Node 18+ via your version manager (nvm install 18) or nodejs.org."
+    },
+    {
+      "id": "npm-absent",
+      "when": "npm.found === false",
+      "action": "block",
+      "message": "npm was not found on PATH. It is required to install platform CLIs and BYAN tooling.",
+      "fix": "npm ships with Node.js; reinstall Node, or ensure npm is on your PATH."
+    },
+    {
+      "id": "no-platform-cli",
+      "when": "noPlatformFound",
+      "action": "recommend",
+      "defaultPlatform": "claude",
+      "message": "No agent platform CLI was detected. Install one to use BYAN agents; Claude Code is the recommended default.",
+      "fix": "npm install -g @anthropic-ai/claude-code@^2.1.114 (per-user, no sudo)."
+    },
+    {
+      "id": "git-absent",
+      "when": "git.installed === false",
+      "action": "warn",
+      "message": "git was not found. BYAN works without it, but version control is strongly recommended for your project.",
+      "fix": "Install git from git-scm.com or via your package manager."
+    }
+  ]
+}
