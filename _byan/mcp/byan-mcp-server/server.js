@@ -11,7 +11,7 @@ import {
 import { dispatch } from './lib/dispatch.js';
 import { harvest as harvestInsights, renderDigest as renderInsightDigest } from './lib/insight-harvest.js';
 import { appendOutcome } from './lib/outcome-buffer.js';
-import { validateForLog } from './lib/advisory-autofeed.js';
+import { validateForLog, eloOutcomeForStrictComplete } from './lib/advisory-autofeed.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
 import { listSessions, readSessionEvents, searchSessions } from './lib/copilot.js';
 import {
@@ -596,6 +596,10 @@ const tools = [
           type: 'array',
           items: { type: 'string' },
           description: 'Glob patterns of paths the agent may modify.',
+        },
+        domain: {
+          type: 'string',
+          description: 'Optional explicit ELO domain (e.g. security, performance, javascript). When set, a successful byan_strict_complete feeds one VALIDATED outcome to the ELO learning loop. Recorded verbatim (your explicit input, never inferred from text); omit to feed nothing.',
         },
         force: { type: 'boolean', description: 'Relock with different scope.' },
         projectId: {
@@ -1446,6 +1450,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         scopeText: args.scopeText,
         acceptanceCriteria: args.acceptanceCriteria,
         allowedPaths: args.allowedPaths,
+        domain: args.domain,
         force: args.force,
       });
       const st = strictGetStatus();
@@ -1490,6 +1495,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'byan_strict_complete') {
       const r = strictComplete();
       const st = strictGetStatus();
+      // C3 learning loop: a completed strict session with an EXPLICIT ELO domain
+      // is a VALIDATED outcome. eloOutcomeForStrictComplete builds the line (the
+      // SAME helper the test exercises, so handler and test cannot drift); we
+      // append it to the buffer drain-advisory drains. The domain is the user's
+      // explicit lock_scope input, never inferred. Best-effort: a feed failure
+      // must not break completion.
+      try {
+        const eloLine = eloOutcomeForStrictComplete(r);
+        if (eloLine) appendOutcome(eloLine, { rootDir: process.env.CLAUDE_PROJECT_DIR || process.cwd() });
+      } catch {
+        // the learning feed must not break completion.
+      }
       const sync = await strictPushComplete({
         sessionId: st.strict_session_id,
         auditToken: r.audit_token,

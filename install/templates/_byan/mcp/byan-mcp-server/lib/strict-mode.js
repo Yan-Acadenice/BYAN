@@ -108,6 +108,7 @@ export function lockScope({
   scopeText,
   acceptanceCriteria = [],
   allowedPaths = [],
+  domain = '',
   projectRoot,
   now = new Date(),
   force = false,
@@ -144,6 +145,10 @@ export function lockScope({
     scope_text: scopeText.trim(),
     acceptance_criteria: acceptanceCriteria,
     allowed_paths: allowedPaths,
+    // Optional explicit ELO domain. Stored verbatim; validated (and dropped if
+    // unknown) only at outcome-emit time so lockScope never guesses. Drives the
+    // C3 learning-loop feed on complete (an explicit domain -> one VALIDATED tick).
+    domain: typeof domain === 'string' ? domain.trim() : '',
     locked_at: now.toISOString(),
   };
   state.updated_at = now.toISOString();
@@ -288,6 +293,9 @@ export function complete({ projectRoot, now = new Date() } = {}) {
     scope_hash: state.scope_lock.scope_hash,
     pass_count: passCount,
     completed_at: state.completed_at,
+    // Surfaced for the C3 learning-loop feed: an explicit ELO domain on the
+    // locked scope means a completed session is a VALIDATED outcome.
+    domain: state.scope_lock.domain || '',
   };
 }
 

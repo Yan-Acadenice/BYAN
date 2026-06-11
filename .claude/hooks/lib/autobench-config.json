@@ -70,8 +70,7 @@
     "disabled": false
   },
   "enforcement": {
-    "armed": false,
-    "arm_flag": ".byan-autobench/armed"
+    "armed": false
   },
   "ledger": {
     "path": "_byan-output/benchmark-ledger.jsonl"

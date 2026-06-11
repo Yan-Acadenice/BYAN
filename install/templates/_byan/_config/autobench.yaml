@@ -341,13 +341,13 @@ hooks:
     block_token_dir: ".byan-autobench"
     disabled: false
   # Enforcement arming (approach C). The Stop hook ships DISARMED: it observes and
-  # ledgers every turn but NEVER blocks until explicitly armed, so day one is zero
-  # noise / zero latency. Two opt-IN paths mirror the escape-hatch dual layer: the
-  # persistent config flag (armed: true) OR a local flag file (arm_flag, touch to
-  # arm this machine). Default OFF — the net is pre-built but inert until chosen.
+  # ledgers every turn but does not block until explicitly armed, so day one is
+  # zero noise / zero latency. Arming is config-only: set armed: true here and run
+  # byan-sync-rules to regenerate the config. There is no loose flag file — a stray
+  # file on disk must not silently arm a machine. Default OFF — the net is
+  # pre-built but inert until chosen.
   enforcement:
     armed: false
-    arm_flag: ".byan-autobench/armed"
   # The audit trail the Stop hook appends to (one JSONL line per invocation).
   ledger_path: "_byan-output/benchmark-ledger.jsonl"
   # Stop-block banner emitted when the hook fires. Kept in the YAML so the

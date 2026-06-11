@@ -286,11 +286,12 @@ test('renderAutobenchConfig produces all runtime-required top-level keys', () =>
   assert.ok(typeof out.escape_hatch.session_flag === 'string', 'escape_hatch.session_flag');
   assert.ok(typeof out.escape_hatch.disabled === 'boolean', 'escape_hatch.disabled is boolean');
 
-  // enforcement: armed (boolean) + arm_flag (string). Defaulted when the YAML
-  // omits the block (the minimal fixture above does) -> disarmed by default.
+  // enforcement: armed (boolean), config-only. Defaulted when the YAML omits the
+  // block (the minimal fixture above does) -> disarmed by default. No arm_flag:
+  // arming is config-only, there is no loose flag file in the generated config.
   assert.ok(typeof out.enforcement.armed === 'boolean', 'enforcement.armed is boolean');
   assert.strictEqual(out.enforcement.armed, false, 'enforcement.armed defaults to false (disarmed)');
-  assert.ok(typeof out.enforcement.arm_flag === 'string', 'enforcement.arm_flag is string');
+  assert.strictEqual(out.enforcement.arm_flag, undefined, 'no arm_flag: arming is config-only');
 
   // ledger: path.
   assert.ok(typeof out.ledger.path === 'string', 'ledger.path');
@@ -319,14 +320,14 @@ test('renderAutobenchConfig propagates escape_hatch.disabled:true from the YAML'
 test('renderAutobenchConfig propagates enforcement.armed:true from the YAML', () => {
   const armedYaml = AUTOBENCH_YAML.replace(
     'ledger_path: "_byan-output/benchmark-ledger.jsonl"',
-    'enforcement:\n    armed: true\n    arm_flag: ".byan-autobench/armed"\n  ledger_path: "_byan-output/benchmark-ledger.jsonl"'
+    'enforcement:\n    armed: true\n  ledger_path: "_byan-output/benchmark-ledger.jsonl"'
   );
   const cfg = loadAutobenchConfig({ projectRoot: tmpRootWithYaml(armedYaml) });
   const out = renderAutobenchConfig(cfg);
   assert.strictEqual(out.enforcement.armed, true,
     'enforcement.armed must be true when the YAML sets armed:true');
-  assert.strictEqual(out.enforcement.arm_flag, '.byan-autobench/armed',
-    'enforcement.arm_flag flows from the YAML');
+  assert.strictEqual(out.enforcement.arm_flag, undefined,
+    'arm_flag is not emitted: arming is config-only');
 });
 
 // (c) syncAutobench idempotency on autobench-config.json: two successive runs

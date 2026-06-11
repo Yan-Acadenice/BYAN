@@ -31,8 +31,9 @@ exposes no pre-display interception hook today, GH #28273):
   ANTI-BLOAT latency guard + escape-hatch + no-re-benchmark.
 - **Reactive Stop hook** (`.claude/hooks/autobench-stop-guard.js`), the safety
   net. It **ships DISARMED**: it observes and ledgers every turn but stays inert
-  (does not block) until you opt in — set `enforcement.armed: true` in the config
-  or `touch .byan-autobench/armed` — so day one is zero noise / zero latency.
+  (does not block) until you opt in — set `enforcement.armed: true` in
+  `_byan/_config/autobench.yaml` and run `byan-sync-rules` (config-only; there is
+  no loose flag file) — so day one is zero noise / zero latency.
   Detection is **artifact-primary**: a real fork is recognized from an
   `AskUserQuestion` tool_use in the finished turn, with the choice-language regex
   as a last-resort fallback. Block-once is content-hashed (no loop); a session

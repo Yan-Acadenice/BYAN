@@ -10,11 +10,11 @@
  * the second pass non-blocking by construction.
  *
  * Shipped DISARMED (approach C) : the hook observes and ledgers every turn but
- * NEVER blocks until explicitly armed (enforcement.armed in the config, or a
- * local .byan-autobench/armed flag file). Day one is zero noise / zero latency;
- * the net is pre-built but inert until the user opts in. A disarmed turn that
- * WOULD have fired is recorded as observed-disarmed-fork so arming later is an
- * informed decision.
+ * does not block until explicitly armed (enforcement.armed in the config —
+ * config-only, set via the YAML + byan-sync-rules, no loose flag file). Day one
+ * is zero noise / zero latency; the net is pre-built but inert until the user
+ * opts in. A disarmed turn that WOULD have fired is recorded as
+ * observed-disarmed-fork so arming later is an informed decision.
  *
  * Detection is ARTIFACT-primary with a regex fallback. The decision order :
  *   1. MARKER   : a BYAN-BENCH:done|skip marker -> satisfied (the agent already

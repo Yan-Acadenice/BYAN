@@ -81,3 +81,16 @@ export function validateForLog(input) {
     ? { kind: 'elo', domain: rec.domain, result: rec.result }
     : { kind: 'suitability', model: rec.model, leafId: rec.leafId, success: rec.success };
 }
+
+// C3 — the ELO outcome line for a completed strict session. PURE (no I/O): a
+// completed session that carried an EXPLICIT domain is a VALIDATED outcome.
+// Returns the validated buffer line, or null when there is no domain (so abort
+// and no-domain feed nothing). The caller (the byan_strict_complete handler)
+// appends the returned line. The domain is the user's explicit lock_scope input,
+// never inferred from text. Shared by the handler AND its test so the two cannot
+// drift (no hand-copied replica).
+export function eloOutcomeForStrictComplete(completeResult) {
+  const domain = completeResult && completeResult.domain;
+  if (!domain) return null;
+  return validateForLog({ kind: 'elo', domain, result: 'VALIDATED' });
+}

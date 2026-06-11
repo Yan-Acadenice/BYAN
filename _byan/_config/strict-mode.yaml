@@ -87,6 +87,12 @@ scope_lock:
     OUT OF SCOPE (explicitly excluded, agreed with user):
       - {exclusion}
 
+    ELO DOMAIN (optional): when one technical domain clearly dominates the task,
+    pass `domain` to byan_strict_lock_scope (e.g. security, performance,
+    javascript). A successful byan_strict_complete then feeds one VALIDATED tick
+    to the ELO learning loop. Explicit only — never inferred from text; omit when
+    no single domain is clear.
+
 # ---------------------------------------------------------------------------
 # Hard mantras — the rules the enforcement layer makes non-negotiable.
 # These are imperatives, phrased to pass the fact-check absolute-word filter.

@@ -24,7 +24,10 @@ complete. Downgrading the scope is the failure this mode exists to prevent.
 
 1. **Lock the scope** with `byan_strict_lock_scope` before building. Provide a
    verbatim restatement of the request and testable `acceptanceCriteria`. The
-   locked scope is the contract.
+   locked scope is the contract. When one technical domain clearly dominates the
+   task, also pass `domain` (e.g. security, performance, javascript) — a
+   successful completion then feeds one VALIDATED tick to the ELO loop. Explicit
+   only; omit when no single domain is clear.
 2. **Build the full scope.** Do not substitute an MVP, a stub, or a simplified
    version. If a part cannot be done, surface it as a gap — do not cut silently.
 3. **Self-verify at least 3 times** with

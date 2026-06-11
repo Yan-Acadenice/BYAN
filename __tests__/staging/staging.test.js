@@ -274,3 +274,48 @@ describe('staging/processTurn orchestration', () => {
     expect(r.reason).toMatch(/missing url or token/);
   });
 });
+
+describe('staging/flush hardening — a non-JSON 2xx is NOT a success (SSO wall)', () => {
+  const realFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = realFetch;
+  });
+
+  function mockFetch({ status = 200, contentType, body }) {
+    global.fetch = async () => ({
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (k) => (String(k).toLowerCase() === 'content-type' ? contentType : null) },
+      text: async () => body,
+      json: async () => JSON.parse(body),
+    });
+  }
+
+  const cfg = { byan_api_url: 'https://example.test', byan_api_token: 'byan_token' };
+
+  test('200 + HTML body requeues with a visible last_error instead of a fake flush', async () => {
+    staging.enqueue({ content: 'x'.repeat(80), category: 'fact', cliSource: 'claude-code' }, tmpRoot);
+    mockFetch({ status: 200, contentType: 'text/html; charset=utf-8', body: '<!DOCTYPE html><html>login</html>' });
+    const r = await staging.flush({ config: cfg, projectRoot: tmpRoot });
+    expect(r.flushed).toBe(0);
+    expect(r.requeued).toBe(1);
+    expect(staging.readQueue(tmpRoot)[0].last_error).toMatch(/non-JSON 2xx/);
+  });
+
+  test('200 + valid JSON flushes and clears the queue', async () => {
+    staging.enqueue({ content: 'y'.repeat(80), category: 'fact', cliSource: 'claude-code' }, tmpRoot);
+    mockFetch({ status: 200, contentType: 'application/json', body: '{"id":"mem_1"}' });
+    const r = await staging.flush({ config: cfg, projectRoot: tmpRoot });
+    expect(r.flushed).toBe(1);
+    expect(r.requeued).toBe(0);
+    expect(fs.existsSync(staging.queuePath(tmpRoot))).toBe(false);
+  });
+
+  test('an empty 2xx body (204 No Content) is a benign success, not a failure', async () => {
+    staging.enqueue({ content: 'z'.repeat(80), category: 'fact', cliSource: 'claude-code' }, tmpRoot);
+    mockFetch({ status: 204, contentType: '', body: '' });
+    const r = await staging.flush({ config: cfg, projectRoot: tmpRoot });
+    expect(r.flushed).toBe(1);
+    expect(r.requeued).toBe(0);
+  });
+});

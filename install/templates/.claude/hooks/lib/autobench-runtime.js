@@ -65,25 +65,13 @@ function escapeHatchActive(config) {
 
 // Arming. The Stop hook ships DISARMED (approach C) : it observes and ledgers
 // but never blocks until explicitly armed, so day one is zero noise / latency.
-// Two opt-IN paths, mirroring the escape-hatch's dual layer : a persistent
-// config flag (enforcement.armed === true, carried from the YAML) OR a local
-// flag file (.byan-autobench/armed, touch to arm this machine). Default : OFF.
-function armFlagPath(config) {
-  const rel =
-    (config && config.enforcement && config.enforcement.arm_flag) ||
-    path.join('.byan-autobench', 'armed');
-  return path.isAbsolute(rel) ? rel : path.join(projectRoot(), rel);
-}
-
+// Arming is config-only : set enforcement.armed === true in
+// _byan/_config/autobench.yaml and run byan-sync-rules to regenerate the
+// config. There is NO loose flag file — a stray file on disk must not silently
+// arm a machine (the incoherent state the integration audit found). Default : OFF.
 function isArmed(config) {
   const en = config && config.enforcement;
-  if (en && en.armed === true) return true;
-  try {
-    if (fs.existsSync(armFlagPath(config))) return true;
-  } catch {
-    // ignore — treat an unreadable flag as disarmed (fail safe: no block)
-  }
-  return false;
+  return !!(en && en.armed === true);
 }
 
 function blockDir() {
@@ -193,7 +181,6 @@ module.exports = {
   loadAutobenchConfig,
   sessionFlagPath,
   escapeHatchActive,
-  armFlagPath,
   isArmed,
   blockDir,
   blockTokenPath,

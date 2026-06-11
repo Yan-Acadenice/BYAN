@@ -48,8 +48,10 @@ Do not hand-edit the generated blocks; edit the YAML and regenerate.
 
 1. **Lock the scope** — `byan_strict_lock_scope` with a verbatim restatement of
    the request and a non-empty list of testable `acceptanceCriteria`. Optional
-   `allowedPaths` restrict where writes may land. The locked scope is the
-   contract.
+   `allowedPaths` restrict where writes may land. Optional `domain` (e.g.
+   security, performance, javascript) feeds one VALIDATED tick to the ELO loop on
+   a successful completion — pass it when one technical domain dominates the
+   task, explicit only, omit otherwise. The locked scope is the contract.
 2. **Build the full scope** — do not substitute an MVP or a stub. If a part
    cannot be done, surface it as a gap in self-verify; do not cut it silently.
 3. **Self-verify >= 3 times** — `byan_strict_self_verify` with `verdict` `ok`

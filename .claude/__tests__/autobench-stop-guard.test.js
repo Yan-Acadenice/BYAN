@@ -33,6 +33,7 @@ const {
   extractLastAssistantText,
   extractLastAssistantContent,
   hasChoiceArtifact,
+  isArmed,
 } = require(path.join(ROOT, '.claude', 'hooks', 'lib', 'autobench-runtime.js'));
 
 // The real generated runtime config drives both the unit table and the e2e
@@ -207,6 +208,35 @@ describe('decideBench — disarmed by default (approach C)', () => {
   });
 });
 
+describe('isArmed — config-only arming (C6: no loose flag file)', () => {
+  test('enforcement.armed:true -> armed', () => {
+    expect(isArmed({ enforcement: { armed: true } })).toBe(true);
+  });
+
+  test('enforcement.armed:false / missing -> disarmed', () => {
+    expect(isArmed({ enforcement: { armed: false } })).toBe(false);
+    expect(isArmed({})).toBe(false);
+    expect(isArmed(null)).toBe(false);
+  });
+
+  test('a present .byan-autobench/armed flag file does NOT arm (regression: was the silent-arm path)', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-arm-'));
+    fs.mkdirSync(path.join(tmp, '.byan-autobench'), { recursive: true });
+    fs.writeFileSync(path.join(tmp, '.byan-autobench', 'armed'), '');
+    const prev = process.env.CLAUDE_PROJECT_DIR;
+    process.env.CLAUDE_PROJECT_DIR = tmp;
+    try {
+      // Before C6, isArmed() returned true on the file's mere presence. Now
+      // arming is config-only, so a stray flag on disk is inert.
+      expect(isArmed({ enforcement: { armed: false } })).toBe(false);
+    } finally {
+      if (prev === undefined) delete process.env.CLAUDE_PROJECT_DIR;
+      else process.env.CLAUDE_PROJECT_DIR = prev;
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('decideBench — artifact-primary detection (approach C)', () => {
   const armed = { config: CONFIG, escapeHatch: false, blocked: false, armed: true };
 
@@ -352,10 +382,14 @@ describe('autobench-stop-guard e2e (spawned process)', () => {
   }
 
   // Opt-IN arming : the hook ships disarmed, so e2e cases that expect a BLOCK
-  // must arm the isolated temp root first (mirrors the user touching the flag).
+  // must arm the isolated temp root first. Arming is config-only (C6: no loose
+  // flag file), so we drop a full armed config into the temp root's config path
+  // (configPath resolves against CLAUDE_PROJECT_DIR = tmpRoot).
   function arm() {
-    fs.mkdirSync(path.join(tmpRoot, '.byan-autobench'), { recursive: true });
-    fs.writeFileSync(path.join(tmpRoot, '.byan-autobench', 'armed'), '');
+    const dir = path.join(tmpRoot, '.claude', 'hooks', 'lib');
+    fs.mkdirSync(dir, { recursive: true });
+    const armedConfig = { ...CONFIG, enforcement: { ...CONFIG.enforcement, armed: true } };
+    fs.writeFileSync(path.join(dir, 'autobench-config.json'), JSON.stringify(armedConfig));
   }
 
   function runHook(text, { stdin } = {}) {

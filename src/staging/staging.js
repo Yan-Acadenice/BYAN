@@ -304,7 +304,25 @@ async function postEntry({ entry, url, token, projectId }) {
     err.status = res.status;
     throw err;
   }
-  return res.json().catch(() => ({}));
+  // A 2xx is necessary but not sufficient: an authentik/SSO proxy answers an
+  // unauthenticated API call with 200 + an HTML login page. Swallowing that as
+  // success (the old res.json().catch(()=>({}))) silently drops the turn while
+  // reporting "flushed". Require the body to actually parse as JSON; otherwise
+  // treat it as a failure so it surfaces as a visible last_error in the queue.
+  const text = await res.text();
+  // An empty 2xx body (e.g. 204 No Content) is a benign success, not a wall —
+  // the SSO wall always carries an HTML body. Do not invert it into a failure.
+  if (!text || !text.trim()) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    const ct = res.headers.get('content-type') || 'none';
+    const err = new Error(
+      `non-JSON 2xx (likely an auth/SSO wall; content-type ${ct}): ${text.slice(0, 120).replace(/\s+/g, ' ')}`
+    );
+    err.status = res.status;
+    throw err;
+  }
 }
 
 async function flush({ config, projectRoot, maxAttempts = 5 } = {}) {

@@ -80,6 +80,12 @@ export const TARGET_ADDITIONS = [
   // template perimeter — mirroring the way .claude/hooks/drain-advisory.js ships
   // without its root test.
   '_byan/mcp/byan-mcp-server/test/sync-rules-autobench.test.js',
+  // Cluster C — fact-check on conversation claims (C4). The shared detection
+  // engine + the non-blocking Stop hook. fact-check-absolutes.js (already
+  // shipped) now `require('./lib/fact-check-core')`, so the lib MUST ship or a
+  // fresh install crashes — same coupling as transcript-read.js above.
+  '.claude/hooks/lib/fact-check-core.js',
+  '.claude/hooks/fact-check-claims.js',
 ];
 
 // The template lives under this root-relative directory.

@@ -79,17 +79,18 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
 - **Visibility** : the `tool-transparency` hook already writes per-tool entries to `_byan-output/tool-log.jsonl`. Every sub-task you spawn must be visible there.
 - **Exit gate** : user sees the diff and says "ok build".
 
-### Phase 6 — REVIEW
-- **Who** : Quinn (QA) — role-play or delegate to `bmad-bmm-quinn` subagent. Pre-flight humain before VALIDATE.
-- **Goal** : detect false-positives qualitatively before the machine runs. REVIEW is qualitatif; VALIDATE is quantitatif.
+### Phase 6 — REVIEW (qualitative pre-flight + tiered adversarial second pair of eyes)
+- **Who** : Quinn (`bmad-bmm-quinn`) for the qualitative pass, every time. PLUS an adversarial second reviewer that is NOT the BUILD author — `bmad-compliance` — spawned TIERED by dispatch (step 2), not on a trivial edit. The reviewer must differ from the author (no self-review).
+- **Goal** : a real second opinion before the machine runs. REVIEW is qualitatif + adversarial ; VALIDATE is quantitatif.
 - **Protocol** :
-  1. Load expected VALIDATE criteria : planned tests from BUILD, MantraValidator targets, mantra-risk per change type.
-  2. Inspect the diff : readability, naming, side effects, coverage per branch, comments justified (POURQUOI), zero emoji.
-  3. Cross-check planned tests vs implemented tests. Cross-check mantra risks vs actual code.
-  4. Output `{ status: "ready-for-validate" | "needs-rework", findings: [...] }` and persist via `byan_fd_update({ patch: { review_findings: [...] } })`.
+  1. **Quinn pass** : inspect the diff — readability, naming, side effects, coverage per branch, comments justified (POURQUOI), zero emoji. Cross-check planned vs implemented tests and mantra risks per change type.
+  2. **Tier the compliance review** on the dispatch signal : spawn `bmad-compliance` when the feature's `byan_dispatch` score >= 15 OR it touches a strict domain (security / performance / compliance). Below that, skip it (Ockham + token budget) and note `compliance: skipped-trivial`.
+  3. **Open the review** (when tiered in) : `byan_review_request({ task_id: <feature-id | commit sha>, author: <BUILD agent name>, artifact_paths: [<changed files>], description: <one line> })`. Pick a reviewer that differs from the author : `byan_review_pick_reviewer({ author: <BUILD agent> })` ; fall back to `bmad-compliance` if it returns the author or null.
+  4. **Spawn the reviewer** via the Agent tool (`subagent_type: "bmad-compliance"`, model inherited). Prompt it to apply its lenses (security hygiene, fact-check, mantras) and to CALL `byan_review_verdict` to persist `{ approve | changes | block }` with `must_fix`.
+  5. Output `{ status: "ready-for-validate" | "needs-rework", findings: [...], compliance: <verdict | "skipped-trivial"> }` and persist via `byan_fd_update({ patch: { review_findings: [...] } })`.
 - **Exit gate** :
-  - `ready-for-validate` → advance to VALIDATE.
-  - `needs-rework` → short-circuit to REFACTOR (skip VALIDATE this cycle).
+  - `ready-for-validate` (Quinn clean AND compliance `approve` or `skipped-trivial`) → advance to VALIDATE.
+  - `needs-rework` (Quinn finds rework OR compliance returns `changes` / `block`) → short-circuit to REFACTOR with the `must_fix` items (skip VALIDATE this cycle).
 
 ### Phase 7 — VALIDATE
 - **Who** : MantraValidator + jest/node test + `byan-fact-check` skill. No human judgement, only numbers.
@@ -166,7 +167,7 @@ Use the MCP tools `byan_fd_start`, `byan_fd_advance`, `byan_fd_status`, `byan_fd
 | DISCOVERY (project identification, MCP first) | BYAN (this skill) |
 | BRAINSTORM, PRUNE, DISPATCH, VALIDATE | BYAN (this skill) |
 | BUILD execution per feature | `byan-hermes-dispatch` |
-| REVIEW (qualitative pre-flight) | Quinn (`bmad-bmm-quinn`) or BYAN role-play |
+| REVIEW (qualitative pre-flight) | Quinn (`bmad-bmm-quinn`) ; tiered adversarial gate `bmad-compliance` (dispatch >= 15 or strict domain) via `byan_review_request` |
 | REFACTOR (corrective loop to BUILD) | Same agent/worker that did BUILD |
 | DOC (CHANGELOG, README, manifests) | Paige (`bmad-bmm-tech-writer`) or BYAN role-play |
 | Parallel team of specialists | `byan-orchestrate` (extends hermes for N-role) |

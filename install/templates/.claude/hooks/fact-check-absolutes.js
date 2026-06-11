@@ -16,33 +16,8 @@
  * (not documentation).
  */
 
-const fs = require('fs');
 const path = require('path');
-
-const ABSOLUTES = [
-  /\btoujours\b/i,
-  /\bjamais\b/i,
-  /\bforc[eé]ment\b/i,
-  /\bobviously\b/i,
-  /\balways\b/i,
-  /\bnever\b/i,
-  /\bclearly\b/i,
-  /\bundoubtedly\b/i,
-  /\bfaster than\b/i,
-  /\bbetter than\b/i,
-  /\bplus rapide que\b/i,
-  /\bmeilleur que\b/i,
-];
-
-const SOURCE_MARKERS = [
-  /\bRFC\s*\d+/i,
-  /\bCVE-\d{4}-\d+/i,
-  /https?:\/\//,
-  /\[CLAIM\s+L[1-5]\]/i,
-  /\[FACT\s+USER-VERIFIED/i,
-  /\bsource\s*:/i,
-  /_byan\/knowledge\/sources\.md/,
-];
+const { stripNonClaimZones, findUnsourced } = require('./lib/fact-check-core');
 
 const DOC_EXTS = ['.md', '.mdx', '.rst', '.txt'];
 
@@ -63,24 +38,6 @@ const EXEMPT_PATH_PATTERNS = [
 function isExemptPath(filePath) {
   if (!filePath) return false;
   return EXEMPT_PATH_PATTERNS.some((re) => re.test(filePath));
-}
-
-// Strip content that cannot be a claim :
-//   - fenced code blocks ``` ... ```
-//   - inline backticks `...`
-//   - block quotes (lines starting with >)
-//   - regex / array syntax that contains the word as a token
-function stripNonClaimZones(text) {
-  if (!text) return '';
-  return text
-    // Fenced code blocks
-    .replace(/```[\s\S]*?```/g, '')
-    // Inline code
-    .replace(/`[^`\n]+`/g, '')
-    // Markdown block quotes
-    .replace(/^> .*$/gm, '')
-    // Lines that look like list of patterns (e.g. "- toujours")
-    .replace(/^[\s-]*['"]?\b(toujours|jamais|forc[eé]ment|obviously|always|never|clearly|undoubtedly)\b['"]?/gim, '');
 }
 
 function readStdin() {
@@ -105,23 +62,6 @@ function extractText(toolName, input) {
     return [input.new_string, input.old_string].filter(Boolean).join('\n');
   }
   return '';
-}
-
-function findUnsourced(text) {
-  if (!text) return null;
-  for (const re of ABSOLUTES) {
-    const match = text.match(re);
-    if (!match) continue;
-    const idx = match.index || 0;
-    const windowStart = Math.max(0, idx - 240);
-    const windowEnd = Math.min(text.length, idx + match[0].length + 240);
-    const ctx = text.slice(windowStart, windowEnd);
-    const hasSource = SOURCE_MARKERS.some((sm) => sm.test(ctx));
-    if (!hasSource) {
-      return { absolute: match[0], context: text.slice(Math.max(0, idx - 80), idx + 80) };
-    }
-  }
-  return null;
 }
 
 (async () => {
