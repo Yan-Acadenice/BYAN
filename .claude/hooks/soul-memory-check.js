@@ -22,9 +22,11 @@ function memoryPathFor(projectDir) {
 }
 
 function findLastRevision(content) {
-  // \W*? tolerates markdown punctuation between the label and the date,
-  // e.g. "**last-revision:** 2026-02-21" or "last_revision = 2026-02-21".
-  const m = (content || '').match(/last[-_ ]revision\W*?(\d{4}-\d{2}-\d{2})/i);
+  // [^\d]{0,8} tolerates markdown punctuation between the label and the date
+  // (e.g. "**last-revision:** 2026-02-21" or "last_revision = 2026-02-21")
+  // while forbidding any digit in the gap, so a stray earlier year cannot be
+  // captured instead of the real date.
+  const m = (content || '').match(/last[-_ ]revision[^\d]{0,8}(\d{4}-\d{2}-\d{2})/i);
   return m ? m[1] : null;
 }
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 /**
- * SessionStart hook — loads BYAN soul/tao/soul-memory and injects them
- * into the session's initial context via additionalContext.
+ * SessionStart hook — loads BYAN soul + soul-memory and injects them into
+ * the session's initial context via additionalContext. Tao is intentionally
+ * NOT bundled here: inject-tao.js injects the full tao on every
+ * UserPromptSubmit (including the first), so duplicating it at SessionStart
+ * would double-spend ~15 KB per session for no gain.
  *
  * Also resets the per-session mid-session-nudge one-shot marker so the
  * soul-memory-triggers nudge is per-session (not per-lifetime). Without
@@ -46,7 +49,6 @@ function resetNudgeMarker(projectDir) {
 function buildAdditionalContext(projectDir) {
   const files = [
     { label: 'soul', path: soulFile(projectDir, 'soul') },
-    { label: 'tao', path: soulFile(projectDir, 'tao') },
     { label: 'soul-memory', path: soulFile(projectDir, 'soul-memory') },
   ];
 

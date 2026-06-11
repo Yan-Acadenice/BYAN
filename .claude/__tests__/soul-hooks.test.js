@@ -117,6 +117,43 @@ describe('A5 buildNudge closes the reflect->append loop', () => {
   });
 });
 
+// ---- Review hardening (REVIEW phase caught these) --------------------------
+describe('Review hardening', () => {
+  test('inject-soul and triggers resolve the SAME marker path (parity invariant)', () => {
+    const dir = tmpProject();
+    expect(triggers.markerPathFor(dir)).toBe(injectSoul.nudgeMarkerPath(dir));
+  });
+
+  test('requiring soul-memory-triggers has NO side effect (guarded IIFE)', () => {
+    // A bare require must not run the hook (read stdin / write the marker).
+    // Spawn `node -e require(hook)` so require.main !== the hook module.
+    const dir = tmpProject();
+    const marker = triggers.markerPathFor(dir);
+    const hook = path.join(HOOKS, 'soul-memory-triggers.js');
+    execFileSync('node', ['-e', `require(${JSON.stringify(hook)})`], {
+      env: { ...process.env, CLAUDE_PROJECT_DIR: dir },
+      input: '{"prompt":"non mais tu te trompes"}', // a real tension trigger
+      encoding: 'utf8',
+    });
+    expect(fs.existsSync(marker)).toBe(false);
+  });
+
+  test('inject-soul does NOT bundle tao (owned per-turn by inject-tao)', () => {
+    const dir = tmpProject();
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'soul.md'), '# soul body');
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), 'TAO_SENTINEL_VOICE');
+    const ctx = injectSoul.buildAdditionalContext(dir);
+    expect(ctx).toContain('soul body');
+    expect(ctx).not.toContain('TAO_SENTINEL_VOICE');
+  });
+
+  test('findLastRevision is not fooled by a stray earlier date before the real one', () => {
+    expect(memCheck.findLastRevision('**last-revision:** 2026-02-21')).toBe('2026-02-21');
+    // bounded gap forbids digits between label and date -> no match on a far date
+    expect(memCheck.findLastRevision('last-revision (archived 2019) 2026-02-21')).toBeNull();
+  });
+});
+
 // ---- A6 — SessionStart hooks emit additionalContext, not systemMessage -----
 describe('A6 SessionStart output contract', () => {
   test('inject-soul emits hookSpecificOutput.additionalContext', () => {

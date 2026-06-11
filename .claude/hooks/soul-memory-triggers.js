@@ -17,11 +17,17 @@ const fs = require('fs');
 const path = require('path');
 
 const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+
 // State marker lives under the memory dir: Gen3 _byan/memoire/ first, Gen2
-// _byan/_memory/ fallback (whichever dir exists; default Gen2).
-const memoireDir = path.join(projectDir, '_byan', 'memoire');
-const memoryDir = fs.existsSync(memoireDir) ? memoireDir : path.join(projectDir, '_byan', '_memory');
-const markerPath = path.join(memoryDir, '.soul-memory-nudge-sent');
+// _byan/_memory/ fallback (whichever dir exists; default Gen2). MUST resolve
+// identically to inject-soul.js nudgeMarkerPath (it resets this marker at
+// SessionStart) — the soul-hooks parity test pins that invariant.
+function markerPathFor(dir) {
+  const memoireDir = path.join(dir, '_byan', 'memoire');
+  const memoryDir = fs.existsSync(memoireDir) ? memoireDir : path.join(dir, '_byan', '_memory');
+  return path.join(memoryDir, '.soul-memory-nudge-sent');
+}
+const markerPath = markerPathFor(projectDir);
 
 const TRIGGERS = {
   resonance: ['resonne', 'ca me parle', 'exactement', 'c\'est ca', 'that resonates'],
@@ -55,7 +61,7 @@ function buildNudge(hit) {
   return `BYAN soul-memory trigger detected (${hit.category}): "${hit.pattern}". Per soul-memory protocol, offer the user a mid-session introspection entry; if they validate it, persist it by calling the byan_soul_memory_append MCP tool (entry = the insight, category = ${hit.category}). One nudge per session, always validated by the user first.`;
 }
 
-(async () => {
+if (require.main === module) (async () => {
   let additionalContext = '';
 
   try {
@@ -94,4 +100,4 @@ function buildNudge(hit) {
   );
 })();
 
-module.exports = { findTrigger, buildNudge, TRIGGERS };
+module.exports = { findTrigger, buildNudge, markerPathFor, TRIGGERS };
