@@ -105,7 +105,7 @@ No flourish. No "I have successfully…". Just the table.
 
 ## Parallel mode (N tasks)
 
-If the user (or calling agent) provides N independent subtasks and `parallelizable: true`, use the **party-mode-native** workflow (`_byan/core/workflows/party-mode-native/workflow.md`) instead of dispatching one-by-one :
+If the user (or calling agent) provides N independent subtasks and `parallelizable: true`, use the **party-mode-native** workflow (`_byan/workflow/simple/party-mode-native/workflow.md`) instead of dispatching one-by-one :
 
 1. Call `coordination.initSession` to register the roles.
 2. Dispatch all N Agent tool calls **in one message**.

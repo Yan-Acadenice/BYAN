@@ -9,9 +9,12 @@
  * Stand-up : _byan-output/party-mode-sessions/<session_id>/standup.jsonl
  *   entries : { agent, timestamp, did, blockers, next }
  *
- * Hermes watches stand-ups : an agent with 2+ consecutive "blocked"
- * reports in the stand-up stream is flagged and their card is moved to
- * `blocked` column in the kanban.
+ * Wiring : the byan-orchestrate skill posts one stand-up per role at the
+ * aggregate step (byan_standup_post) and calls byan_standup_blocked to surface
+ * stuck roles. In the single-pass aggregate it uses minStreak:1 (one stand-up
+ * per role, so a 2-in-a-row streak is unreachable); a non-ok role's card is
+ * moved to the `blocked` column at the same step (byan_kanban_move). A
+ * longer-lived session that posts repeatedly uses the default minStreak:2.
  */
 
 import fs from 'node:fs';

@@ -69,6 +69,8 @@ Group roles by `parallelizable_with` graph. For each parallel cluster :
 
 - If cluster has N > 1 roles AND all use `agent-subagent-worktree` strategy → use the **party-mode-native** workflow : `coordination.initSession(roles, …)`, then dispatch all Agent tool calls in a single message.
 - If cluster has N = 1 OR strategy = `main-thread` → execute inline in the current turn.
+
+On a 2+ role spawn, open the shared board for visibility (the kanban family is built for exactly this) : after `coordination.initSession`, call `byan_kanban_create({ sessionId: <the party-mode session id> })`, then once per role `byan_kanban_add({ sessionId, card: { id: <role>, title: <role> } })`. The card `id` is the ROLE NAME — unique per role, and the key the move step references; do NOT reuse the session id (the cards share one board, ids must differ). A multi-agent run without a board is invisible to the user.
 - If strategy = `mcp-worker` → spawn an Agent tool call WITHOUT worktree (faster boot, single-turn) ; set the Agent's model to the role's nature-based `model` (haiku for exploration, omit otherwise to inherit the session model).
 
 For each Agent tool call, the prompt must start with :
@@ -81,7 +83,11 @@ with status/summary/files_changed per the party-mode-native contract.
 
 ### 5. Aggregate and report
 
-After all subagents return (or inline roles finish), read each `agent-<role>.json` via `coordination.readAgentReport`, then write `summary.md` via `coordination.writeSummary`. Report to the user :
+After all subagents return (or inline roles finish), read each `agent-<role>.json` via `coordination.readAgentReport` (report contract : `{ status: ok|partial|failed, summary, files_changed, next_steps }`). Then, for EACH returned role (post all of them — an `ok` post writes an empty `blockers` array, which resets that role's streak ; skipping `ok` roles breaks the streak math) :
+- Post its standup : `byan_standup_post({ sessionId, agent: <role>, did: <report.summary>, blockers: <report.status is 'failed' or 'partial' ? [report.summary] : []>, next: <(report.next_steps || []).join('; ')> })`. The report contract has NO `blockers` field — synthesize it from a non-`ok` status (an `ok` role posts `[]`).
+- Move its card : `byan_kanban_move({ sessionId, cardId: <role>, toColumn: <report ok ? 'review' : 'blocked'>, blocker_reason: <report ok ? omit : report.summary> })`. `cardId` is the role name set at add time. Use `review`, not `done`, on success — the human gate owns completion; `done` is the user's call, not the orchestrator self-certifying.
+
+Then surface stuck roles : `byan_standup_blocked({ sessionId, minStreak: 1 })` — `minStreak: 1` because the aggregate posts exactly one stand-up per role, so a single `blocked`/`failed`/`partial` report should flag (a 2-in-a-row streak is unreachable in a single pass). If it returns flagged roles, raise them in the report. Finally write `summary.md` via `coordination.writeSummary` and report to the user :
 
 | Role | Model | Strategy | Tokens spent | Outcome |
 |------|-------|----------|--------------|---------|
@@ -98,3 +104,5 @@ Total tokens : 34900. Deliverable : <link to aggregated output>.
 - **Never default to opus.** Opus is opt-in via high complexity score or explicit role mapping. Default = sonnet, upgrade only with justification in the plan.
 - **Never parallel-spawn roles that write to the same paths.** If file scopes overlap, serialize them even if `parallelizable_with` suggests otherwise.
 - **Never ship a plan without `estimated_tokens` per role.** Budget visibility is the whole point.
+- **Open the board on every 2+ role spawn.** `byan_kanban_create` + a card per role ; a multi-agent run without a board hides the work from the user.
+- **Post every role's standup at aggregate, `ok` included.** Posting only failed roles breaks the blocked-streak reset and re-hides a stuck agent — the exact silence this wiring removes.

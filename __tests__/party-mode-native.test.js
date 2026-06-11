@@ -148,3 +148,28 @@ describe('listSessions', () => {
     expect(coord.listSessions(path.join(sessionsRoot, 'nonexistent'))).toEqual([]);
   });
 });
+
+// B1 citation-integrity guard. The Gen3 move left a dead doc breadcrumb in the
+// hermes-dispatch skill pointing at an empty _byan/core/workflows/ dir while the
+// code + this test were already correct — a silent failure nothing validated.
+// These assertions catch that class for these files at commit time.
+describe('B1 party-mode-native citation integrity', () => {
+  const ROOT = path.join(__dirname, '..');
+  const REAL = path.join(ROOT, '_byan', 'workflow', 'simple', 'party-mode-native');
+  const DEAD = 'core/workflows/party-mode-native';
+  const SKILLS = [
+    path.join(ROOT, '.claude', 'skills', 'byan-hermes-dispatch', 'SKILL.md'),
+    path.join(ROOT, 'install', 'templates', '.claude', 'skills', 'byan-hermes-dispatch', 'SKILL.md'),
+  ];
+
+  test('the cited artifacts exist at the Gen3 location', () => {
+    expect(fs.existsSync(path.join(REAL, 'workflow.md'))).toBe(true);
+    expect(fs.existsSync(path.join(REAL, 'coordination.js'))).toBe(true);
+  });
+
+  test('no skill (root or template) cites the dead core/workflows path', () => {
+    for (const f of SKILLS) {
+      expect(fs.readFileSync(f, 'utf8')).not.toContain(DEAD);
+    }
+  });
+});
