@@ -3,50 +3,87 @@
  * SessionStart hook — loads BYAN soul/tao/soul-memory and injects them
  * into the session's initial context via additionalContext.
  *
+ * Also resets the per-session mid-session-nudge one-shot marker so the
+ * soul-memory-triggers nudge is per-session (not per-lifetime). Without
+ * this reset the one-shot marker, once written, silences the nudge forever.
+ *
  * Safe: missing files are skipped silently, script always exits 0.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-
 // Gen3 puts BYAN's soul files under _byan/agent/byan/; Gen2 keeps them at the
 // _byan/ root. Prefer Gen3 when present, fall back to Gen2 (self-contained so
 // the hook never depends on a require that could fail).
-function soulFile(label) {
+function soulFile(projectDir, label) {
   const g3 = path.join(projectDir, '_byan', 'agent', 'byan', `${label}.md`);
   const g2 = path.join(projectDir, '_byan', `${label}.md`);
   return fs.existsSync(g3) ? g3 : g2;
 }
 
-const files = [
-  { label: 'soul', path: soulFile('soul') },
-  { label: 'tao', path: soulFile('tao') },
-  { label: 'soul-memory', path: soulFile('soul-memory') },
-];
+// Same resolution as soul-memory-triggers.js: Gen3 _byan/memoire/ first, Gen2
+// _byan/_memory/ fallback. Kept in sync by hand (hooks avoid shared requires).
+function nudgeMarkerPath(projectDir) {
+  const memoireDir = path.join(projectDir, '_byan', 'memoire');
+  const memoryDir = fs.existsSync(memoireDir)
+    ? memoireDir
+    : path.join(projectDir, '_byan', '_memory');
+  return path.join(memoryDir, '.soul-memory-nudge-sent');
+}
 
-const chunks = [];
-for (const f of files) {
+// Reset the one-shot nudge marker at session start so the mid-session
+// soul-memory nudge can fire once per session instead of once per lifetime.
+function resetNudgeMarker(projectDir) {
   try {
-    if (fs.existsSync(f.path)) {
-      const content = fs.readFileSync(f.path, 'utf8').trim();
-      if (content.length > 0) {
-        chunks.push(`=== BYAN ${f.label.toUpperCase()} (${path.relative(projectDir, f.path)}) ===\n${content}`);
-      }
-    }
+    fs.rmSync(nudgeMarkerPath(projectDir), { force: true });
+    return true;
   } catch {
-    // Ignore read errors — hook must never block session start.
+    return false;
   }
 }
 
-const additionalContext =
-  chunks.length > 0
+function buildAdditionalContext(projectDir) {
+  const files = [
+    { label: 'soul', path: soulFile(projectDir, 'soul') },
+    { label: 'tao', path: soulFile(projectDir, 'tao') },
+    { label: 'soul-memory', path: soulFile(projectDir, 'soul-memory') },
+  ];
+
+  const chunks = [];
+  for (const f of files) {
+    try {
+      if (fs.existsSync(f.path)) {
+        const content = fs.readFileSync(f.path, 'utf8').trim();
+        if (content.length > 0) {
+          chunks.push(
+            `=== BYAN ${f.label.toUpperCase()} (${path.relative(projectDir, f.path)}) ===\n${content}`
+          );
+        }
+      }
+    } catch {
+      // Ignore read errors — hook must never block session start.
+    }
+  }
+
+  return chunks.length > 0
     ? `BYAN Soul System (loaded at session start):\n\n${chunks.join('\n\n')}`
     : '';
-
-if (additionalContext) {
-  process.stdout.write(JSON.stringify({ systemMessage: additionalContext }));
-} else {
-  process.stdout.write('{}');
 }
+
+if (require.main === module) {
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  resetNudgeMarker(projectDir);
+  const additionalContext = buildAdditionalContext(projectDir);
+  if (additionalContext) {
+    process.stdout.write(
+      JSON.stringify({
+        hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext },
+      })
+    );
+  } else {
+    process.stdout.write('{}');
+  }
+}
+
+module.exports = { soulFile, nudgeMarkerPath, resetNudgeMarker, buildAdditionalContext };

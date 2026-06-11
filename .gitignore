@@ -92,7 +92,10 @@ api/
 
 # BYAN transparency logs + session-local state
 _byan-output/
+# Mid-session soul-memory nudge one-shot marker (per-session, never committed;
+# reset at SessionStart). Cover both Gen2 (_memory) and Gen3 (memoire) layouts.
 _byan/_memory/.soul-memory-nudge-sent
+_byan/memoire/.soul-memory-nudge-sent
 
 # BYAN Strict Mode runtime state (per-session, never committed)
 .byan-strict/
