@@ -16,7 +16,10 @@ const HOOK = path.resolve(__dirname, '..', '..', '.claude', 'hooks', 'stage-to-b
 function runHook(payload, env = {}) {
   const r = spawnSync('node', [HOOK], {
     input: JSON.stringify(payload),
-    env: { ...process.env, ...env },
+    // Neutralize the session-level BYAN_MEMORY_SYNC override by default (Claude
+    // Code applies settings.local.json env to the shell, which would otherwise
+    // force-enable staging here); a test opts in by passing it explicitly.
+    env: { ...process.env, BYAN_MEMORY_SYNC: '', ...env },
     encoding: 'utf8',
     timeout: 5000,
   });
@@ -134,5 +137,29 @@ describe('stage-to-byan Stop hook', () => {
       timeout: 5000,
     });
     expect(r.status).toBe(0);
+  });
+});
+
+// C1 — local opt-in via BYAN_MEMORY_SYNC=1 (gitignored env), so a machine can
+// enable staging without leaking enabled:true into the tracked+templated config.
+describe('stage-to-byan applyEnvEnable (env opt-in)', () => {
+  const mod = require(HOOK); // safe: the hook IIFE is require.main-guarded
+
+  test('BYAN_MEMORY_SYNC=1 forces memory_sync.enabled true', () => {
+    expect(mod.applyEnvEnable({}, { BYAN_MEMORY_SYNC: '1' })).toEqual({ enabled: true });
+    expect(mod.applyEnvEnable({ enabled: false }, { BYAN_MEMORY_SYNC: '1' }).enabled).toBe(true);
+  });
+
+  test('absent or non-"1" leaves the config untouched', () => {
+    expect(mod.applyEnvEnable({ enabled: false }, {})).toEqual({ enabled: false });
+    expect(mod.applyEnvEnable({}, { BYAN_MEMORY_SYNC: '0' })).toEqual({});
+    expect(mod.applyEnvEnable({ a: 1 }, { BYAN_MEMORY_SYNC: 'true' })).toEqual({ a: 1 });
+  });
+
+  test('requiring the hook has no side effect (guarded IIFE)', () => {
+    // If the IIFE were unguarded, require(HOOK) above would have read stdin /
+    // written stdout at import time. Reaching here with exports present proves
+    // the guard holds.
+    expect(typeof mod.buildConfig).toBe('function');
   });
 });

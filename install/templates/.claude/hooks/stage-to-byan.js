@@ -63,11 +63,24 @@ function readMemorySyncConfig() {
   return null;
 }
 
+// Local opt-in override. Pure. A machine enables staging via BYAN_MEMORY_SYNC=1
+// (in the gitignored .claude/settings.local.json env, or process env) WITHOUT
+// touching _byan/config.yaml — that file is git-tracked + template-mirrored, so
+// a flag there would ship enabled:true to every install and break the
+// install-time consent design.
+function applyEnvEnable(memorySync, env = {}) {
+  if (String(env.BYAN_MEMORY_SYNC || '') === '1') {
+    return { ...memorySync, enabled: true };
+  }
+  return memorySync;
+}
+
 function buildConfig() {
   const settingsEnv = readSettingsEnv();
   const apiUrl = settingsEnv.BYAN_API_URL || process.env.BYAN_API_URL || null;
   const apiToken = settingsEnv.BYAN_API_TOKEN || process.env.BYAN_API_TOKEN || null;
-  const memorySync = readMemorySyncConfig() || {};
+  const mergedEnv = { ...process.env, ...settingsEnv };
+  const memorySync = applyEnvEnable(readMemorySyncConfig() || {}, mergedEnv);
   return {
     byan_api_url: apiUrl,
     byan_api_token: apiToken,
@@ -89,7 +102,7 @@ function extractTurn(payload) {
   };
 }
 
-(async () => {
+if (require.main === module) (async () => {
   const raw = await readStdin();
   let payload = {};
   try {
@@ -122,3 +135,5 @@ function extractTurn(payload) {
   process.stdout.write(JSON.stringify({ continue: true }));
   process.exit(0);
 })();
+
+module.exports = { applyEnvEnable, buildConfig, readMemorySyncConfig };
