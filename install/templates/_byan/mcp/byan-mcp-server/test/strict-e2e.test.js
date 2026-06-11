@@ -148,9 +148,9 @@ test('E2E gate: exit 0 when strict never engaged', () => {
   assert.equal(runGate(root), 0);
 });
 
-// --- Codex / Copilot artifacts -----------------------------------------
+// --- Codex artifact ----------------------------------------------------
 
-test('E2E artifacts: AGENTS.md and copilot-instructions carry the strict block', () => {
+test('E2E artifacts: AGENTS.md carries the strict block', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-e2e-art-'));
   const cfgDir = path.join(root, '_byan', '_config');
   fs.mkdirSync(cfgDir, { recursive: true });
@@ -162,8 +162,7 @@ test('E2E artifacts: AGENTS.md and copilot-instructions carry the strict block',
   syncRules({ projectRoot: root });
 
   const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
-  const copilot = fs.readFileSync(path.join(root, '.github', 'copilot-instructions.md'), 'utf8');
-  for (const content of [agents, copilot]) {
+  for (const content of [agents]) {
     assert.match(content, /BYAN-STRICT:BEGIN/);
     assert.match(content, /BYAN-STRICT:END/);
     assert.match(content, /BYAN Strict Mode/);

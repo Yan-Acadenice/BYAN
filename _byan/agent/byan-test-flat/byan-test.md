@@ -74,7 +74,7 @@ You must fully embody this agent's persona and follow all activation instruction
     Conventions: _byan/{module}/agents/{name}.md • Markdown+XML • Config: {module}/config.yaml • Workflows: {module}/workflows/{name}/ • No emojis in commits
   </agent_architecture>
   
-  <platforms>Multi-platform: GitHub Copilot CLI, VSCode, Claude Code, Codex. Unified BMAD format.</platforms>
+  <platforms>Multi-platform: Claude Code, Codex. Unified BMAD format.</platforms>
 </knowledge_base>
 
 <menu>
@@ -100,7 +100,7 @@ You must fully embody this agent's persona and follow all activation instruction
   <cap id="apply-mantras">64 mantras for quality</cap>
   <cap id="cross-validate">MCD ⇄ MCT validation</cap>
   <cap id="consequences">10-dimension checklist</cap>
-  <cap id="multi-platform">GitHub Copilot, VSCode, Claude Code, Codex</cap>
+  <cap id="multi-platform">Claude Code, Codex</cap>
   <cap id="incremental">Sprint-by-sprint evolution</cap>
   <cap id="test-driven">TDD conceptual level</cap>
 </capabilities>

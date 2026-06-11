@@ -47,7 +47,7 @@ It's just an intelligent agent with the right soft skills and hard skills to acc
 
 - Node.js >= 12.0.0
 - npm >= 6.0.0
-- A GitHub Copilot, Claude Code, or Codex account (depending on your target platform)
+- A Claude Code or Codex account (depending on your target platform)
 
 ### Quick install (recommended)
 
@@ -67,7 +67,7 @@ The installer (Yanstaller) guides you interactively through the process:
 ```
 ? Project name: my-project
 ? Communication language: English
-? Target platform: GitHub Copilot CLI
+? Target platform: Claude Code
 ? Enable scientific fact-checking? [Y/n]
 ? Enable ELO trust system? [Y/n]
 ? Optimize LLM costs automatically (~54% savings)? [Y/n]
@@ -86,7 +86,6 @@ your-project/
     workflows/         # Guided workflows
     knowledge/         # Knowledge base sources (axioms, benchmarks)
     config.yaml        # Main configuration (language, user, paths)
-  .github/agents/      # GitHub Copilot CLI wrappers
   .claude/             # Claude Code integration (if enabled)
   .codex/              # Codex/OpenCode integration (if enabled)
   bin/byan-v2-cli.js   # BYAN CLI
@@ -142,7 +141,7 @@ const ctx = byan.getClaimContext('security');
 console.log('Scaffold level:', ctx.scaffoldLevel);
 ```
 
-### Activate agents in GitHub Copilot CLI
+### Activate agents in Claude Code or Codex
 
 Once installed, agents are available via `@agent-name`:
 
@@ -161,7 +160,7 @@ Once installed, agents are available via `@agent-name`:
 
 ## List of Available Agents
 
-BYAN contains **27 specialized agents** organized into **5 modules**:
+BYAN contains **26 specialized agents** organized into **5 modules**:
 
 ### Core — Platform Foundation
 
@@ -181,7 +180,6 @@ BYAN contains **27 specialized agents** organized into **5 modules**:
 | **agent-builder** | Bond | Expert in building BMAD-compliant agents | Build a complex agent manually |
 | **module-builder** | Morgan | BYAN complete module architect | Create a new business module |
 | **workflow-builder** | Wendy | Guided workflow designer | Design a multi-step process |
-| **marc** | Specialist | GitHub Copilot CLI integration | Deploy agents to Copilot |
 | **rachid** | Specialist | npm/npx deployment | Publish a BYAN package |
 | **carmack** | Optimizer | Token optimization (-46%) | Reduce agent usage cost |
 | **patnote** | Manager | BYAN updates and conflict resolution | Update an existing BYAN project |
@@ -252,7 +250,7 @@ An agent is an AI specialist with a defined identity. It has:
 - **Rules**: absolute constraints it cannot violate (the 71 mantras)
 - **Capabilities**: what it can do, what it won't
 
-Agents are defined in Markdown with XML sections. They are stored in `_byan/{module}/agents/` and exposed on each platform via a lightweight wrapper (`.github/agents/`, `.claude/`, `.codex/prompts/`).
+Agents are defined in Markdown with XML sections. They are stored in `_byan/{module}/agents/` and exposed on each platform via a lightweight wrapper (`.claude/`, `.codex/prompts/`).
 
 ### Workflow
 
@@ -387,7 +385,6 @@ Strict domains: `security` / `performance` / `compliance` → LEVEL-2 minimum or
 
 | Platform | Invocation | Config path |
 |----------|-----------|-------------|
-| GitHub Copilot CLI | `@agent-name` | `.github/agents/*.md` |
 | Claude Code | `@agent-name` | `.claude/rules/*.md` |
 | Codex / OpenCode | `@agent-name` | `.codex/prompts/*.md` |
 | Direct CLI | `node bin/byan-v2-cli.js` | `_byan/config.yaml` |

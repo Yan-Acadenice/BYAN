@@ -69,7 +69,7 @@ Diversifier les personas elargit la surface de competence collective.
 
 - Node.js >= 12.0.0
 - npm >= 6.0.0
-- Un compte GitHub Copilot, Claude Code ou Codex (selon la plateforme cible)
+- Un compte Claude Code ou Codex (selon la plateforme cible)
 
 ### Installation rapide (recommandée)
 
@@ -89,7 +89,7 @@ L'installeur (Yanstaller) vous guide interactivement à travers le processus :
 ```
 ? Nom du projet : mon-projet
 ? Langue de communication : Francais
-? Plateforme cible : GitHub Copilot CLI
+? Plateforme cible : Claude Code
 ? Activer le fact-check scientifique ? [Y/n]
 ? Activer le système ELO de confiance ? [Y/n]
 ? Optimiser les coûts LLM automatiquement (~54% d'économies) ? [Y/n]
@@ -108,7 +108,6 @@ votre-projet/
     workflows/         # Workflows guidés
     knowledge/         # Base de connaissances sources (axiomes, benchmarks)
     config.yaml        # Configuration principale (langue, utilisateur, chemins)
-  .github/agents/      # Wrappers GitHub Copilot CLI
   .claude/             # Intégration Claude Code (si activée)
   .codex/              # Intégration Codex/OpenCode (si activée)
   bin/byan-v2-cli.js   # CLI BYAN
@@ -164,7 +163,7 @@ const ctx = byan.getClaimContext('security');
 console.log('Scaffold level :', ctx.scaffoldLevel);
 ```
 
-### Activer les agents dans GitHub Copilot CLI
+### Activer les agents dans Claude Code ou Codex
 
 Une fois installé, les agents sont disponibles via `@agent-name` :
 
@@ -183,7 +182,7 @@ Une fois installé, les agents sont disponibles via `@agent-name` :
 
 ## Liste des Agents Disponibles
 
-BYAN contient **27 agents spécialisés** organisés en **5 modules** :
+BYAN contient **26 agents spécialisés** organisés en **5 modules** :
 
 ### Core — Fondation de la Plateforme
 
@@ -203,7 +202,6 @@ BYAN contient **27 agents spécialisés** organisés en **5 modules** :
 | **agent-builder** | Bond | Expert en construction d'agents BMAD-compliant | Construire un agent complexe manuellement |
 | **module-builder** | Morgan | Architecte de modules BYAN complets | Créer un nouveau module métier |
 | **workflow-builder** | Wendy | Designer de workflows guidés | Concevoir un processus multi-étapes |
-| **marc** | Spécialiste | Intégration GitHub Copilot CLI | Déployer des agents sur Copilot |
 | **rachid** | Spécialiste | Déploiement npm/npx | Publier un package BYAN |
 | **carmack** | Optimiseur | Optimisation tokens (-46%) | Réduire le coût d'utilisation des agents |
 | **patnote** | Gestionnaire | Mises à jour BYAN et résolution de conflits | Mettre à jour un projet BYAN existant |
@@ -274,7 +272,7 @@ Un agent est un spécialiste IA avec une identité définie. Il possède :
 - **Rules** : les contraintes absolues qu'il ne peut pas violer (les 71 mantras)
 - **Capabilities** : ce qu'il peut faire, ce qu'il ne fait pas
 
-Les agents sont définis en Markdown avec des sections XML. Ils sont stockés dans `_byan/{module}/agents/` et exposés sur chaque plateforme via un wrapper léger (`.github/agents/`, `.claude/`, `.codex/prompts/`).
+Les agents sont définis en Markdown avec des sections XML. Ils sont stockés dans `_byan/{module}/agents/` et exposés sur chaque plateforme via un wrapper léger (`.claude/`, `.codex/prompts/`).
 
 ### Workflow
 
@@ -432,7 +430,7 @@ Domaines stricts : `security` / `performance` / `compliance` → LEVEL-2 minimum
 
 Mode d'enforcement qui empêche l'agent de livrer moins que demandé (un MVP au
 lieu de l'app prod, un stub au lieu de la feature, un template baclé). Actif sur
-les **3 plateformes** : Claude Code, Codex, GitHub Copilot.
+les **2 plateformes** : Claude Code, Codex.
 
 ```
 1. Lock du scope       byan_strict_lock_scope  (scope verbatim + critères testables)
@@ -442,8 +440,8 @@ les **3 plateformes** : Claude Code, Codex, GitHub Copilot.
 ```
 
 Le commit est **bloqué** par un filet pre-commit tant que la session strict
-engagée n'est pas complétée correctement — y compris pour Codex et Copilot qui
-n'ont pas de hook in-session. Source de vérité unique :
+engagée n'est pas complétée correctement — y compris pour Codex qui
+n'a pas de hook in-session. Source de vérité unique :
 `_byan/_config/strict-mode.yaml`, régénérée via `byan-sync-rules`.
 
 Activation : `byan_fd_start strict:true`, skill `byan-strict`, ou auto-détection
@@ -466,7 +464,7 @@ sur mots-clés (`prod`, `client`, `livrable`, `contrat`, `release`...).
 | `testarch-atdd` | Générer des tests ATDD avant implémentation | tea |
 | `fact-check` | Analyser une assertion ou un document | fact-checker |
 | `elo-workflow` | Consulter et gérer le score de confiance ELO | byan |
-| `byan-sync-rules` | Régénérer les artefacts du mode strict (3 plateformes) | byan |
+| `byan-sync-rules` | Régénérer les artefacts du mode strict (2 plateformes) | byan |
 
 ---
 
@@ -474,7 +472,6 @@ sur mots-clés (`prod`, `client`, `livrable`, `contrat`, `release`...).
 
 | Plateforme | Invocation | Chemin de config |
 |------------|-----------|------------------|
-| GitHub Copilot CLI | `@agent-name` | `.github/agents/*.md` |
 | Claude Code | `@agent-name` | `.claude/rules/*.md` |
 | Codex / OpenCode | `@agent-name` | `.codex/prompts/*.md` |
 | CLI direct | `node bin/byan-v2-cli.js` | `_byan/config.yaml` |

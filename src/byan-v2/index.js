@@ -182,14 +182,10 @@ class ByanV2 {
         medium: 60
       },
       outputDir: './_byan-output',
-      env: customConfig.env || (process.env.GITHUB_COPILOT ? 'copilot' : 'standalone')
+      env: customConfig.env || 'standalone'
     };
 
     return { ...defaults, ...customConfig };
-  }
-
-  isCopilotContext() {
-    return this.config.env === 'copilot' || process.env.GITHUB_COPILOT === 'true';
   }
 
   async startSession() {

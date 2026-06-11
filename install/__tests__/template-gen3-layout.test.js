@@ -21,7 +21,6 @@ const fs = require('fs-extra');
 const layoutResolver = require('../../src/byan-v2/lib/layout-resolver');
 
 const TEMPLATE_BYAN = path.join(__dirname, '..', 'templates', '_byan');
-const TEMPLATE_GH_AGENTS = path.join(__dirname, '..', 'templates', '.github', 'agents');
 const TEMPLATE_SKILLS = path.join(__dirname, '..', 'templates', '.claude', 'skills');
 const INSTALLER_SRC = path.join(__dirname, '..', 'bin', 'create-byan-agent-v2.js');
 
@@ -118,33 +117,6 @@ describe('installer copy whitelist is Gen3, not Gen2', () => {
 });
 
 describe('shipped agent stubs load agents Gen3-first (no Gen2-only path)', () => {
-  const ghStubs = fs.existsSync(TEMPLATE_GH_AGENTS)
-    ? fs.readdirSync(TEMPLATE_GH_AGENTS).filter((f) => f.endsWith('.md'))
-    : [];
-
-  test('the template ships Copilot stubs', () => {
-    expect(ghStubs.length).toBeGreaterThan(0);
-  });
-
-  test('no Copilot stub references a Gen2-only agent path', () => {
-    const offenders = [];
-    for (const f of ghStubs) {
-      const content = fs.readFileSync(path.join(TEMPLATE_GH_AGENTS, f), 'utf8');
-      if (GEN2_AGENT_REF.test(content)) offenders.push(f);
-    }
-    expect(offenders).toEqual([]);
-  });
-
-  test('every stub that loads an agent points at the Gen3 agent/<name>/ home', () => {
-    // At least one stub must carry the canonical Gen3-first form, proving the
-    // repoint actually happened (and did not just delete the load line).
-    const withGen3 = ghStubs.filter((f) => {
-      const c = fs.readFileSync(path.join(TEMPLATE_GH_AGENTS, f), 'utf8');
-      return /_byan\/agent\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.md/.test(c);
-    });
-    expect(withGen3.length).toBeGreaterThan(0);
-  });
-
   test('the byan-test Claude skill stub points Gen3-first', () => {
     const skill = path.join(TEMPLATE_SKILLS, 'byan-byan-test', 'SKILL.md');
     if (!fs.existsSync(skill)) return;

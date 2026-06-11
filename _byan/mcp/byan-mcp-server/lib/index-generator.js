@@ -2,7 +2,7 @@
 //
 // Produces _byan/INDEX.md — a human- and agent-readable map of the platform,
 // derived from the machine-source manifests (_byan/_config/*-manifest.csv) plus
-// a scan of the project zone (_byan/projet/*). Claude Code, Codex and Copilot
+// a scan of the project zone (_byan/projet/*). Claude Code and Codex
 // read this instead of walking the whole file system.
 //
 // Manifest-driven by design: the index reflects whatever the manifests declare,

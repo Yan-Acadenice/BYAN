@@ -35,22 +35,12 @@ describe('Detector Module', () => {
       version: '2.43.0'
     });
     
-    // Mock platforms object with all 4 platforms
-    platforms['copilot-cli'] = {
-      detect: jest.fn().mockResolvedValue(true),
-      getPath: jest.fn().mockReturnValue('.github/agents')
-    };
-    
-    platforms['vscode'] = {
-      detect: jest.fn().mockResolvedValue(true),
-      getPath: jest.fn().mockReturnValue('.github/agents')
-    };
-    
+    // Mock platforms object with the two supported platforms
     platforms['claude'] = {
-      detect: jest.fn().mockResolvedValue(false),
+      detect: jest.fn().mockResolvedValue(true),
       getPath: jest.fn().mockReturnValue('~/.config/Claude/claude_desktop_config.json')
     };
-    
+
     platforms['codex'] = {
       detect: jest.fn().mockResolvedValue(false),
       getPath: jest.fn().mockReturnValue('.codex/prompts')
@@ -72,9 +62,7 @@ describe('Detector Module', () => {
         hasGit: true,
         gitVersion: '2.43.0',
         platforms: [
-          { name: 'copilot-cli', detected: true, path: '.github/agents' },
-          { name: 'vscode', detected: true, path: '.github/agents' },
-          { name: 'claude', detected: false, path: undefined },
+          { name: 'claude', detected: true, path: '~/.config/Claude/claude_desktop_config.json' },
           { name: 'codex', detected: false, path: undefined }
         ]
       });
@@ -83,7 +71,7 @@ describe('Detector Module', () => {
       expect(osDetector.detect).toHaveBeenCalledTimes(1);
       expect(nodeDetector.detect).toHaveBeenCalledTimes(1);
       expect(gitDetector.detect).toHaveBeenCalledTimes(1);
-      expect(platforms['copilot-cli'].detect).toHaveBeenCalledTimes(1);
+      expect(platforms['claude'].detect).toHaveBeenCalledTimes(1);
     });
 
     it('should handle Git not installed', async () => {
@@ -100,8 +88,6 @@ describe('Detector Module', () => {
 
     it('should log warning when all platforms fail detection', async () => {
       // Mock all platforms as not detected
-      platforms['copilot-cli'].detect.mockResolvedValue(false);
-      platforms['vscode'].detect.mockResolvedValue(false);
       platforms['claude'].detect.mockResolvedValue(false);
       platforms['codex'].detect.mockResolvedValue(false);
 
@@ -113,8 +99,6 @@ describe('Detector Module', () => {
 
     it('should log warning with error details when all platforms fail with errors', async () => {
       // Mock all platforms with errors
-      platforms['copilot-cli'].detect.mockRejectedValue(new Error('Command not found'));
-      platforms['vscode'].detect.mockRejectedValue(new Error('Not installed'));
       platforms['claude'].detect.mockRejectedValue(new Error('Config missing'));
       platforms['codex'].detect.mockRejectedValue(new Error('Directory missing'));
 
@@ -122,8 +106,8 @@ describe('Detector Module', () => {
 
       // Should log warning per platform AND summary
       expect(logger.warn).toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('0/4 platforms detected'));
-      
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('0/2 platforms detected'));
+
       // All platforms should be marked as not detected
       expect(result.platforms.every(p => !p.detected)).toBe(true);
     });
@@ -131,12 +115,12 @@ describe('Detector Module', () => {
 
   describe('detectPlatform()', () => {
     it('should detect platform successfully', async () => {
-      const result = await detector.detectPlatform('copilot-cli');
+      const result = await detector.detectPlatform('claude');
 
       expect(result).toEqual({
-        name: 'copilot-cli',
+        name: 'claude',
         detected: true,
-        path: '.github/agents'
+        path: '~/.config/Claude/claude_desktop_config.json'
       });
     });
 
@@ -157,35 +141,35 @@ describe('Detector Module', () => {
     });
 
     it('should handle platform detection error gracefully', async () => {
-      platforms['copilot-cli'].detect.mockRejectedValue(new Error('Detection failed'));
+      platforms['claude'].detect.mockRejectedValue(new Error('Detection failed'));
 
-      const result = await detector.detectPlatform('copilot-cli');
+      const result = await detector.detectPlatform('claude');
 
       expect(result).toEqual({
-        name: 'copilot-cli',
+        name: 'claude',
         detected: false,
         error: 'Detection failed'
       });
-      
-      expect(logger.warn).toHaveBeenCalledWith('Platform copilot-cli detection failed: Detection failed');
+
+      expect(logger.warn).toHaveBeenCalledWith('Platform claude detection failed: Detection failed');
     });
 
     it('should handle timeout response format from platform detector', async () => {
       // Mock timeout response
-      platforms['copilot-cli'].detect.mockResolvedValue({
+      platforms['claude'].detect.mockResolvedValue({
         detected: false,
         error: 'Detection timeout after 10s'
       });
 
-      const result = await detector.detectPlatform('copilot-cli');
+      const result = await detector.detectPlatform('claude');
 
       expect(result).toEqual({
-        name: 'copilot-cli',
+        name: 'claude',
         detected: false,
         error: 'Detection timeout after 10s'
       });
-      
-      expect(logger.warn).toHaveBeenCalledWith('Platform copilot-cli detection failed: Detection timeout after 10s');
+
+      expect(logger.warn).toHaveBeenCalledWith('Platform claude detection failed: Detection timeout after 10s');
     });
   });
 

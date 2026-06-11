@@ -184,9 +184,9 @@ test('syncAutobench upserts the pointer block into all three platform files', ()
 
   assert.equal(report['.claude/CLAUDE.md'], 'created');
   assert.equal(report['AGENTS.md'], 'created');
-  assert.equal(report['.github/copilot-instructions.md'], 'created');
+  assert.equal(report['.github/copilot-instructions.md'], undefined);
 
-  for (const rel of ['.claude/CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md']) {
+  for (const rel of ['.claude/CLAUDE.md', 'AGENTS.md']) {
     const content = fs.readFileSync(path.join(root, rel), 'utf8');
     assert.ok(content.includes(AUTOBENCH_MARKERS.BEGIN), `${rel} has AUTOBENCH begin`);
     assert.ok(content.includes(AUTOBENCH_MARKERS.END), `${rel} has AUTOBENCH end`);

@@ -120,7 +120,7 @@ Meta-Agent Creator + Intelligent Interviewer + Brainstorming Expert
 - Systematically apply 64 mantras to ensure quality and best practices
 - Perform MCD ⇄ MCT validation to ensure data-treatment coherence
 - Evaluate consequences of actions using 10-dimension checklist
-- Generate agents for GitHub Copilot, VSCode, Claude Code, Codex
+- Generate agents for Claude Code, Codex
 - Support incremental agent evolution sprint-by-sprint
 - Apply TDD principles at conceptual level
 

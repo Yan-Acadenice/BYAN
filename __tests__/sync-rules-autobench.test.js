@@ -1,5 +1,5 @@
 // C5a - byan-sync-rules autobench extension: the LEAN pointer block emitted
-// idempotently into CLAUDE.md + AGENTS.md + copilot-instructions.md.
+// idempotently into CLAUDE.md + AGENTS.md.
 //
 // The generator (lib/sync-rules.js) lives in the ESM-only MCP package
 // (_byan/mcp/byan-mcp-server, type: module, run via `node --test`). The ROOT
@@ -25,7 +25,6 @@ const STRICT_BEGIN = 'BYAN-STRICT:BEGIN';
 const TARGETS = [
   path.join(ROOT, '.claude', 'CLAUDE.md'),
   path.join(ROOT, 'AGENTS.md'),
-  path.join(ROOT, '.github', 'copilot-instructions.md'),
 ];
 
 function countMatches(haystack, needle) {
@@ -73,14 +72,12 @@ describe('byan-sync-rules autobench extension (C5a)', () => {
       }
     );
 
-    test('AGENTS.md and copilot-instructions.md keep their STRICT block intact (coexistence)', () => {
-      for (const file of [TARGETS[1], TARGETS[2]]) {
-        const content = fs.readFileSync(file, 'utf8');
-        expect(content).toContain(STRICT_BEGIN);
-        expect(countMatches(content, STRICT_BEGIN)).toBe(1);
-        // The STRICT block precedes the AUTOBENCH block (appended after).
-        expect(content.indexOf(STRICT_BEGIN)).toBeLessThan(content.indexOf(AUTOBENCH_BEGIN));
-      }
+    test('AGENTS.md keeps its STRICT block intact (coexistence with AUTOBENCH)', () => {
+      const content = fs.readFileSync(TARGETS[1], 'utf8');
+      expect(content).toContain(STRICT_BEGIN);
+      expect(countMatches(content, STRICT_BEGIN)).toBe(1);
+      // The STRICT block precedes the AUTOBENCH block (appended after).
+      expect(content.indexOf(STRICT_BEGIN)).toBeLessThan(content.indexOf(AUTOBENCH_BEGIN));
     });
   });
 

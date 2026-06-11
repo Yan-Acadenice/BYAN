@@ -237,8 +237,8 @@ fires BEFORE the assistant's text reaches the user. The benchmark therefore
 cannot be injected into a turn before it is shown. Two mechanisms cover this
 honestly, and neither pretends otherwise:
 
-1. **The proactive doctrine** (this file, mirrored into `CLAUDE.md`, `AGENTS.md`,
-   and the Copilot instructions via `byan-sync-rules`) makes the agent
+1. **The proactive doctrine** (this file, mirrored into `CLAUDE.md` and
+   `AGENTS.md` via `byan-sync-rules`) makes the agent
    self-apply the benchmark before it writes the choice.
 2. **The reactive Stop hook** catches a turn that presented a choice WITHOUT a
    marker and forces exactly one regen. It is POST-HOC by construction — it

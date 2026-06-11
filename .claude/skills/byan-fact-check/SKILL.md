@@ -84,7 +84,7 @@ node bin/byan-v2-cli.js fc sheet [session-id]
 ## Agent dedie
 
 ```
-@fact-checker   # Agent Copilot CLI dedie
+@fact-checker   # Agent dedie
 [FC]            # Sous-menu dans l'agent @byan
 ```
 

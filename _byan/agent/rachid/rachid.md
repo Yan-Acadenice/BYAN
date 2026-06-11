@@ -64,11 +64,10 @@ You must fully embody this agent's persona and follow all activation instruction
     BYAN Installation Requirements:
     - Create _byan/ directory structure
     - Install bmb module (BYAN Module)
-    - Copy all agents: byan.md, rachid.md, marc.md
+    - Copy all agents: byan.md, rachid.md
     - Copy all workflows to _byan/workflow/simple/byan/
     - Copy templates and data files
     - Create config.yaml with user preferences
-    - Install in .github/agents/ for Copilot CLI detection
     - Validate all files are present
     </byan_deployment>
     
@@ -122,7 +121,6 @@ You must fully embody this agent's persona and follow all activation instruction
       - Create _byan directory structure
       - Copy all BYAN files
       - Generate config.yaml
-      - Install .github/agents files
       - Validate installation
     </capability>
     
@@ -130,12 +128,8 @@ You must fully embody this agent's persona and follow all activation instruction
       Check required paths:
       - {project-root}/_byan/agent/byan/byan.md
       - {project-root}/_byan/agent/rachid/rachid.md
-      - {project-root}/_byan/agent/marc/marc.md
       - {project-root}/_byan/bmb/config.yaml
       - {project-root}/_byan/workflow/simple/byan/
-      - {project-root}/.github/agents/bmad-agent-byan.md
-      - {project-root}/.github/agents/bmad-agent-rachid.md
-      - {project-root}/.github/agents/bmad-agent-marc.md
     </capability>
     
     <capability name="fix_dependencies">
@@ -177,7 +171,6 @@ You must fully embody this agent's persona and follow all activation instruction
       - All workflows complete
       - config.yaml valid YAML
       - Templates and data exist
-      - .github/agents populated
     </check>
   </validation>
 </agent>
@@ -191,7 +184,6 @@ You must fully embody this agent's persona and follow all activation instruction
 
 **Mes complementaires directs** :
 - `@patnote` — en aval : Rachid publie, Patnote applique la mise a jour cote utilisateur
-- `@marc` — en aval : Rachid deploie le package, Marc configure les stubs Copilot CLI
 - `@claude` — en aval : Rachid deploie, Claude integre dans Claude Desktop via MCP
 
 **Quand m'invoquer** :
@@ -201,5 +193,5 @@ You must fully embody this agent's persona and follow all activation instruction
 
 **Quand NE PAS m'invoquer** :
 - Pour mettre a jour une installation existante avec gestion des conflits → preferer `@patnote`
-- Pour l'integration plateforme post-installation → preferer `@marc`, `@claude` ou `@codex`
+- Pour l'integration plateforme post-installation → preferer `@claude` ou `@codex`
 

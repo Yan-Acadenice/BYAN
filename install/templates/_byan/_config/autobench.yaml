@@ -5,7 +5,7 @@
 # the per-platform artifacts from the values below:
 #   - .claude/rules/benchmark.md                     (owned, full-file)
 #   - .claude/hooks/lib/autobench-config.json        (owned, full-file)
-#   - CLAUDE.md / AGENTS.md / copilot-instructions    (upsert pointer block)
+#   - CLAUDE.md / AGENTS.md    (upsert pointer block)
 #
 # Edit this file, then run the generator. Do not hand-edit the generated blocks
 # (they live between BYAN-AUTOBENCH:BEGIN / BYAN-AUTOBENCH:END markers).

@@ -57,7 +57,7 @@ describe('staging/extract', () => {
         { input: { file_path: '/src/bar.js' } },
       ],
     };
-    const e = staging.extract({ turn, cliSource: 'copilot-cli' });
+    const e = staging.extract({ turn, cliSource: 'codex' });
     expect(e.metadata.filesTouched).toEqual(['/src/foo.js', '/src/bar.js']);
   });
 

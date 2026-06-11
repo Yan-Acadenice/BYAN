@@ -48,8 +48,6 @@ const AUTO_ARTIFACT_SET = Object.freeze([
   '_byan/cis',
   '_byan/_config',
   '_byan/data',
-  // platform stubs
-  '.github/agents',
   // claude rules surface
   '.claude/CLAUDE.md',
   '.claude/rules',

@@ -10,7 +10,7 @@ import yaml from 'js-yaml';
 // that should be built under strict mode.
 //
 // This is the platform-agnostic counterpart to the strict-context-inject
-// hook : Codex and Copilot have no in-session hook, so they call
+// hook : Codex has no in-session hook, so it calls
 // byan_strict_suggest to get the same signal.
 
 const DEFAULT_CONFIG_REL = path.join('_byan', '_config', 'strict-mode.yaml');

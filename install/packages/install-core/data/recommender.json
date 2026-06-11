@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "preferenceOrder": ["claude", "copilot", "codex"],
+  "preferenceOrder": ["claude", "codex"],
   "byanWeb": {
     "defaultApiUrl": "http://localhost:3737"
   },
@@ -50,20 +50,6 @@
       "detectCommand": ["codex", "--version"],
       "authCommand": "codex auth login",
       "configDirCandidates": ["~/.codex", "~/.config/codex"]
-    },
-    "copilot": {
-      "cliName": "GitHub Copilot CLI",
-      "npmScope": null,
-      "npmPackage": null,
-      "bundledWith": "gh",
-      "versionRange": "latest",
-      "binary": "copilot",
-      "installCommandTemplate": ["gh", "extension", "install", "github/gh-copilot"],
-      "global": true,
-      "sudo": false,
-      "detectCommand": ["copilot", "--version"],
-      "authCommand": "gh auth login",
-      "configDirCandidates": ["~/.config/github-copilot", "~/.copilot"]
     }
   },
   "rules": [

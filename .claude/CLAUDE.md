@@ -27,7 +27,6 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
   .claude/             # Integration Claude Code
     CLAUDE.md          # Ce fichier (instructions projet)
     rules/             # Regles modulaires par domaine
-  .github/agents/      # Agents Copilot CLI (si installe)
 ```
 
 ## Regles de Code
@@ -99,7 +98,7 @@ Dans BYAN: tapez `[FC]` pour le sous-menu fact-check.
 
 Mode d'enforcement anti-downgrade : empeche l'agent de livrer moins que demande
 (MVP au lieu de prod, stub au lieu de feature, template bacle). Fonctionne sur
-les 3 plateformes (Claude Code, Codex, Copilot).
+les 2 plateformes (Claude Code, Codex).
 
 Protocole : lock du scope -> build complet -> self-verify >= 3 passes -> complete
 (jeton d'audit). Le commit est bloque tant que la verification n'est pas acquise.

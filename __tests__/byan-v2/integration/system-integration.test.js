@@ -74,30 +74,23 @@ describe('System Integration', () => {
   });
 
   describe('Environment detection', () => {
-    it('should detect Copilot CLI context', () => {
-      process.env.GITHUB_COPILOT = 'true';
-
+    it('should default env to standalone (no copilot context)', () => {
       const byan = new ByanV2();
 
-      expect(byan.isCopilotContext()).toBe(true);
-
-      delete process.env.GITHUB_COPILOT;
+      expect(byan.config.env).toBe('standalone');
+      expect(byan.config.env).not.toBe('copilot');
     });
 
-    it('should fallback to standalone mode', () => {
-      delete process.env.GITHUB_COPILOT;
+    it('should honor an explicit env without producing a copilot value', () => {
+      const byan = new ByanV2({ env: 'claude' });
 
+      expect(byan.config.env).toBe('claude');
+    });
+
+    it('should not expose a copilot context detector', () => {
       const byan = new ByanV2();
 
-      expect(byan.isCopilotContext()).toBe(false);
-    });
-
-    it('should adapt behavior based on environment', () => {
-      const copilotByan = new ByanV2({ env: 'copilot' });
-      const standaloneByan = new ByanV2({ env: 'standalone' });
-
-      expect(copilotByan.config.env).toBe('copilot');
-      expect(standaloneByan.config.env).toBe('standalone');
+      expect(byan.isCopilotContext).toBeUndefined();
     });
   });
 

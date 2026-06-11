@@ -145,7 +145,7 @@ async function installMcpDependencies(mcpServerPath) {
 
 async function copyGitHooks(projectRoot) {
   // The BYAN Strict Mode pre-commit gate is the cross-platform final net
-  // (Codex/Copilot have no in-session hook). Install it whenever the project
+  // (Codex has no in-session hook). Install it whenever the project
   // is a git repo: copy .githooks/ and point core.hooksPath at it.
   const src = path.join(TEMPLATE_ROOT, '.githooks');
   const dst = path.join(projectRoot, '.githooks');

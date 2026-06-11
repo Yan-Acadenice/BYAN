@@ -14,7 +14,7 @@ const platforms = require('../platforms');
 /**
  * @typedef {Object} PlatformChoice
  * @property {string} name - Display name
- * @property {string} id - Platform ID ('copilot-cli' | 'vscode' | 'claude' | 'codex')
+ * @property {string} id - Platform ID ('claude' | 'codex')
  * @property {boolean} detected - Is platform installed?
  * @property {string} [path] - Installation path if detected
  * @property {boolean} native - Native integration available?
@@ -29,12 +29,6 @@ const platforms = require('../platforms');
  */
 
 const PLATFORM_INFO = {
-  'copilot-cli': {
-    displayName: 'GitHub Copilot CLI',
-    native: true,
-    specialist: 'marc',
-    icon: '🤖'
-  },
   'claude': {
     displayName: 'Claude Code',
     native: true,
@@ -46,12 +40,6 @@ const PLATFORM_INFO = {
     native: true, // NOW NATIVE!
     specialist: 'codex',
     icon: '📝'
-  },
-  'vscode': {
-    displayName: 'VS Code',
-    native: false,
-    specialist: null,
-    icon: '💻'
   }
 };
 

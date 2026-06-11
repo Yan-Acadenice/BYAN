@@ -40,7 +40,7 @@ async function ask(recommendation) {
     language: 'English',
     mode: recommendation.mode,
     agents: recommendation.agents,
-    targetPlatforms: ['copilot-cli'],
+    targetPlatforms: ['claude'],
     createSampleAgent: false
   };
 }

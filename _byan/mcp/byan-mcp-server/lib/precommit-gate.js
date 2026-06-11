@@ -4,7 +4,7 @@ import { fetchSession, syncEnabled } from './strict-sync.js';
 // BYAN Strict Mode pre-commit gate.
 //
 // The final, platform-agnostic net. Claude Code has in-session hooks; Codex
-// and Copilot do not. This gate runs at commit time on every platform, so an
+// does not. This gate runs at commit time on every platform, so an
 // agent that engaged strict mode but bailed on verification cannot land the
 // commit.
 //

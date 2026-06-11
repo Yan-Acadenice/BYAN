@@ -25,7 +25,7 @@ const platforms = require('../platforms');
 
 /**
  * @typedef {Object} PlatformInfo
- * @property {string} name - 'copilot-cli' | 'vscode' | 'claude' | 'codex'
+ * @property {string} name - 'claude' | 'codex'
  * @property {boolean} detected
  * @property {string} [path] - Installation path if detected
  * @property {string} [version] - Version if detected
@@ -50,7 +50,7 @@ async function detect() {
   ]);
   
   // Platform detection with timeout protection
-  const platformNames = ['copilot-cli', 'vscode', 'claude', 'codex'];
+  const platformNames = ['claude', 'codex'];
   const platformsInfo = await Promise.all(
     platformNames.map(name => detectPlatform(name))
   );
@@ -63,7 +63,7 @@ async function detect() {
       .map(p => `${p.name}: ${p.error}`)
       .join(', ');
     if (errors) {
-      logger.warn(`0/4 platforms detected. Errors: [${errors}]`);
+      logger.warn(`0/${platformNames.length} platforms detected. Errors: [${errors}]`);
     }
   }
   
@@ -95,7 +95,7 @@ function isNodeVersionValid(currentVersion, requiredVersion) {
  * 
  * Non-blocking: errors are caught and returned in result.
  * 
- * @param {string} platformName - 'copilot-cli' | 'vscode' | 'claude' | 'codex'
+ * @param {string} platformName - 'claude' | 'codex'
  * @returns {Promise<PlatformInfo>}
  */
 async function detectPlatform(platformName) {

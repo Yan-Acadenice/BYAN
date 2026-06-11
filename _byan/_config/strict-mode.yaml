@@ -2,8 +2,8 @@
 #
 # This file is the single canonical definition of BYAN Strict Mode.
 # It is consumed by the `byan-sync-rules` generator (F3), which emits the
-# per-platform artifacts (Claude Code SKILL.md + hooks, Codex AGENTS.md block,
-# GitHub Copilot instructions block) from the values below.
+# per-platform artifacts (Claude Code SKILL.md + hooks, Codex AGENTS.md block)
+# from the values below.
 #
 # Edit this file, then run the generator. Do not hand-edit the generated blocks
 # (they live between BYAN-STRICT:BEGIN / BYAN-STRICT:END markers).
@@ -207,7 +207,7 @@ mantras:
 
 # ---------------------------------------------------------------------------
 # Injection blocks — canonical text the generator embeds into each platform.
-# Kept here so all three platforms stay in sync from one source.
+# Kept here so both platforms stay in sync from one source.
 # ---------------------------------------------------------------------------
 injection:
   context_banner: |

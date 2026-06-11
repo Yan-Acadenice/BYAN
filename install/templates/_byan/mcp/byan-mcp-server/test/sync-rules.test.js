@@ -8,7 +8,6 @@ import {
   renderSkill,
   renderStrictConfig,
   renderAgentsBlock,
-  renderCopilotBlock,
   upsertBlock,
   syncRules,
   MARKERS,
@@ -104,12 +103,11 @@ test('renderSkill embeds frontmatter, tools, and mantras', () => {
   assert.ok(!md.includes('strict-stop-guard.js'));
 });
 
-test('renderAgentsBlock and renderCopilotBlock include banner and mantras', () => {
+test('renderAgentsBlock includes banner and mantras', () => {
   const cfg = loadConfig({ projectRoot: tmpRoot() });
-  for (const block of [renderAgentsBlock(cfg), renderCopilotBlock(cfg)]) {
-    assert.ok(block.includes('BYAN Strict Mode'));
-    assert.ok(block.includes('STRICT-2 No Downgrade'));
-  }
+  const block = renderAgentsBlock(cfg);
+  assert.ok(block.includes('BYAN Strict Mode'));
+  assert.ok(block.includes('STRICT-2 No Downgrade'));
 });
 
 test('upsertBlock creates a file with markers when absent', () => {
@@ -149,13 +147,13 @@ test('upsertBlock is idempotent (unchanged on identical block)', () => {
   assert.equal(action, 'unchanged');
 });
 
-test('syncRules writes all four artifacts', () => {
+test('syncRules writes all strict artifacts', () => {
   const root = tmpRoot();
   const report = syncRules({ projectRoot: root });
   assert.equal(report['.claude/skills/byan-strict/SKILL.md'], 'created');
   assert.equal(report['.claude/hooks/lib/strict-config.json'], 'created');
   assert.equal(report['AGENTS.md'], 'created');
-  assert.equal(report['.github/copilot-instructions.md'], 'created');
+  assert.equal(report['.github/copilot-instructions.md'], undefined);
 
   assert.ok(fs.existsSync(path.join(root, '.claude/skills/byan-strict/SKILL.md')));
   const json = JSON.parse(

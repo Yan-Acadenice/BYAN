@@ -9,7 +9,6 @@ import yaml from 'js-yaml';
 //   - .claude/skills/byan-strict/SKILL.md            (owned, full-file)
 //   - .claude/hooks/lib/strict-config.json           (owned, full-file)
 //   - AGENTS.md                                       (upsert block, Codex)
-//   - .github/copilot-instructions.md                 (upsert block, Copilot)
 //
 // Owned files are rewritten wholesale (they carry a generated-by header).
 // Shared files get a block upserted between BYAN-STRICT markers, leaving the
@@ -195,21 +194,6 @@ Hard mantras:
 ${mantraLines(cfg)}`;
 }
 
-export function renderCopilotBlock(cfg) {
-  // Copilot has no blocking mechanism; this is injection-only guidance.
-  return `## BYAN Strict Mode
-
-${cfg.injection.context_banner.trim()}
-
-Use the \`byan\` MCP strict tools to lock scope, self-verify (>= ${cfg.self_verify.min_passes} passes),
-and complete. The pre-commit gate is the final net: a commit without a fresh,
-matching audit token is rejected.
-
-Hard mantras:
-
-${mantraLines(cfg)}`;
-}
-
 // Maps the enriched cfg.hooks section to the EXACT runtime shape read by
 // autobench-stop-guard.js. Every key and every {source, flags} pair structure
 // must stay in sync with what compileRegex / hasChoiceLanguage / hasMarker /
@@ -272,8 +256,8 @@ export function renderAutobenchConfig(cfg) {
   };
 }
 
-// The lean auto-benchmark pointer block. One shared block for all three
-// platform files (CLAUDE.md / AGENTS.md / copilot-instructions.md): names the
+// The lean auto-benchmark pointer block. One shared block for both
+// platform files (CLAUDE.md / AGENTS.md): names the
 // feature, states the marker one-liner the agent must emit, and points to the
 // full doctrine. Kept short on purpose — CLAUDE.md stays lean via pointers, and
 // the full rule lives in .claude/rules/benchmark.md (owned, authored elsewhere).
@@ -374,12 +358,6 @@ export function syncRules({ projectRoot, configPath } = {}) {
   const agentsPath = path.join(root, 'AGENTS.md');
   report['AGENTS.md'] = upsertBlock({ filePath: agentsPath, block: renderAgentsBlock(cfg) });
 
-  const copilotPath = path.join(root, '.github', 'copilot-instructions.md');
-  report['.github/copilot-instructions.md'] = upsertBlock({
-    filePath: copilotPath,
-    block: renderCopilotBlock(cfg),
-  });
-
   const mantrasPath = path.join(root, 'src', 'byan-v2', 'data', 'strict-mantras.json');
   if (fs.existsSync(path.dirname(mantrasPath))) {
     report['src/byan-v2/data/strict-mantras.json'] = writeIfChanged(
@@ -406,12 +384,11 @@ export function syncAutobench({ projectRoot, configPath } = {}) {
   const markers = { begin: AUTOBENCH_BEGIN, end: AUTOBENCH_END };
 
   // CLAUDE.md uses the lean pointer convention (.claude/CLAUDE.md holds the
-  // other rule pointers: strict, fact-check, ELO). AGENTS.md (Codex) and the
-  // Copilot instructions are the cross-platform mechanism targets.
+  // other rule pointers: strict, fact-check, ELO). AGENTS.md (Codex) is the
+  // other cross-platform mechanism target.
   const targets = {
     '.claude/CLAUDE.md': path.join(root, '.claude', 'CLAUDE.md'),
     'AGENTS.md': path.join(root, 'AGENTS.md'),
-    '.github/copilot-instructions.md': path.join(root, '.github', 'copilot-instructions.md'),
   };
 
   for (const [rel, filePath] of Object.entries(targets)) {

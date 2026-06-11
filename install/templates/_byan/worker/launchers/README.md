@@ -19,7 +19,6 @@ Launcher workers are lightweight, single-purpose components that bridge the gap 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                  USER INVOKES AGENT                     │
-│  gh copilot @bmad-agent-marc                            │
 │  claude --agent claude                                  │
 │  codex skill bmad-byan                                  │
 └─────────────┬───────────────────────────────────────────┘
@@ -54,18 +53,7 @@ Launcher workers are lightweight, single-purpose components that bridge the gap 
 
 ## Workers
 
-### 1. launch-yanstaller-copilot.md
-
-**Platform:** GitHub Copilot CLI  
-**Icon:** 🤖  
-**Command:** `npx create-byan-agent`  
-**Called by:** `@bmad-agent-marc`
-
-**Purpose:** Launch yanstaller on Copilot CLI platform.
-
----
-
-### 2. launch-yanstaller-claude.md
+### 1. launch-yanstaller-claude.md
 
 **Platform:** Claude Code  
 **Icon:** 🎭  
@@ -79,7 +67,7 @@ Launcher workers are lightweight, single-purpose components that bridge the gap 
 
 ---
 
-### 3. launch-yanstaller-codex.md
+### 2. launch-yanstaller-codex.md
 
 **Platform:** Codex/OpenCode  
 **Icon:** 📝  
@@ -107,7 +95,6 @@ Each worker has ONE task: Launch yanstaller command.
 ### Platform Hints
 Workers set environment variables to help yanstaller detect platform:
 ```bash
-BYAN_PLATFORM_HINT=copilot  # For Copilot CLI
 BYAN_PLATFORM_HINT=claude   # For Claude Code
 BYAN_PLATFORM_HINT=codex    # For Codex
 ```
@@ -166,7 +153,7 @@ Can be run multiple times safely.
 
 ## Separation of Concerns
 
-### Stub Agents (marc/claude/codex)
+### Stub Agents (claude/codex)
 - Detect invocation
 - Call launcher worker
 - Minimal logic
@@ -185,7 +172,6 @@ Can be run multiple times safely.
 - Platform-specific integration
 - MCP server creation (Claude)
 - Skill file creation (Codex)
-- GitHub agent installation (Copilot)
 
 ---
 
@@ -196,7 +182,6 @@ _byan/
 └── workers/
     └── launchers/
         ├── README.md (this file)
-        ├── launch-yanstaller-copilot.md
         ├── launch-yanstaller-claude.md
         └── launch-yanstaller-codex.md
 ```
@@ -207,9 +192,6 @@ _byan/
 
 ### Manual Test
 ```bash
-# Test Copilot launcher
-node -e "require('./_byan/worker/launchers/worker-launch-yanstaller-copilot').launch()"
-
 # Test Claude launcher
 node -e "require('./_byan/worker/launchers/worker-launch-yanstaller-claude').launch()"
 
@@ -219,7 +201,7 @@ node -e "require('./_byan/worker/launchers/worker-launch-yanstaller-codex').laun
 
 ### Expected Output
 ```
-🤖 Launching Yanstaller on Copilot CLI...
+🎭 Launching Yanstaller on Claude Code...
 [Yanstaller interview UI appears]
 ```
 
@@ -287,7 +269,6 @@ install/
         └── workers/
             └── launchers/
                 ├── README.md
-                ├── launch-yanstaller-copilot.md
                 ├── launch-yanstaller-claude.md
                 └── launch-yanstaller-codex.md
 ```
@@ -297,7 +278,6 @@ install/
 ## Version History
 
 - **1.0.0** (2026-02-10): Initial release
-  - Copilot launcher
   - Claude launcher
   - Codex launcher
 

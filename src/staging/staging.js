@@ -1,6 +1,6 @@
 /**
  * BYAN staging core — extract / filter / dedup / queue / flush conversation
- * knowledge from any supported CLI (claude-code, copilot-cli, codex) to a
+ * knowledge from any supported CLI (claude-code, codex) to a
  * byan_web instance via POST /api/memory.
  *
  * Usage from a Claude Code Stop hook :

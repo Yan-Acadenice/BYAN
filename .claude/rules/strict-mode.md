@@ -9,17 +9,17 @@
 Strict mode locks a contract (the scope) at the start of a task, forces the
 agent to self-verify its work against that contract at least three times, and
 blocks the delivery (the commit) until verification is earned. It works on the
-three platforms BYAN targets: Claude Code, Codex, GitHub Copilot.
+2 platforms BYAN targets: Claude Code, Codex.
 
 | Layer | Mechanism | Platforms |
 |-------|-----------|-----------|
-| Scope lock + self-verify + complete | MCP tools (`byan_strict_*`) | all 3 (MCP) |
+| Scope lock + self-verify + complete | MCP tools (`byan_strict_*`) | both (MCP) |
 | In-session blocking | Claude Code hooks (Stop / PreToolUse / UserPromptSubmit) | Claude Code |
-| Context injection | `AGENTS.md` block / `copilot-instructions.md` block | Codex / Copilot |
-| Final net | `.githooks/pre-commit` audit gate | all 3 (commit time) |
+| Context injection | `AGENTS.md` block | Codex |
+| Final net | `.githooks/pre-commit` audit gate | both (commit time) |
 
-Codex and Copilot have no in-session blocking hook. The pre-commit gate is the
-net that catches them: a commit cannot land if a strict session was engaged but
+Codex has no in-session blocking hook. The pre-commit gate is the
+net that catches it: a commit cannot land if a strict session was engaged but
 not completed correctly.
 
 ## Source de verite
@@ -39,7 +39,6 @@ The generator emits (idempotent, between `BYAN-STRICT:BEGIN/END` markers):
 - `.claude/skills/byan-strict/SKILL.md` — the Claude Code skill
 - `.claude/hooks/lib/strict-config.json` — runtime config for the hooks
 - `AGENTS.md` block — Codex
-- `.github/copilot-instructions.md` block — Copilot
 - `src/byan-v2/data/strict-mantras.json` — the MantraValidator ruleset
 
 Do not hand-edit the generated blocks; edit the YAML and regenerate.

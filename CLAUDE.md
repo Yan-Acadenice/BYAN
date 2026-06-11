@@ -136,7 +136,6 @@ Les agents executent des actions via des handlers de menu :
 │   ├── soul-memory.md        # Journal vivant
 │   └── config.yaml           # Configuration
 ├── _byan-output/             # Artefacts generes
-├── .github/agents/           # Stubs Copilot CLI
 └── .codex/prompts/           # Stubs Codex
 ```
 

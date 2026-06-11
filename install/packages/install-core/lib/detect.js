@@ -16,7 +16,7 @@
 //     lookpath?       : (binary) => string|null   (injected; default = real)
 //     runVersion?     : (binary, args) => string|null (injected; default = real)
 //     recommend?      : (profile) => {primaryPlatform, rationale} (optional)
-//     platforms?      : string[] = ['claude','codex','copilot']  (preference)
+//     platforms?      : string[] = ['claude','codex']  (preference)
 //   }
 // Returns a FROZEN object. Environment problems are reported as fields
 // (present:false, version:null), never thrown. Throws ONLY on programmer error
@@ -39,7 +39,7 @@ const SCHEMA_VERSION = 1;
 // preferenceOrder. Kept as a constant fallback so detect stays usable even if
 // the recommender module/data is not wired by the caller (the recommender
 // worker owns the canonical table; this is the offline default).
-const DEFAULT_PREFERENCE = ['claude', 'copilot', 'codex'];
+const DEFAULT_PREFERENCE = ['claude', 'codex'];
 
 // Map a platform binary id to its conventional config dir, expanded to the home
 // directory. authHint is a presence heuristic ONLY — detect never claims a real
@@ -47,7 +47,6 @@ const DEFAULT_PREFERENCE = ['claude', 'copilot', 'codex'];
 const CONFIG_DIRS = {
   claude: ['.claude', path.join('.config', 'claude')],
   codex: ['.codex', path.join('.config', 'codex')],
-  copilot: [path.join('.config', 'github-copilot'), '.copilot'],
 };
 
 function osName() {

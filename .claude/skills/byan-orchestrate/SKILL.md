@@ -40,7 +40,7 @@ Use this a priori mapping — override only if the task clearly needs more :
 | analyst, pm, sm, ux-designer, tech-writer, brainstorming-coach, storyteller | sonnet | Text structuring, not deep reasoning |
 | dev, quick-flow-solo-dev | sonnet | Code generation, mid complexity |
 | architect, quinn, tea, creative-problem-solver | opus | Deep reasoning, trade-offs |
-| carmack, rachid, marc, patnote | haiku | Narrow mechanical tasks |
+| carmack, rachid, patnote | haiku | Narrow mechanical tasks |
 
 Then call `byan_dispatch` with each role's goal (and `nature` when known). Use its `score` for the STRATEGY only (score < 15 → inline, no subagent ; 15-39 → subagent/worker ; ≥ 40 → keep the heavy role in the main thread) and its nature-based `model` as the tier signal. The score sets WHERE the role runs, not WHICH model — keep protected roles (verify/analysis/implement) off haiku regardless of size, and avoid pinning a role up to opus on size alone. The per-role table above is the a-priori floor; `byan_dispatch`'s nature `model` refines it.
 
@@ -76,7 +76,7 @@ On a 2+ role spawn, open the shared board for visibility (the kanban family is b
 For each Agent tool call, the prompt must start with :
 ```
 You are acting as the <role> BMAD agent. Load your persona from
-.github/agents/bmad-agent-<role>.md (read it first, then respond in
+.claude/agents/bmad-<role>.md (read it first, then respond in
 character). Task: <goal>. Deliverables: <list>. Report back as JSON
 with status/summary/files_changed per the party-mode-native contract.
 ```

@@ -24,7 +24,6 @@ describe('agent-launcher', () => {
       });
       
       expect(agentLauncher.supportsNativeLaunch('claude')).toBe(true);
-      expect(agentLauncher.supportsNativeLaunch('copilot-cli')).toBe(false);
     });
     
     it('should return false for unsupported platforms', () => {
@@ -58,16 +57,6 @@ describe('agent-launcher', () => {
       expect(instructions).toContain('claude');
       expect(instructions).toContain('--agent claude');
       expect(instructions).toContain('create-mcp-server');
-    });
-    
-    it('should generate instructions for Copilot CLI', () => {
-      const instructions = agentLauncher.getLaunchInstructions({
-        agent: 'marc',
-        platform: 'copilot-cli'
-      });
-      
-      expect(instructions).toContain('gh copilot');
-      expect(instructions).toContain('@bmad-agent-marc');
     });
     
     it('should handle unsupported platforms', () => {
@@ -156,26 +145,6 @@ describe('agent-launcher', () => {
       });
       
       expect(instructions).toContain('create MCP server');
-    });
-  });
-  
-  describe('Copilot CLI args generation', () => {
-    it('should use @agent syntax', () => {
-      const instructions = agentLauncher.getLaunchInstructions({
-        agent: 'marc',
-        platform: 'copilot-cli'
-      });
-      
-      expect(instructions).toContain('@bmad-agent-marc');
-    });
-    
-    it('should include gh copilot command', () => {
-      const instructions = agentLauncher.getLaunchInstructions({
-        agent: 'marc',
-        platform: 'copilot-cli'
-      });
-      
-      expect(instructions).toContain('gh copilot');
     });
   });
 });

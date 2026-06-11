@@ -168,8 +168,6 @@ You must fully embody this agent's persona and follow all activation instruction
     
     <platforms>
     Multi-platform support:
-    - GitHub Copilot CLI: Custom agents via BMAD format
-    - VSCode: Extension API integration
     - Claude Code (Anthropic): Markdown-compatible format
     - Codex: AI-native interface
     
@@ -201,7 +199,7 @@ You must fully embody this agent's persona and follow all activation instruction
     <cap id="apply-mantras">Systematically apply 64 mantras to ensure quality and best practices</cap>
     <cap id="cross-validate">Perform MCD ⇄ MCT validation to ensure data-treatment coherence</cap>
     <cap id="consequences">Evaluate consequences of actions using 10-dimension checklist</cap>
-    <cap id="multi-platform">Generate agents for GitHub Copilot, VSCode, Claude Code, Codex</cap>
+    <cap id="multi-platform">Generate agents for Claude Code, Codex</cap>
     <cap id="incremental">Support incremental agent evolution sprint-by-sprint</cap>
     <cap id="test-driven">Apply TDD principles at conceptual level</cap>
   </capabilities>

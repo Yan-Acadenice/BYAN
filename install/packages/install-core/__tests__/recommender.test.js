@@ -30,7 +30,6 @@ function completeProfile() {
     platforms: {
       claude: { binary: 'claude', found: true, version: '2.1.114' },
       codex: { binary: 'codex', found: false, version: null },
-      copilot: { binary: 'copilot', found: false, version: null },
     },
   };
 }
@@ -45,19 +44,18 @@ function emptyProfile() {
     platforms: {
       claude: { binary: 'claude', found: false, version: null },
       codex: { binary: 'codex', found: false, version: null },
-      copilot: { binary: 'copilot', found: false, version: null },
     },
   };
 }
 
-// A profile where only copilot is present (preference-order resolution check).
-function copilotOnlyProfile() {
+// A profile where only codex is present (preference-order resolution check).
+function codexOnlyProfile() {
   const p = emptyProfile();
   p.node.meetsMin = true;
   p.node.version = '20.0.0';
   p.npm.found = true;
   p.git.installed = true;
-  p.platforms.copilot.found = true;
+  p.platforms.codex.found = true;
   return p;
 }
 
@@ -77,7 +75,7 @@ describe('data/recommender.json (table in isolation)', () => {
     expect(Array.isArray(table.preferenceOrder)).toBe(true);
     expect(table.preferenceOrder[0]).toBe('claude');
     expect(table.preferenceOrder).toEqual(
-      expect.arrayContaining(['claude', 'codex', 'copilot'])
+      expect.arrayContaining(['claude', 'codex'])
     );
   });
 
@@ -89,10 +87,7 @@ describe('data/recommender.json (table in isolation)', () => {
     expect(table.recipes.claude.npmPackage).toBe('@anthropic-ai/claude-code');
     expect(table.recipes.claude.binary).toBe('claude');
     expect(table.recipes.codex.binary).toBe('codex');
-    expect(table.recipes.copilot.binary).toBe('copilot');
-    // Copilot CLI is bundled with gh, not an npm package (recon).
-    expect(table.recipes.copilot.npmPackage).toBeNull();
-    expect(table.recipes.copilot.bundledWith).toBe('gh');
+    expect(table.recipes.codex.npmPackage).toBe('@openai/codex');
   });
 
   test('every recipe carries the required fields (no missing field)', () => {
@@ -103,7 +98,7 @@ describe('data/recommender.json (table in isolation)', () => {
       'detectCommand',
       'configDirCandidates',
     ];
-    for (const name of ['claude', 'codex', 'copilot']) {
+    for (const name of ['claude', 'codex']) {
       const recipe = table.recipes[name];
       for (const field of required) {
         expect(recipe).toHaveProperty(field);
@@ -198,8 +193,8 @@ describe('lib/recommender — loadRecipes', () => {
 });
 
 describe('lib/recommender — recommendPlatform / recipeFor', () => {
-  test('recommendPlatform returns the only found platform (copilot)', () => {
-    expect(recommendPlatform(copilotOnlyProfile())).toBe('copilot');
+  test('recommendPlatform returns the only found platform (codex)', () => {
+    expect(recommendPlatform(codexOnlyProfile())).toBe('codex');
   });
 
   test('recommendPlatform on a none-found profile returns the first preference entry', () => {
@@ -208,7 +203,7 @@ describe('lib/recommender — recommendPlatform / recipeFor', () => {
 
   test('recommendPlatform honors preference order when several are found', () => {
     const p = completeProfile();
-    p.platforms.copilot.found = true; // claude + copilot both found -> claude wins
+    p.platforms.codex.found = true; // claude + codex both found -> claude wins
     expect(recommendPlatform(p)).toBe('claude');
   });
 

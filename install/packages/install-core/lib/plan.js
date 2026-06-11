@@ -42,7 +42,7 @@ class InstallPlanError extends Error {
 // minimal answers object reproduces v2.19 AUTO.
 const ANSWERS_SCHEMA = Object.freeze({
   flow: 'auto', // 'auto' | 'custom' | 'manual' — the only carry-over of the legacy modes
-  platforms: 'auto', // ['claude'|'codex'|'copilot'] | 'auto' (=> recommender)
+  platforms: 'auto', // ['claude'|'codex'] | 'auto' (=> recommender)
   agents: [], // required non-empty IFF flow==='manual'
   user: { name: '', communicationLanguage: 'fr', documentLanguage: undefined },
   soul: { mode: 'creator', importPath: undefined }, // 'creator'|'blank'|'import'|'skip'
@@ -172,7 +172,7 @@ function dedupePreserveOrder(list) {
 
 // True when a platform's CLI is already on the machine (REAL profile shape:
 // flat per-platform keys with `present`). Defensive when the key is absent
-// (e.g. copilot has no probe in the current matrix => treat as not found).
+// (an unprobed platform => treat as not found).
 function platformFound(profile, platform) {
   return Boolean(profile[platform] && profile[platform].present === true);
 }
@@ -202,21 +202,6 @@ function platformCopySteps(norm) {
       src: 'templates/.claude',
       dest: '.claude',
       overwrite: true,
-    });
-  }
-
-  if (platforms.indexOf('copilot') !== -1) {
-    // Stub breadth (I37): auto/custom copy ALL stubs; manual copies only the
-    // explicit agents[]. Same step, different breadth.
-    const all = norm.flow !== 'manual';
-    steps.push({
-      id: 'copy:.github/agents',
-      type: 'copy-template',
-      src: 'templates/.github/agents',
-      dest: '.github/agents',
-      overwrite: true,
-      all: all,
-      agents: all ? null : norm.agents.slice(),
     });
   }
 
@@ -339,9 +324,8 @@ function cliInstallSteps(profile, norm) {
 }
 
 // Render the recipe's installCommandTemplate with {npmPackage}/{versionRange}
-// substituted. Copilot's recipe has a null npmPackage (bundled with gh) and a
-// gh-extension template that carries no placeholders, so substitution is a no-op
-// there. Pure string transform.
+// substituted. A recipe with a null npmPackage (or a template carrying no
+// placeholders) makes substitution a no-op. Pure string transform.
 function renderInstallCommand(recipe) {
   const template = recipe.installCommandTemplate || [];
   return template.map(function (token) {

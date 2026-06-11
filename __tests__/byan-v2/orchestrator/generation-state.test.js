@@ -151,7 +151,7 @@ describe('GenerationState - Story 4.4', () => {
       expect(xml).toContain('</agent>');
     });
 
-    test('should follow BMAD/Copilot agent structure', async () => {
+    test('should follow BMAD agent structure', async () => {
       const profile = await generationState.generateProfile();
       
       expect(profile).toContain('<agent');
@@ -256,8 +256,8 @@ description: Testing agent 🚀
   describe('AC5: saveProfile(path) writes to disk', () => {
     test('should save profile to specified path', async () => {
       const profile = await generationState.generateProfile();
-      const savePath = '.github/copilot/agents/test-agent.md';
-      
+      const savePath = '_byan/agent/test-agent.md';
+
       generationState.saveProfile(savePath);
       
       expect(fs.writeFileSync).toHaveBeenCalledWith(
@@ -271,29 +271,32 @@ description: Testing agent 🚀
       fs.existsSync.mockReturnValue(false);
       
       await generationState.generateProfile();
-      generationState.saveProfile('.github/copilot/agents/test.md');
-      
-      expect(fs.mkdirSync).toHaveBeenCalled();
-    });
+      generationState.saveProfile('_byan/agent/test.md');
 
-    test('should save to .github/copilot/agents/ by default', async () => {
-      await generationState.generateProfile();
-      const defaultPath = generationState.getDefaultSavePath();
-      
-      expect(defaultPath).toContain('.github/copilot/agents');
+      expect(fs.mkdirSync).toHaveBeenCalled();
     });
 
     test('should use agent name in filename', async () => {
       await generationState.generateProfile();
       const defaultPath = generationState.getDefaultSavePath();
-      
+
       expect(defaultPath).toMatch(/\.md$/);
+    });
+
+    test('should save to _byan/agent/ by default', async () => {
+      await generationState.generateProfile();
+      const defaultPath = generationState.getDefaultSavePath();
+
+      const name = sessionState.agentProfileDraft.name;
+      expect(defaultPath).toBe(`_byan/agent/${name}/${name}.md`);
+      // Copilot is no longer a target platform
+      expect(defaultPath).not.toContain('.github/copilot');
     });
 
     test('should write profile content', async () => {
       const profile = await generationState.generateProfile();
-      generationState.saveProfile('.github/copilot/agents/test.md');
-      
+      generationState.saveProfile('_byan/agent/test.md');
+
       const writeCall = fs.writeFileSync.mock.calls[0];
       expect(writeCall[1]).toContain('---');
       expect(writeCall[1]).toContain('```xml');
@@ -301,8 +304,8 @@ description: Testing agent 🚀
 
     test('should log save operation', async () => {
       await generationState.generateProfile();
-      generationState.saveProfile('.github/copilot/agents/test.md');
-      
+      generationState.saveProfile('_byan/agent/test.md');
+
       expect(mockLogger.info).toHaveBeenCalledWith(
         expect.stringContaining('saved'),
         expect.any(Object)
@@ -464,7 +467,7 @@ description: Testing agent 🚀
       await generationState.generateProfile();
       
       expect(() => {
-        generationState.saveProfile('.github/copilot/agents/test.md');
+        generationState.saveProfile('_byan/agent/test.md');
       }).toThrow();
     });
   });

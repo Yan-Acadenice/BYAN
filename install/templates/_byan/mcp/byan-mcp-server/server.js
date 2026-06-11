@@ -628,7 +628,7 @@ const tools = [
   {
     name: 'byan_strict_suggest',
     description:
-      'Check whether a piece of text (user request, feature name) signals a production-grade deliverable that should be built under strict mode. Reads activation keywords from _byan/_config/strict-mode.yaml. Returns { suggested, matched, message }. Use on any platform (Codex/Copilot have no in-session hook) to decide whether to lock strict mode.',
+      'Check whether a piece of text (user request, feature name) signals a production-grade deliverable that should be built under strict mode. Reads activation keywords from _byan/_config/strict-mode.yaml. Returns { suggested, matched, message }. Use on any platform (Codex has no in-session hook) to decide whether to lock strict mode.',
     inputSchema: {
       type: 'object',
       properties: {

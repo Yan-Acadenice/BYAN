@@ -29,19 +29,18 @@ describe('Platform Integration', () => {
   
   describe('Multi-Platform Selection', () => {
     it('should support multiple platforms with different specialists', () => {
-      const copilotSpecialist = platformSelector.getSpecialist('copilot-cli');
+      const codexSpecialist = platformSelector.getSpecialist('codex');
       const claudeSpecialist = platformSelector.getSpecialist('claude');
-      
-      expect(copilotSpecialist).toBe('marc');
+
+      expect(codexSpecialist).toBe('codex');
       expect(claudeSpecialist).toBe('claude');
-      expect(copilotSpecialist).not.toBe(claudeSpecialist);
+      expect(codexSpecialist).not.toBe(claudeSpecialist);
     });
-    
-    it('should identify Copilot, Claude and Codex as native platforms', () => {
-      expect(platformSelector.hasNativeIntegration('copilot-cli')).toBe(true);
+
+    it('should identify Claude and Codex as native platforms', () => {
       expect(platformSelector.hasNativeIntegration('claude')).toBe(true);
       expect(platformSelector.hasNativeIntegration('codex')).toBe(true);
-      expect(platformSelector.hasNativeIntegration('vscode')).toBe(false);
+      expect(platformSelector.hasNativeIntegration('unknown')).toBe(false);
     });
   });
 });

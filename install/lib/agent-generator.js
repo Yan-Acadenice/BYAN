@@ -1,11 +1,11 @@
 /**
  * Agent dual-format generator.
  *
- * Reads a canonical BYAN agent stub (Copilot format: YAML frontmatter +
+ * Reads a canonical BYAN agent stub (YAML frontmatter +
  * XML code block) and emits a Claude Code skill (`.claude/skills/byan-<name>/SKILL.md`)
  * with equivalent semantics expressed as markdown + frontmatter.
  *
- * The Copilot stub remains the canonical source — the generator only
+ * The canonical stub remains the source of truth — the generator only
  * derives the Claude skill from it. No mutation of the input.
  */
 
@@ -132,11 +132,11 @@ function renderSkillBody(sections, items) {
   return out.join('\n');
 }
 
-function generateClaudeSkill(copilotStubPath, options = {}) {
-  const raw = fs.readFileSync(copilotStubPath, 'utf8');
+function generateClaudeSkill(stubPath, options = {}) {
+  const raw = fs.readFileSync(stubPath, 'utf8');
   const fm = parseFrontmatter(raw);
   if (!fm.name) {
-    throw new Error(`Canonical stub missing name frontmatter: ${copilotStubPath}`);
+    throw new Error(`Canonical stub missing name frontmatter: ${stubPath}`);
   }
   const xml = extractXmlBlock(raw);
 

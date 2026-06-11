@@ -13,7 +13,7 @@ const logger = require('../utils/logger');
 /**
  * @typedef {Object} LaunchOptions
  * @property {string} agent - Agent name (e.g., 'claude', 'marc')
- * @property {string} platform - Platform ID (e.g., 'copilot-cli', 'claude')
+ * @property {string} platform - Platform ID (e.g., 'claude', 'codex')
  * @property {string} [prompt] - Initial prompt/action
  * @property {string} [model] - Model to use
  * @property {Object} [config] - Additional config
@@ -31,32 +31,6 @@ const logger = require('../utils/logger');
  * Platform-specific launch configurations
  */
 const LAUNCH_CONFIGS = {
-  'copilot-cli': {
-    command: 'gh',
-    args: (agent, options) => {
-      const args = ['copilot'];
-      
-      // Use @agent syntax if available
-      if (agent) {
-        args.push(`@bmad-agent-${agent}`);
-      }
-      
-      if (options.prompt) {
-        args.push(options.prompt);
-      }
-      
-      return args;
-    },
-    checkAvailable: () => {
-      try {
-        execSync('which gh', { stdio: 'ignore' });
-        return true;
-      } catch {
-        return false;
-      }
-    }
-  },
-  
   'claude': {
     command: 'claude',
     args: (agent, options = {}) => {

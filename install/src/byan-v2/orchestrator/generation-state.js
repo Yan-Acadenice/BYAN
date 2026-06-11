@@ -1,11 +1,11 @@
 /**
  * GenerationState - Story 4.4
- * Generates agent profile in BMAD/Copilot format
- * 
+ * Generates agent profile in BMAD format
+ *
  * Format:
  * - YAML frontmatter (name, description)
  * - XML structure (<agent>, <persona>, <menu>, <capabilities>)
- * - Compliant with .github/copilot/agents/ standard
+ * - Saved under the _byan/agent/ layout
  */
 
 const Logger = require('../observability/logger');
@@ -178,7 +178,7 @@ class GenerationState {
    */
   getDefaultSavePath() {
     const name = this.sessionState.agentProfileDraft?.name || 'agent';
-    return `.github/copilot/agents/${name}.md`;
+    return `_byan/agent/${name}/${name}.md`;
   }
 
   /**

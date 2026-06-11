@@ -125,7 +125,6 @@ if (complexityScore < 30) {
 **Utilisation :** Lancer yanstaller sur chaque plateforme
 
 **Fichiers :**
-- `_byan/worker/launchers/launch-yanstaller-copilot.md`
 - `_byan/worker/launchers/launch-yanstaller-claude.md`
 - `_byan/worker/launchers/launch-yanstaller-codex.md`
 
@@ -479,7 +478,6 @@ _byan/
 └── workers/
     └── launchers/
         ├── README.md
-        ├── launch-yanstaller-copilot.md
         ├── launch-yanstaller-claude.md
         └── launch-yanstaller-codex.md
 

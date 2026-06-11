@@ -175,15 +175,15 @@ async function generateProjectAgentsDoc(phase2Results, genericAnswers, domainAns
   lines.push('### Activate Core Agents');
   lines.push('');
   lines.push('```bash');
-  lines.push('copilot');
-  lines.push('# Then type: /agent');
+  lines.push('claude');
+  lines.push('# Then type: @hermes');
   lines.push('# Select the agent you need');
   lines.push('```');
   lines.push('');
   lines.push('### Create Custom Agents');
   lines.push('');
   lines.push('```bash');
-  lines.push('copilot --agent=byan');
+  lines.push('claude --agent=byan');
   lines.push('# Select: 1. Create New Agent');
   lines.push('# Follow the interview process');
   lines.push('```');

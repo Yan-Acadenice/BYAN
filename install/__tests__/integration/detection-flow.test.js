@@ -44,9 +44,9 @@ describe('Detection Flow Integration', () => {
         expect(result.gitVersion.length).toBeGreaterThan(0);
       }
       
-      // Validate platforms (array of 4)
+      // Validate platforms (array of 2)
       expect(Array.isArray(result.platforms)).toBe(true);
-      expect(result.platforms).toHaveLength(4);
+      expect(result.platforms).toHaveLength(2);
       
       // Each platform has required structure
       result.platforms.forEach(platform => {
@@ -70,7 +70,7 @@ describe('Detection Flow Integration', () => {
       // Platform detection depends on CWD and environment
       // At minimum, structure should be valid
       expect(detectedCount).toBeGreaterThanOrEqual(0);
-      expect(detectedCount).toBeLessThanOrEqual(4);
+      expect(detectedCount).toBeLessThanOrEqual(2);
     });
   });
 
@@ -107,23 +107,22 @@ describe('Detection Flow Integration', () => {
   });
 
   describe('Platform detection details', () => {
-    it('should return valid structure for copilot-cli detection', async () => {
-      const platformInfo = await detector.detectPlatform('copilot-cli');
-      
-      expect(platformInfo.name).toBe('copilot-cli');
+    it('should return valid structure for claude detection', async () => {
+      const platformInfo = await detector.detectPlatform('claude');
+
+      expect(platformInfo.name).toBe('claude');
       expect(typeof platformInfo.detected).toBe('boolean');
-      
+
       // Path present only if detected
       if (platformInfo.detected) {
-        expect(platformInfo.path).toBe('.github/agents');
+        expect(typeof platformInfo.path).toBe('string');
       }
     });
 
-    it('should detect vscode platform (delegates to copilot-cli)', async () => {
-      const platformInfo = await detector.detectPlatform('vscode');
-      
-      expect(platformInfo.name).toBe('vscode');
-      // VSCode uses same path as copilot-cli
+    it('should return valid structure for codex detection', async () => {
+      const platformInfo = await detector.detectPlatform('codex');
+
+      expect(platformInfo.name).toBe('codex');
       expect(typeof platformInfo.detected).toBe('boolean');
     });
 
@@ -139,9 +138,9 @@ describe('Detection Flow Integration', () => {
       // This test validates structure even if detection returns false
       const result = await detector.detect();
       
-      // All 4 platforms should be checked
+      // All platforms should be checked
       const platformNames = result.platforms.map(p => p.name).sort();
-      expect(platformNames).toEqual(['claude', 'codex', 'copilot-cli', 'vscode']);
+      expect(platformNames).toEqual(['claude', 'codex']);
       
       // Each platform has valid structure
       result.platforms.forEach(platform => {

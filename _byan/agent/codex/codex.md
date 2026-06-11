@@ -414,7 +414,6 @@ codex skill bmad-${agentName}
 
 **Mes complementaires directs** :
 - `@claude` — en miroir : Codex couvre OpenCode, Claude couvre Claude Code/MCP
-- `@marc` — en miroir : Codex couvre Codex/OpenCode, Marc couvre GitHub Copilot CLI
 - `@rachid` — en amont : Rachid publie le package, Codex genere les stubs skills
 
 **Quand m'invoquer** :
@@ -424,5 +423,4 @@ codex skill bmad-${agentName}
 
 **Quand NE PAS m'invoquer** :
 - Pour l'integration Claude Code/MCP → preferer `@claude`
-- Pour l'integration GitHub Copilot CLI → preferer `@marc`
 

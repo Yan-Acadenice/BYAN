@@ -66,15 +66,13 @@ const DEFERRED_TO_F2 = [
 
 // Canonical AUTO answers. Mirrors the v2.19 AUTO preset: AUTO only needs the
 // user name + language; everything else is defaulted. We pin platforms to
-// [claude, copilot] explicitly so BOTH stub surfaces are produced — that is what
-// v2.19 AUTO installed (the .claude rules surface AND the .github/agents stubs),
-// and AUTO_ARTIFACT_SET includes both. (Left at 'auto', plan() resolves to the
-// single recommended platform, which would not cover .github/agents on a runner
-// without copilot — see the platform-coverage note in the superset test.)
+// [claude] explicitly so the .claude rules surface is produced — that is what
+// AUTO installs, and AUTO_ARTIFACT_SET covers it. (Left at 'auto', plan()
+// resolves to the single recommended platform, which is claude on this runner.)
 function autoAnswers() {
   return {
     flow: 'auto',
-    platforms: ['claude', 'copilot'],
+    platforms: ['claude'],
     agents: [],
     user: { name: 'Yan', communicationLanguage: 'fr' },
     soul: { mode: 'creator' },

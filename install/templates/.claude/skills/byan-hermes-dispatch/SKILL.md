@@ -28,7 +28,6 @@ Match keywords against the routing table below. Pick the single best match. If n
 | create module, new module | module-builder (Morgan) | |
 | create workflow, new workflow | workflow-builder (Wendy) | |
 | npm, publish, package | rachid | |
-| copilot integration | marc | |
 | optimize tokens, reduce size | carmack | |
 | product brief, prd, requirements | pm (John) | |
 | architecture, design system, tech stack | architect (Winston) | |
@@ -83,11 +82,11 @@ For any spawned strategy : pass `model` to the Agent tool when it is non-null; o
 
 ### 5. Specialist stub path lookup
 
-Resolve the specialist name to its agent file :
+Resolve the specialist name to its agent (Claude-native, in priority order) :
 
-- First try : `.github/agents/<name>.md` or `.github/agents/bmad-agent-<name>.md`
-- Fallback : search `agent-manifest.csv` in `_byan/_config/` or `.github/copilot/_config/`
-- If the specialist has been generated as a skill (F0.3), prefer invoking the skill directly via `/byan-<specialist-name>` instead of the Agent tool.
+- First try the skill : if the specialist exists as a skill, invoke it directly via `/byan-<specialist-name>` (preferred over the Agent tool).
+- Else the Claude subagent stub : `.claude/agents/bmad-<name>.md`, spawned via the Agent tool with `subagent_type`.
+- Fallback : resolve the role from `agent-manifest.csv` in `_byan/_config/`.
 
 ### 6. Report back
 

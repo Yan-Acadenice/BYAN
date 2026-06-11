@@ -112,7 +112,6 @@ bmad_features:
     auto_detect: true  # Auto-detect Turbo Whisper installation
     suggest_on_long_form: true  # Suggest voice input for long responses
     platforms:
-      - github-copilot-cli
       - claude-code
       - codex
 

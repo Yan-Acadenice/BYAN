@@ -177,31 +177,10 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
 // Detects SYSTEM binaries, not project folders (.codex, .github/agents are created by yanstaller)
 async function detectPlatforms() {
   const platforms = {
-    copilot: false,
     codex: false,
     claude: false
   };
-  
-  // GitHub Copilot CLI detection (binary + config)
-  try {
-    const result = execSync('which copilot 2>/dev/null', { encoding: 'utf8' }).trim();
-    if (result) {
-      platforms.copilot = true;
-    }
-  } catch (e) {
-    // Fallback: check config directory (means it was installed)
-    const copilotPaths = [
-      path.join(os.homedir(), '.config', 'github-copilot'),
-      path.join(os.homedir(), '.config', 'copilot')
-    ];
-    for (const p of copilotPaths) {
-      if (fs.existsSync(p)) {
-        platforms.copilot = true;
-        break;
-      }
-    }
-  }
-  
+
   // Codex detection (binary + config, NOT project .codex/ folder)
   try {
     const result = execSync('which codex 2>/dev/null', { encoding: 'utf8' }).trim();
@@ -393,7 +372,6 @@ async function install(options = {}) {
   platformSpinner.succeed('Platform detection complete');
   
   console.log(chalk.cyan('\n📦 Installed Platforms:'));
-  console.log(`  GitHub Copilot CLI: ${detectedPlatforms.copilot ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
   console.log(`  OpenAI Codex:       ${detectedPlatforms.codex ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
   console.log(`  Claude Code:        ${detectedPlatforms.claude ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
   console.log('');
@@ -440,12 +418,10 @@ async function install(options = {}) {
 
     // Step 1: Select target platform(s)
     const availableManualPlatforms = [];
-    if (detectedPlatforms.copilot) availableManualPlatforms.push({ name: '🤖 GitHub Copilot CLI (agents: .github/agents/)', value: 'copilot' });
     if (detectedPlatforms.codex) availableManualPlatforms.push({ name: '🔷 OpenAI Codex (skills: .codex/prompts/)', value: 'codex' });
     if (detectedPlatforms.claude) availableManualPlatforms.push({ name: '🧠 Claude Code (rules: .claude/)', value: 'claude' });
 
     // Always allow manual selection even if not detected
-    if (!detectedPlatforms.copilot) availableManualPlatforms.push({ name: '🤖 GitHub Copilot CLI (not detected)', value: 'copilot' });
     if (!detectedPlatforms.codex) availableManualPlatforms.push({ name: '🔷 OpenAI Codex (not detected)', value: 'codex' });
     if (!detectedPlatforms.claude) availableManualPlatforms.push({ name: '🧠 Claude Code (not detected)', value: 'claude' });
 
@@ -471,7 +447,6 @@ async function install(options = {}) {
       ],
       'Core - Platform Specialists': (() => {
         const specialists = [];
-        if (manualPlatforms.includes('copilot')) specialists.push({ name: 'marc', label: 'Marc - GitHub Copilot CLI Specialist [workflow agent]', checked: true });
         if (manualPlatforms.includes('claude')) specialists.push({ name: 'claude', label: 'Claude - Claude Code Integration Specialist [workflow agent]', checked: true });
         if (manualPlatforms.includes('codex')) specialists.push({ name: 'codex', label: 'Codex - OpenCode/Codex Integration Specialist [workflow agent]', checked: true });
         return specialists;
@@ -656,7 +631,7 @@ async function install(options = {}) {
     // Build prompt for yanstaller agent with interview data + detected platforms
     const interviewPrompt = [
       `Analyse ce profil utilisateur et retourne UNIQUEMENT un JSON de recommandations.`,
-      `DETECTED PLATFORMS: copilot=${detectedPlatforms.copilot}, codex=${detectedPlatforms.codex}, claude=${detectedPlatforms.claude}`,
+      `DETECTED PLATFORMS: codex=${detectedPlatforms.codex}, claude=${detectedPlatforms.claude}`,
       `PROJECT: type=${interviewAnswers.projectType}, domain=${interviewAnswers.domain}`,
       `OBJECTIVES: ${interviewAnswers.objectives.join(',')}`,
       `TEAM: ${interviewAnswers.teamSize}, EXPERIENCE: ${interviewAnswers.experience}`,
@@ -671,19 +646,9 @@ async function install(options = {}) {
     
     // Calculate model for interview analysis based on complexity
     const interviewComplexity = interviewAnswers.quality === 'critical' ? 'claude-haiku-4.5' : 'gpt-5-mini';
-    
-    // Pre-copy interview-only agent stub for Copilot CLI (requires .github/agents/ in CWD)
-    // This stub is self-contained - no external workflow references
+
     // Codex and Claude use direct prompt execution, no agent stub needed
-    if (detectedPlatforms.copilot) {
-      const earlyGithubDir = path.join(projectRoot, '.github', 'agents');
-      const interviewAgentSource = path.join(templateDir, '.github', 'agents', 'bmad-agent-yanstaller-interview.md');
-      if (await fs.pathExists(interviewAgentSource)) {
-        await fs.ensureDir(earlyGithubDir);
-        await fs.copy(interviewAgentSource, path.join(earlyGithubDir, 'bmad-agent-yanstaller-interview.md'), { overwrite: true });
-      }
-    }
-    
+
     // Write prompt to temp file to avoid shell escaping issues
     const promptFile = path.join(projectRoot, '.yanstaller-prompt.tmp');
     await fs.writeFile(promptFile, interviewPrompt, 'utf8');
@@ -693,7 +658,7 @@ async function install(options = {}) {
     const promptContent = await fs.readFile(promptFile, 'utf8');
     let hasAgent = false;
     
-    if (detectedPlatforms.copilot || detectedPlatforms.codex || detectedPlatforms.claude) {
+    if (detectedPlatforms.codex || detectedPlatforms.claude) {
       hasAgent = true;
       const agentSpinner = ora(`Analysing with yanstaller agent (${interviewComplexity})...`).start();
       
@@ -708,14 +673,7 @@ async function install(options = {}) {
         if (isWindows) spawnOpts.shell = true;
         
         let res;
-        if (detectedPlatforms.copilot) {
-          res = spawnSync('copilot', [
-            '--agent=bmad-agent-yanstaller-interview',
-            '-p', promptContent,
-            '--model', interviewComplexity,
-            '-s'
-          ], spawnOpts);
-        } else if (detectedPlatforms.codex) {
+        if (detectedPlatforms.codex) {
           res = spawnSync('codex', ['exec', promptContent], spawnOpts);
         } else if (detectedPlatforms.claude) {
           res = spawnSync('claude', ['-p', promptContent], spawnOpts);
@@ -801,7 +759,7 @@ async function install(options = {}) {
     } else if (!hasAgent) {
       // No AI platform detected - build from interview data
       interviewResults = {
-        platforms: ['copilot'],
+        platforms: ['claude'],
         turboWhisper: {
           mode: interviewAnswers.gpu.startsWith('yes') && (interviewAnswers.objectives.includes('voice') || interviewAnswers.frequency === 'daily') ? 'docker' :
                 interviewAnswers.objectives.includes('voice') || interviewAnswers.frequency === 'daily' ? 'local' : 'skip',
@@ -857,7 +815,6 @@ async function install(options = {}) {
         console.log(chalk.green(`  ✓ ${p} - Recommandé par yanstaller`));
       });
     } else {
-      if (detectedPlatforms.copilot) { recommendedPlatforms.push('copilot'); console.log(chalk.green('  ✓ GitHub Copilot CLI - Détecté')); }
       if (detectedPlatforms.codex) { recommendedPlatforms.push('codex'); console.log(chalk.green('  ✓ Codex - Détecté')); }
       if (detectedPlatforms.claude) { recommendedPlatforms.push('claude'); console.log(chalk.green('  ✓ Claude Code - Détecté')); }
     }
@@ -889,7 +846,6 @@ async function install(options = {}) {
     let selectedPlatform = null;
     const availablePlatforms = [];
     
-    if (detectedPlatforms.copilot) availablePlatforms.push({ name: '🤖 GitHub Copilot CLI', value: 'copilot' });
     if (detectedPlatforms.codex) availablePlatforms.push({ name: '🔷 OpenAI Codex', value: 'codex' });
     if (detectedPlatforms.claude) availablePlatforms.push({ name: '🧠 Claude Code (Anthropic)', value: 'claude' });
     
@@ -899,7 +855,7 @@ async function install(options = {}) {
         name: 'platform',
         message: 'Quelle plateforme IA utiliser pour Phase 2?',
         choices: availablePlatforms,
-        default: 'copilot'
+        default: 'claude'
       }]);
       selectedPlatform = platform;
     } else if (availablePlatforms.length === 1) {
@@ -933,14 +889,7 @@ async function install(options = {}) {
           const spawnOpts = { encoding: 'utf8', timeout: 15000, stdio: 'pipe' };
           if (isWindows) spawnOpts.shell = true;
           
-          if (selectedPlatform === 'copilot') {
-            // copilot --version to check if CLI is available
-            authCheckCmd = 'copilot';
-            authCheckArgs = ['--version'];
-            loginInstructions = [
-              `${chalk.cyan('copilot auth')}`
-            ];
-          } else if (selectedPlatform === 'codex') {
+          if (selectedPlatform === 'codex') {
             // codex --version as basic check (no auth status command available)
             authCheckCmd = 'codex';
             authCheckArgs = ['--version'];
@@ -978,9 +927,7 @@ async function install(options = {}) {
           console.log(chalk.bold('   Pour vous connecter:'));
           
           let loginInstructions;
-          if (selectedPlatform === 'copilot') {
-            loginInstructions = [`${chalk.cyan('copilot auth')}`];
-          } else if (selectedPlatform === 'codex') {
+          if (selectedPlatform === 'codex') {
             loginInstructions = [`${chalk.cyan('codex login')}`];
           } else if (selectedPlatform === 'claude') {
             loginInstructions = [
@@ -1095,7 +1042,7 @@ async function install(options = {}) {
       }
     }
     
-    autoSelectPlatform = recommendedPlatforms[0] || 'copilot';
+    autoSelectPlatform = recommendedPlatforms[0] || 'claude';
   }
   
   // Step 3: Platform selection (skip in MANUAL mode - already selected)
@@ -1109,18 +1056,15 @@ async function install(options = {}) {
     console.log('');
   } else {
     const platformChoices = [
-      { name: `GitHub Copilot CLI ${detectedPlatforms.copilot ? chalk.green('(✓ Detected)') : ''}`, value: 'copilot' },
-      { name: `VSCode`, value: 'vscode' },
       { name: `Claude Code ${detectedPlatforms.claude ? chalk.green('(✓ Detected)') : ''}`, value: 'claude' },
       { name: `Codex ${detectedPlatforms.codex ? chalk.green('(✓ Detected)') : ''}`, value: 'codex' },
       { name: 'All platforms', value: 'all' }
     ];
-    
+
     // Auto-select first detected platform as default (or use interview recommendation)
     const defaultPlatform = (installMode === 'custom' && autoSelectPlatform) ? autoSelectPlatform :
-                            (detectedPlatforms.copilot ? 'copilot' :
-                             detectedPlatforms.codex ? 'codex' :
-                             detectedPlatforms.claude ? 'claude' : 'copilot');
+                            (detectedPlatforms.codex ? 'codex' :
+                             detectedPlatforms.claude ? 'claude' : 'claude');
     
     const platformAnswer = await inquirer.prompt([
       {
@@ -1211,7 +1155,6 @@ async function install(options = {}) {
   
   const byanDir = path.join(projectRoot, '_byan');
   const bmbDir = path.join(byanDir, 'bmb');
-  const githubAgentsDir = path.join(projectRoot, '.github', 'agents');
   const isManual = installMode === 'manual' && manualSelection;
   const manualPlatformList = isManual ? manualSelection.platforms : [];
   
@@ -1224,11 +1167,9 @@ async function install(options = {}) {
   await fs.ensureDir(path.join(byanDir, '_output'));
   
   // Create platform directories based on selection
-  const needsCopilot = isManual ? manualPlatformList.includes('copilot') : true;
   const needsClaude = isManual ? manualPlatformList.includes('claude') : (detectedPlatforms.claude || platform === 'claude' || platform === 'all');
   const needsCodex = isManual ? manualPlatformList.includes('codex') : (detectedPlatforms.codex || platform === 'codex' || platform === 'all');
-  
-  if (needsCopilot) await fs.ensureDir(githubAgentsDir);
+
   if (needsClaude) await fs.ensureDir(path.join(projectRoot, '.claude', 'rules'));
   if (needsCodex) await fs.ensureDir(path.join(projectRoot, '.codex', 'prompts'));
   
@@ -1293,73 +1234,7 @@ async function install(options = {}) {
     // MANUAL mode: Generate stubs only for selected agents on each selected platform
     if (isManual && manualSelection) {
       const selectedAgents = manualSelection.agents;
-      
-      // Agent name to stub filename mapping (must match existing templates)
-      const AGENT_STUB_MAP = {
-        'hermes': 'hermes',
-        'franck': 'franck',
-        'expert-merise-agile': 'expert-merise-agile',
-        'bmad-master': 'bmad-agent-bmad-master',
-        // BMB agents
-        'byan': 'bmad-agent-byan',
-        'agent-builder': 'bmad-agent-bmb-agent-builder',
-        'module-builder': 'bmad-agent-bmb-module-builder',
-        'workflow-builder': 'bmad-agent-bmb-workflow-builder',
-        'marc': 'bmad-agent-marc',
-        'rachid': 'bmad-agent-rachid',
-        'claude': 'bmad-agent-claude',
-        'codex': 'bmad-agent-codex',
-        'drawio': 'bmad-agent-drawio',
-        'turbo-whisper-integration': 'bmad-agent-turbo-whisper-integration',
-        'patnote': 'bmad-agent-patnote',
-        'carmack': 'bmad-agent-carmack',
-        // BMM agents
-        'analyst': 'bmad-agent-bmm-analyst',
-        'pm': 'bmad-agent-bmm-pm',
-        'architect': 'bmad-agent-bmm-architect',
-        'dev': 'bmad-agent-bmm-dev',
-        'sm': 'bmad-agent-bmm-sm',
-        'quinn': 'bmad-agent-bmm-quinn',
-        'ux-designer': 'bmad-agent-bmm-ux-designer',
-        'tech-writer': 'bmad-agent-bmm-tech-writer',
-        'quick-flow-solo-dev': 'bmad-agent-bmm-quick-flow-solo-dev',
-        // TEA
-        'tea': 'bmad-agent-tea-tea',
-        // CIS agents
-        'brainstorming-coach': 'bmad-agent-cis-brainstorming-coach',
-        'creative-problem-solver': 'bmad-agent-cis-creative-problem-solver',
-        'design-thinking-coach': 'bmad-agent-cis-design-thinking-coach',
-        'innovation-strategist': 'bmad-agent-cis-innovation-strategist',
-        'presentation-master': 'bmad-agent-cis-presentation-master',
-        'storyteller': 'bmad-agent-cis-storyteller'
-      };
-      const agentToStubName = (agentName) => AGENT_STUB_MAP[agentName] || `bmad-agent-${agentName}`;
-      
-      // --- COPILOT: Copy matching .github/agents/ stubs ---
-      if (manualPlatformList.includes('copilot')) {
-        const githubAgentsSource = path.join(templateDir, '.github', 'agents');
-        let copilotCount = 0;
-        
-        if (await fs.pathExists(githubAgentsSource)) {
-          for (const agentName of selectedAgents) {
-            const stubName = agentToStubName(agentName);
-            const sourceFile = path.join(githubAgentsSource, `${stubName}.md`);
-            const destFile = path.join(githubAgentsDir, `${stubName}.md`);
-            
-            if (await fs.pathExists(sourceFile)) {
-              await fs.copy(sourceFile, destFile, { overwrite: true });
-              copilotCount++;
-            } else {
-              // Generate stub if no template exists
-              const stubContent = `---\nname: "${stubName}"\ndescription: "${agentName} agent from BYAN platform"\n---\n\nYou must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.\n\n<agent-activation CRITICAL="TRUE">\n1. LOAD the FULL agent file from {project-root}/_byan/agent/${agentName}/${agentName}.md (new layout); if absent, {project-root}/_byan/*/agents/${agentName}.md (legacy layout)\n2. READ its entire contents - this contains the complete agent persona, menu, and instructions\n3. FOLLOW every step in the <activation> section precisely\n4. DISPLAY the welcome/greeting as instructed\n5. PRESENT the numbered menu\n6. WAIT for user input before proceeding\n</agent-activation>\n`;
-              await fs.writeFile(destFile, stubContent, 'utf8');
-              copilotCount++;
-            }
-          }
-          console.log(chalk.green(`  ✓ Copilot CLI: ${copilotCount} agent stubs → .github/agents/`));
-        }
-      }
-      
+
       // --- CODEX: Generate .codex/prompts/ skills ---
       if (manualPlatformList.includes('codex')) {
         const codexPromptsDir = path.join(projectRoot, '.codex', 'prompts');
@@ -1391,18 +1266,7 @@ async function install(options = {}) {
       
     } else {
       // AUTO/CUSTOM mode: Copy all platform stubs (existing behavior)
-      
-      // Copy .github/agents files
-      const githubAgentsSource = path.join(templateDir, '.github', 'agents');
-      
-      if (await fs.pathExists(githubAgentsSource)) {
-        await fs.copy(githubAgentsSource, githubAgentsDir, { overwrite: true });
-        copySpinner.text = 'Copied Copilot CLI agent stubs...';
-        console.log(chalk.green(`  ✓ GitHub agents: ${githubAgentsSource} → ${githubAgentsDir}`));
-      } else {
-        copySpinner.warn(`⚠ GitHub agents source not found: ${githubAgentsSource}`);
-      }
-      
+
       // Copy .claude/ files for Claude Code integration (always includes Hermes)
       if (needsClaude) {
         const claudeSource = path.join(templateDir, '.claude');
@@ -1454,7 +1318,7 @@ async function install(options = {}) {
     }
   }
 
-  if (needsClaude || needsCopilot) {
+  if (needsClaude) {
     console.log();
     console.log(chalk.cyan('byan_web integration (optional — service payant)'));
     let byanWebResult = { configured: false };
@@ -1674,7 +1538,7 @@ async function install(options = {}) {
     if (!pkg.scripts) pkg.scripts = {};
     
     if (!pkg.scripts.byan) {
-      pkg.scripts.byan = 'echo "BYAN agent installed. Use: copilot and type /agent"';
+      pkg.scripts.byan = 'echo "BYAN agent installed. Use: claude and ask Hermes which agent fits your task"';
     }
     
     await fs.writeJson(pkgPath, pkg, { spaces: 2 });
@@ -1701,10 +1565,6 @@ async function install(options = {}) {
   
   // Platform-specific checks based on installation mode
   if (isManual) {
-    if (manualPlatformList.includes('copilot')) {
-      checks.push({ name: 'Copilot agents dir', path: githubAgentsDir });
-      checks.push({ name: 'Hermes (Copilot)', path: path.join(githubAgentsDir, 'hermes.md') });
-    }
     if (manualPlatformList.includes('codex')) {
       checks.push({ name: 'Codex prompts dir', path: path.join(projectRoot, '.codex', 'prompts') });
       checks.push({ name: 'Hermes (Codex)', path: path.join(projectRoot, '.codex', 'prompts', 'hermes.md') });
@@ -1717,8 +1577,11 @@ async function install(options = {}) {
       );
     }
   } else {
-    checks.push({ name: 'GitHub agents dir', path: githubAgentsDir });
-    
+    // Add Codex checks if installed
+    if (needsCodex) {
+      checks.push({ name: 'Codex prompts dir', path: path.join(projectRoot, '.codex', 'prompts') });
+    }
+
     // Add Claude Code checks if installed
     if (needsClaude) {
       checks.push(
@@ -1820,18 +1683,15 @@ async function install(options = {}) {
     console.log(chalk.yellow('1. Activate BYAN agent:'));
   }
   
-  if (platform === 'copilot') {
-    console.log(`   ${chalk.blue('copilot')}`);
-    console.log(`   Then type: ${chalk.blue('/agent')}`);
-    console.log(`   Select: ${chalk.cyan('byan')} (create agents)`);
-  } else if (platform === 'vscode') {
-    console.log('   Open VSCode Command Palette (Ctrl+Shift+P)');
-    console.log('   Type: \'Activate BYAN Agent\'');
-  } else if (platform === 'claude') {
+  if (platform === 'claude') {
     console.log(`   ${chalk.blue('claude')}`);
     console.log(`   Hermes est integre via ${chalk.cyan('.claude/CLAUDE.md')}`);
     console.log(`   Demande: ${chalk.cyan('"quel agent pour mon projet?"')} → Hermes repond`);
     console.log(`   Regles: ${chalk.cyan('.claude/rules/')} (hermes, agents, methodologie)`);
+  } else if (platform === 'codex') {
+    console.log(`   ${chalk.blue('codex')}`);
+    console.log(`   Skills installes dans ${chalk.cyan('.codex/prompts/')}`);
+    console.log(`   Lance: ${chalk.cyan('codex skill hermes')} → Hermes route vers le bon agent`);
   } else {
     console.log('   Follow your platform\'s agent activation procedure');
   }

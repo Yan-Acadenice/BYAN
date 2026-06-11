@@ -26,7 +26,7 @@ const { DEFAULTS } = require('../lib/recommender');
 const FAKE_TOKEN = 'byan_' + '0'.repeat(64);
 
 // --- profile fixtures (REAL MachineProfile shape from lib/detect.js) ----------
-// detect.js emits FLAT per-platform keys (profile.claude/.codex/.copilot), each
+// detect.js emits FLAT per-platform keys (profile.claude/.codex), each
 // { present, path, version }, NOT a nested profile.platforms.{...}. plan() must
 // consume that real shape.
 
@@ -49,7 +49,6 @@ function makeProfile(presentPlatforms) {
     git: tool('git'),
     claude: tool('claude'),
     codex: tool('codex'),
-    copilot: tool('copilot'),
     recommended: { primaryPlatform: 'claude', rationale: 'test fixture' },
     generatedAt: '2026-01-01T00:00:00.000Z',
   });
@@ -81,7 +80,6 @@ function autoAnswers(overrides) {
 const V2_19_AUTO_DESTS = Object.freeze([
   '_byan',
   '.claude',
-  '.github/agents',
   '_byan/bmb/config.yaml',
   '_byan/agent/byan',
   '.mcp.json',
@@ -131,7 +129,7 @@ describe('plan — purity (C1)', () => {
       jest.spyOn(childProcess, 'execFileSync'),
       jest.spyOn(childProcess, 'spawnSync'),
     ];
-    plan(makeProfile(['claude', 'copilot']), autoAnswers());
+    plan(makeProfile(['claude', 'codex']), autoAnswers());
     spies.forEach(function (s) { expect(s).not.toHaveBeenCalled(); });
     jest.restoreAllMocks();
   });
@@ -171,18 +169,18 @@ describe('plan — consumes the recommender table (C5)', () => {
     expect(p.targets.platforms).toContain('claude');
   });
 
-  test("platforms:'auto' honors the REAL detect shape: a copilot-only machine resolves to copilot, not the claude fallback", () => {
+  test("platforms:'auto' honors the REAL detect shape: a codex-only machine resolves to codex, not the claude fallback", () => {
     // Regression guard: detect.js emits FLAT per-platform keys
-    // (profile.copilot.present), and the profile already carries
+    // (profile.codex.present), and the profile already carries
     // recommended.primaryPlatform computed from that shape. plan() must resolve
     // 'auto' to the ACTUAL found platform, not silently degrade to claude.
-    const copilotOnly = makeProfile(['copilot']);
-    // detect would compute primaryPlatform=copilot for this machine.
-    const profile = Object.assign({}, copilotOnly, {
-      recommended: { primaryPlatform: 'copilot', rationale: 'copilot is the only found platform' },
+    const codexOnly = makeProfile(['codex']);
+    // detect would compute primaryPlatform=codex for this machine.
+    const profile = Object.assign({}, codexOnly, {
+      recommended: { primaryPlatform: 'codex', rationale: 'codex is the only found platform' },
     });
     const p = plan(profile, autoAnswers());
-    expect(p.targets.platforms).toEqual(['copilot']);
+    expect(p.targets.platforms).toEqual(['codex']);
   });
 
   test("byanWeb.apiUrl:'auto' resolves to recommender DEFAULTS.apiUrl", () => {
@@ -227,9 +225,9 @@ describe('plan — no hidden prompts (C7)', () => {
 
 describe('plan — AUTO is a superset of the v2.19 AUTO artifact contract (part of C6)', () => {
   test('AUTO plan dest set covers every v2.19 AUTO dest (no regression)', () => {
-    // v2.19 AUTO installs BOTH the Claude (.claude/.mcp.json) and the Copilot
-    // (.github/agents) artifact families, so the canonical AUTO targets both.
-    const p = plan(makeProfile(['claude', 'copilot']), autoAnswers({ platforms: ['claude', 'copilot'] }));
+    // AUTO installs the Claude (.claude/.mcp.json) artifact family, so the
+    // canonical AUTO targets it.
+    const p = plan(makeProfile(['claude', 'codex']), autoAnswers({ platforms: ['claude', 'codex'] }));
     const produced = new Set(destsOf(p));
     const missing = V2_19_AUTO_DESTS.filter(function (d) { return !produced.has(d); });
     expect(missing).toEqual([]);
@@ -298,45 +296,18 @@ describe('plan — explicit AUTH handoff (C12)', () => {
 // --- flow-unique mapping (I37): one code path, predicates differ --------------
 
 describe('plan — flow-unique (I37)', () => {
-  test('AUTO with claude-only includes copy:.claude + render:mcp, excludes copy:.github/agents', () => {
+  test('AUTO with claude includes copy:.claude + render:mcp', () => {
     const p = plan(makeProfile(['claude']), autoAnswers({ platforms: ['claude'] }));
     const ids = p.steps.map(function (s) { return s.id; });
     expect(ids).toContain('copy:_byan');
     expect(ids).toContain('copy:.claude');
     expect(ids).toContain('render:mcp');
-    expect(ids).not.toContain('copy:.github/agents');
-  });
-
-  test('copilot selected => copy:.github/agents present', () => {
-    const p = plan(makeProfile(['claude', 'copilot']), autoAnswers({ platforms: ['claude', 'copilot'] }));
-    const ids = p.steps.map(function (s) { return s.id; });
-    expect(ids).toContain('copy:.github/agents');
-  });
-
-  test('MANUAL with agents:[dev,pm] narrows the stub-copy breadth (filtered, not all)', () => {
-    const p = plan(
-      makeProfile(['copilot']),
-      autoAnswers({ flow: 'manual', platforms: ['copilot'], agents: ['dev', 'pm'], soul: { mode: 'blank' } })
-    );
-    const stub = p.steps.find(function (s) { return s.id === 'copy:.github/agents'; });
-    expect(stub).toBeDefined();
-    // filtered breadth: the step declares the explicit agent subset, not "all".
-    expect(Array.isArray(stub.agents)).toBe(true);
-    expect(stub.agents).toEqual(['dev', 'pm']);
-    expect(stub.all).toBe(false);
-  });
-
-  test('AUTO stub-copy is the full (unfiltered) breadth', () => {
-    const p = plan(makeProfile(['copilot']), autoAnswers({ flow: 'auto', platforms: ['copilot'] }));
-    const stub = p.steps.find(function (s) { return s.id === 'copy:.github/agents'; });
-    expect(stub).toBeDefined();
-    expect(stub.all).toBe(true);
   });
 
   test('AUTO and CUSTOM produce the identical step TYPE multiset (only predicates/fields differ) — I37', () => {
-    const profile = makeProfile(['claude', 'copilot']);
-    const a = plan(profile, autoAnswers({ flow: 'auto', platforms: ['claude', 'copilot'] }));
-    const c = plan(profile, autoAnswers({ flow: 'custom', platforms: ['claude', 'copilot'] }));
+    const profile = makeProfile(['claude', 'codex']);
+    const a = plan(profile, autoAnswers({ flow: 'auto', platforms: ['claude', 'codex'] }));
+    const c = plan(profile, autoAnswers({ flow: 'custom', platforms: ['claude', 'codex'] }));
     expect(typesOf(a).sort()).toEqual(typesOf(c).sort());
   });
 });

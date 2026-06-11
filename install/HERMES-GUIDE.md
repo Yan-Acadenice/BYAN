@@ -23,9 +23,6 @@ npm install -g create-byan-agent
 ## Invocation
 
 ```bash
-# Via GitHub Copilot CLI
-@hermes
-
 # Via Codex
 codex hermes
 
@@ -75,7 +72,6 @@ Affiche tous les 35+ agents organisés par module:
 ├─ byan                🤖  Agent Creator (Interview)
 ├─ byan-v2             🤖  BYAN v2 (Optimized)
 ├─ agent-builder       🏗️  Agent Construction Expert
-├─ marc                🔷  GitHub Copilot Integration
 ├─ rachid              📦  NPM/NPX Deployment
 └─ ... (11 total)
 
@@ -198,7 +194,6 @@ Hermes applique ces règles pour recommander des agents:
 |-----------|----------------------|--------|
 | create agent, new agent, build agent | BYAN v2 | bmb |
 | npm, publish, package | Rachid | bmb |
-| copilot integration | Marc | bmb |
 | optimize tokens, reduce size | Carmack | bmb |
 | product brief, prd, requirements | PM (John) | bmm |
 | architecture, design system, tech stack | Architect (Winston) | bmm |
@@ -283,7 +278,7 @@ Tu: migration legacy vers microservices avec tests
 Hermes lit 3 manifestes CSV:
 
 ```
-.github/copilot/_config/
+_byan/_config/
 ├── agent-manifest.csv      # 35+ agents
 ├── workflow-manifest.csv   # Workflows par module
 └── task-manifest.csv       # Tasks standalone
@@ -310,7 +305,7 @@ Hermes lit 3 manifestes CSV:
 Hermes lit la config globale:
 
 ```yaml
-# .github/copilot/config.yaml
+# _byan/config.yaml
 user_name: "Yan"
 communication_language: "Francais"
 document_output_language: "Francais"
@@ -333,7 +328,7 @@ Hermes applique ces mantras BYAN:
 ### Config non trouvée
 
 ```
-❌ ERROR: Config file not found at {project-root}/.github/copilot/config.yaml
+❌ ERROR: Config file not found at {project-root}/_byan/config.yaml
 
 Cannot proceed without configuration.
 💡 Run: npx create-byan-agent
@@ -387,7 +382,7 @@ Voir: [Cost Optimizer Integration](./cost-optimizer-integration.md)
 Hermes est défini dans:
 
 ```
-install/templates/.github/agents/hermes.md  (573 lignes XML)
+install/templates/.claude/rules/hermes-dispatcher.md
 install/templates/_byan/_config/agent-manifest.csv
 ```
 
