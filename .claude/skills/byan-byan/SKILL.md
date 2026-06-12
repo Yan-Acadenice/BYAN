@@ -126,6 +126,57 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
 - **Exit gate** : all `blocking_issues` resolved → advance back to BUILD (loop). The state machine explicitly allows REFACTOR → BUILD as the only backward transition.
 - **Guard-rail** : 3 consecutive BUILD→REVIEW→VALIDATE→REFACTOR cycles without convergence → propose retour to PRUNE (mal cadré) or ABORTED.
 
+## 2.5. Leantime project sync (one-way FD → board)
+
+Leantime (self-hosted project management) is an optional external board. When
+`LEANTIME_API_URL` + `LEANTIME_API_TOKEN` are configured (injected via `.mcp.json`
+`${...}`), the FD workflow mirrors its lifecycle onto Leantime in ONE direction —
+FD drives the board ; the board does not drive FD. When the pair is absent, the
+`byan_leantime_*` tools report `enabled: false` and every FD phase proceeds
+unchanged. The sync is best-effort : a down, unreachable, or misconfigured
+Leantime degrades to `{ ok:false, synced:false, reason }` and a phase transition
+still advances. `lib/leantime-sync.js` is the only Leantime client ; the skill
+drives it through the MCP tools and does not import that lib (state-coupling rule).
+
+### Fire points (per FD phase event)
+
+| FD phase / event | Tool | Effect | fd-state link |
+|------------------|------|--------|---------------|
+| DISCOVERY — project confirmed | `byan_leantime_project_ensure` | create-or-fetch the Leantime project from `project_context` (name) | store returned id in `project_context.leantime.projectId` |
+| DISPATCH — per backlog feature | `byan_leantime_task_create` | one task per feature (`headline` = feature title) | store returned id in that backlog item's `leantime.taskId` |
+| BUILD — feature build starts | `byan_leantime_task_move column=doing` | feature enters in-progress | — |
+| REVIEW needs-rework OR VALIDATE KO | `byan_leantime_task_move column=blocked` | feature blocked pending REFACTOR | — |
+| VALIDATE OK | `byan_leantime_task_move column=review` | feature passed the machine gate | — |
+| DOC done / feature COMPLETED | `byan_leantime_task_move column=done` | feature delivered | backlog item `status=done` |
+
+Columns are the canonical FD lifecycle (`todo|doing|blocked|review|done`) ; the
+tool resolves each to the project's configured Leantime status id at call time
+(status ints are per-project), with a conservative fallback when the labels
+cannot be read.
+
+### Idempotence (survives the REFACTOR loop)
+
+- Before `project_ensure` : if `project_context.leantime.projectId` is already
+  set, reuse it and skip the call. The lib also matches an existing project by
+  name server-side, so a missing local id still does not create a duplicate.
+- Before `task_create` on a feature : if that backlog item already carries
+  `leantime.taskId`, do NOT create a second task — drive the stored id with
+  `task_move` / `task_get` instead. This is what keeps a REFACTOR loop (feature
+  re-built) from spawning a duplicate task.
+- Persist the Leantime ids ONLY through `byan_fd_update` (the same
+  state-coupling rule as the rest of fd-state) — no hand edit of the file.
+
+### Reading the result (do not lie about a failed sync)
+
+Each call returns `{ ok, synced, reason? }`. Surface a non-synced result in one
+line rather than pretending the board moved :
+- `no_base` / `no_token` → sync is off ; mention it once, proceed.
+- `non_json` → `LEANTIME_API_URL` points at the Leantime UI host, not the
+  `/api/jsonrpc` backend (the wrong-host lesson). Fix the env, do not read the
+  HTML as an empty board.
+- `timeout` / `http_<status>` / `rpc_error` → transient or wire issue ; the FD
+  phase still advances, the move can be retried at the next phase event.
+
 ## 3. Session state
 
 A FD cycle in progress is tracked in `_byan-output/fd-state.json` :
@@ -135,9 +186,9 @@ A FD cycle in progress is tracked in `_byan-output/fd-state.json` :
   "phase": "DISCOVERY | BRAINSTORM | PRUNE | DISPATCH | BUILD | REVIEW | VALIDATE | REFACTOR | DOC | COMPLETED | ABORTED",
   "started_at": "<iso>",
   "feature_name": "<slug>",
-  "project_context": { "name": "...", "slug": "...", "domain": "...", "stack": "...", "summary": "...", "source": "mcp|local" },
+  "project_context": { "name": "...", "slug": "...", "domain": "...", "stack": "...", "summary": "...", "source": "mcp|local", "leantime": { "projectId": 0 } },
   "raw_ideas": [],
-  "backlog": [ { "id": "F1", "title": "...", "priority": "P1|P2|P3", "status": "pending|building|done|skipped" } ],
+  "backlog": [ { "id": "F1", "title": "...", "priority": "P1|P2|P3", "status": "pending|building|done|skipped", "leantime": { "taskId": 0 } } ],
   "dispatch_table": [],
   "commits": [],
   "review_findings": [ { "status": "ready-for-validate|needs-rework", "items": [...] } ],
@@ -170,6 +221,7 @@ Use the MCP tools `byan_fd_start`, `byan_fd_advance`, `byan_fd_status`, `byan_fd
 | REVIEW (qualitative pre-flight) | Quinn (`bmad-bmm-quinn`) ; tiered adversarial gate `bmad-compliance` (dispatch >= 15 or strict domain) via `byan_review_request` |
 | REFACTOR (corrective loop to BUILD) | Same agent/worker that did BUILD |
 | DOC (CHANGELOG, README, manifests) | Paige (`bmad-bmm-tech-writer`) or BYAN role-play |
+| Leantime sync (one-way FD → board, fire points at phase events) | BYAN fires `byan_leantime_*` ; `lib/leantime-sync.js` is the only Leantime client (see section 2.5) |
 | Parallel team of specialists | `byan-orchestrate` (extends hermes for N-role) |
 | Persona / voice | Soul + Tao (loaded by SessionStart hook) |
 | Transparency | `tool-transparency` PreToolUse hook |

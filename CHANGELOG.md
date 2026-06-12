@@ -9,6 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Leantime project-management integration (one-way FD -> board)
+
+BYAN can now mirror its Feature Development lifecycle onto a self-hosted Leantime
+instance. When `LEANTIME_API_URL` + `LEANTIME_API_TOKEN` are configured, the FD
+phases drive a Leantime project and one task per backlog feature ; when absent,
+the tools report disabled and FD proceeds unchanged. The sync is one direction
+(FD -> Leantime) and best-effort : a down or misconfigured Leantime degrades to
+`{ synced:false, reason }` and does not block a phase transition.
+
+- **Client** (`_byan/mcp/byan-mcp-server/lib/leantime-sync.js`): a JSON-RPC 2.0
+  client for `<base>/api/jsonrpc`, authenticated by the Leantime-native
+  `x-api-key` header (kept distinct from the byan_web `ApiKey/Bearer` scheme).
+  Best-effort and does not throw, with an `AbortController` timeout and a
+  non-JSON-200 guard that rejects an HTML login body (the wrong-host lesson)
+  instead of reading it as an empty board. Business fns: `ensureProject`
+  (idempotent by name), `createTask`, `moveTask`, `assignTask`, `getTask`,
+  `getBoard`, plus `resolveStatusMap` / `resolveClientId` / `resolveEditorId`.
+- **MCP tools** (7): `byan_leantime_ping`, `byan_leantime_project_ensure`,
+  `byan_leantime_task_create`, `byan_leantime_task_move`,
+  `byan_leantime_task_assign`, `byan_leantime_task_get`,
+  `byan_leantime_board_get`. All but `ping` pass through `requireLeantime()`.
+- **FD wiring** (`.claude/skills/byan-byan/SKILL.md` section 2.5): fire points
+  DISCOVERY -> project_ensure, DISPATCH -> task_create per feature, BUILD ->
+  doing, REVIEW/VALIDATE-KO -> blocked, VALIDATE-OK -> review, DOC -> done.
+  Leantime ids persist into fd-state (`project_context.leantime.projectId`,
+  backlog `leantime.taskId`) so a REFACTOR loop reuses tasks instead of
+  duplicating them.
+- **Status mapping**: the canonical FD columns (`todo|doing|blocked|review|done`)
+  resolve to per-project Leantime status ids at call time, with a conservative
+  fallback when the labels cannot be read.
+- **Tests**: `test/leantime-sync.test.js` (14 cases: auth header, non-JSON guard,
+  timeout, idempotence, column resolution) + `test/leantime-tools.test.js`
+  (the 7-tool declaration/handler surface in server.js).
+- **Docs**: `.claude/rules/byan-api.md` section 8 (the `byan_leantime_*` family +
+  the wrong-host lesson).
+- **Pending**: the live wire-format verification (one real POST with a Leantime
+  PAT, to confirm `params:{values:{}}` wrapping against the running instance) is
+  a documented follow-up ; the tested format follows the Leantime master source.
+
 ### Removed - GitHub Copilot CLI + VSCode dropped as target platforms (3 -> 2)
 
 BYAN now targets two platforms: Claude Code and Codex. GitHub Copilot CLI and

@@ -86,6 +86,13 @@ export const TARGET_ADDITIONS = [
   // fresh install crashes — same coupling as transcript-read.js above.
   '.claude/hooks/lib/fact-check-core.js',
   '.claude/hooks/fact-check-claims.js',
+  // Leantime integration (one-way FD -> board). server.js (already mirrored)
+  // imports ./lib/leantime-sync.js, so the lib MUST ship or a fresh install
+  // crashes on boot. Its two test files ship with the server, same convention
+  // as the insight / advisory tests above.
+  '_byan/mcp/byan-mcp-server/lib/leantime-sync.js',
+  '_byan/mcp/byan-mcp-server/test/leantime-sync.test.js',
+  '_byan/mcp/byan-mcp-server/test/leantime-tools.test.js',
 ];
 
 // The template lives under this root-relative directory.

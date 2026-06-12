@@ -119,3 +119,52 @@ curl -X POST -H "Authorization: ApiKey $BYAN_API_TOKEN" -H "Content-Type: applic
 | Lancer un workflow | `byan_api_workflows_run` |
 | Chercher dans la memoire | `byan_api_memory_search` |
 | Importer un projet local | `byan_import_project` |
+
+## 8. Famille byan_leantime_* (board externe Leantime, distinct de byan_web)
+
+Backend SEPARE de byan_web : ces tools parlent a une instance Leantime
+self-hosted (gestion de projet), pas a l'API byan_web. Le workflow FD les
+declenche pour mirror son cycle de vie sur un board Leantime, en sens unique
+(FD pilote Leantime ; Leantime ne pilote pas FD). Cablage par phase : voir
+`.claude/skills/byan-byan/SKILL.md` section 2.5.
+
+### Config (env distinct de BYAN_API_URL)
+
+| Var | Role |
+|-----|------|
+| `LEANTIME_API_URL` | Base de l'instance Leantime (host du backend `/api/jsonrpc`, PAS le host de l'UI). Sans `/api` final — le client ajoute `/api/jsonrpc`. |
+| `LEANTIME_API_TOKEN` | Personal Access Token Leantime (genere dans le profil utilisateur Leantime). |
+| `LEANTIME_CLIENT_ID` | Optionnel : clientId pour `addProject` (sinon premier client retourne, sinon 1). |
+
+Les deux premieres sont injectees via `.mcp.json` `${...}` (zero secret tracke).
+Quand la paire est absente, les tools reportent `enabled: false` et le FD avance
+sans bloquer.
+
+### Authentification (header propre)
+
+Leantime authentifie le JSON-RPC par le header `x-api-key: <token>` — PAS le
+switch `Authorization: ApiKey/Bearer` de byan_web. Reutiliser le scheme byan_web
+enverrait un header que Leantime ignore : l'appel passe non authentifie
+(probablement un 401, ou un fall-through vers la page HTML de login que la garde
+non_json attrape). Le code exact est confirme a F0 (live-verify).
+
+### Tools
+
+| Tool | Usage | Guard |
+|------|-------|-------|
+| `byan_leantime_ping` | Healthcheck : reporte api_url, token_configured, enabled, reachable. Ne throw pas. | aucun |
+| `byan_leantime_project_ensure` | Cree-ou-recupere un projet Leantime (idempotent par nom), retourne l'id | requireLeantime |
+| `byan_leantime_task_create` | Cree une tache (addTicket) depuis un item backlog, retourne l'id tache | requireLeantime |
+| `byan_leantime_task_move` | Transitionne une tache vers une colonne `todo\|doing\|blocked\|review\|done` (resolue en statut Leantime du projet) | requireLeantime |
+| `byan_leantime_task_assign` | Pose l'assignee (editorId) | requireLeantime |
+| `byan_leantime_task_get` | Lit une tache par id | requireLeantime |
+| `byan_leantime_board_get` | Lit le board d'un projet groupe par colonne | requireLeantime |
+
+### Lecon mauvais-host (la garde non-JSON)
+
+Leantime sert l'app HTML ET l'API JSON-RPC sur le meme domaine. Si
+`LEANTIME_API_URL` pointe sur le host de l'UI au lieu du backend, un POST
+`/api/jsonrpc` peut renvoyer 200 + une page HTML de login. Le client rejette ce
+corps en `reason: non_json` avec un hint, plutot que de le lire comme un board
+vide. C'est la meme lecon que `BYAN_API_URL` (UI SSO vs host API). Si un appel
+Leantime renvoie `non_json`, corriger `LEANTIME_API_URL` vers le host backend.

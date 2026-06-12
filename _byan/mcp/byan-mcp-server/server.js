@@ -71,6 +71,17 @@ import {
   syncEnabled as strictSyncEnabled,
   resolveProjectId as strictResolveProjectId,
 } from './lib/strict-sync.js';
+import {
+  syncEnabled as leantimeEnabled,
+  rpc as leantimeRpc,
+  ensureProject as leantimeEnsureProject,
+  createTask as leantimeCreateTask,
+  moveTask as leantimeMoveTask,
+  assignTask as leantimeAssignTask,
+  getTask as leantimeGetTask,
+  getBoard as leantimeGetBoard,
+  METHODS as LEANTIME_METHODS,
+} from './lib/leantime-sync.js';
 
 // Compact view of a best-effort strict-sync result for tool responses.
 function syncResult(sync) {
@@ -109,6 +120,14 @@ function buildQuery(params) {
 function requireToken() {
   if (!BYAN_API_TOKEN) {
     throw new Error('BYAN_API_TOKEN env var is required for this tool.');
+  }
+}
+
+// Leantime uses its OWN env pair (LEANTIME_API_URL/LEANTIME_API_TOKEN), kept
+// distinct from BYAN_API_URL so the two backends never get crossed.
+function requireLeantime() {
+  if (!process.env.LEANTIME_API_URL || !process.env.LEANTIME_API_TOKEN) {
+    throw new Error('LEANTIME_API_URL + LEANTIME_API_TOKEN env vars are required for byan_leantime_* tools.');
   }
 }
 
@@ -1149,6 +1168,101 @@ const tools = [
       additionalProperties: false,
     },
   },
+
+  // ─── Leantime (project-management mirror) ─────────────────────────────
+  // Client-side automation of the self-hosted Leantime JSON-RPC API. Used by
+  // the FD workflow to create a project + a task per feature and move task
+  // status across phases. Needs LEANTIME_API_URL + LEANTIME_API_TOKEN.
+  {
+    name: 'byan_leantime_ping',
+    description:
+      'Healthcheck the Leantime integration: reports api_url, token presence, and (if configured) whether the JSON-RPC API is reachable. Surfaces the wrong-host guard (HTML instead of JSON). No required args.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'byan_leantime_project_ensure',
+    description:
+      'Idempotent create-or-fetch of a Leantime project from the FD project_context. Matches an existing project by name first (no duplicate on FD re-run). Returns { id, created }. Requires LEANTIME_API_*.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Project name (defaults to slug).' },
+        slug: { type: 'string', description: 'Project slug (fallback name).' },
+        clientId: { type: 'number', description: 'Owning Leantime client id. Resolved if omitted.' },
+        details: { type: 'string', description: 'Optional project description.' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_leantime_task_create',
+    description:
+      'Create one Leantime task (ticket) from an FD backlog item. Returns the new task id to store back in fd-state (caller owns idempotency: create only if the item has no leantime_task_id). Requires LEANTIME_API_*.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'number', description: 'Leantime project id.' },
+        headline: { type: 'string', description: 'Task title.' },
+        description: { type: 'string' },
+        status: { type: 'number', description: 'Leantime status id (optional).' },
+        priority: { type: 'number' },
+        editorId: { type: 'number', description: 'Assignee/editor user id.' },
+        tags: { type: 'string' },
+        type: { type: 'string', description: "Ticket type, default 'task'." },
+      },
+      required: ['projectId', 'headline'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_leantime_task_move',
+    description:
+      'Move a Leantime task to a lifecycle column (todo|doing|blocked|review|done). Resolves the column to the project status id, then updates the ticket. Requires LEANTIME_API_*.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        taskId: { type: 'number', description: 'Leantime ticket id.' },
+        projectId: { type: 'number', description: 'Project id (for status resolution).' },
+        column: { type: 'string', enum: ['todo', 'doing', 'blocked', 'review', 'done'] },
+        status: { type: 'number', description: 'Explicit status id (bypasses column resolution).' },
+      },
+      required: ['taskId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_leantime_task_assign',
+    description: 'Set the assignee/editor of a Leantime task. Requires LEANTIME_API_*.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        taskId: { type: 'number', description: 'Leantime ticket id.' },
+        editorId: { type: 'number', description: 'Assignee/editor user id.' },
+      },
+      required: ['taskId', 'editorId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_leantime_task_get',
+    description: 'Fetch a single Leantime task by id. Requires LEANTIME_API_*.',
+    inputSchema: {
+      type: 'object',
+      properties: { taskId: { type: 'number', description: 'Leantime ticket id.' } },
+      required: ['taskId'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_leantime_board_get',
+    description: "List a Leantime project's tasks grouped by lifecycle column. Requires LEANTIME_API_*.",
+    inputSchema: {
+      type: 'object',
+      properties: { projectId: { type: 'number', description: 'Leantime project id.' } },
+      required: ['projectId'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const server = new Server(
@@ -1781,6 +1895,77 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         force: args.force === true,
       });
       return { content: [{ type: 'text', text: JSON.stringify(instructions, null, 2) }] };
+    }
+
+    // ─── Leantime tools ───────────────────────────────────────────────
+    if (name === 'byan_leantime_ping') {
+      const status = {
+        api_url: process.env.LEANTIME_API_URL || null,
+        token_configured: Boolean(process.env.LEANTIME_API_TOKEN),
+        enabled: leantimeEnabled(),
+      };
+      if (status.enabled) {
+        const probe = await leantimeRpc(LEANTIME_METHODS.getAllProjects, {});
+        status.reachable = probe.ok;
+        if (!probe.ok) status.reason = probe.reason;
+        if (probe.hint) status.hint = probe.hint;
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(status, null, 2) }] };
+    }
+
+    if (name === 'byan_leantime_project_ensure') {
+      requireLeantime();
+      const r = await leantimeEnsureProject({
+        name: args.name,
+        slug: args.slug,
+        clientId: args.clientId,
+        details: args.details,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_leantime_task_create') {
+      requireLeantime();
+      const r = await leantimeCreateTask({
+        projectId: args.projectId,
+        headline: args.headline,
+        description: args.description,
+        status: args.status,
+        priority: args.priority,
+        editorId: args.editorId,
+        tags: args.tags,
+        ...(args.type !== undefined ? { type: args.type } : {}),
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_leantime_task_move') {
+      requireLeantime();
+      const r = await leantimeMoveTask({
+        taskId: args.taskId,
+        projectId: args.projectId,
+        column: args.column,
+        status: args.status,
+      });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_leantime_task_assign') {
+      requireLeantime();
+      const r = await leantimeAssignTask({ taskId: args.taskId, editorId: args.editorId });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_leantime_task_get') {
+      requireLeantime();
+      const r = await leantimeGetTask({ taskId: args.taskId });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
+    }
+
+    if (name === 'byan_leantime_board_get') {
+      requireLeantime();
+      const r = await leantimeGetBoard({ projectId: args.projectId });
+      return { content: [{ type: 'text', text: JSON.stringify(r, null, 2) }] };
     }
 
     throw new Error(`Unknown tool: ${name}`);
