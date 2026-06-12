@@ -82,8 +82,6 @@ function isByanInstalled(projectRoot) {
 function detectPlatforms(projectRoot) {
   const found = [];
   const checks = [
-    { name: 'copilot-cli', path: '.github/agents' },
-    { name: 'vscode', path: '.vscode' },
     { name: 'claude', path: '.claude' },
     { name: 'codex', path: '.codex/prompts' }
   ];

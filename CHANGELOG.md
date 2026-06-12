@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed - GitHub Copilot CLI + VSCode dropped as target platforms (3 -> 2)
+
+BYAN now targets two platforms: Claude Code and Codex. GitHub Copilot CLI and
+the VSCode extension are no longer install targets. This is a breaking change for
+anyone who relied on the Copilot/VSCode output.
+
+- **Install path** (`npx create-byan-agent`): the platform menu, auto-select, and
+  generated stubs cover Claude Code + Codex only. The `byan_copilot_*` MCP tool
+  family and the `marc` Copilot-oriented agent were removed in the core pass
+  (commit `0f06cf8`).
+- **Web UI** (ships on npm via `install/src/webui`): the chat CLI selector, the
+  `cli-detector` definitions, the platform-detection list, and the marketing copy
+  drop Copilot and VSCode; the `copilot-adapter` bridge and its `createBridge`
+  case are gone (`createBridge('copilot')` now rejects with `Unknown CLI adapter`).
+- **Dead code**: both shipped copies of the orphaned `copilot-context` module
+  (`src/byan-v2/context/` and `install/src/byan-v2/context/`) and two stale
+  non-jest harnesses (`test-byan-v2-workflow.js`, `test-workflow-simple.js`) were
+  deleted.
+- **Note**: the `byan-loadbalancer` Copilot *provider* (an LLM backend, not an
+  install target) is unaffected and stays.
+
 ### Added - Auto-Benchmark: native sourced decision benchmarks (C1-C5)
 
 When the agent is about to ask you to choose between options, it now benchmarks

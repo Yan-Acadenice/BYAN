@@ -3,8 +3,6 @@
  * Each CLI adapter extends Bridge and implements: start(), send(), stop()
  */
 
-const fs = require('fs');
-const path = require('path');
 const layoutResolver = require('../../../../src/byan-v2/lib/layout-resolver');
 
 class Bridge {
@@ -27,13 +25,7 @@ class Bridge {
   resolveAgent(agentName) {
     if (!agentName) return null;
 
-    // Copilot stub takes priority (it is the explicit entry point when present).
-    const githubStub = path.join(this.projectRoot, '.github', 'agents', `bmad-agent-${agentName}.md`);
-    try {
-      if (fs.existsSync(githubStub)) return githubStub;
-    } catch { /* ignore */ }
-
-    // Then the layout resolver: Gen3 _byan/agent/<name>/ first, Gen2 flat +
+    // Layout resolver: Gen3 _byan/agent/<name>/ first, Gen2 flat +
     // per-module, Gen1 _bmad/ fallback.
     const hit = layoutResolver.resolveAgent(agentName, { projectRoot: this.projectRoot });
     return hit ? hit.path : null;
@@ -65,10 +57,6 @@ function createBridge(cliName, options) {
     case 'claude': {
       const ClaudeAdapter = require('./claude-adapter');
       return new ClaudeAdapter(options);
-    }
-    case 'copilot': {
-      const CopilotAdapter = require('./copilot-adapter');
-      return new CopilotAdapter(options);
     }
     case 'codex': {
       const CodexAdapter = require('./codex-adapter');

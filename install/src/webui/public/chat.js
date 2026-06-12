@@ -172,7 +172,6 @@ class ByanChat {
   async detectCLIs() {
     const knownCLIs = [
       { id: 'claude', name: 'Claude Code', cmd: 'claude' },
-      { id: 'copilot', name: 'GitHub Copilot', cmd: 'copilot' },
       { id: 'codex', name: 'OpenCode', cmd: 'codex' }
     ];
 

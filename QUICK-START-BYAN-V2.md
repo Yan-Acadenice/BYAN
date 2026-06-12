@@ -274,7 +274,7 @@ All integration tests passed!
 ├── src/
 │   └── byan-v2/
 │       ├── index.js                # Main class
-│       ├── context/                # SessionState, CopilotContext
+│       ├── context/                # SessionState
 │       ├── dispatcher/             # TaskRouter, ComplexityScorer
 │       ├── generation/             # ProfileTemplate, Validator
 │       ├── orchestrator/           # StateMachine, Interview, Analysis, Generation
@@ -362,7 +362,6 @@ ls src/byan-v2/
 ### Code Examples
 - **Simple demo:** `demo-byan-v2-simple.js`
 - **Full demo:** `demo-byan-v2.js`
-- **Workflow test:** `test-byan-v2-workflow.js`
 
 ### GitHub
 - **Repository:** https://github.com/Yan-Acadenice/BYAN

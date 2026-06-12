@@ -130,7 +130,7 @@ class ByanApp {
       );
       html += this.detectionRow(true, 'Operating System', this.status.detection?.os || navigator.platform);
 
-      const platformNames = { 'copilot-cli': 'GitHub Copilot CLI', 'vscode': 'VSCode', 'claude': 'Claude Code', 'codex': 'Codex' };
+      const platformNames = { 'claude': 'Claude Code', 'codex': 'Codex' };
       const detectedPlatforms = this.status.detection?.platforms || [];
       if (detectedPlatforms.length > 0) {
         for (const p of detectedPlatforms) {
@@ -191,8 +191,6 @@ class ByanApp {
     ];
 
     const platformOptions = [
-      { id: 'copilot-cli', label: 'GitHub Copilot CLI' },
-      { id: 'vscode', label: 'VSCode Extension' },
       { id: 'claude', label: 'Claude Code' },
       { id: 'codex', label: 'Codex / OpenCode' }
     ];

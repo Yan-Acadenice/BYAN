@@ -4,12 +4,10 @@
 
 const { execFile } = require('child_process');
 const fs = require('fs');
-const path = require('path');
 const layoutResolver = require('../../../../src/byan-v2/lib/layout-resolver');
 
 const CLI_DEFINITIONS = [
   { name: 'claude', command: 'claude', versionArg: '--version' },
-  { name: 'copilot', command: 'copilot', versionArg: '--version' },
   { name: 'codex', command: 'codex', versionArg: '--version' },
 ];
 
@@ -95,15 +93,6 @@ function parseFrontmatter(content) {
   return fm;
 }
 
-function scanDir(dirPath) {
-  try {
-    if (!fs.existsSync(dirPath)) return [];
-    return fs.readdirSync(dirPath).filter((f) => f.endsWith('.md'));
-  } catch {
-    return [];
-  }
-}
-
 // Map a resolver layout (+ rel) to the legacy source label, so API responses
 // stay stable: Gen2 flat / Gen3 -> 'byan', Gen2 per-module -> 'bmad-<mod>'.
 function sourceForLayout(layout, rel) {
@@ -135,18 +124,6 @@ async function detectAgents(projectRoot) {
       path: filePath,
     });
   };
-
-  // Copilot stubs (.github/agents) — flat scan, with the bmad-agent- prefix.
-  // Listed first so a copilot stub wins the dedup, preserving prior priority.
-  const githubDir = path.join(projectRoot, '.github', 'agents');
-  for (const file of scanDir(githubDir)) {
-    const id = file
-      .replace(/\.md$/, '')
-      .replace(/^bmad-agent-/, '')
-      .replace(/\.backup\.\d+.*$/, '')
-      .replace(/\.optimized.*$/, '');
-    pushAgent(id, 'copilot', path.join(githubDir, file));
-  }
 
   // _byan agents via the layout resolver: Gen3 _byan/agent/<name>/ first, then
   // Gen2 flat _byan/agents/ and per-module _byan/<module>/agents/ (deduped).
