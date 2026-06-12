@@ -58,7 +58,7 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
   if (!options.quiet) {
     console.log(chalk.green(`  ✓ byan_web integration configured`));
     console.log(chalk.gray(`    - Token (Claude Code) → ${path.relative(projectRoot, settingsPath)}`));
-    console.log(chalk.gray(`    - Token (Copilot CLI / shell) → ${path.relative(projectRoot, envPath)}`));
+    console.log(chalk.gray(`    - Token (shell / env) → ${path.relative(projectRoot, envPath)}`));
     console.log(chalk.gray(`    - MCP server registered in ${path.relative(projectRoot, mcpPath)}`));
   }
 

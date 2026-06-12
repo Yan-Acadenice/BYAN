@@ -73,7 +73,7 @@ async function install(projectRoot, agents, config, options = {}) {
   
   if (useAgent) {
     logger.info('Using agent Claude for native MCP integration...');
-    return await installViaCopilotAgent(projectRoot, agents, config);
+    return await installViaClaudeAgent(projectRoot, agents, config);
   } else {
     logger.info('Using direct MCP configuration...');
     return await installDirectMCP(projectRoot, agents, config);
@@ -88,7 +88,7 @@ async function install(projectRoot, agents, config, options = {}) {
  * @param {Object} config
  * @returns {Promise<{success: boolean, installed: number, method: string}>}
  */
-async function installViaCopilotAgent(projectRoot, agents, config) {
+async function installViaClaudeAgent(projectRoot, agents, config) {
   const agentLauncher = require('../yanstaller/agent-launcher');
   
   // Check if native launch is available

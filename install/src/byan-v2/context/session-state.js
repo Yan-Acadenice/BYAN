@@ -34,8 +34,8 @@ class SessionState {
     return this.currentState;
   }
 
-  mergeContext(copilotContext) {
-    this.context = copilotContext;
+  mergeContext(context) {
+    this.context = context;
   }
 
   transitionTo(newState) {

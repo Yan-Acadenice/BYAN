@@ -7,10 +7,6 @@
  *   const { processTurn } = require('./staging');
  *   await processTurn({ turn, cliSource: 'claude-code', config, projectRoot });
  *
- * Usage from a Copilot CLI extension.mjs :
- *   import { processTurn } from '<repo>/src/staging/staging.js';
- *   await processTurn({ turn, cliSource: 'copilot-cli', config, projectRoot });
- *
  * Contract :
  *   - processTurn() is idempotent (dedup by content hash)
  *   - never throws — errors go to the retry queue

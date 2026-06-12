@@ -2,7 +2,7 @@
  * Phase 2 Chat - Integrated conversation within the wizard
  * 
  * Provides an in-wizard chat experience with the yanstaller-phase2 agent
- * using copilot/codex CLI for AI responses.
+ * using claude/codex CLI for AI responses.
  */
 
 const { spawnSync } = require('child_process');
@@ -48,10 +48,8 @@ function runCliCommand(cmd, args, cwd, stdinInput) {
  */
 function buildPhase1Context(interviewAnswers, detectedPlatforms, userName, language) {
   const platformsDetected = [];
-  if (detectedPlatforms.copilot) platformsDetected.push('GitHub Copilot CLI');
   if (detectedPlatforms.codex) platformsDetected.push('OpenAI Codex');
   if (detectedPlatforms.claude) platformsDetected.push('Claude Code');
-  if (detectedPlatforms.vscode) platformsDetected.push('VSCode');
   
   return {
     user_name: userName || 'Developer',
@@ -115,7 +113,6 @@ function generatePhase2Preprompt(context) {
 - **byan**: Agent creator via interview (12 questions, 64 mantras)
 - **byan-v2**: Optimized BYAN v2
 - **agent-builder**: Construction expert
-- **marc**: GitHub Copilot integration specialist
 - **rachid**: NPM/NPX deployment specialist
 - **carmack**: Token optimizer
 - **patnote**: Update manager
@@ -190,9 +187,7 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
   let result = '';
   
   try {
-    if (selectedPlatform === 'copilot') {
-      result = runCliCommand('copilot', ['-p', fullPrompt, '-s'], projectRoot);
-    } else if (selectedPlatform === 'codex') {
+    if (selectedPlatform === 'codex') {
       // Codex takes prompt as argument to exec command
       // --skip-git-repo-check needed when not in a trusted git repo
       result = runCliCommand('codex', ['exec', '--skip-git-repo-check', fullPrompt], projectRoot);
@@ -224,8 +219,6 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
       console.log(chalk.cyan('     1. claude login'));
       console.log(chalk.gray('     2. ou: export ANTHROPIC_API_KEY=sk-ant-...'));
       console.log(chalk.gray('     3. ou dans Claude Code: /login'));
-    } else if (selectedPlatform === 'copilot') {
-      console.log(chalk.gray('     → copilot auth'));
     } else if (selectedPlatform === 'codex') {
       console.log(chalk.gray('     → codex login'));
     }
@@ -287,7 +280,7 @@ async function launchPhase2Chat(options) {
   console.log('');
   
   // Check if any AI platform is available
-  if (!detectedPlatforms.copilot && !detectedPlatforms.codex && !detectedPlatforms.claude) {
+  if (!detectedPlatforms.codex && !detectedPlatforms.claude) {
     console.log(chalk.yellow('  ⚠ Aucune plateforme AI détectée pour le chat.'));
     return null;
   }

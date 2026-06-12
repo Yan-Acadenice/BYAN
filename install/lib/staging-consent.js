@@ -25,7 +25,7 @@ const CONSENT_NOTICE = [
   chalk.yellow.bold('BYAN memory-sync — consent requis'),
   '',
   'Si vous activez cette option, apres chaque interaction avec',
-  'Claude Code ou Copilot CLI, BYAN envoie automatiquement a votre',
+  'Claude Code, BYAN envoie automatiquement a votre',
   'instance byan_web les elements suivants :',
   '',
   '  - messages utilisateur (prompts)',
@@ -125,12 +125,12 @@ async function setupStagingConsent(projectRoot, options = {}) {
       console.log(chalk.green('  OK memory-sync ENABLED in ' + path.relative(projectRoot, target)));
       console.log(
         chalk.gray(
-          '     a chaque fin de turn, votre hook Stop (Claude) et votre'
+          '     a chaque fin de turn, votre hook Stop (Claude) enverra'
         )
       );
       console.log(
         chalk.gray(
-          '     extension Copilot staging enverront les memoires a byan_web.'
+          '     les memoires de la session a byan_web.'
         )
       );
     } else {

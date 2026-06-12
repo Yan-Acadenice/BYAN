@@ -9,7 +9,7 @@ const execAsync = promisify(exec);
  * VoiceIntegration - Turbo Whisper voice input integration for BYAN v2
  *
  * Enables voice-driven agent interaction through Turbo Whisper transcription.
- * Supports GitHub Copilot CLI, Claude Code, and Codex platforms.
+ * Supports Claude Code and Codex platforms.
  *
  * @version 2.1.0
  * @module integration/voice-integration

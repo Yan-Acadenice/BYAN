@@ -113,8 +113,6 @@ async function copyAgentFile(agentName, targetPath) {
  */
 async function generateStub(agentName, platform, targetPath) {
   // TODO: Generate stub based on platform
-  // - Copilot CLI: .github/agents/{agentName}.md with YAML frontmatter
-  // - VSCode: Same as Copilot CLI
   // - Claude Code: MCP config JSON
   // - Codex: .codex/prompts/{agentName}.md
 }

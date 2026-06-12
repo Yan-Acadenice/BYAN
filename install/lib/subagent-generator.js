@@ -1,9 +1,9 @@
 /**
  * BMAD subagent generator (AW2).
  *
- * Reads a BYAN Copilot agent stub (.github/agents/<name>.md — YAML
- * frontmatter + XML persona block) and emits a Claude Code native
- * subagent file at .claude/agents/bmad-<slug>.md with :
+ * Reads a BYAN agent stub (YAML frontmatter + XML persona block) and
+ * emits a Claude Code native subagent file at .claude/agents/bmad-<slug>.md
+ * with :
  *   - frontmatter : name, description, model, color
  *   - body : system prompt derived from <persona> + <rules> + <menu>
  *
