@@ -133,12 +133,20 @@ declenche pour mirror son cycle de vie sur un board Leantime, en sens unique
 | Var | Role |
 |-----|------|
 | `LEANTIME_API_URL` | Base de l'instance Leantime (host du backend `/api/jsonrpc`, PAS le host de l'UI). Sans `/api` final — le client ajoute `/api/jsonrpc`. |
-| `LEANTIME_API_TOKEN` | Personal Access Token Leantime (genere dans le profil utilisateur Leantime). |
+| `LEANTIME_API_TOKEN` | Cle API Leantime, envoyee en header `x-api-key`. Generation : voir "Generer le token" plus bas (cle API compte de service OU Personal Access Token). |
 | `LEANTIME_CLIENT_ID` | Optionnel : clientId pour `addProject` (sinon premier client retourne, sinon 1). |
 
 Les deux premieres sont injectees via `.mcp.json` `${...}` (zero secret tracke).
 Quand la paire est absente, les tools reportent `enabled: false` et le FD avance
 sans bloquer.
+
+### Generer le token
+
+Cle API Leantime (header `x-api-key`), generee dans l'UI Leantime : Company
+Settings -> onglet "Cle d'API" -> "Generate API Key" (role owner/admin requis ;
+la cle a le prefixe `lt_`, affichee une seule fois). Guide d'usage complet
+(config, generation pas-a-pas, troubleshooting, securite) :
+`docs/leantime-integration.md`.
 
 ### Authentification (header propre)
 

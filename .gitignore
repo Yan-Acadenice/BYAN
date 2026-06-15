@@ -69,6 +69,9 @@ out/
 .env.local
 .env.*.local
 
+# Claude Code local config — peut contenir des secrets (API tokens), hors versionnement
+.claude/settings.local.json
+
 # Logs
 logs/
 *.log

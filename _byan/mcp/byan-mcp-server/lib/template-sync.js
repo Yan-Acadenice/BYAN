@@ -93,6 +93,10 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/lib/leantime-sync.js',
   '_byan/mcp/byan-mcp-server/test/leantime-sync.test.js',
   '_byan/mcp/byan-mcp-server/test/leantime-tools.test.js',
+  // Leantime usage guide ships with the feature (same convention as
+  // docs/native-workflows-contract.md): a fresh install gets the setup +
+  // token-generation + troubleshooting doc, not just the agent rule.
+  'docs/leantime-integration.md',
 ];
 
 // The template lives under this root-relative directory.
