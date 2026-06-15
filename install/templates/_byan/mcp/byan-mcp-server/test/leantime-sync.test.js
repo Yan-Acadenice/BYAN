@@ -244,6 +244,24 @@ test('createTask rejects a falsy (0) result instead of persisting it as a task i
   assert.equal(r.reason, 'create_rejected');
 });
 
+// F0 live-verify (2026-06-15): Leantime 3.7.x addProject/addTicket return the
+// new id wrapped in a single-element array (result:[id]). The id must be
+// unwrapped to the scalar, not propagated as [id] nor mis-read as undefined.
+test('ensureProject unwraps a single-element array create result (F0 result:[id])', async () => {
+  const { fetchImpl } = queueFetch([rpcOk([{ id: 1, name: 'Other' }]), rpcOk([69])]);
+  const r = await ensureProject({ name: 'Byan', clientId: 1 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, true);
+  assert.equal(r.created, true);
+  assert.equal(r.id, 69);
+});
+
+test('createTask unwraps a single-element array result (F0 result:[id])', async () => {
+  const { fetchImpl } = queueFetch([rpcOk([770])]);
+  const r = await createTask({ projectId: 69, headline: 'Tache test BYAN' }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, true);
+  assert.equal(r.id, 770);
+});
+
 test('moveTask surfaces unresolved_status when a column cannot get a unique id', async () => {
   const labels = { 1: { name: 'In Progress' }, 2: { name: 'Done' } };
   const { calls, fetchImpl } = queueFetch([rpcOk(labels)]);

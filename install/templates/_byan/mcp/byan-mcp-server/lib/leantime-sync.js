@@ -141,8 +141,8 @@ export async function rpc(
 }
 
 // addProject takes `array $values`; addTicket takes `$values`. The recon read
-// the named PHP arg as the params key (params:{values:{...}}). If F0 shows the
-// server expects flat params, change ONLY this wrapper.
+// the named PHP arg as the params key (params:{values:{...}}). F0 (2026-06-15)
+// confirmed live that the server expects params:{values:{...}} for both.
 function wrapValues(values) {
   return { values };
 }
@@ -156,6 +156,18 @@ function isValidId(v) {
   const n = Number(v);
   if (Number.isFinite(n)) return n > 0;
   return typeof v === 'string' && v.length > 0;
+}
+
+// Leantime's addProject / addTicket return the new id wrapped in a
+// single-element array (result:[id]) on 3.7.x, confirmed live at F0
+// (2026-06-15: addProject -> [69], addTicket -> [770]). Other shapes give a
+// scalar id or an { id } object. Normalize all three to the scalar id, so a
+// create does not propagate an array (isValidId would accept Number([69])===69)
+// and does not mis-read [id].id as undefined.
+function firstId(data) {
+  if (Array.isArray(data)) return data.length ? data[0] : undefined;
+  if (data && typeof data === 'object') return data.id;
+  return data;
 }
 
 // Idempotent create-or-fetch of a Leantime project from the FD project_context.
@@ -183,10 +195,11 @@ export async function ensureProject({ name, slug, clientId, details } = {}, opts
     opts,
   );
   if (!created.ok) return created;
-  if (!isValidId(created.data)) {
+  const newId = firstId(created.data);
+  if (!isValidId(newId)) {
     return { ok: false, synced: false, reason: 'create_rejected', data: created.data };
   }
-  return { ok: true, synced: true, id: created.data, created: true };
+  return { ok: true, synced: true, id: newId, created: true };
 }
 
 // Create one Leantime task from an FD backlog item. Returns the new task id in
@@ -208,8 +221,9 @@ export async function createTask(
 
   const res = await rpc(METHODS.addTicket, wrapValues(values), opts);
   if (!res.ok) return res;
-  // addTicket returns the new id (int) or an array/obj depending on version.
-  const id = typeof res.data === 'object' && res.data ? res.data.id : res.data;
+  // addTicket returns the new id wrapped in a single-element array
+  // (result:[id], confirmed live at F0); other shapes give a scalar or { id }.
+  const id = firstId(res.data);
   // A 200 with a falsy result is a failed-but-not-errored add, not a new id;
   // do not persist it back into fd-state as a real task id.
   if (!isValidId(id)) {
