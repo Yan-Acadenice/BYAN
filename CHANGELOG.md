@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Leantime FD auto-sync hook (FD lifecycle -> board, automatic)
+
+The FD -> Leantime mirror is now AUTOMATIC. A `PostToolUse` hook
+(`.claude/hooks/leantime-fd-sync.js`, registered in `.claude/settings.json`) fires
+after `byan_fd_advance` / `byan_fd_update` and drives the board with no agent
+action: it ensures the project at DISCOVERY, creates one task per backlog feature
+at DISPATCH, and moves tasks through `todo -> doing -> blocked/review -> done` as
+the FD advances. This supersedes the hand-driven section 2.5 fire points (which
+the agent had to run by hand and could skip).
+
+- **Pure core** (`_byan/mcp/byan-mcp-server/lib/leantime-fd-core.js`):
+  `decideActions` maps a phase transition + the sidecar to ordered Leantime
+  intents; unit-tested for every transition. The hook is a thin I/O shell that
+  executes them.
+- **Best-effort + bounded**: the hook exits 0 in every path (a sync issue does
+  not block the turn), no-ops when Leantime is off, self-heals a dropped call on
+  the next phase event (a per-call timeout + a hook wall-clock budget), and logs
+  every attempt to `.byan-leantime/sync.jsonl`.
+- **Idempotence**: a gitignored sidecar (`.byan-leantime/map.json`, keyed by
+  fd_id) is the single id ledger — a REFACTOR loop re-builds without duplicating a
+  project or task. The hook does not write `fd-state.json` (state-coupling).
+- **Human visibility** (`assignUserToProject` + `LEANTIME_ASSIGN_USER_ID`): an
+  API-created project is owned by the API service user and hidden from a person's
+  project selector; the hook relates the configured human so the board shows up.
+  The underlying Leantime RPC reconciles a user's whole project list, so the
+  assign reads the full list first and writes the union (fail-closed if that read
+  is incomplete) to avoid unassigning the user's other projects.
+
 ### Added - Leantime project-management integration (one-way FD -> board)
 
 BYAN can now mirror its Feature Development lifecycle onto a self-hosted Leantime

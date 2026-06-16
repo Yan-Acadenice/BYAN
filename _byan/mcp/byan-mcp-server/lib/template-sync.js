@@ -97,6 +97,14 @@ export const TARGET_ADDITIONS = [
   // docs/native-workflows-contract.md): a fresh install gets the setup +
   // token-generation + troubleshooting doc, not just the agent rule.
   'docs/leantime-integration.md',
+  // FD -> Leantime auto-sync (the hook + its pure decision core + the core test).
+  // The hook is registered in .claude/settings.json (already mirrored), so it
+  // fires on a fresh install; without these files the registration would point at
+  // a missing script.
+  '_byan/mcp/byan-mcp-server/lib/leantime-fd-core.js',
+  '_byan/mcp/byan-mcp-server/test/leantime-fd-core.test.js',
+  '_byan/mcp/byan-mcp-server/test/leantime-fd-hook.test.js',
+  '.claude/hooks/leantime-fd-sync.js',
 ];
 
 // The template lives under this root-relative directory.

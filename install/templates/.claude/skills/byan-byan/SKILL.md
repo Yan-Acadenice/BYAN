@@ -130,41 +130,49 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
 
 Leantime (self-hosted project management) is an optional external board. When
 `LEANTIME_API_URL` + `LEANTIME_API_TOKEN` are configured (injected via `.mcp.json`
-`${...}`), the FD workflow mirrors its lifecycle onto Leantime in ONE direction —
-FD drives the board ; the board does not drive FD. When the pair is absent, the
-`byan_leantime_*` tools report `enabled: false` and every FD phase proceeds
-unchanged. The sync is best-effort : a down, unreachable, or misconfigured
-Leantime degrades to `{ ok:false, synced:false, reason }` and a phase transition
-still advances. `lib/leantime-sync.js` is the only Leantime client ; the skill
-drives it through the MCP tools and does not import that lib (state-coupling rule).
+`${...}`), the FD lifecycle is mirrored onto Leantime in ONE direction — FD drives
+the board ; the board does not drive FD. When the pair is absent, the sync is off
+and every FD phase proceeds unchanged.
 
-### Fire points (per FD phase event)
+### Automatic — the `leantime-fd-sync` hook (primary path)
 
-| FD phase / event | Tool | Effect | fd-state link |
-|------------------|------|--------|---------------|
-| DISCOVERY — project confirmed | `byan_leantime_project_ensure` | create-or-fetch the Leantime project from `project_context` (name) | store returned id in `project_context.leantime.projectId` |
-| DISPATCH — per backlog feature | `byan_leantime_task_create` | one task per feature (`headline` = feature title) | store returned id in that backlog item's `leantime.taskId` |
-| BUILD — feature build starts | `byan_leantime_task_move column=doing` | feature enters in-progress | — |
-| REVIEW needs-rework OR VALIDATE KO | `byan_leantime_task_move column=blocked` | feature blocked pending REFACTOR | — |
-| VALIDATE OK | `byan_leantime_task_move column=review` | feature passed the machine gate | — |
-| DOC done / feature COMPLETED | `byan_leantime_task_move column=done` | feature delivered | backlog item `status=done` |
+You do NOT call `byan_leantime_*` by hand. A `PostToolUse` hook
+(`.claude/hooks/leantime-fd-sync.js`, registered in `.claude/settings.json`) fires
+after `byan_fd_advance` / `byan_fd_update` and mirrors the board for you:
 
-Columns are the canonical FD lifecycle (`todo|doing|blocked|review|done`) ; the
-tool resolves each to the project's configured Leantime status id at call time
-(status ints are per-project), with a conservative fallback when the labels
-cannot be read.
+| FD event | Board effect |
+|----------|--------------|
+| project_context set (DISCOVERY) | create-or-fetch the Leantime project (+ assign the human when `LEANTIME_ASSIGN_USER_ID` is set) |
+| backlog set, DISPATCH onward | one task per backlog feature, in `todo` |
+| BUILD | tasks → `doing` |
+| REVIEW needs-rework / VALIDATE KO | tasks → `blocked` |
+| VALIDATE OK | tasks → `review` |
+| DOC | tasks → `review` |
+| COMPLETED | all tasks → `done` |
+| ABORTED | board left verbatim (no move) |
 
-### Idempotence (survives the REFACTOR loop)
+The hook is best-effort and bounded : it exits 0 in every path (a sync issue does
+not block the turn), no-ops when Leantime is off, self-heals a dropped call on the
+next phase event, and surfaces a one-line breadcrumb only on a real failure
+(`non_json` / `timeout` / `http_*` / `rpc_error`). It logs every attempt to
+`.byan-leantime/sync.jsonl`. Columns resolve to the project's configured status
+ids at call time (per-project), with a conservative fallback.
 
-- Before `project_ensure` : if `project_context.leantime.projectId` is already
-  set, reuse it and skip the call. The lib also matches an existing project by
-  name server-side, so a missing local id still does not create a duplicate.
-- Before `task_create` on a feature : if that backlog item already carries
-  `leantime.taskId`, do NOT create a second task — drive the stored id with
-  `task_move` / `task_get` instead. This is what keeps a REFACTOR loop (feature
-  re-built) from spawning a duplicate task.
-- Persist the Leantime ids ONLY through `byan_fd_update` (the same
-  state-coupling rule as the rest of fd-state) — no hand edit of the file.
+### State-coupling + idempotence
+
+The hook does not read or write `fd-state.json` ; it reads the fd-state the MCP
+tool echoes, and keeps the Leantime id map in the gitignored sidecar
+`.byan-leantime/map.json` (keyed by `fd_id` : `{ projectId, tasks:{<F-id>:taskId},
+lastColumn }`). The sidecar is the single idempotence ledger : a project/task is
+created only when its id is absent, so a REFACTOR loop re-builds without spawning
+a duplicate. `lib/leantime-sync.js` is the only Leantime client ;
+`lib/leantime-fd-core.js` is the pure decision core ; the hook is the I/O shell.
+
+### Manual fallback
+
+If the hook is removed from `.claude/settings.json`, the same fire points can be
+driven by hand via the `byan_leantime_*` tools at each phase event. Full usage
+guide : `docs/leantime-integration.md`.
 
 ### Reading the result (do not lie about a failed sync)
 

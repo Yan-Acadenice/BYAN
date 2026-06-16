@@ -23,6 +23,39 @@ The FD lifecycle columns (`todo|doing|blocked|review|done`) are resolved to the
 project's configured Leantime status ids at call time (statuses are per-project
 ints), with a conservative fallback when the labels cannot be read.
 
+## Automatic sync (the leantime-fd-sync hook)
+
+You do not call the `byan_leantime_*` tools by hand. A Claude Code `PostToolUse`
+hook (`.claude/hooks/leantime-fd-sync.js`, registered in `.claude/settings.json`)
+fires after `byan_fd_advance` / `byan_fd_update` and applies the table above with
+no agent action:
+
+- It reads the fd-state the MCP tool echoes (it does not read or write
+  `fd-state.json`) and keeps the Leantime id map in a gitignored sidecar
+  `.byan-leantime/map.json` keyed by `fd_id`.
+- The sidecar is the idempotence ledger: a project or task is created only when
+  its id is absent, so a REFACTOR loop re-builds without a duplicate.
+- It is best-effort and bounded: it exits 0 in every path (a sync issue does not
+  block the turn), no-ops when Leantime is off, and self-heals a dropped call on
+  the next phase event (a per-call timeout plus a hook wall-clock budget).
+- It logs every attempt to `.byan-leantime/sync.jsonl` and surfaces a one-line
+  notice only on a real failure (`non_json` / `timeout` / `http_*` / `rpc_error`).
+
+The pure decision logic lives in
+`_byan/mcp/byan-mcp-server/lib/leantime-fd-core.js` (`decideActions`); the hook is
+a thin I/O shell. Removing the hook from `.claude/settings.json` falls back to the
+manual MCP tools below.
+
+### Human visibility (auto-assign)
+
+A project created through the API is owned by the API service user, so it stays
+hidden from a person's project selector until that person is related to it. Set
+`LEANTIME_ASSIGN_USER_ID` to your Leantime user id and the hook relates you to the
+created project (and sets you as the default task assignee). The underlying RPC
+(`editUserProjectRelations`) reconciles a user's whole project list, so the assign
+reads your current projects first and writes the union — fail-closed if that read
+is incomplete, to avoid unassigning your other projects.
+
 ## Configuration
 
 Two environment variables drive the integration. They are distinct from
@@ -33,6 +66,7 @@ Two environment variables drive the integration. They are distinct from
 | `LEANTIME_API_URL` | Base of the Leantime instance: the host that serves `/api/jsonrpc` (the backend), without a trailing `/api` — the client appends `/api/jsonrpc`. |
 | `LEANTIME_API_TOKEN` | The Leantime API key, sent as the `x-api-key` header. |
 | `LEANTIME_CLIENT_ID` | Optional. clientId for project creation (otherwise the first client returned, else 1). |
+| `LEANTIME_ASSIGN_USER_ID` | Optional. Your Leantime user id; the hook relates you to the created project (so it shows in your selector) and sets you as the default task assignee. Absent -> the project is visible only to the API service user. |
 
 Put the secret in `.claude/settings.local.json` (gitignored), out of any tracked
 file:

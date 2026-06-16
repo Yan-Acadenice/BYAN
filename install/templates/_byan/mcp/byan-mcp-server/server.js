@@ -1902,6 +1902,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const status = {
         api_url: process.env.LEANTIME_API_URL || null,
         token_configured: Boolean(process.env.LEANTIME_API_TOKEN),
+        assign_user_configured: Boolean(process.env.LEANTIME_ASSIGN_USER_ID),
         enabled: leantimeEnabled(),
       };
       if (status.enabled) {

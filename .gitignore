@@ -106,6 +106,9 @@ _byan-output/
 # BYAN Auto-Benchmark runtime state (arm/escape flags, block-once tokens)
 .byan-autobench/
 
+# BYAN Leantime auto-sync sidecar (per-fd id map + sync log, never committed)
+.byan-leantime/
+
 # BYAN runtime memoire state — mutated at runtime by EloStore / KnowledgeGraph,
 # so it generated constant git noise. Root-only paths (the separators anchor them
 # to repo root); the template keeps its own seed copies under install/templates/.

@@ -128,6 +128,12 @@ declenche pour mirror son cycle de vie sur un board Leantime, en sens unique
 (FD pilote Leantime ; Leantime ne pilote pas FD). Cablage par phase : voir
 `.claude/skills/byan-byan/SKILL.md` section 2.5.
 
+Tu n'appelles pas ces tools a la main : le hook `PostToolUse`
+`.claude/hooks/leantime-fd-sync.js` (coeur pur `lib/leantime-fd-core.js`) fire le
+sync automatiquement apres `byan_fd_advance` / `byan_fd_update`, best-effort
+(sort en 0, n'interrompt pas le tour), idempotent via le sidecar gitignore
+`.byan-leantime/map.json`. Detail : SKILL 2.5 + `docs/leantime-integration.md`.
+
 ### Config (env distinct de BYAN_API_URL)
 
 | Var | Role |
@@ -135,6 +141,7 @@ declenche pour mirror son cycle de vie sur un board Leantime, en sens unique
 | `LEANTIME_API_URL` | Base de l'instance Leantime (host du backend `/api/jsonrpc`, PAS le host de l'UI). Sans `/api` final — le client ajoute `/api/jsonrpc`. |
 | `LEANTIME_API_TOKEN` | Cle API Leantime, envoyee en header `x-api-key`. Generation : voir "Generer le token" plus bas (cle API compte de service OU Personal Access Token). |
 | `LEANTIME_CLIENT_ID` | Optionnel : clientId pour `addProject` (sinon premier client retourne, sinon 1). |
+| `LEANTIME_ASSIGN_USER_ID` | Optionnel : id du user humain a relier au projet cree (visibilite dans son selecteur) + editorId par defaut des taches. Absent -> projet visible du seul compte de service API. |
 
 Les deux premieres sont injectees via `.mcp.json` `${...}` (zero secret tracke).
 Quand la paire est absente, les tools reportent `enabled: false` et le FD avance

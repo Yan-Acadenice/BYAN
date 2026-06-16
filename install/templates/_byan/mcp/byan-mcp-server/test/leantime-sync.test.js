@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   rpc, syncEnabled, ensureProject, createTask, moveTask, assignTask,
   getTask, getBoard, resolveStatusMap, resolveClientId, resolveEditorId,
+  assignUserToProject, assignUserId,
   METHODS, COLUMNS,
 } from '../lib/leantime-sync.js';
 
@@ -282,4 +283,113 @@ test('getBoard routes a no-status ticket to todo even when a collision leaves a 
   assert.deepEqual(r.data.todo.map((t) => t.id), [1]); // no status -> todo fallback, NOT review
   assert.deepEqual(r.data.review, []); // unmapped review column stays empty
   assert.deepEqual(r.data.done.map((t) => t.id), [2]);
+});
+
+// --- F5 assignUserToProject (read-before-write, fail-closed) ----------------
+
+test('assignUserToProject reads the user current projects then writes the UNION (no wipe)', async () => {
+  const { calls, fetchImpl } = queueFetch([rpcOk([{ id: 1 }, { id: 2 }, { id: 3 }]), rpcOk(true)]);
+  const r = await assignUserToProject({ projectId: 4, userId: 6 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, true);
+  assert.equal(r.assigned, true);
+  // read first
+  assert.equal(calls[0].body.method, METHODS.getProjectsAssignedToUser);
+  assert.deepEqual(calls[0].body.params, { userId: 6, projectStatus: 'all' });
+  // then write the FULL list incl the existing ids — never a bare [4]
+  assert.equal(calls[1].body.method, METHODS.editUserProjectRelations);
+  assert.deepEqual(calls[1].body.params, { id: 6, projects: [1, 2, 3, 4] });
+});
+
+test('assignUserToProject is FAIL-CLOSED: a failed read does NOT write', async () => {
+  const { calls, fetchImpl } = queueFetch([http401()]);
+  const r = await assignUserToProject({ projectId: 4, userId: 6 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'assign_read_failed');
+  assert.equal(calls.length, 1); // no editUserProjectRelations write
+});
+
+test('assignUserToProject is FAIL-CLOSED: an empty read does NOT write (avoids a wipe)', async () => {
+  const { calls, fetchImpl } = queueFetch([rpcOk([])]);
+  const r = await assignUserToProject({ projectId: 4, userId: 6 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'assign_read_empty');
+  assert.equal(calls.length, 1);
+});
+
+test('assignUserToProject is FAIL-CLOSED: a partially-parseable read does NOT write a truncated set', async () => {
+  // A read where a row has no usable id (null) is not trusted: writing the parsed
+  // subset would drop the membership behind the unparsed row (reconcile-wipe).
+  const { calls, fetchImpl } = queueFetch([rpcOk([{ id: 7 }, { id: null }])]);
+  const r = await assignUserToProject({ projectId: 4, userId: 6 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'assign_read_partial');
+  assert.equal(calls.length, 1); // no editUserProjectRelations write
+});
+
+test('assignUserToProject surfaces a write failure after computing the correct union', async () => {
+  // read ok -> union computed -> the editUserProjectRelations write fails on the wire.
+  const { calls, fetchImpl } = queueFetch([rpcOk([{ id: 1 }]), http401()]);
+  const r = await assignUserToProject({ projectId: 4, userId: 6 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, false);
+  assert.equal(r.reason, 'http_401'); // the write failure is surfaced verbatim
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].body.method, METHODS.editUserProjectRelations);
+  assert.deepEqual(calls[1].body.params, { id: 6, projects: [1, 4] }); // union still correct before the wire failed
+});
+
+test('assignUserToProject no-ops when the user is already on the project', async () => {
+  const { calls, fetchImpl } = queueFetch([rpcOk([{ id: 1 }, { id: 4 }])]);
+  const r = await assignUserToProject({ projectId: 4, userId: 6 }, { ...ENV, fetchImpl });
+  assert.equal(r.ok, true);
+  assert.equal(r.alreadyAssigned, true);
+  assert.equal(calls.length, 1); // no write
+});
+
+test('assignUserToProject without a user id (no env) surfaces no_assign_user', async () => {
+  const r = await assignUserToProject({ projectId: 4 }, ENV);
+  assert.equal(r.reason, 'no_assign_user');
+});
+
+test('assignUserId reads LEANTIME_ASSIGN_USER_ID (positive int) else null', () => {
+  const prev = process.env.LEANTIME_ASSIGN_USER_ID;
+  try {
+    delete process.env.LEANTIME_ASSIGN_USER_ID;
+    assert.equal(assignUserId(), null);
+    process.env.LEANTIME_ASSIGN_USER_ID = '6';
+    assert.equal(assignUserId(), 6);
+    process.env.LEANTIME_ASSIGN_USER_ID = '0';
+    assert.equal(assignUserId(), null);
+    process.env.LEANTIME_ASSIGN_USER_ID = 'nope';
+    assert.equal(assignUserId(), null);
+  } finally {
+    if (prev === undefined) delete process.env.LEANTIME_ASSIGN_USER_ID;
+    else process.env.LEANTIME_ASSIGN_USER_ID = prev;
+  }
+});
+
+test('createTask defaults editorId to LEANTIME_ASSIGN_USER_ID when none is passed', async () => {
+  const prev = process.env.LEANTIME_ASSIGN_USER_ID;
+  try {
+    process.env.LEANTIME_ASSIGN_USER_ID = '6';
+    const { calls, fetchImpl } = queueFetch([rpcOk([42])]);
+    const r = await createTask({ projectId: 5, headline: 'Build F1' }, { ...ENV, fetchImpl });
+    assert.equal(r.ok, true);
+    assert.equal(calls[0].body.params.values.editorId, 6);
+  } finally {
+    if (prev === undefined) delete process.env.LEANTIME_ASSIGN_USER_ID;
+    else process.env.LEANTIME_ASSIGN_USER_ID = prev;
+  }
+});
+
+test('createTask keeps an explicit editorId over the env default', async () => {
+  const prev = process.env.LEANTIME_ASSIGN_USER_ID;
+  try {
+    process.env.LEANTIME_ASSIGN_USER_ID = '6';
+    const { calls, fetchImpl } = queueFetch([rpcOk([42])]);
+    await createTask({ projectId: 5, headline: 'x', editorId: 99 }, { ...ENV, fetchImpl });
+    assert.equal(calls[0].body.params.values.editorId, 99);
+  } finally {
+    if (prev === undefined) delete process.env.LEANTIME_ASSIGN_USER_ID;
+    else process.env.LEANTIME_ASSIGN_USER_ID = prev;
+  }
 });

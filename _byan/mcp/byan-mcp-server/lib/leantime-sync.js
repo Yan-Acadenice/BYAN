@@ -40,7 +40,14 @@ const METHODS = {
   getTicket: 'leantime.rpc.tickets.getTicket', // VERIFY@F0 (single-ticket getter name)
   getAllTickets: 'leantime.rpc.tickets.getAll',
   getStatusLabels: 'leantime.rpc.tickets.getStatusLabels',
-  getAllClients: 'leantime.rpc.clients.getAllClients', // VERIFY@F0 (clients service)
+  getAllClients: 'leantime.rpc.clients.getAllClients',
+  // F0-confirmed (Leantime 3.7.1 source): the JSON-RPC resolves SERVICE methods
+  // only. editUserProjectRelations is keyed by USER and RECONCILES the user's
+  // project list (adds the absent, deletes those not passed), so
+  // assignUserToProject reads the full list first. getProjectsAssignedToUser is
+  // that read.
+  editUserProjectRelations: 'leantime.rpc.projects.editUserProjectRelations',
+  getProjectsAssignedToUser: 'leantime.rpc.projects.getProjectsAssignedToUser',
 };
 
 // Conservative fallback when resolveStatusMap cannot read the project's labels
@@ -122,6 +129,9 @@ export async function rpc(
       return { ok: false, synced: false, reason: 'non_json', hint };
     }
 
+    // `error` carries the Leantime envelope verbatim for the caller's own logic;
+    // a caller logging to a shared file must record `reason` only, never `error`,
+    // to keep a server message (which could echo input) out of the log.
     if (data.error) {
       return { ok: false, synced: false, reason: 'rpc_error', error: data.error, status: res.status };
     }
@@ -216,7 +226,10 @@ export async function createTask(
   if (description != null) values.description = description;
   if (status != null) values.status = status;
   if (priority != null) values.priority = priority;
-  if (editorId != null) values.editorId = editorId;
+  // Default the assignee to the configured human (LEANTIME_ASSIGN_USER_ID) so an
+  // auto-created task shows on a person's board, not only the API service user.
+  const resolvedEditor = editorId != null ? editorId : assignUserId();
+  if (resolvedEditor != null) values.editorId = resolvedEditor;
   if (tags != null) values.tags = tags;
 
   const res = await rpc(METHODS.addTicket, wrapValues(values), opts);
@@ -349,6 +362,54 @@ export async function resolveEditorId({ projectId } = {}, opts = {}) {
     return res.data[0].id != null ? res.data[0].id : null;
   }
   return null;
+}
+
+// The configured human Leantime user id (LEANTIME_ASSIGN_USER_ID), or null. Used
+// to make auto-created projects/tasks visible to a person: an API key creates
+// them as a service user, hidden from a human's project selector until related.
+export function assignUserId() {
+  const v = process.env.LEANTIME_ASSIGN_USER_ID;
+  const n = Number(v);
+  return v && Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// Relate a human user to a project so the project shows in their selector.
+//
+// SAFETY (F0, Leantime 3.7.1 source): the only RPC-reachable write,
+// editUserProjectRelations, is keyed by USER and RECONCILES — it deletes every
+// relation NOT in the list it is handed. Passing a bare [projectId] would
+// unassign the user from all their other projects. So this reads the user's
+// CURRENT projects (projectStatus 'all') and writes the union. FAIL-CLOSED: if
+// that read fails, returns empty, or is only partially parseable, it does NOT
+// write (a partial list could drop real memberships) and surfaces a reason.
+export async function assignUserToProject({ projectId, userId } = {}, opts = {}) {
+  const uid = userId != null ? userId : assignUserId();
+  if (uid == null) return { ok: false, synced: false, reason: 'no_assign_user' };
+  if (!projectId) return { ok: false, synced: false, reason: 'no_project_id' };
+
+  const current = await rpc(METHODS.getProjectsAssignedToUser, { userId: uid, projectStatus: 'all' }, opts);
+  if (!current.ok) return { ok: false, synced: false, reason: 'assign_read_failed' };
+  const raw = Array.isArray(current.data) ? current.data : [];
+  const ids = raw
+    .map((p) => (p && p.id != null ? Number(p.id) : null))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  // Fail-closed on an empty read: "no projects" and a partial/failed read are
+  // indistinguishable here, and writing an incomplete list would delete real
+  // memberships. A human is in practice already on >= 1 project.
+  if (ids.length === 0) return { ok: false, synced: false, reason: 'assign_read_empty' };
+  // Fail-closed on a partially-parseable read: if any row did not yield a positive
+  // id, the read shape is not trusted. editUserProjectRelations reconciles, so
+  // writing the parsed subset would drop the memberships behind the unparsed rows.
+  if (ids.length !== raw.length) return { ok: false, synced: false, reason: 'assign_read_partial' };
+  if (ids.includes(Number(projectId))) return { ok: true, synced: true, alreadyAssigned: true };
+
+  const res = await rpc(
+    METHODS.editUserProjectRelations,
+    { id: uid, projects: [...ids, Number(projectId)] },
+    opts,
+  );
+  if (!res.ok) return res;
+  return { ok: true, synced: true, assigned: true, userId: uid, projectId: Number(projectId) };
 }
 
 export { COLUMNS, METHODS, DEFAULT_STATUS_MAP };
