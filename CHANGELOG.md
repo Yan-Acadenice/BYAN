@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.26.0] - 2026-06-16
+
 ### Added - Leantime FD auto-sync hook (FD lifecycle -> board, automatic)
 
 The FD -> Leantime mirror is now AUTOMATIC. A `PostToolUse` hook
