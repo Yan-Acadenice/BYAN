@@ -13,6 +13,15 @@
  * from the per-request Authorization header (threaded in F3), NOT from a
  * server-held session.
  *
+ * OAUTH PROTECTED RESOURCE (RFC 9728): this connector is the protected
+ * resource. It advertises /.well-known/oauth-protected-resource (+ the
+ * path-suffixed variant) pointing at the byan_web authorization server, and it
+ * validates every caller's Bearer per-request against byan_web /api/auth/me
+ * before any tool runs (fail-closed). An unauthenticated /mcp hit gets a 401
+ * with WWW-Authenticate: Bearer resource_metadata=... so a Claude.ai org
+ * connector can bootstrap per-member OAuth. The legacy ApiKey-paste channel
+ * still works (a valid byan_ key validates the same way). F7/F8.
+ *
  * The streamable-HTTP transport handles BOTH the POST request leg and the
  * GET SSE streaming leg on the same path, so a separate legacy SSEServerTransport
  * (`/sse` + `/messages`) is intentionally NOT mounted here: Claude.ai and modern
@@ -27,13 +36,20 @@ import http from 'node:http';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createByanServer } from './server.js';
+import { createByanServer, authHeadersFor, BYAN_API_URL } from './server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
 const PORT = Number(process.env.BYAN_MCP_HTTP_PORT || process.env.PORT || 8848);
 const MCP_PATH = process.env.BYAN_MCP_HTTP_PATH || '/mcp';
 const BODY_LIMIT_BYTES = 4 * 1024 * 1024; // 4 MiB cap, reject oversized payloads
+
+// Per-request Bearer validation timeout against byan_web /api/auth/me. A hung
+// authorization server must not hang the connector; on timeout we fail closed.
+const BEARER_VALIDATE_TIMEOUT_MS = Number(process.env.BYAN_MCP_BEARER_TIMEOUT_MS || 5000);
+
+// Well-known path for OAuth Protected Resource Metadata (RFC 9728).
+const PRM_PATH = '/.well-known/oauth-protected-resource';
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -77,6 +93,92 @@ function bearerFromReq(req) {
 }
 
 /**
+ * External scheme for THIS request. Behind Traefik the connector is reached
+ * over plain http while the public leg is https, so honor x-forwarded-proto
+ * first; fall back to the socket TLS flag (https) else http (loopback / tests).
+ */
+function schemeFromReq(req) {
+  const xfp = req.headers && req.headers['x-forwarded-proto'];
+  if (typeof xfp === 'string' && xfp.length) return xfp.split(',')[0].trim();
+  return req.socket && req.socket.encrypted ? 'https' : 'http';
+}
+
+/** Public origin (scheme://host) of THIS request, host from the Host header. */
+function originFromReq(req) {
+  const host = (req.headers && req.headers.host) || `localhost:${PORT}`;
+  return `${schemeFromReq(req)}://${host}`;
+}
+
+/**
+ * The authorization server issuer this protected resource trusts. Set
+ * BYAN_OAUTH_ISSUER to the public byan_web origin that serves
+ * /.well-known/oauth-authorization-server; falls back to BYAN_API_URL for
+ * single-host deploys (documented in docs/connector-admin-runbook.md). Read at
+ * request time so a deploy/test can set it without re-importing the module.
+ */
+function oauthIssuer() {
+  return process.env.BYAN_OAUTH_ISSUER || BYAN_API_URL || `http://localhost:${PORT}`;
+}
+
+/**
+ * RFC 9728 Protected Resource Metadata document. `resource` is the canonical
+ * URI of THIS protected resource (the MCP endpoint); `authorization_servers`
+ * points clients at the byan_web OAuth server so they can discover /authorize
+ * and /token. F7.
+ */
+export function protectedResourceMetadata(req) {
+  return {
+    resource: `${originFromReq(req)}${MCP_PATH}`,
+    authorization_servers: [oauthIssuer()],
+  };
+}
+
+/**
+ * RFC 9728 §5.1 / RFC 6750 challenge. The resource_metadata parameter points
+ * the client at the PRM document so it can bootstrap the OAuth flow. Emitted on
+ * every unauthenticated /mcp hit.
+ */
+function send401(req, res) {
+  const prm = `${originFromReq(req)}${PRM_PATH}`;
+  res.writeHead(401, {
+    'content-type': 'application/json',
+    'WWW-Authenticate': `Bearer resource_metadata="${prm}"`,
+  });
+  res.end(JSON.stringify({
+    error: 'invalid_token',
+    error_description: 'a valid Bearer access token is required',
+  }));
+}
+
+/**
+ * Validate a caller's token per-request against byan_web GET /api/auth/me
+ * (loopback in the deploy). Returns true only on a 2xx — a non-2xx, a network
+ * error, or a timeout all FAIL CLOSED (false) so a token that cannot be proven
+ * valid never reaches the tool surface (F8). fetchImpl/apiBase are injectable
+ * for hermetic testing. Never logs the token.
+ */
+export async function validateBearer(token, opts = {}) {
+  if (!token) return false;
+  const apiBase = opts.apiBase || BYAN_API_URL;
+  const fetchImpl = opts.fetchImpl || fetch;
+  const timeoutMs = opts.timeoutMs || BEARER_VALIDATE_TIMEOUT_MS;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(`${apiBase}/api/auth/me`, {
+      method: 'GET',
+      headers: authHeadersFor(token),
+      signal: ac.signal,
+    });
+    return res.status >= 200 && res.status < 300;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Handle one MCP request statelessly: build a fresh server bound to THIS
  * caller's token + a fresh transport, connect, delegate to the SDK transport,
  * and tear both down when the response closes. The per-request token is what
@@ -110,7 +212,21 @@ const httpServer = http.createServer(async (req, res) => {
       sendJson(res, 200, { ok: true, transport: 'streamable-http', path: MCP_PATH });
       return;
     }
+    // RFC 9728 discovery: the bare well-known path AND the path-suffixed variant
+    // (resource served at MCP_PATH). Both are public — no token required. F7.
+    if (url.pathname === PRM_PATH || url.pathname === `${PRM_PATH}${MCP_PATH}`) {
+      sendJson(res, 200, protectedResourceMetadata(req));
+      return;
+    }
     if (url.pathname === MCP_PATH) {
+      // F8: validate the caller's Bearer per-request BEFORE building the tool
+      // server. No token, or a token byan_web does not accept, never reaches a
+      // tool — it gets the RFC 9728 401 challenge instead.
+      const token = bearerFromReq(req);
+      if (!token || !(await validateBearer(token))) {
+        send401(req, res);
+        return;
+      }
       await handleMcp(req, res);
       return;
     }
@@ -161,4 +277,4 @@ if (isHttpEntrypoint) {
   });
 }
 
-export { httpServer, handleMcp, MCP_PATH, PORT };
+export { httpServer, handleMcp, MCP_PATH, PORT, PRM_PATH };

@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - OAuth 2.1 per-member identity for the Claude Team org connector
+
+The remote connector now carries per-member identity through OAuth 2.1
+(authorization-code + PKCE S256), so a single Claude.ai Team org connector
+authenticates each member as themselves. This is the only per-member path: a
+Claude.ai org connector sends no custom auth header and has no per-member token
+passthrough, so the API-key-paste channel (kept as a fallback) cannot identify
+members on its own.
+
+- Connector (`server-http.js`) becomes an OAuth protected resource (RFC 9728):
+  serves `/.well-known/oauth-protected-resource` (+ the path-suffixed `/mcp`
+  variant) advertising the byan_web authorization server, and validates every
+  caller's Bearer per-request against byan_web `/api/auth/me` (loopback) BEFORE
+  any tool runs — fail-closed on non-2xx, network error, or timeout. An
+  unauthenticated `/mcp` hit returns `401` with
+  `WWW-Authenticate: Bearer resource_metadata=...` to bootstrap the flow.
+  `BYAN_OAUTH_ISSUER` (falls back to `BYAN_API_URL`) and
+  `BYAN_MCP_BEARER_TIMEOUT_MS` configure it.
+- byan_web (separate repo, committed on its own branch) gains the authorization
+  server: `/.well-known/oauth-authorization-server`, `/authorize` (auto-consent
+  from the Authentik SSO session), `/token` (PKCE S256, `application/x-www-form-urlencoded`,
+  short-TTL revocable `byan_` access token), and the single-use `oauth_codes`
+  table. The shared JSON body parser is untouched (Content-Type gating).
+- `docs/oauth-connector.md`: the OAuth runbook — env vars, the proposed Traefik
+  host-split diff (`/authorize` via forwardauth, `/token` + well-known via
+  strip-trust), and the one-member pilot procedure with the five Claude.ai
+  behaviors to live-verify.
+- Reviewed by Quinn (qualitative) and `bmad-compliance` (adversarial, security
+  domain): a loopback `redirect_uri` hardening (reject userinfo/query/fragment)
+  and RFC 6749 §5.1 token-response cache headers were applied and re-verified
+  with no residual bypass.
+- Deferred, documented (not silently cut): Dynamic Client Registration
+  (pre-registered `claude-ai` client id), refresh tokens (~1h re-auth),
+  server-side `connector:read` scope enforcement (carried RBAC gap; TTL +
+  revocation bound the blast radius), and `/token` rate-limiting.
+- Operator-owned to go live: deploy, the Traefik host-split, the Claude.ai org
+  connector registration, and the pilot.
+
 ### Added - Remote MCP connector enabling layer (BYAN native to Claude Team)
 
 The MCP server can now serve a remote HTTP transport so BYAN can be added as a

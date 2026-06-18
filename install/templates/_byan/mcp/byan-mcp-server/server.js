@@ -2066,4 +2066,4 @@ if (isStdioEntrypoint) {
   await createByanServer().connect(transport);
 }
 
-export { buildFilesPayload, REMOTE_SAFE_TOOLS };
+export { buildFilesPayload, REMOTE_SAFE_TOOLS, authHeadersFor, BYAN_API_URL };
