@@ -15,6 +15,7 @@ const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questio
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
+const { setupLeantimeIntegration, validateLeantimeReachability } = require('../lib/byan-leantime-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupCodexNative } = require('../lib/codex-native-setup');
 const { setupMcpExtensions } = require('../lib/mcp-extensions');
@@ -1365,6 +1366,38 @@ async function install(options = {}) {
       await setupMcpExtensions(projectRoot, {});
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ MCP extensions setup skipped: ${error.message}`));
+    }
+  }
+
+  if (needsClaude) {
+    console.log();
+    console.log(chalk.cyan('Leantime board sync (optional — self-hosted)'));
+    let leantimeResult = { configured: false };
+    try {
+      leantimeResult = await setupLeantimeIntegration(projectRoot);
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ Leantime setup skipped: ${error.message}`));
+    }
+
+    if (leantimeResult && leantimeResult.configured) {
+      try {
+        const check = await validateLeantimeReachability({
+          apiUrl: leantimeResult.apiUrl,
+          token: leantimeResult.token,
+        });
+        if (check.reachable && !check.reason) {
+          console.log(chalk.green(`  ✓ Leantime reachable (${check.latencyMs}ms)`));
+        } else if (check.reason === 'non_json') {
+          console.log(chalk.yellow(`  ⚠ Leantime responded with non-JSON — ${check.hint}`));
+        } else if (check.reachable) {
+          console.log(chalk.yellow(`  ⚠ Leantime responded (${check.reason}) — check URL/token`));
+        } else {
+          console.log(chalk.yellow(`  ⚠ Leantime UNREACHABLE (${check.reason})`));
+          console.log(chalk.gray(`    Re-run installer or edit .env / .mcp.json to fix later.`));
+        }
+      } catch (_) {
+        // reachability check must never block install
+      }
     }
   }
 

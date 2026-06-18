@@ -26,6 +26,8 @@ const { stripApiSuffix } = require('./url-utils');
 
 const MCP_SERVER_REL_PATH = '_byan/mcp/byan-mcp-server/server.js';
 const TOKEN_PLACEHOLDER = '${BYAN_API_TOKEN}';
+const LEANTIME_URL_PLACEHOLDER = '${LEANTIME_API_URL}';
+const LEANTIME_TOKEN_PLACEHOLDER = '${LEANTIME_API_TOKEN}';
 
 async function readJsonOrEmpty(filePath) {
   if (await fs.pathExists(filePath)) {
@@ -102,6 +104,58 @@ async function ensureMcpConfig(projectRoot, { apiUrl, token } = {}) {
 }
 
 /**
+ * Pure merge — no I/O. Adds the Leantime env-var REFERENCES to the byan
+ * server entry so the MCP server receives LEANTIME_API_URL / LEANTIME_API_TOKEN
+ * at spawn time via env-var expansion.
+ *
+ * Security: the values written are the literal expansion placeholders
+ * `${LEANTIME_API_URL}` / `${LEANTIME_API_TOKEN}` — NOT the secret. The real
+ * token lives only in .env / .claude/settings.local.json (gitignored). The
+ * placeholder strings do not match any token shape, so the anti-secret guard
+ * is never tripped.
+ *
+ * Existing env keys (e.g. BYAN_API_URL) are preserved. If the byan entry does
+ * not exist yet, a minimal one is created so the refs are not dropped on a
+ * fresh install.
+ *
+ * @param {object} existingConfig — current parsed config
+ * @returns {object} new merged config
+ */
+function mergeLeantimeRefs(existingConfig) {
+  const cfg = existingConfig && typeof existingConfig === 'object' ? { ...existingConfig } : {};
+  cfg.mcpServers = { ...(cfg.mcpServers || {}) };
+
+  const existing = cfg.mcpServers.byan || {};
+  const env = { ...(existing.env || {}) };
+  env.LEANTIME_API_URL = LEANTIME_URL_PLACEHOLDER;
+  env.LEANTIME_API_TOKEN = LEANTIME_TOKEN_PLACEHOLDER;
+
+  cfg.mcpServers.byan = {
+    command: 'node',
+    args: [MCP_SERVER_REL_PATH],
+    ...existing,
+    env,
+  };
+
+  return cfg;
+}
+
+/**
+ * Ensures the byan entry in .mcp.json carries the Leantime env-var references.
+ * READ-MERGE-WRITE. Idempotent : re-running leaves the refs unchanged.
+ *
+ * @param {string} projectRoot
+ * @returns {Promise<{ path: string }>}
+ */
+async function ensureLeantimeRefs(projectRoot) {
+  const filePath = path.join(projectRoot, '.mcp.json');
+  const current = await readJsonOrEmpty(filePath);
+  const merged = mergeLeantimeRefs(current);
+  await fs.writeJson(filePath, merged, { spaces: 2 });
+  return { path: filePath };
+}
+
+/**
  * Adds (or replaces) an arbitrary MCP server entry under mcpServers.<name>.
  * Used by mcp-extensions to register third-party MCPs (gdrive, etc.) without
  * touching the byan entry. Other entries are preserved.
@@ -154,6 +208,7 @@ async function removeMcpEntry(projectRoot, name) {
 
 const SECRET_SHAPES = [
   /^byan_[a-f0-9]{20,}$/i,                  // byan tokens
+  /^lt_[A-Za-z0-9]{20,}$/,                  // Leantime API key
   /^ghp_[A-Za-z0-9]{30,}$/,                 // GitHub PAT
   /^gho_[A-Za-z0-9]{30,}$/,                 // GitHub OAuth
   /^github_pat_[A-Za-z0-9_]{60,}$/,         // GitHub PAT (new format)
@@ -186,9 +241,13 @@ module.exports = {
   ensureMcpConfig,
   readMcpConfig,
   mergeByanEntry,
+  mergeLeantimeRefs,
+  ensureLeantimeRefs,
   addMcpEntry,
   removeMcpEntry,
   looksLikeSecret,
   MCP_SERVER_REL_PATH,
   TOKEN_PLACEHOLDER,
+  LEANTIME_URL_PLACEHOLDER,
+  LEANTIME_TOKEN_PLACEHOLDER,
 };

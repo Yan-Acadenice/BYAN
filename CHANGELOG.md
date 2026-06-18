@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Leantime opt-in block in the installer (yanstaller)
+
+`npx create-byan-agent` now offers an optional, opt-in Leantime board
+connection (after the byan_web step, Claude Code targets only; defaults to no).
+When accepted it prompts for the backend URL (with the wrong-host warning), the
+`lt_` API key (masked), and an optional user id, then writes the vars to
+`.claude/settings.local.json` + `.env` (both gitignored), adds the
+`${LEANTIME_API_URL}` / `${LEANTIME_API_TOKEN}` references to the `byan` entry in
+`.mcp.json` (references only, the secret stays out of tracked files), and runs a
+reachability probe that flags the wrong-host case (`non_json`) at install time.
+
+The Leantime token is per-instance: each user configures their own instance and
+key, so it is not shared across installs. Mirrors the existing byan_web block and
+reuses the shared `byan-platform-config` secret-writing primitives. New
+`promptForLeantime` / `LEANTIME_ENV_KEYS` (token-prompt), `mergeLeantimeRefs` /
+`ensureLeantimeRefs` (mcp-config), `validateLeantimeReachability` (validate), and
+the `install/lib/byan-leantime-integration.js` wrapper. Scoped to
+create-byan-agent; update-byan-agent parity is a follow-up.
+
 ## [2.26.0] - 2026-06-16
 
 ### Added - Leantime FD auto-sync hook (FD lifecycle -> board, automatic)

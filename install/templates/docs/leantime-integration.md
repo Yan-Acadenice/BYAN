@@ -87,6 +87,27 @@ server after editing `settings.local.json`.
 When the pair is absent, the `byan_leantime_*` tools report `enabled: false` and
 the FD proceeds unchanged.
 
+### Configuring via the installer (interactive)
+
+`npx create-byan-agent` offers an opt-in Leantime block (after the byan_web
+step, Claude Code targets only). It defaults to **no**; when accepted it asks
+for the backend URL (with the wrong-host warning), the `lt_` API key (masked),
+and an optional user id, then:
+
+- writes `LEANTIME_API_URL` / `LEANTIME_API_TOKEN` (+ `LEANTIME_ASSIGN_USER_ID`
+  when given) into `.claude/settings.local.json` and `.env` (both gitignored);
+- adds the `${LEANTIME_API_URL}` / `${LEANTIME_API_TOKEN}` references to the
+  `byan` entry in `.mcp.json` (references only — the secret value stays out of
+  tracked files: `settings.local.json` and `.env` are gitignored, `.mcp.json`
+  holds only the `${...}` placeholders);
+- runs a reachability probe that flags the wrong-host case (`non_json`) on the
+  spot.
+
+The token is **per-instance**: each user points at their own Leantime with their
+own key, so the key is not shared across installs. Declining the prompt writes
+nothing. The manual `settings.local.json` path above remains valid (and is what
+the installer automates).
+
 ## Generating the Leantime API key
 
 Verified against Leantime source (3.7.x). Two credential types, both sent as the
