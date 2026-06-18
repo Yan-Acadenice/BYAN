@@ -100,6 +100,38 @@ if [ -f "$STUB_SYNC" ]; then
   fi
 fi
 
+# Remote-safe connector surface gate — the remote MCP Org Connector
+# (server-http.js) exposes only REMOTE_SAFE_TOOLS. This gate blocks a commit if
+# that allowlist ever contains an fs-local / stateful / write tool, which on a
+# shared multi-tenant connector host would read or mutate the wrong disk or
+# cross-tenant state. No-op if the linter is absent.
+REMOTE_LINT="_byan/mcp/byan-mcp-server/bin/byan-lint-remote-safe.js"
+if [ -f "$REMOTE_LINT" ]; then
+  if ! node "$REMOTE_LINT"; then
+    echo ""
+    echo "Commit blocked : the remote-safe MCP tool allowlist contains an unsafe tool."
+    echo "Remove it from REMOTE_SAFE_TOOLS in server.js, or bypass with"
+    echo "'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
+# Skill-bundle drift gate — the org-publishable skill bundles derive from the
+# live .claude/skills/ SKILL.md files; skill-bundles-manifest.json is the
+# committed drift ledger. This gate blocks a commit where a SKILL.md changed
+# without rebuilding the bundles (stale org publish). Re-run the bundler then
+# restage the manifest. No-op if the tool is absent.
+SKILL_BUNDLER="_byan/mcp/byan-mcp-server/bin/byan-build-skill-bundles.js"
+if [ -f "$SKILL_BUNDLER" ]; then
+  if ! node "$SKILL_BUNDLER" --check; then
+    echo ""
+    echo "Commit blocked : skill bundles are out of sync with .claude/skills/."
+    echo "Re-run 'node $SKILL_BUNDLER' then restage skill-bundles-manifest.json,"
+    echo "or bypass with 'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
 if [ ! -f "$VALIDATOR" ]; then
   exit 0
 fi

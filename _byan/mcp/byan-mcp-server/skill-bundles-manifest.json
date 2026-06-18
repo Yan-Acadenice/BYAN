@@ -1,0 +1,349 @@
+{
+  "skills": {
+    "byan-benchmark": {
+      "name": "byan-benchmark",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "65c7e7a7a1120bd4c9fadf7a801702d7350755a35936a1c9a8525074f313889e"
+    },
+    "byan-bmad-agent-tao": {
+      "name": "byan-bmad-agent-tao",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "0ea734ea8af452a70f8ebfc242da09db22ad1d4cb308dc71634843d5cf8ff7ea"
+    },
+    "byan-bmad-master": {
+      "name": "byan-bmad-master",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "6392479868942113f818f4042cc4a08d7208e96f984c8b6e41f23bd8b9191e20"
+    },
+    "byan-bmb-agent-builder": {
+      "name": "byan-bmb-agent-builder",
+      "module": "bmb",
+      "tier": "standalone",
+      "sourceHash": "ac3dd636e6a725b486543d118f2f9fd5b0dd290610dca30b84eb950dc510cf6f"
+    },
+    "byan-bmb-module-builder": {
+      "name": "byan-bmb-module-builder",
+      "module": "bmb",
+      "tier": "standalone",
+      "sourceHash": "f87f85619d6f9496ecddbe35a57259405988f5aa610dd784617f9a0295d93e12"
+    },
+    "byan-bmb-workflow-builder": {
+      "name": "byan-bmb-workflow-builder",
+      "module": "bmb",
+      "tier": "standalone",
+      "sourceHash": "cf0f6bda49852fbdb934c32063f3f39b1d524bd2a92ced8bf516371f0be80076"
+    },
+    "byan-bmm-analyst": {
+      "name": "byan-bmm-analyst",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "e3fdfefdf459aea17344b92393d25be3d177b972fadbc43767806f7b6d2d5f58"
+    },
+    "byan-bmm-architect": {
+      "name": "byan-bmm-architect",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "4629b9c9efb538eca74174fcaafce40996c075c0be8493abd61eb8fb257a8250"
+    },
+    "byan-bmm-dev": {
+      "name": "byan-bmm-dev",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "bc05f82e1ea4aa0b6725236f9f399baaad016ea21f660649a3e0035ba9bdb5d8"
+    },
+    "byan-bmm-pm": {
+      "name": "byan-bmm-pm",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "5f742730d9076dd5dded56f36a51c586c175918cf6e42d88dc44e6e924058a8d"
+    },
+    "byan-bmm-quick-flow-solo-dev": {
+      "name": "byan-bmm-quick-flow-solo-dev",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "de7e0c1078869f21aff4f603ef8d712ebf00cabdf4b6c5aad1adc773cabb24ad"
+    },
+    "byan-bmm-quinn": {
+      "name": "byan-bmm-quinn",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "0015623824cfd26280da3ba35d2f24c921137f345ad4078ccbe3c315aee9301c"
+    },
+    "byan-bmm-sm": {
+      "name": "byan-bmm-sm",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "6d9d3ed392da60ff78bfb633b1a51284977ecb055b025aa2de0717e9fb268d00"
+    },
+    "byan-bmm-tech-writer": {
+      "name": "byan-bmm-tech-writer",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "8d52f744ea00323434d3841d875a94882961e6870f257c29c2c083b8cf2c58dd"
+    },
+    "byan-bmm-ux-designer": {
+      "name": "byan-bmm-ux-designer",
+      "module": "bmm",
+      "tier": "standalone",
+      "sourceHash": "f02a086944037e585ed187801d6fbfc2aa493747db0b5a2cb7c611342be387f1"
+    },
+    "byan-byan": {
+      "name": "byan-byan",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "0a1f4b1333f7f42a43b1a8ad57b0d7d687aec95f149ae13ba98b78970ed3bd09"
+    },
+    "byan-byan-v2": {
+      "name": "byan-byan-v2",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "ff3b2aef3562eaf3e611637f2ea6c3a4ca540f9ada955f475aff25f70408287a"
+    },
+    "byan-carmack": {
+      "name": "byan-carmack",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "f4a3e474417483a1f924bfd69dbcf14a7209c5284530cb013186b850154bc54b"
+    },
+    "byan-cis-brainstorming-coach": {
+      "name": "byan-cis-brainstorming-coach",
+      "module": "cis",
+      "tier": "standalone",
+      "sourceHash": "1c5450b1cb68bdeb8e23ac2d906cb0310adedb58441725e8c6370f16ced1c2e4"
+    },
+    "byan-cis-creative-problem-solver": {
+      "name": "byan-cis-creative-problem-solver",
+      "module": "cis",
+      "tier": "standalone",
+      "sourceHash": "a72dd267964c7f0ecb3274b75bc11dd4ec548ec6d193254ad1a4f9b913136fdb"
+    },
+    "byan-cis-design-thinking-coach": {
+      "name": "byan-cis-design-thinking-coach",
+      "module": "cis",
+      "tier": "standalone",
+      "sourceHash": "4244966a9d3f1fe135a9f46a08ea6301ba6c760933ad24642bc800b75dcb1380"
+    },
+    "byan-cis-innovation-strategist": {
+      "name": "byan-cis-innovation-strategist",
+      "module": "cis",
+      "tier": "standalone",
+      "sourceHash": "3b8afbc5944d3300b86a438af069477a69edff307c547c1ba5c17c6e6ac905aa"
+    },
+    "byan-cis-presentation-master": {
+      "name": "byan-cis-presentation-master",
+      "module": "cis",
+      "tier": "standalone",
+      "sourceHash": "7b7390d6b7e54d32c6daaeb8a55a8ba0f683f1e98835f59d0092e3c45abe1e4a"
+    },
+    "byan-cis-storyteller": {
+      "name": "byan-cis-storyteller",
+      "module": "cis",
+      "tier": "standalone",
+      "sourceHash": "8b5ac44272e05323d7c5be8d259359e708b298f201919878df98699b51bdda36"
+    },
+    "byan-claude": {
+      "name": "byan-claude",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "e8a31ac880148685805ae98576f0d1a167e577f62b259ff8d7b8f0eaba711772"
+    },
+    "byan-codex": {
+      "name": "byan-codex",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "0f0d7a1108a43a0c0c8093cc5600bc2649d6766c6ae94c2a2a9dafa315180627"
+    },
+    "byan-drawio": {
+      "name": "byan-drawio",
+      "module": "bmb",
+      "tier": "standalone",
+      "sourceHash": "ff771c02bcdac126dcae9d8dc6d8692625bed93778782de303c6bd3ebd57a76b"
+    },
+    "byan-elo-trust": {
+      "name": "byan-elo-trust",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "64917fa7dc10362b08e0d846e09d610960b871590e8cdd490f143346a24fe8f4"
+    },
+    "byan-fact-check": {
+      "name": "byan-fact-check",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "0ab47ccc715638b516dc57a7b006ee4be93d0158121d6075152ed64ace1c0a3b"
+    },
+    "byan-forge": {
+      "name": "byan-forge",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "9c4f1fffd4d32d5c2b87fb62eeba7dfbaf0c77d810028a16a54dc5e8d4c0061d"
+    },
+    "byan-hermes-dispatch": {
+      "name": "byan-hermes-dispatch",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "62b9c959c77468c0e14e3dfd45039151d29b1bcdc18b04b4d0deac606052a976"
+    },
+    "byan-insight": {
+      "name": "byan-insight",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "188e4b0cd1791a01c1edf6d94e65f91d80d1fa1d522fa1de46259420cf348783"
+    },
+    "byan-mantra-audit": {
+      "name": "byan-mantra-audit",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "eab42571d276fa0b2ccaacb47a8bbb5c467168dab744ef9dc54cd684ca7724da"
+    },
+    "byan-merise-agile": {
+      "name": "byan-merise-agile",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "c0af31451bd3127772d04acf51df00d3ee2c28c47130043d87e6a4414b4a22f5"
+    },
+    "byan-native-dev-story": {
+      "name": "byan-native-dev-story",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "441cc28084d0520372772e41755535cf2126e0faf5d747ab888556bb9bcf81ec"
+    },
+    "byan-orchestrate": {
+      "name": "byan-orchestrate",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "2ee08e3f447cd25c5aafc45271f7ac518d09e380daeae3a71f9fbf2dc2e0d3e5"
+    },
+    "byan-patnote": {
+      "name": "byan-patnote",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "0d6beab6b70fd8107dd4e576caed6329c760f24489286079532c6b95e7657f68"
+    },
+    "byan-project": {
+      "name": "byan-project",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "0c835749db5d915b29a1d7c7b037d249073ce43c02f5e6d3daf84bdea678ee98"
+    },
+    "byan-rachid": {
+      "name": "byan-rachid",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "be1483991a1971915a3c641cc260bf808585682f513386c95aa709a5d90ec5b6"
+    },
+    "byan-skeptic": {
+      "name": "byan-skeptic",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "6592f44e636d761f0d81369f1d72ad00db6abc0c0dccb3fab23e9f92ba7ffe76"
+    },
+    "byan-strict": {
+      "name": "byan-strict",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "e8e0ac502220056a5057d2801ad5a512ce2bc7e54c08d9bc1844419d93ff58a6"
+    },
+    "byan-suitability": {
+      "name": "byan-suitability",
+      "module": "core",
+      "tier": "connector-bound",
+      "sourceHash": "ade5a0937ff3d7095753fa7cb9491d5f4579712a470010f84c1ac257fac0d70c"
+    },
+    "byan-tea-tea": {
+      "name": "byan-tea-tea",
+      "module": "tea",
+      "tier": "standalone",
+      "sourceHash": "d5ded39d2ede5f71bf51eff76b5c0fb1052d766122d1f378d2b1f6696109ed97"
+    },
+    "byan-yanstaller": {
+      "name": "byan-yanstaller",
+      "module": "core",
+      "tier": "standalone",
+      "sourceHash": "6ef12d7083c4e6b00cb9ce335c0494ef1b0faa2fe6d6cbc1f6fc09493bce611f"
+    }
+  },
+  "megabundles": {
+    "core": {
+      "module": "core",
+      "version": "6.0.0-Beta.5",
+      "skills": [
+        "byan-benchmark",
+        "byan-bmad-agent-tao",
+        "byan-bmad-master",
+        "byan-byan",
+        "byan-byan-v2",
+        "byan-carmack",
+        "byan-claude",
+        "byan-codex",
+        "byan-elo-trust",
+        "byan-fact-check",
+        "byan-forge",
+        "byan-hermes-dispatch",
+        "byan-insight",
+        "byan-mantra-audit",
+        "byan-merise-agile",
+        "byan-native-dev-story",
+        "byan-orchestrate",
+        "byan-patnote",
+        "byan-project",
+        "byan-rachid",
+        "byan-skeptic",
+        "byan-strict",
+        "byan-suitability",
+        "byan-yanstaller"
+      ],
+      "bundleHash": "d82bfca56657d256a1da19df33718c0bd267356adbffe9c561284ca06a37d331"
+    },
+    "bmb": {
+      "module": "bmb",
+      "version": "0.1.4",
+      "skills": [
+        "byan-bmb-agent-builder",
+        "byan-bmb-module-builder",
+        "byan-bmb-workflow-builder",
+        "byan-drawio"
+      ],
+      "bundleHash": "d54ed577f21f3214a77ddf2b6392ec183b8562a67caf67ea24be95cef92afe2a"
+    },
+    "bmm": {
+      "module": "bmm",
+      "version": "6.0.0-Beta.5",
+      "skills": [
+        "byan-bmm-analyst",
+        "byan-bmm-architect",
+        "byan-bmm-dev",
+        "byan-bmm-pm",
+        "byan-bmm-quick-flow-solo-dev",
+        "byan-bmm-quinn",
+        "byan-bmm-sm",
+        "byan-bmm-tech-writer",
+        "byan-bmm-ux-designer"
+      ],
+      "bundleHash": "ba6a8048d14d2e5dd33b0131c5a37ba28d87e99e0ac49a5a9d64bc413b5deb60"
+    },
+    "cis": {
+      "module": "cis",
+      "version": "0.1.4",
+      "skills": [
+        "byan-cis-brainstorming-coach",
+        "byan-cis-creative-problem-solver",
+        "byan-cis-design-thinking-coach",
+        "byan-cis-innovation-strategist",
+        "byan-cis-presentation-master",
+        "byan-cis-storyteller"
+      ],
+      "bundleHash": "5ed052a9e217c0b3fa8f13c9d5f209517e9de8877ac12c44ad3620b9d8bd8e53"
+    },
+    "tea": {
+      "module": "tea",
+      "version": "0.1.1-beta.3",
+      "skills": [
+        "byan-tea-tea"
+      ],
+      "bundleHash": "1c6d2e380d0d583c7abe87ff86020c86f3cc7df10e92e38425e27ef7c987311e"
+    }
+  }
+}

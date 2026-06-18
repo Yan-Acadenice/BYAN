@@ -97,14 +97,20 @@ const __dirname = nodePath.dirname(__filename);
 const PROJECT_ROOT = nodePath.resolve(__dirname, '..', '..', '..');
 
 const BYAN_API_URL = process.env.BYAN_API_URL || 'http://localhost:3737';
-const BYAN_API_TOKEN = process.env.BYAN_API_TOKEN || '';
+// Local-dev / single-user fallback token. On the remote HTTP transport the
+// real identity is the PER-REQUEST token (see createByanServer), so this env
+// value is only the floor when no per-request token is supplied (stdio).
+const ENV_API_TOKEN = process.env.BYAN_API_TOKEN || '';
 
-const authHeaders = () => {
-  if (!BYAN_API_TOKEN) return {};
+// Per-call auth header builder. The token is passed EXPLICITLY (per-request on
+// the remote transport; the env token locally) so a shared connector process
+// never collapses every caller onto one identity.
+const authHeadersFor = (token) => {
+  if (!token) return {};
   // byan_web issues API keys prefixed with `byan_` and requires the
   // `ApiKey` scheme. Any other token (JWT, etc.) falls back to Bearer.
-  const scheme = BYAN_API_TOKEN.startsWith('byan_') ? 'ApiKey' : 'Bearer';
-  return { Authorization: `${scheme} ${BYAN_API_TOKEN}` };
+  const scheme = token.startsWith('byan_') ? 'ApiKey' : 'Bearer';
+  return { Authorization: `${scheme} ${token}` };
 };
 
 function buildQuery(params) {
@@ -117,8 +123,8 @@ function buildQuery(params) {
   return s ? `?${s}` : '';
 }
 
-function requireToken() {
-  if (!BYAN_API_TOKEN) {
+function requireTokenFor(token) {
+  if (!token) {
     throw new Error('BYAN_API_TOKEN env var is required for this tool.');
   }
 }
@@ -131,11 +137,11 @@ function requireLeantime() {
   }
 }
 
-async function apiRequest(path, options = {}) {
+async function apiRequestFor(path, options = {}, token) {
   const url = `${BYAN_API_URL}${path}`;
   const headers = {
     'Content-Type': 'application/json',
-    ...authHeaders(),
+    ...authHeadersFor(token),
     ...(options.headers || {}),
   };
   const res = await fetch(url, { ...options, headers });
@@ -1265,17 +1271,83 @@ const tools = [
   },
 ];
 
-const server = new Server(
-  { name: 'byan-mcp', version: '0.1.0' },
-  { capabilities: { tools: {} } }
-);
+// Remote-safe MVP allowlist: the ONLY tools exposed on the remote Org Connector
+// (server-http.js sets remoteOnly:true). All are read-only and byan_web-backed
+// (already user-scoped server-side via the per-request token) with ZERO local
+// filesystem dependency, so they are safe on a shared multi-tenant host. Every
+// fs-local / stateful / write / import tool is excluded and stays stdio-only.
+// The byan-lint-remote-safe check enforces that nothing fs-bound leaks in here.
+const REMOTE_SAFE_TOOLS = new Set([
+  'byan_ping',
+  'byan_list_projects',
+  'byan_api_projects_get',
+  'byan_api_workflows_list',
+  'byan_api_workflows_get',
+  'byan_api_workflow_runs_list',
+  'byan_api_workflow_runs_get',
+  'byan_api_knowledge_list',
+  'byan_api_knowledge_get',
+  'byan_api_memory_list',
+  'byan_api_memory_search',
+  'byan_api_custom_agents_list',
+  'byan_api_custom_agents_get',
+  'byan_api_sessions_list',
+  'byan_api_sessions_get',
+  'byan_api_sessions_history',
+  'byan_api_chat_conversations_list',
+  'byan_api_chat_messages_list',
+  'byan_api_search',
+]);
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
+// Resolve the effective byan_web token for a server instance. On the remote
+// transport (remoteOnly) the identity is the per-request token ONLY — it never
+// falls back to the host env token, so a no-header remote request resolves to
+// NO identity (the tool degrades with its requireToken error) instead of
+// silently borrowing the host's token. The local stdio path keeps the env
+// token as the single-developer fallback.
+export function resolveCallerToken({ token, remoteOnly, envToken }) {
+  if (remoteOnly) return token || undefined;
+  return token || envToken || undefined;
+}
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+// Build a fresh MCP Server with all tools + handlers registered, WITHOUT
+// connecting any transport. The stdio entrypoint (bottom of this file) and the
+// remote HTTP entrypoint (server-http.js) both call this factory, so the tool
+// surface stays single-sourced across transports. A fresh instance per call
+// keeps stateless HTTP requests from sharing in-process server state.
+export function createByanServer({ token, remoteOnly = false } = {}) {
+  // Per-request identity. `token` is the caller's token on the remote HTTP
+  // transport; it falls back to the env token for the local stdio path. Every
+  // tool handler below calls apiRequest / authHeaders / requireToken and reads
+  // BYAN_API_TOKEN — all of which resolve to THESE per-request bindings by
+  // lexical shadowing, so the ~70 call sites need no change and two concurrent
+  // callers on a shared connector never share an identity (GH#44980).
+  const BYAN_API_TOKEN = resolveCallerToken({ token, remoteOnly, envToken: ENV_API_TOKEN });
+  const authHeaders = () => authHeadersFor(BYAN_API_TOKEN);
+  const requireToken = () => requireTokenFor(BYAN_API_TOKEN);
+  const apiRequest = (path, options) => apiRequestFor(path, options, BYAN_API_TOKEN);
+
+  const server = new Server(
+    { name: 'byan-mcp', version: '0.1.0' },
+    { capabilities: { tools: {} } }
+  );
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: remoteOnly ? tools.filter((t) => REMOTE_SAFE_TOOLS.has(t.name)) : tools,
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args = {} } = request.params;
 
   try {
+    // The remote connector exposes ONLY the read-only MVP allowlist. A call to
+    // any other tool over the remote transport is refused as a per-tool error
+    // (normalized to { isError } by the catch below) — never a 500, never run.
+    if (remoteOnly && !REMOTE_SAFE_TOOLS.has(name)) {
+      throw new Error(
+        `Tool '${name}' is not available on the remote BYAN connector (read-only MVP surface).`
+      );
+    }
     if (name === 'byan_ping') {
       const t0 = Date.now();
       const body = await apiRequest('/api/health');
@@ -1976,9 +2048,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       content: [{ type: 'text', text: `Error: ${err.message}` }],
     };
   }
-});
+  });
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+  return server;
+}
 
-export { buildFilesPayload };
+// Stdio entrypoint guard: connect stdio ONLY when this file is the process
+// entrypoint (or explicitly forced). Importing the module (tests, the HTTP
+// entrypoint server-http.js) must NOT grab stdio as a side effect.
+const isStdioEntrypoint =
+  process.env.BYAN_MCP_TRANSPORT === 'stdio' ||
+  (process.argv[1] &&
+    nodePath.resolve(process.argv[1]) === nodePath.resolve(__filename));
+
+if (isStdioEntrypoint) {
+  const transport = new StdioServerTransport();
+  await createByanServer().connect(transport);
+}
+
+export { buildFilesPayload, REMOTE_SAFE_TOOLS };

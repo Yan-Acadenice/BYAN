@@ -105,6 +105,17 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/leantime-fd-core.test.js',
   '_byan/mcp/byan-mcp-server/test/leantime-fd-hook.test.js',
   '.claude/hooks/leantime-fd-sync.js',
+  // Remote MCP connector enabling layer (BYAN native to Claude Team). server.js
+  // (already mirrored) gains createByanServer()+remoteOnly; these NEW files must
+  // ship so a fresh install can host the connector + build/verify skill bundles.
+  '_byan/mcp/byan-mcp-server/server-http.js',
+  '_byan/mcp/byan-mcp-server/bin/byan-lint-remote-safe.js',
+  '_byan/mcp/byan-mcp-server/bin/byan-build-skill-bundles.js',
+  '_byan/mcp/byan-mcp-server/skill-bundles-manifest.json',
+  '_byan/mcp/byan-mcp-server/test/connector-auth-isolation.test.js',
+  '_byan/mcp/byan-mcp-server/test/connector-remote-surface.test.js',
+  '_byan/mcp/byan-mcp-server/test/skill-bundler.test.js',
+  'docs/connector-admin-runbook.md',
 ];
 
 // The template lives under this root-relative directory.

@@ -9,6 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Remote MCP connector enabling layer (BYAN native to Claude Team)
+
+The MCP server can now serve a remote HTTP transport so BYAN can be added as a
+Claude.ai Team Org Connector (which also syncs down to Claude Code), without
+changing the local stdio path.
+
+- `createByanServer({ token, remoteOnly })` factory extracted from `server.js`;
+  the stdio entrypoint is guarded so importing the module no longer grabs stdio.
+- `server-http.js`: a stateless streamable-HTTP transport on `/mcp` (+ `/health`),
+  built on the bundled SDK transport (no new dependency). Streamable-HTTP carries
+  the SSE streaming leg itself, so no separate legacy `/sse` endpoint is mounted.
+- Per-request identity: the caller's token is read from each request's
+  `Authorization` header and threaded through the byan_web calls (the module-global
+  token becomes the local stdio fallback), so concurrent Team members reach
+  byan_web with their own token instead of a shared one.
+- Remote-safe surface: `remoteOnly` exposes only `REMOTE_SAFE_TOOLS`, a read-only
+  byan_web-backed allowlist; filesystem-local / stateful / write tools stay
+  stdio-only and are refused over the remote transport. `bin/byan-lint-remote-safe.js`
+  (wired into pre-commit) guards the allowlist.
+- Skill bundles: `bin/byan-build-skill-bundles.js` packages each `.claude/skills`
+  SKILL.md and five per-module megabundles into `dist/skill-bundles/` (zero-dep
+  stored ZIP), with `skill-bundles-manifest.json` as a tracked drift ledger and a
+  `--check` pre-commit gate.
+- Tests: per-request auth isolation (two tokens reach byan_web with distinct
+  headers), remote-surface filtering, and the skill bundler.
+- Admin runbook: `docs/connector-admin-runbook.md`. Go-live for the org still
+  depends on a separate byan_web track (public hosting + per-user OAuth);
+  Projects/Artifacts have no external API so byan_web stays the state authority.
+
 ### Added - Leantime opt-in block in the installer (yanstaller)
 
 `npx create-byan-agent` now offers an optional, opt-in Leantime board
