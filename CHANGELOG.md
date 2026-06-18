@@ -34,9 +34,35 @@ changing the local stdio path.
   `--check` pre-commit gate.
 - Tests: per-request auth isolation (two tokens reach byan_web with distinct
   headers), remote-surface filtering, and the skill bundler.
-- Admin runbook: `docs/connector-admin-runbook.md`. Go-live for the org still
-  depends on a separate byan_web track (public hosting + per-user OAuth);
+- Admin runbook: `docs/connector-admin-runbook.md`. The byan_web hosting track it
+  depended on is now built (see the next entry); a true OAuth flow remains deferred.
   Projects/Artifacts have no external API so byan_web stays the state authority.
+
+### Added - Remote connector hosting layer (byan_web sidecar + per-member enrollment)
+
+The cross-repo byan_web track the enabling layer depended on is now built: the
+connector runs as a hosted sidecar and each Claude Team member enrolls with their
+own byan_web key.
+
+- Sidecar image: `_byan/mcp/byan-mcp-server/Dockerfile` (node:22-slim + tini PID1,
+  `npm ci --omit=dev`, `CMD node server-http.js`, wget-backed HEALTHCHECK on
+  `/health`) plus a `.dockerignore`. byan_web references the image by tag and does
+  not build the connector source (anti-vendoring boundary).
+- Startup guard: `assertNoAmbientToken` fails the connector boot if `BYAN_API_TOKEN`
+  is present, so a sidecar carries per-request identity only (defense-in-depth on
+  top of `resolveCallerToken`, which ignores the env token in remote mode).
+- Per-member enrollment (byan_web repo): `POST /api/connector/link` mints a personal
+  `byan_` key (idempotent per user, raw returned once, sha256-at-rest, 90-day TTL)
+  that the member pastes into the Claude.ai connector config. The minted key is a
+  full-capability byan_web credential whose read-only behaviour is enforced at the
+  MCP transport only, so it must be treated as a secret. byan_web changes:
+  `routes/connector-link.js` + test, the `byan-mcp-connector` compose service, and a
+  `byan-mcp.<domain>` Traefik route reusing `byan-strip-trust` with no SSO forwardauth.
+- Connector smoke test (`/health` 200, import without binding a port), kept on the
+  BYAN side so byan_web CI stays PostgreSQL-free.
+- Runbook expanded: the hosting build, the per-member enrollment flow, the
+  one-member 48h pilot gate, the security invariants, and the operator-only steps
+  (DNS, image build, compose up, Claude.ai registration) that remain manual.
 
 ### Added - Leantime opt-in block in the installer (yanstaller)
 

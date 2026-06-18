@@ -130,7 +130,30 @@ const isHttpEntrypoint =
   process.argv[1] &&
   nodePath.resolve(process.argv[1]) === nodePath.resolve(__filename);
 
+/**
+ * Defense-in-depth: reject boot if BYAN_API_TOKEN is present in env.
+ * WHY: identity on the remote connector is per-request only — resolveCallerToken
+ * already ignores env.BYAN_API_TOKEN in remoteOnly mode, so this is NOT the only
+ * gate. It is an explicit startup assertion so a misconfigured deploy (shared token
+ * accidentally set in the process env) fails loudly rather than silently collapsing
+ * all callers onto one identity. Pure function so tests can call it without side effects.
+ */
+export function assertNoAmbientToken(env) {
+  if (env && env.BYAN_API_TOKEN) {
+    throw new Error(
+      'BYAN_API_TOKEN must not be set on the remote connector: identity is per-request only ' +
+      '(a shared ambient token would collapse all callers onto one identity). Refusing to start.'
+    );
+  }
+}
+
 if (isHttpEntrypoint) {
+  try {
+    assertNoAmbientToken(process.env);
+  } catch (e) {
+    console.error('[byan-mcp-http] FATAL:', e.message);
+    process.exit(1);
+  }
   httpServer.listen(PORT, () => {
     // stderr: stdout is reserved for MCP protocol on the stdio path; here we
     // just log startup so it never pollutes a client's parse.
