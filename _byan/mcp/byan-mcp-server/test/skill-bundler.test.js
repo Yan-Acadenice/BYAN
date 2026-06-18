@@ -80,27 +80,6 @@ test('manifest covers every live skill exactly once', () => {
       `manifest references ${name} but SKILL.md not found on disk`
     );
   }
-
-  // Megabundles: every skill lands in exactly one megabundle
-  const assignedCounts = {};
-  for (const [, mb] of Object.entries(manifest.megabundles)) {
-    for (const skillName of mb.skills) {
-      assignedCounts[skillName] = (assignedCounts[skillName] || 0) + 1;
-    }
-  }
-
-  for (const name of Object.keys(manifest.skills)) {
-    assert.equal(
-      assignedCounts[name] || 0,
-      1,
-      `skill ${name} assigned to ${assignedCounts[name] || 0} megabundles (must be exactly 1)`
-    );
-  }
-
-  // All 5 expected module buckets present
-  for (const mod of ['core', 'bmm', 'bmb', 'tea', 'cis']) {
-    assert.ok(manifest.megabundles[mod], `megabundle for module '${mod}' is missing`);
-  }
 });
 
 // ---------------------------------------------------------------------------
@@ -118,11 +97,20 @@ test('per-skill zip round-trips SKILL.md content via stored-zip reader', () => {
   const zipBuf = fs.readFileSync(zipPath);
   const entries = readStoredZip(zipBuf);
 
-  assert.ok(entries['SKILL.md'], 'zip must contain SKILL.md');
+  // Claude.ai org Skills requires EXACTLY one top-level folder + one SKILL.md.
+  const entryNames = Object.keys(entries);
+  assert.equal(entryNames.length, 1, `zip must contain exactly one entry, got: ${entryNames.join(', ')}`);
+  const entryKey = `${someSkill}/SKILL.md`;
+  assert.ok(
+    entries[entryKey],
+    `zip must contain ${entryKey} (one top-level folder + SKILL.md), got: ${entryNames.join(', ')}`
+  );
+  const topFolders = new Set(entryNames.map((n) => n.split('/')[0]));
+  assert.equal(topFolders.size, 1, `zip must have exactly one top-level folder, got: ${[...topFolders].join(', ')}`);
 
   const expected = fs.readFileSync(path.join(SKILLS_DIR, someSkill, 'SKILL.md'));
   assert.ok(
-    entries['SKILL.md'].equals(expected),
+    entries[entryKey].equals(expected),
     `SKILL.md content in zip does not match source for ${someSkill}`
   );
 });
@@ -134,35 +122,11 @@ test('per-skill zip round-trips SKILL.md content via unzip -p', () => {
   const skill = skills[Math.min(1, skills.length - 1)];
   const zipPath = path.join(REAL_OUT_DIR, `${skill}.zip`);
 
-  const result = spawnSync('unzip', ['-p', zipPath, 'SKILL.md'], { encoding: 'buffer' });
+  const result = spawnSync('unzip', ['-p', zipPath, `${skill}/SKILL.md`], { encoding: 'buffer' });
   assert.equal(result.status, 0, `unzip -p failed for ${skill}.zip: ${result.stderr?.toString()}`);
 
   const expected = fs.readFileSync(path.join(SKILLS_DIR, skill, 'SKILL.md'));
   assert.ok(result.stdout.equals(expected), `unzip -p output does not match source for ${skill}`);
-});
-
-test('megabundle zip contains all skills for that module with correct sub-paths', () => {
-  const manifest = JSON.parse(fs.readFileSync(REAL_MANIFEST, 'utf8'));
-  // Pick the module with the most skills for a meaningful check.
-  const module = Object.entries(manifest.megabundles)
-    .sort((a, b) => b[1].skills.length - a[1].skills.length)[0][0];
-
-  const zipPath = path.join(REAL_OUT_DIR, `megabundle-${module}.zip`);
-  assert.ok(fs.existsSync(zipPath), `megabundle zip missing: ${zipPath}`);
-
-  const zipBuf = fs.readFileSync(zipPath);
-  const entries = readStoredZip(zipBuf);
-
-  for (const skillName of manifest.megabundles[module].skills) {
-    const entryKey = `${skillName}/SKILL.md`;
-    assert.ok(entries[entryKey], `megabundle-${module}.zip missing entry ${entryKey}`);
-
-    const expected = fs.readFileSync(path.join(SKILLS_DIR, skillName, 'SKILL.md'));
-    assert.ok(
-      entries[entryKey].equals(expected),
-      `${entryKey} content mismatch in megabundle-${module}.zip`
-    );
-  }
 });
 
 // ---------------------------------------------------------------------------
@@ -282,14 +246,6 @@ test('standalone skills have no byan_ tool references in their SKILL.md', () => 
 // ---------------------------------------------------------------------------
 // Additional invariants
 // ---------------------------------------------------------------------------
-
-test('every megabundle has a non-empty bundleHash and a version from manifest.yaml', () => {
-  const manifest = JSON.parse(fs.readFileSync(REAL_MANIFEST, 'utf8'));
-  for (const [module, mb] of Object.entries(manifest.megabundles)) {
-    assert.ok(mb.bundleHash && mb.bundleHash.length === 64, `megabundle ${module} missing bundleHash`);
-    assert.ok(mb.version && mb.version !== '0.0.0', `megabundle ${module} has default version`);
-  }
-});
 
 test('sourceHash in manifest matches live sha256 of SKILL.md', () => {
   const manifest = JSON.parse(fs.readFileSync(REAL_MANIFEST, 'utf8'));

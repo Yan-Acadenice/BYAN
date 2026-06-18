@@ -29,8 +29,10 @@ changing the local stdio path.
   stdio-only and are refused over the remote transport. `bin/byan-lint-remote-safe.js`
   (wired into pre-commit) guards the allowlist.
 - Skill bundles: `bin/byan-build-skill-bundles.js` packages each `.claude/skills`
-  SKILL.md and five per-module megabundles into `dist/skill-bundles/` (zero-dep
-  stored ZIP), with `skill-bundles-manifest.json` as a tracked drift ledger and a
+  SKILL.md as its own `.zip` into `dist/skill-bundles/` (zero-dep stored ZIP) — one
+  archive per skill, shaped as a single top-level folder + SKILL.md, which is what
+  Claude.ai org Skills accepts (a flat SKILL.md or a multi-skill archive is
+  rejected). `skill-bundles-manifest.json` is the tracked drift ledger with a
   `--check` pre-commit gate.
 - Tests: per-request auth isolation (two tokens reach byan_web with distinct
   headers), remote-surface filtering, and the skill bundler.

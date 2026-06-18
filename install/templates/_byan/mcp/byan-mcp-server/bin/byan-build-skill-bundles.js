@@ -362,44 +362,23 @@ function collectSkills(resolveModule) {
   return skills;
 }
 
-function writeZips(skills, moduleVersions) {
+function writeZips(skills) {
   fs.mkdirSync(OUT_DIR, { recursive: true });
 
-  // Per-skill ZIPs
+  // One ZIP per skill, shaped EXACTLY as Claude.ai org Skills requires: a single
+  // top-level folder named after the skill, containing its SKILL.md. Claude's
+  // validator rejects a flat SKILL.md (zero top-level folders) AND rejects a
+  // multi-skill archive (more than one folder / SKILL.md) — so there is no
+  // "megabundle" upload artifact: each skill is its own archive, uploaded one
+  // at a time.
   for (const skill of skills) {
-    const zip = buildStoredZip([{ name: 'SKILL.md', data: skill.contentBuf }]);
+    const zip = buildStoredZip([{ name: `${skill.name}/SKILL.md`, data: skill.contentBuf }]);
     const dest = path.join(OUT_DIR, `${skill.name}.zip`);
     fs.writeFileSync(dest, zip);
   }
-
-  // Per-module megabundles
-  const byModule = {};
-  for (const skill of skills) {
-    (byModule[skill.module] = byModule[skill.module] || []).push(skill);
-  }
-
-  const megabundles = {};
-  for (const [module, moduleSkills] of Object.entries(byModule)) {
-    // Entries sorted by name for reproducible output.
-    const sorted = [...moduleSkills].sort((a, b) => a.name.localeCompare(b.name));
-    const entries = sorted.map((s) => ({ name: `${s.name}/SKILL.md`, data: s.contentBuf }));
-    const zip = buildStoredZip(entries);
-    const bundleHash = sha256(zip);
-    const dest = path.join(OUT_DIR, `megabundle-${module}.zip`);
-    fs.writeFileSync(dest, zip);
-
-    megabundles[module] = {
-      module,
-      version: moduleVersions[module] || '0.0.0',
-      skills: sorted.map((s) => s.name),
-      bundleHash,
-    };
-  }
-
-  return megabundles;
 }
 
-function writeManifest(skills, megabundles) {
+function writeManifest(skills) {
   const perSkill = {};
   for (const s of skills) {
     perSkill[s.name] = {
@@ -415,7 +394,6 @@ function writeManifest(skills, megabundles) {
   // build a noisy diff and could mask a real drift.
   const manifest = {
     skills: perSkill,
-    megabundles,
   };
 
   fs.writeFileSync(BUNDLES_MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
@@ -435,7 +413,6 @@ function checkMode() {
   const committed = JSON.parse(fs.readFileSync(BUNDLES_MANIFEST_PATH, 'utf8'));
   const agentRows = parseManifestCsv(fs.readFileSync(AGENT_CSV, 'utf8'));
   const resolveModule = buildSkillModuleMap(agentRows);
-  const moduleVersions = parseModuleVersions();
   const live = collectSkills(resolveModule);
 
   const diffs = [];
@@ -456,14 +433,6 @@ function checkMode() {
   for (const name of Object.keys(committed.skills)) {
     if (!live.find((s) => s.name === name)) {
       diffs.push(`  REMOVED skill in manifest but gone from disk: ${name}`);
-    }
-  }
-
-  // Check megabundle version drift
-  for (const [module, mb] of Object.entries(committed.megabundles)) {
-    const liveVersion = moduleVersions[module];
-    if (liveVersion && liveVersion !== mb.version) {
-      diffs.push(`  VERSION DRIFT megabundle-${module}: manifest=${mb.version}, manifest.yaml=${liveVersion}`);
     }
   }
 
@@ -491,32 +460,23 @@ function main() {
 
   const agentRows = parseManifestCsv(fs.readFileSync(AGENT_CSV, 'utf8'));
   const resolveModule = buildSkillModuleMap(agentRows);
-  const moduleVersions = parseModuleVersions();
 
   const skills = collectSkills(resolveModule);
 
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  const megabundles = writeZips(skills, moduleVersions);
-  const manifest = writeManifest(skills, megabundles);
+  writeZips(skills);
+  writeManifest(skills);
 
   const standalone = skills.filter((s) => s.tier === 'standalone').length;
   const connectorBound = skills.filter((s) => s.tier === 'connector-bound').length;
+  const modules = [...new Set(skills.map((s) => s.module))].sort();
 
   console.log(
-    `[byan-build-skill-bundles] wrote ${skills.length} skill ZIPs + ${Object.keys(megabundles).length} megabundles`
+    `[byan-build-skill-bundles] wrote ${skills.length} per-skill ZIPs (one top-level folder + SKILL.md each)`
   );
   console.log(`  standalone: ${standalone}  connector-bound: ${connectorBound}`);
-  console.log(`  modules: ${Object.keys(megabundles).sort().join(', ')}`);
+  console.log(`  modules: ${modules.join(', ')}`);
   console.log(`  manifest: ${BUNDLES_MANIFEST_PATH}`);
-
-  // Verify every skill landed in exactly one megabundle (invariant check).
-  const assignedSet = new Set(Object.values(manifest.megabundles).flatMap((mb) => mb.skills));
-  for (const s of skills) {
-    if (!assignedSet.has(s.name)) {
-      console.error(`[byan-build-skill-bundles] BUG: ${s.name} not in any megabundle!`);
-      process.exit(1);
-    }
-  }
 }
 
 main();

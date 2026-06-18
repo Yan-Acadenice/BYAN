@@ -38,9 +38,11 @@ The remote connector is the spine: one endpoint serves both surfaces.
   read `byan_api_*` tools). Stateful / filesystem-local / write tools stay
   stdio-only and are refused on the remote transport. The `byan-lint-remote-safe`
   check guards the allowlist.
-- Skill bundles: `bin/byan-build-skill-bundles.js` emits one `.zip` per skill and
-  five per-module megabundles into `dist/skill-bundles/`, with
-  `skill-bundles-manifest.json` as the tracked drift ledger (`--check`).
+- Skill bundles: `bin/byan-build-skill-bundles.js` emits one `.zip` per skill into
+  `dist/skill-bundles/` — each archive is a single top-level folder + its SKILL.md,
+  the exact shape Claude.ai org Skills requires (it rejects a flat SKILL.md and
+  rejects a multi-skill archive, so there is no megabundle upload). The tracked
+  drift ledger is `skill-bundles-manifest.json` (`--check`).
 
 ## Local run (verify the endpoint)
 
@@ -244,9 +246,11 @@ terminal or on Claude.ai:
    (log in, POST /api/connector/link, paste key into the connector config).
    An unlinked member is degraded gracefully, never assigned a default identity.
 3. **Publish skills**: run `node _byan/mcp/byan-mcp-server/bin/byan-build-skill-bundles.js`,
-   then upload the per-module megabundle `.zip` files from `dist/skill-bundles/`
-   to Claude.ai -> Organization settings -> Skills. Skills are static snapshots, so
-   re-upload after a skill changes (the pre-commit drift gate keeps the repo side
+   then upload each per-skill `.zip` from `dist/skill-bundles/` to Claude.ai ->
+   Organization settings -> Skills, ONE archive at a time (Claude accepts one skill
+   per `.zip` = one top-level folder + SKILL.md; a multi-skill archive is rejected).
+   Skills are static snapshots, so re-upload after a skill changes (the pre-commit
+   drift gate keeps the repo side
    honest).
 
 ## The two auth channels — do not cross them
