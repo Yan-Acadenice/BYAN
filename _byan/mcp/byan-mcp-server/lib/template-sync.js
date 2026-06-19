@@ -116,6 +116,14 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/connector-remote-surface.test.js',
   '_byan/mcp/byan-mcp-server/test/skill-bundler.test.js',
   'docs/connector-admin-runbook.md',
+  // Portable MCP config (resolve-config). server.js (already mirrored) imports
+  // ./lib/resolve-config.js at load time, so the lib MUST ship or a fresh
+  // install crashes on boot (ERR_MODULE_NOT_FOUND). The resolver makes the
+  // server own its config (env -> ~/.byan/credentials.json -> localhost), so
+  // every yanstaller install works without the fragile .mcp.json ${} expansion.
+  // Its test ships with the server, same convention as the tests above.
+  '_byan/mcp/byan-mcp-server/lib/resolve-config.js',
+  '_byan/mcp/byan-mcp-server/test/resolve-config.test.js',
 ];
 
 // The template lives under this root-relative directory.

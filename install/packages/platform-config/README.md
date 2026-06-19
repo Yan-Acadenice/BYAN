@@ -22,6 +22,7 @@ const {
   tokenPrompt,
   validate,
   urlUtils,
+  credentials,
 } = require('byan-platform-config');
 ```
 
@@ -92,6 +93,27 @@ urlUtils.buildAuthHeader('byan_abc');       // → { Authorization: 'ApiKey byan
 urlUtils.buildAuthHeader('eyJ...');         // → { Authorization: 'Bearer eyJ...' }
 ```
 
+### credentials — global `~/.byan/credentials.json`
+
+The byan MCP server resolves its own config (`BYAN_API_URL`, `BYAN_API_TOKEN`,
+`LEANTIME_API_URL`, `LEANTIME_API_TOKEN`) at boot. `credentials.writeCredentials`
+persists those to a global, per-user, gitignored, chmod-600 file so the config
+is portable across shells (zsh/fish/bash) and OSes (`os.homedir()` resolves `~`
+on Unix and `%USERPROFILE%` on Windows) and reaches Claude Code AND Codex —
+without depending on `.mcp.json` `${...}` expansion.
+
+| Function | Signature | Description |
+| --- | --- | --- |
+| `writeCredentials` | `(values, { homedir? }) -> { path, written }` | merge-write the known keys; created at mode 0600; idempotent; ignores `${...}`/empty |
+| `readCredentials` | `(homedir?) -> object` | `{}` on a missing/invalid file (does not throw) |
+| `credentialsPath` | `(homedir?) -> string` | `<homedir>/.byan/credentials.json` |
+
+**Resolution precedence (server side):** `process.env` (a real value; an
+unexpanded `${...}` is treated as absent) `->` `~/.byan/credentials.json` `->`
+`http://localhost:3737`. A real `BYAN_API_URL` env var therefore still wins
+(prod sidecar / Docker / CI), the global file is the local-dev fallback, and the
+token is kept out of `.mcp.json`.
+
 ## Test
 
 ```bash
@@ -101,7 +123,8 @@ npm test
 ## Design invariants
 
 - READ-MERGE-WRITE on every file operation — unknown keys are preserved.
-- `ensureMcpConfig` keeps `mcpServers.byan.command` and `.args` if already set.
+- `ensureMcpConfig` keeps `mcpServers.byan.command` and `.args` if already set; it writes NO byan config env (the server resolves its own).
+- `writeCredentials` creates the file at mode 0600 (no group/other read window) and is a no-op-safe merge.
 - `validateByanWebReachability` resolves instead of rejecting — errors surface in the result object.
 - `stripApiSuffix` is idempotent and leaves URLs without a `/api` suffix untouched.
 - `buildAuthHeader` returns `{}` (not `{ Authorization: undefined }`) when token is missing.

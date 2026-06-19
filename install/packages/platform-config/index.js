@@ -13,4 +13,5 @@ module.exports = {
   tokenPrompt: require('./lib/token-prompt'),
   validate: require('./lib/validate'),
   urlUtils: require('./lib/url-utils'),
+  credentials: require('./lib/credentials'),
 };

@@ -23,16 +23,16 @@ describe('mcp-config', () => {
   });
 
   describe('ensureMcpConfig', () => {
-    test('creates .mcp.json with byan server config', async () => {
+    test('creates .mcp.json with the byan server (command/args, NO config env)', async () => {
       const { path: filePath } = await ensureMcpConfig(tmpRoot, {
         apiUrl: 'http://host.example.com',
       });
       const content = await fs.readJson(filePath);
       expect(content.mcpServers.byan.command).toBe('node');
-      expect(content.mcpServers.byan.args[0]).toBe(
-        '_byan/mcp/byan-mcp-server/server.js'
-      );
-      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://host.example.com');
+      expect(content.mcpServers.byan.args[0]).toBe('_byan/mcp/byan-mcp-server/server.js');
+      // The MCP server resolves its own config (env -> ~/.byan/credentials.json
+      // -> localhost), so .mcp.json carries no byan config env.
+      expect(content.mcpServers.byan.env).toBeUndefined();
     });
 
     test('preserves other MCP servers in existing config', async () => {
@@ -48,57 +48,30 @@ describe('mcp-config', () => {
       expect(content.mcpServers.byan).toBeDefined();
     });
 
-    test('overwrites existing byan entry (idempotent upgrade)', async () => {
+    test('idempotent: re-running leaves the byan entry env-free', async () => {
       await ensureMcpConfig(tmpRoot, { apiUrl: 'http://old:3000' });
       await ensureMcpConfig(tmpRoot, { apiUrl: 'http://new:3737' });
 
       const content = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
-      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://new:3737');
+      expect(content.mcpServers.byan.env).toBeUndefined();
     });
 
-    test('NEVER writes BYAN_API_TOKEN into .mcp.json even if a token is supplied (security: token lives in .env / settings.local.json)', async () => {
+    test('NEVER writes BYAN_API_TOKEN into .mcp.json even if a token is supplied', async () => {
       const { path: filePath } = await ensureMcpConfig(tmpRoot, {
         apiUrl: 'http://localhost:3737',
         token: 'my-secret-token',
       });
-      const content = await fs.readJson(filePath);
-      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
       const raw = await fs.readFile(filePath, 'utf8');
       expect(raw).not.toContain('my-secret-token');
       expect(raw).not.toContain(TOKEN_PLACEHOLDER);
     });
 
-    test('omits BYAN_API_TOKEN when token is empty string', async () => {
-      const { path: filePath } = await ensureMcpConfig(tmpRoot, {
-        apiUrl: 'http://localhost:3737',
-        token: '',
-      });
-      const content = await fs.readJson(filePath);
-      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
-    });
-
-    test('omits BYAN_API_TOKEN when token is undefined', async () => {
-      const { path: filePath } = await ensureMcpConfig(tmpRoot, {
-        apiUrl: 'http://localhost:3737',
-      });
-      const content = await fs.readJson(filePath);
-      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
-    });
-
-    test('strips trailing /api from URL', async () => {
+    test('writes no BYAN_API_URL into .mcp.json even when apiUrl carries a /api suffix', async () => {
       const { path: filePath } = await ensureMcpConfig(tmpRoot, {
         apiUrl: 'http://localhost:3737/api',
       });
-      const content = await fs.readJson(filePath);
-      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
-    });
-
-    test('strips trailing /api/ from URL', async () => {
-      const { path: filePath } = await ensureMcpConfig(tmpRoot, {
-        apiUrl: 'http://localhost:3737/api/',
-      });
-      const content = await fs.readJson(filePath);
-      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
+      const raw = await fs.readFile(filePath, 'utf8');
+      expect(raw).not.toContain('BYAN_API_URL');
     });
 
     test('preserves other mcpServers entries on merge', async () => {
@@ -112,7 +85,7 @@ describe('mcp-config', () => {
       expect(content.mcpServers.byan).toBeDefined();
     });
 
-    test('preserves existing command and args of mcpServers.byan when already set, and strips BYAN_API_TOKEN from env', async () => {
+    test('preserves byan command/args and REPAIRS a stale entry by stripping BYAN_API_URL/TOKEN', async () => {
       const filePath = path.join(tmpRoot, '.mcp.json');
       await fs.writeJson(filePath, {
         mcpServers: {
@@ -127,10 +100,11 @@ describe('mcp-config', () => {
       const content = await fs.readJson(filePath);
       expect(content.mcpServers.byan.command).toBe('custom-node');
       expect(content.mcpServers.byan.args[0]).toBe('/absolute/path/server.js');
-      expect(content.mcpServers.byan.env.BYAN_API_URL).toBe('http://new:3737');
-      expect(content.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+      // Both stale byan keys stripped -> env empty -> omitted entirely.
+      expect(content.mcpServers.byan.env).toBeUndefined();
       const raw = await fs.readFile(filePath, 'utf8');
       expect(raw).not.toContain('leaked_in_clear');
+      expect(raw).not.toContain('http://old:3737');
     });
 
     test('returns an object with path property', async () => {
@@ -170,23 +144,27 @@ describe('mcp-config', () => {
       expect(result.mcpServers.byan).toBeDefined();
     });
 
-    test('strips /api suffix in apiUrl', () => {
-      const result = mergeByanEntry({}, { apiUrl: 'http://localhost:3737/api' });
-      expect(result.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
-    });
-
-    test('strips BYAN_API_TOKEN from env even when a token is supplied (security)', () => {
-      const result = mergeByanEntry({}, { apiUrl: 'http://x:1', token: 'byan_abc' });
-      expect(result.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+    test('writes NO config env into the byan entry (server resolves its own config), even with /api + token', () => {
+      const result = mergeByanEntry({}, { apiUrl: 'http://localhost:3737/api', token: 'byan_abc' });
+      expect(result.mcpServers.byan.env).toBeUndefined();
       expect(JSON.stringify(result)).not.toContain('byan_abc');
+      expect(JSON.stringify(result)).not.toContain('BYAN_API_URL');
       expect(JSON.stringify(result)).not.toContain(TOKEN_PLACEHOLDER);
     });
 
-    test('omits token when empty/undefined', () => {
-      const r1 = mergeByanEntry({}, { apiUrl: 'http://x:1', token: '' });
-      const r2 = mergeByanEntry({}, { apiUrl: 'http://x:1' });
-      expect(r1.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
-      expect(r2.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+    test('preserves a non-byan env key (e.g. a Leantime ref) while stripping byan keys', () => {
+      const input = {
+        mcpServers: {
+          byan: {
+            command: 'node',
+            args: ['s.js'],
+            env: { LEANTIME_API_URL: '${LEANTIME_API_URL}', BYAN_API_URL: 'http://old' },
+          },
+        },
+      };
+      const result = mergeByanEntry(input, { apiUrl: 'http://x:1' });
+      expect(result.mcpServers.byan.env.LEANTIME_API_URL).toBe('${LEANTIME_API_URL}');
+      expect(result.mcpServers.byan.env.BYAN_API_URL).toBeUndefined();
     });
 
     test('handles empty input config', () => {

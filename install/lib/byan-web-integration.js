@@ -11,6 +11,8 @@ const {
   envConfig: { updateSettingsLocal: sharedUpdateSettingsLocal, updateDotenv: sharedUpdateDotenv },
   tokenPrompt: { promptForToken, ENV_KEYS },
   validate: { validateByanWebReachability },
+  credentials: { writeCredentials: sharedWriteCredentials },
+  urlUtils: { stripApiSuffix },
 } = require('byan-platform-config');
 
 // Shared primitives return { path: string } — unwrap to plain string for
@@ -54,12 +56,18 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
   const settingsPath = await updateSettingsLocal(projectRoot, env);
   const envPath = await updateDotenv(projectRoot, env);
   const mcpPath = await ensureMcpConfig(projectRoot, inputs.apiUrl, inputs.token);
+  // Global per-user credentials file: the source the MCP server resolves at
+  // boot (env -> ~/.byan/credentials.json -> localhost). This is what makes the
+  // MCP portable across shells/OSes and Claude Code AND Codex, instead of
+  // relying on .mcp.json ${} expansion or settings.local.json env injection.
+  const credsResult = await sharedWriteCredentials({ BYAN_API_URL: stripApiSuffix(inputs.apiUrl), BYAN_API_TOKEN: inputs.token });
 
   if (!options.quiet) {
     console.log(chalk.green(`  ✓ byan_web integration configured`));
     console.log(chalk.gray(`    - Token (Claude Code) → ${path.relative(projectRoot, settingsPath)}`));
     console.log(chalk.gray(`    - Token (shell / env) → ${path.relative(projectRoot, envPath)}`));
     console.log(chalk.gray(`    - MCP server registered in ${path.relative(projectRoot, mcpPath)}`));
+    console.log(chalk.gray(`    - MCP credentials (all shells/OS) → ${credsResult.path}`));
   }
 
   return {
@@ -67,6 +75,7 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
     settingsPath,
     envPath,
     mcpPath,
+    credentialsPath: credsResult.path,
     apiUrl: inputs.apiUrl,
     token: inputs.token,
   };

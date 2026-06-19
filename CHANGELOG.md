@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Portable MCP config: the server resolves its own credentials
+
+The byan MCP server now resolves its config (`BYAN_API_URL` / `BYAN_API_TOKEN`
+and the Leantime pair) instead of depending on `.mcp.json` `${...}` expansion,
+which silently passed a literal `"${BYAN_API_URL}"` to the server when the
+launcher could not expand it — breaking every byan_web call (projects/memory/
+strict sync). This makes the MCP portable across zsh/fish/bash x Linux/Windows/
+macOS and covers Claude Code AND Codex with one mechanism.
+
+- `_byan/mcp/byan-mcp-server/lib/resolve-config.js` (new): per-key precedence
+  `process.env -> ~/.byan/credentials.json -> localhost default`. An unexpanded
+  `${...}` env value is treated as ABSENT (so a stale `.mcp.json` no longer
+  poisons the config), and a missing/invalid credentials file degrades to
+  defaults rather than throwing at boot. `server.js` wires it and backfills
+  `process.env` so downstream readers (Leantime) see the resolved values.
+- The yanstaller now writes a global, gitignored, chmod-600
+  `~/.byan/credentials.json` (`byan-platform-config`'s new `credentials.js`,
+  wired into `setupByanWebIntegration`) — one file for all the user's projects,
+  via `os.homedir()` so it is truly cross-OS with no shell-profile editing.
+- `.mcp.json` no longer carries byan config env: the template drops the `env`
+  block and `mergeByanEntry` stops writing `BYAN_API_URL` (and repairs a stale
+  entry by stripping any `BYAN_API_URL`/`BYAN_API_TOKEN` it carried). The token
+  stays out of `.mcp.json` (it lives only in the gitignored credentials file
+  and .env / settings.local.json).
+- Precedence summary for operators: a real `BYAN_API_URL` env var still wins
+  (prod sidecar / Docker / CI unaffected); the global credentials file is the
+  local-dev fallback; `http://localhost:3737` is the last resort.
+- Reviewed by Quinn + `bmad-compliance` (security domain): a TOCTOU on the
+  credentials file (write-then-chmod exposed the token at 0644 for a window)
+  was fixed by creating the file at mode 0600 directly, with a regression test.
+- Tests: `resolve-config` (8) + `credentials` (8, incl. the TOCTOU + overwrite
+  cases) + the realigned `mcp-config` suite; connector suite 635/635 green.
+
 ### Added - OAuth 2.1 per-member identity for the Claude Team org connector
 
 The remote connector now carries per-member identity through OAuth 2.1

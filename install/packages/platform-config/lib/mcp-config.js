@@ -2,27 +2,29 @@
  * .mcp.json management.
  *
  * READ-MERGE-WRITE semantics : preserves all existing mcpServers.* entries
- * and, if byan entry already exists, preserves its command/args. Only the
- * env.BYAN_API_URL is authoritative from caller.
+ * and, if the byan entry already exists, preserves its command/args. The byan
+ * entry carries NO config env: the MCP server resolves its own config at boot
+ * (env -> ~/.byan/credentials.json -> localhost) via
+ * _byan/mcp/byan-mcp-server/lib/resolve-config.js. This is portable across
+ * shells/OSes and covers Claude Code AND Codex, and does not depend on the
+ * fragile .mcp.json ${} expansion (which silently passed a literal "${...}" to
+ * the server) nor on Claude Code injecting settings.local.json env into MCP
+ * spawns (which proved unreliable).
  *
- * Security: BYAN_API_TOKEN is NEVER written into .mcp.json (which is
- * checked into git). The token lives exclusively in:
- *   - .env (gitignored, for shell tools and Codex CLI)
- *   - .claude/settings.local.json (gitignored, for Claude Code MCP injection)
+ * Security: BYAN_API_TOKEN is NEVER written into .mcp.json (which is checked
+ * into git). The token + URL live in the global, gitignored, chmod-600
+ * ~/.byan/credentials.json (credentials.writeCredentials), and the token also
+ * stays in .env / .claude/settings.local.json (gitignored) for shell tools.
  *
- * Claude Code reads .claude/settings.local.json's "env" block at startup and
- * injects those vars into every MCP server it spawns. So the token reaches
- * the byan MCP server via that channel — no need to declare it in .mcp.json.
- *
- * The `token` parameter on this module's API is kept for backward-compat
- * but is intentionally discarded (with a one-line audit trail in the
- * returned result). Callers that supply a token should instead use
- * envConfig.updateDotenv + envConfig.updateSettingsLocal.
+ * The `apiUrl`/`token` parameters on this module's API are kept for
+ * backward-compat but are intentionally NOT written into .mcp.json: callers
+ * persist them via credentials.writeCredentials (and envConfig for .env /
+ * settings.local). mergeByanEntry additionally repairs a stale entry by
+ * stripping any BYAN_API_URL/BYAN_API_TOKEN it carried.
  */
 
 const path = require('path');
 const fs = require('fs-extra');
-const { stripApiSuffix } = require('./url-utils');
 
 const MCP_SERVER_REL_PATH = '_byan/mcp/byan-mcp-server/server.js';
 const TOKEN_PLACEHOLDER = '${BYAN_API_TOKEN}';
@@ -67,24 +69,33 @@ async function readMcpConfig(projectRoot) {
  * @param {{ apiUrl: string, token?: string }} opts — `token` is accepted but discarded
  * @returns {object} new merged config
  */
-function mergeByanEntry(existingConfig, { apiUrl } = {}) {
+function mergeByanEntry(existingConfig, { apiUrl, token } = {}) {
   const cfg = existingConfig && typeof existingConfig === 'object' ? { ...existingConfig } : {};
   cfg.mcpServers = { ...(cfg.mcpServers || {}) };
 
   const existing = cfg.mcpServers.byan || {};
-  const cleanUrl = stripApiSuffix(apiUrl);
 
+  // The MCP server resolves its OWN config (env -> ~/.byan/credentials.json ->
+  // localhost) via _byan/mcp/byan-mcp-server/lib/resolve-config.js, so .mcp.json
+  // carries NO byan config env. `apiUrl`/`token` are accepted for backward-compat
+  // but are intentionally NOT written here: the URL + token are persisted to the
+  // global ~/.byan/credentials.json (credentials.writeCredentials) instead. This
+  // also REPAIRS a stale entry that carried BYAN_API_URL (incl. an unexpanded
+  // ${BYAN_API_URL}) by stripping it. Any other pre-existing env key (e.g. the
+  // Leantime refs) is preserved.
   const env = { ...(existing.env || {}) };
-  env.BYAN_API_URL = cleanUrl;
+  delete env.BYAN_API_URL;
   delete env.BYAN_API_TOKEN;
 
-  cfg.mcpServers.byan = {
+  const entry = {
     command: 'node',
     args: [MCP_SERVER_REL_PATH],
     ...existing,
-    env,
   };
+  if (Object.keys(env).length > 0) entry.env = env;
+  else delete entry.env;
 
+  cfg.mcpServers.byan = entry;
   return cfg;
 }
 

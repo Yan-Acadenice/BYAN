@@ -9,6 +9,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { dispatch } from './lib/dispatch.js';
+import { resolveConfig } from './lib/resolve-config.js';
 import { harvest as harvestInsights, renderDigest as renderInsightDigest } from './lib/insight-harvest.js';
 import { appendOutcome } from './lib/outcome-buffer.js';
 import { validateForLog, eloOutcomeForStrictComplete } from './lib/advisory-autofeed.js';
@@ -96,11 +97,23 @@ const __dirname = nodePath.dirname(__filename);
 // {projectRoot}/_byan/mcp/byan-mcp-server/server.js, so go up three levels.
 const PROJECT_ROOT = nodePath.resolve(__dirname, '..', '..', '..');
 
-const BYAN_API_URL = process.env.BYAN_API_URL || 'http://localhost:3737';
+// Config resolution (F1): precedence process.env -> ~/.byan/credentials.json
+// -> localhost default, with an unexpanded ${..} env value treated as absent.
+// The resolver (lib/resolve-config.js) owns this so the server works regardless
+// of how it was launched (Claude Code ${} expansion, Codex, raw stdio) and
+// across shells/OSes. We backfill process.env with the resolved values so every
+// downstream reader (requireLeantime, the Leantime client) sees a real value
+// instead of the literal "${...}" placeholder that breaks byan_web calls.
+const RESOLVED_CONFIG = resolveConfig();
+for (const k of ['BYAN_API_URL', 'BYAN_API_TOKEN', 'LEANTIME_API_URL', 'LEANTIME_API_TOKEN']) {
+  if (RESOLVED_CONFIG[k]) process.env[k] = RESOLVED_CONFIG[k];
+}
+
+const BYAN_API_URL = RESOLVED_CONFIG.BYAN_API_URL;
 // Local-dev / single-user fallback token. On the remote HTTP transport the
 // real identity is the PER-REQUEST token (see createByanServer), so this env
 // value is only the floor when no per-request token is supplied (stdio).
-const ENV_API_TOKEN = process.env.BYAN_API_TOKEN || '';
+const ENV_API_TOKEN = RESOLVED_CONFIG.BYAN_API_TOKEN;
 
 // Per-call auth header builder. The token is passed EXPLICITLY (per-request on
 // the remote transport; the env token locally) so a shared connector process
