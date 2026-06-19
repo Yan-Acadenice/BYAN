@@ -941,56 +941,74 @@ const tools = [
   },
 
   // ─── Knowledge ────────────────────────────────────────────────────────
+  // Routes: GET /api/projects/:projectId/knowledge (RBAC viewer)
+  //         GET /api/projects/:projectId/knowledge/:id (RBAC viewer)
+  // The flat /api/knowledge surface was decommissioned (IDOR — no RBAC).
   {
     name: 'byan_api_knowledge_list',
     description:
-      'List knowledge entries, optionally filtered by project, category, tags, or limit. GET /api/knowledge. Requires BYAN_API_TOKEN.',
+      'List knowledge entries for a project. GET /api/projects/:projectId/knowledge. projectId is required (the flat /api/knowledge surface was decommissioned for IDOR). Requires BYAN_API_TOKEN.',
     inputSchema: {
       type: 'object',
       properties: {
-        projectId: { type: 'string' },
+        projectId: { type: 'string', description: 'Project id (required).' },
         category: { type: 'string' },
-        tags: { type: 'string', description: 'Comma-separated tag list.' },
+        tags: { type: 'string', description: 'Tag filter (substring match).' },
+        nodeId: { type: 'string', description: 'Filter by node id (includes child nodes).' },
         limit: { type: 'number' },
       },
+      required: ['projectId'],
       additionalProperties: false,
     },
   },
   {
     name: 'byan_api_knowledge_get',
     description:
-      'Fetch a single knowledge entry by id. GET /api/knowledge/:id. Requires BYAN_API_TOKEN.',
+      'Fetch a single knowledge entry by id within a project. GET /api/projects/:projectId/knowledge/:id. Both projectId and id are required (RBAC guard). Requires BYAN_API_TOKEN.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string', description: 'Knowledge entry id.' } },
-      required: ['id'],
+      properties: {
+        projectId: { type: 'string', description: 'Project id (required for RBAC).' },
+        id: { type: 'string', description: 'Knowledge entry id.' },
+      },
+      required: ['projectId', 'id'],
       additionalProperties: false,
     },
   },
 
   // ─── Memory ───────────────────────────────────────────────────────────
+  // Route: GET /api/projects/:projectId/memory (RBAC viewer)
+  // The flat /api/memory surface was decommissioned (IDOR).
+  // Full-text memory search: use byan_api_search with q + project_id.
   {
     name: 'byan_api_memory_list',
     description:
-      'List memory entries, optionally filtered by project, category, type, or limit. GET /api/memory. Requires BYAN_API_TOKEN.',
+      'List memory entries for a project. GET /api/projects/:projectId/memory. projectId is required (the flat /api/memory surface was decommissioned for IDOR). Optionally filter by category, layer, nodeId, sessionId, limit, includePinned. Requires BYAN_API_TOKEN.',
     inputSchema: {
       type: 'object',
       properties: {
-        projectId: { type: 'string' },
+        projectId: { type: 'string', description: 'Project id (required).' },
         category: { type: 'string' },
-        type: { type: 'string' },
+        layer: { type: 'string', description: 'Memory layer filter (e.g. short_term, long_term).' },
+        nodeId: { type: 'string' },
+        sessionId: { type: 'string' },
+        includePinned: { type: 'boolean' },
         limit: { type: 'number' },
       },
+      required: ['projectId'],
       additionalProperties: false,
     },
   },
   {
     name: 'byan_api_memory_search',
     description:
-      'Full-text search across memory entries. GET /api/memory/search. Requires BYAN_API_TOKEN.',
+      'Full-text search over project knowledge and nodes (covers memory indirectly). Routes to GET /api/search?q=...&project_id=... — the dedicated /api/memory/search surface was decommissioned. For structured memory recall use byan_api_memory_list with category/layer filters. Requires BYAN_API_TOKEN.',
     inputSchema: {
       type: 'object',
-      properties: { q: { type: 'string', description: 'Search query.' } },
+      properties: {
+        q: { type: 'string', description: 'Search query.' },
+        projectId: { type: 'string', description: 'Optional project id to scope the search.' },
+      },
       required: ['q'],
       additionalProperties: false,
     },
@@ -1029,35 +1047,38 @@ const tools = [
   },
 
   // ─── Sessions ─────────────────────────────────────────────────────────
+  // Routes: GET /api/projects/:projectId/sessions (RBAC viewer)
+  //         GET /api/projects/:projectId/sessions/:id (RBAC viewer)
+  // The flat /api/sessions surface was decommissioned (IDOR).
+  // Note: there is no /history sub-route on project-scoped sessions;
+  // byan_api_sessions_history has been removed from this surface.
   {
     name: 'byan_api_sessions_list',
     description:
-      'List byan_web sessions, optionally filtered by project. GET /api/sessions. Requires BYAN_API_TOKEN.',
+      'List project sessions. GET /api/projects/:projectId/sessions. projectId is required (the flat /api/sessions surface was decommissioned for IDOR). Optionally filter by userId, cliSource, limit. Requires BYAN_API_TOKEN.',
     inputSchema: {
       type: 'object',
-      properties: { projectId: { type: 'string' } },
+      properties: {
+        projectId: { type: 'string', description: 'Project id (required).' },
+        userId: { type: 'string' },
+        cliSource: { type: 'string' },
+        limit: { type: 'number' },
+      },
+      required: ['projectId'],
       additionalProperties: false,
     },
   },
   {
     name: 'byan_api_sessions_get',
     description:
-      'Fetch a single session by id. GET /api/sessions/:id. Requires BYAN_API_TOKEN.',
+      'Fetch a single project session by id. GET /api/projects/:projectId/sessions/:id. Both projectId and id are required (RBAC guard). Requires BYAN_API_TOKEN.',
     inputSchema: {
       type: 'object',
-      properties: { id: { type: 'string', description: 'Session id.' } },
-      required: ['id'],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: 'byan_api_sessions_history',
-    description:
-      'Fetch the message/event history of a session. GET /api/sessions/:id/history. Requires BYAN_API_TOKEN.',
-    inputSchema: {
-      type: 'object',
-      properties: { id: { type: 'string', description: 'Session id.' } },
-      required: ['id'],
+      properties: {
+        projectId: { type: 'string', description: 'Project id (required for RBAC).' },
+        id: { type: 'string', description: 'Session id.' },
+      },
+      required: ['projectId', 'id'],
       additionalProperties: false,
     },
   },
@@ -1293,7 +1314,6 @@ const REMOTE_SAFE_TOOLS = new Set([
   'byan_api_custom_agents_get',
   'byan_api_sessions_list',
   'byan_api_sessions_get',
-  'byan_api_sessions_history',
   'byan_api_chat_conversations_list',
   'byan_api_chat_messages_list',
   'byan_api_search',
@@ -1810,38 +1830,50 @@ export function createByanServer({ token, remoteOnly = false } = {}) {
 
     if (name === 'byan_api_knowledge_list') {
       requireToken();
+      if (!args.projectId) throw new Error('projectId is required (RBAC: knowledge is project-scoped).');
       const qs = buildQuery({
-        project_id: args.projectId,
         category: args.category,
         tags: args.tags,
-        limit: args.limit,
+        nodeId: args.nodeId,
       });
-      const body = await apiRequest(`/api/knowledge${qs}`);
+      const body = await apiRequest(
+        `/api/projects/${encodeURIComponent(args.projectId)}/knowledge${qs}`
+      );
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
     if (name === 'byan_api_knowledge_get') {
       requireToken();
-      const body = await apiRequest(`/api/knowledge/${encodeURIComponent(args.id)}`);
+      if (!args.projectId) throw new Error('projectId is required (RBAC: knowledge is project-scoped).');
+      const body = await apiRequest(
+        `/api/projects/${encodeURIComponent(args.projectId)}/knowledge/${encodeURIComponent(args.id)}`
+      );
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
     if (name === 'byan_api_memory_list') {
       requireToken();
+      if (!args.projectId) throw new Error('projectId is required (RBAC: memory is project-scoped).');
       const qs = buildQuery({
-        project_id: args.projectId,
         category: args.category,
-        type: args.type,
+        layer: args.layer,
+        nodeId: args.nodeId,
+        sessionId: args.sessionId,
+        includePinned: args.includePinned,
         limit: args.limit,
       });
-      const body = await apiRequest(`/api/memory${qs}`);
+      const body = await apiRequest(
+        `/api/projects/${encodeURIComponent(args.projectId)}/memory${qs}`
+      );
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
     if (name === 'byan_api_memory_search') {
       requireToken();
-      const qs = buildQuery({ q: args.q });
-      const body = await apiRequest(`/api/memory/search${qs}`);
+      // /api/memory/search is decommissioned; full-text search routes through /api/search
+      // which covers knowledge + nodes across projects the caller can access.
+      const qs = buildQuery({ q: args.q, project_id: args.projectId });
+      const body = await apiRequest(`/api/search${qs}`);
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
@@ -1870,21 +1902,23 @@ export function createByanServer({ token, remoteOnly = false } = {}) {
 
     if (name === 'byan_api_sessions_list') {
       requireToken();
-      const qs = buildQuery({ project_id: args.projectId });
-      const body = await apiRequest(`/api/sessions${qs}`);
+      if (!args.projectId) throw new Error('projectId is required (RBAC: sessions are project-scoped).');
+      const qs = buildQuery({
+        userId: args.userId,
+        cliSource: args.cliSource,
+        limit: args.limit,
+      });
+      const body = await apiRequest(
+        `/api/projects/${encodeURIComponent(args.projectId)}/sessions${qs}`
+      );
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
 
     if (name === 'byan_api_sessions_get') {
       requireToken();
-      const body = await apiRequest(`/api/sessions/${encodeURIComponent(args.id)}`);
-      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
-    }
-
-    if (name === 'byan_api_sessions_history') {
-      requireToken();
+      if (!args.projectId) throw new Error('projectId is required (RBAC: sessions are project-scoped).');
       const body = await apiRequest(
-        `/api/sessions/${encodeURIComponent(args.id)}/history`
+        `/api/projects/${encodeURIComponent(args.projectId)}/sessions/${encodeURIComponent(args.id)}`
       );
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
