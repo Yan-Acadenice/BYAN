@@ -1290,6 +1290,56 @@ const tools = [
       additionalProperties: false,
     },
   },
+
+  // ─── Styx discovery index (FD-2) ───────────────────────────────────────
+  {
+    name: 'byan_styx_atlas',
+    description:
+      'Styx atlas: a token-bounded map of the WHOLE byan_web ecosystem (projects, nodes, knowledge, workflows, agents) in one call. GET /api/styx/atlas. Returns dense STYX/1 text (one compact line per entity, not JSON-per-item) so you can locate anything cheaply, then descend with byan_styx_get. Aggregates hierarchically (projects + per-project counts + top-k children) and stops at maxTokens. Use this BEFORE list_projects + search when you want a cheap overview or to find an entity. Requires BYAN_API_TOKEN. Scoped to the caller\'s accessible projects (+ global).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        kind: {
+          type: 'string',
+          enum: ['project', 'node', 'knowledge', 'workflow', 'agent'],
+          description: 'Optional: restrict the atlas to one entity kind.',
+        },
+        projectId: {
+          type: 'string',
+          description: 'Optional: zoom into a single project instead of the ecosystem-wide view.',
+        },
+        maxTokens: {
+          type: 'number',
+          description: 'Token budget for the atlas (default 1500, server cap 4000). Out of [100,4000] -> INVALID_FORMAT.',
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'byan_styx_get',
+    description:
+      'Styx get: zoom into one entity and list its DIRECT children only (one level per call, fanout-bounded ~7). GET /api/styx/get. Use the id8 prefix (8 chars) or full uuid shown in the atlas, or "__global__" for the global node. Returns dense STYX/1 text + breadcrumb + footer (cursor for paging beyond fanout). This is the progressive descent companion of byan_styx_atlas. Requires BYAN_API_TOKEN. Entities outside accessible projects resolve as STYX_NOT_FOUND (no cross-tenant existence leak).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: {
+          type: 'string',
+          description: 'Entity id: id8 prefix, full uuid, or "__global__".',
+        },
+        fanout: {
+          type: 'number',
+          description: 'Number of direct children to return (default 7, cap 15).',
+        },
+        cursor: {
+          type: 'string',
+          description: 'Opaque pagination cursor returned in a previous footer to fetch the next page of children.',
+        },
+      },
+      required: ['id'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 // Remote-safe MVP allowlist: the ONLY tools exposed on the remote Org Connector
@@ -1317,6 +1367,8 @@ const REMOTE_SAFE_TOOLS = new Set([
   'byan_api_chat_conversations_list',
   'byan_api_chat_messages_list',
   'byan_api_search',
+  'byan_styx_atlas',
+  'byan_styx_get',
 ]);
 
 // Resolve the effective byan_web token for a server instance. On the remote
@@ -1960,6 +2012,30 @@ export function createByanServer({ token, remoteOnly = false } = {}) {
       });
       const body = await apiRequest(`/api/search${qs}`);
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_styx_atlas') {
+      requireToken();
+      const qs = buildQuery({
+        kind: args.kind,
+        projectId: args.projectId,
+        maxTokens: args.maxTokens,
+      });
+      const body = await apiRequest(`/api/styx/atlas${qs}`);
+      // body.data is the dense STYX/1 text -- return it verbatim (the whole point
+      // of styx is token economy ; do not re-wrap each line as JSON).
+      return { content: [{ type: 'text', text: (body && body.data) || JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_styx_get') {
+      requireToken();
+      const qs = buildQuery({
+        id: args.id,
+        fanout: args.fanout,
+        cursor: args.cursor,
+      });
+      const body = await apiRequest(`/api/styx/get${qs}`);
+      return { content: [{ type: 'text', text: (body && body.data) || JSON.stringify(body, null, 2) }] };
     }
 
     if (name === 'byan_api_import_scan') {

@@ -15,8 +15,10 @@
 import { REMOTE_SAFE_TOOLS } from '../server.js';
 
 // Shape of an acceptable remote-safe tool: ping, the user-scoped project list,
-// or any byan_api_* READ tool (writes/imports are filtered out below).
-const ALLOWED_SHAPE = /^byan_(ping|list_projects|api_[a-z_]+)$/;
+// any byan_api_* READ tool (writes/imports are filtered out below), or the styx
+// discovery-index read tools (atlas/get -> GET /api/styx/*, user-scoped server
+// side via the per-request token, no local-fs dependency).
+const ALLOWED_SHAPE = /^byan_(ping|list_projects|api_[a-z_]+|styx_(atlas|get))$/;
 
 // Families that are fs-local / stateful / single-tenant by construction.
 const FORBIDDEN_FAMILY =
