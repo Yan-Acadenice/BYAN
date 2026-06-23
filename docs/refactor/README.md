@@ -23,6 +23,13 @@
 - [F9](F9-cli-dedup.md) — Dedup des variantes `create-byan-agent`
 - [F10](F10-npm-package-size.md) — Exclusion des node_modules parasites (80MB -> 6.3MB)
 
+**Suite — adoption layout + Gen3** (ajouts post-FD initial)
+- [F11](F11-yanstaller-wiring.md) — Cablage yanstaller (hook dormant)
+- [F12](F12-layout-adoption.md) — Adoption du layout cible
+- [F21](F21-template-born-gen3.md) — Templates born-Gen3
+- [F22](F22-stubs-gen3-repoint.md) — Repoint des stubs vers Gen3
+- [F23](F23-updater-hardening.md) — Durcissement de l'updater
+
 ## Modele cible
 
 Voir [`target-model.drawio`](target-model.drawio) :
