@@ -186,13 +186,14 @@ describe('retro-compat: install-core AUTO is a SUPERSET of the v2.19 AUTO artifa
     expect(await fs.pathExists(path.join(soulDir, 'creator-soul.md'))).toBe(true);
   });
 
-  test('.mcp.json content parity: mcpServers.byan present, BYAN_API_URL clean of /api, NO raw token', async () => {
+  test('.mcp.json content parity: mcpServers.byan present, no BYAN_API_URL (server self-resolves), no raw token', async () => {
     const mcp = await fs.readJson(path.join(tmp, '.mcp.json'));
     expect(mcp.mcpServers && mcp.mcpServers.byan).toBeDefined();
     const env = mcp.mcpServers.byan.env || {};
-    expect(env.BYAN_API_URL).toBeDefined();
-    expect(env.BYAN_API_URL).not.toMatch(/\/api(\/|$)/);
-    // The token belongs in .env / settings.local.json, never in the committed .mcp.json.
+    // Portable config (commit 793badb): the server self-resolves its config, so
+    // .mcp.json carries no BYAN_API_URL.
+    expect(env.BYAN_API_URL).toBeUndefined();
+    // The token belongs in .env / settings.local.json, not the committed .mcp.json.
     expect(env.BYAN_API_TOKEN).toBeUndefined();
   });
 

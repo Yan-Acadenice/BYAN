@@ -181,7 +181,7 @@ describe('apply + verify (install-core)', () => {
       expect(byId['manifest'].status).toBe('done');
     });
 
-    test('written .mcp.json is clean: BYAN_API_URL has no /api, no token key', async () => {
+    test('written .mcp.json is clean: no BYAN_API_URL (portable), no token key', async () => {
       const plan = buildPlan({
         steps: buildPlan().steps.map((s) =>
           s.id === 'render:mcp' ? { ...s, apiUrl: 'http://localhost:3737/api' } : s
@@ -189,8 +189,9 @@ describe('apply + verify (install-core)', () => {
       });
       await apply(plan, { cwd: tmpRoot, run: makeRunner(), secrets: { BYAN_API_TOKEN: FAKE_TOKEN } });
       const mcp = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
-      expect(mcp.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
-      expect(mcp.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+      // Portable: no BYAN_API_URL and no token persisted into .mcp.json.
+      expect(mcp.mcpServers.byan.env?.BYAN_API_URL).toBeUndefined();
+      expect(mcp.mcpServers.byan.env?.BYAN_API_TOKEN).toBeUndefined();
     });
 
     test('config.yaml carries the v2.19 AUTO fields (install_mode, platform, byan_version, soul_mode)', async () => {
@@ -438,7 +439,7 @@ describe('apply + verify (install-core)', () => {
       // Corrupt the url with an /api suffix (the thing render strips).
       const mcpPath = path.join(tmpRoot, '.mcp.json');
       const mcp = await fs.readJson(mcpPath);
-      mcp.mcpServers.byan.env.BYAN_API_URL = 'http://localhost:3737/api';
+      mcp.mcpServers.byan.env = { ...(mcp.mcpServers.byan.env || {}), BYAN_API_URL: 'http://localhost:3737/api' };
       await fs.writeJson(mcpPath, mcp);
 
       const report = await verify(plan, { cwd: tmpRoot });
@@ -451,7 +452,7 @@ describe('apply + verify (install-core)', () => {
       await apply(plan, { cwd: tmpRoot, run: makeRunner(), secrets: { BYAN_API_TOKEN: FAKE_TOKEN } });
       const mcpPath = path.join(tmpRoot, '.mcp.json');
       const mcp = await fs.readJson(mcpPath);
-      mcp.mcpServers.byan.env.BYAN_API_TOKEN = FAKE_TOKEN; // never allowed in .mcp.json
+      mcp.mcpServers.byan.env = { ...(mcp.mcpServers.byan.env || {}), BYAN_API_TOKEN: FAKE_TOKEN }; // must not appear in .mcp.json
       await fs.writeJson(mcpPath, mcp);
 
       const report = await verify(plan, { cwd: tmpRoot });

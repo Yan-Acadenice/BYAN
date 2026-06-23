@@ -44,13 +44,16 @@ describe('env-writer + mcp-renderer (install-core)', () => {
   });
 
   describe('mcp-renderer — validate-or-die (C9)', () => {
-    test('renderMcp strips /api suffix and writes no token', async () => {
+    test('renderMcp validates the url but writes a portable byan entry (no config env, no token)', async () => {
       const { path: filePath } = await renderMcp(tmpRoot, {
         apiUrl: 'http://localhost:3737/api',
       });
       const written = await fs.readJson(filePath);
-      expect(written.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
-      expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+      // Portable config (commit 793badb): the server self-resolves, so .mcp.json
+      // carries neither BYAN_API_URL nor a token.
+      expect(written.mcpServers.byan).toBeDefined();
+      expect(written.mcpServers.byan.env?.BYAN_API_URL).toBeUndefined();
+      expect(written.mcpServers.byan.env?.BYAN_API_TOKEN).toBeUndefined();
     });
 
     test('written .mcp.json parses back to a valid object', async () => {
@@ -96,7 +99,9 @@ describe('env-writer + mcp-renderer (install-core)', () => {
 
     test('previewMcp returns merged object WITHOUT writing a file', () => {
       const preview = previewMcp(tmpRoot, { apiUrl: 'http://localhost:3737' });
-      expect(preview.mcpServers.byan.env.BYAN_API_URL).toBe('http://localhost:3737');
+      expect(preview.mcpServers.byan).toBeDefined();
+      // Portable: no BYAN_API_URL persisted in the preview either.
+      expect(preview.mcpServers.byan.env?.BYAN_API_URL).toBeUndefined();
       // No disk side-effect from a preview.
       expect(fs.existsSync(path.join(tmpRoot, '.mcp.json'))).toBe(false);
     });

@@ -177,8 +177,9 @@ test('strips /api suffix and extracts clear token to .env (token removed from .m
   expect(result.migrated).toBe(true);
 
   const written = await readMcp(dir);
-  expect(written.mcpServers.byan.env.BYAN_API_URL).toBe('https://api.byan.io');
-  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+  // Portable: migration strips BYAN_API_URL and the token from .mcp.json.
+  expect(written.mcpServers.byan.env?.BYAN_API_URL).toBeUndefined();
+  expect(written.mcpServers.byan.env?.BYAN_API_TOKEN).toBeUndefined();
   const dotenvContent = await fs.readFile(path.join(dir, '.env'), 'utf8');
   expect(dotenvContent).toContain('BYAN_API_TOKEN=byan_tok');
   const raw = await fs.readFile(path.join(dir, '.mcp.json'), 'utf8');
@@ -204,7 +205,7 @@ test('extracts clear token from .mcp.json into .env and removes it from .mcp.jso
   expect(result.changes.some((c) => /extracted/i.test(c))).toBe(true);
 
   const written = await readMcp(dir);
-  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+  expect(written.mcpServers.byan.env?.BYAN_API_TOKEN).toBeUndefined();
 
   const raw = await fs.readFile(path.join(dir, '.mcp.json'), 'utf8');
   expect(raw).not.toContain('byan_leaked_in_clear');
@@ -231,7 +232,7 @@ test('removes ${BYAN_API_TOKEN} placeholder from .mcp.json (no value to extract)
   expect(result.reason).toBe('healed');
 
   const written = await readMcp(dir);
-  expect(written.mcpServers.byan.env.BYAN_API_TOKEN).toBeUndefined();
+  expect(written.mcpServers.byan.env?.BYAN_API_TOKEN).toBeUndefined();
   await fs.remove(dir);
 });
 

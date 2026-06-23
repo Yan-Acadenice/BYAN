@@ -85,14 +85,17 @@ describe('post-install state (FD 20260428)', () => {
     expect(sl.enabledMcpjsonServers).not.toContain('gdrive');
   });
 
-  test('apiUrl from byan_web is propagated into .mcp.json', async () => {
+  test('byan_web setup writes a portable .mcp.json (byan entry, no BYAN_API_URL; server self-resolves)', async () => {
     await claudeNative.setupClaudeNative(tmpRoot, {
       quiet: true,
       installDeps: false,
       apiUrl: 'https://byan.example.com',
     });
     const cfg = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
-    expect(cfg.mcpServers.byan.env.BYAN_API_URL).toBe('https://byan.example.com');
+    // Portable config (commit 793badb): the apiUrl is resolved by the server at
+    // boot (env -> ~/.byan/credentials.json -> localhost), not committed here.
+    expect(cfg.mcpServers.byan).toBeDefined();
+    expect(cfg.mcpServers.byan.env?.BYAN_API_URL).toBeUndefined();
   });
 
   test('idempotent: running setupClaudeNative twice does not duplicate whitelist entries', async () => {
