@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.28.0] - 2026-06-23
+
+### Added - Advisory model-tiering lint for native workflows
+
+- `workflows-lint.js` gains `untieredExplorationViolations`: a NON-blocking
+  advisory (surfaced by `byan-lint-workflows.js --advise`, plus a one-line
+  summary on every run) that flags an exploration-labelled `agent()` leaf in a
+  `.claude/workflows/*.js` script which runs on the session model instead of
+  downgrading to `haiku` (a possible token saving). It reuses `classifyLeaf` /
+  `isDowngradeModel` from `native-tiers.js` (single source of truth).
+- It is DELIBERATELY out of `validateContract`: the anti-downgrade floor stays a
+  hard rule, but forcing `haiku` onto a judgment-bearing leaf (a gate, a
+  classification, an exact conversion consumed verbatim downstream) would be a
+  STRICT-2 regression, so the per-leaf deep-vs-cheap call stays with the author.
+- There is no per-leaf "effort" knob in the native `agent()` / Agent API (it
+  exposes only `model`), so effort-by-complexity reduces to model-by-complexity.
+  Documented in `native-workflows.md`, the SKILL DISPATCH section, and
+  `docs/native-workflows-contract.md`.
+
+### Changed - `.mcp.json` tests realigned to the portable-config design
+
+- Five test suites still asserted the pre-portable `.mcp.json` shape
+  (`env.BYAN_API_URL` present) and failed after 2.27.0. Realigned them to the
+  portable invariant: the `byan` entry is present but carries no `BYAN_API_URL`
+  and no token (the server self-resolves its config). Security invariants are
+  unchanged: the no-token assertions and `verify`'s raw-token / `/api`-suffix
+  drift detection remain. Full suite back to green (2326/2326).
+
+## [2.27.0] - 2026-06-19
+
 ### Fixed - Portable MCP config: the server resolves its own credentials
 
 The byan MCP server now resolves its config (`BYAN_API_URL` / `BYAN_API_TOKEN`
