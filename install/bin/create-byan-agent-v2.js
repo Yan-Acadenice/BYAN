@@ -1383,11 +1383,14 @@ async function install(options = {}) {
         },
       ]);
       if (proceed) {
+        console.log(chalk.gray('  Installing... progress streams below. The cargo fallback compiles from source (can take minutes); Ctrl+C is safe — BYAN is already installed.'));
         const r = setupRtkIntegration({ log: (m) => console.log(chalk.gray('  ' + m)) });
         if (r.synced) {
           console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate`));
+          if (r.pathHint) console.log(chalk.yellow(`  ⚠ rtk is not on your PATH — add it: ${r.pathHint}`));
         } else {
-          console.log(chalk.yellow(`  ⚠ rtk not wired (${r.reason}) — BYAN unaffected`));
+          console.log(chalk.yellow(`  ⚠ rtk not wired (${r.reason}) — BYAN unaffected; re-run \`npm run setup-rtk\` anytime`));
+          if (r.pathHint) console.log(chalk.yellow(`  ⚠ rtk found off-PATH — add it then re-run: ${r.pathHint}`));
         }
       } else {
         console.log(chalk.gray('  rtk skipped — run `npm run setup-rtk` anytime to enable.'));

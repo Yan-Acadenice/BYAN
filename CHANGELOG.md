@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.2] - 2026-06-23
+
+### Fixed - RTK optional install: fail-proof, off-PATH, shell-aware
+
+The 2.29.x RTK installer could hang silently and mis-report a successful build.
+
+- **Bounded + visible.** The delegated install now runs with a per-strategy
+  timeout (brew/script 5min, cargo 20min; override via `BYAN_RTK_TIMEOUT_MS`,
+  positive integers only) and inherited stdio, so progress streams live instead
+  of a frozen line. Inherited stdio also sidesteps execSync's 1MB maxBuffer cap a
+  verbose build would blow.
+- **Off-PATH resolution.** `cargo install` drops the binary in `~/.cargo/bin`,
+  which a Debian non-login PATH does not include — the install succeeded but
+  `rtk --version` reported "unverified". The installer now resolves rtk across
+  known dirs (PATH, `~/.cargo/bin`, `~/.local/bin`, `/usr/local/bin`, brew prefix,
+  `CARGO_HOME`), verifies + wires the hook by the resolved path, and prints a
+  shell-correct PATH hint (`fish_add_path` on fish, `export` on bash/zsh,
+  `$env:PATH` on Windows).
+- **Prebuilt preferred.** Strategy order is now brew > script > cargo: the
+  prebuilt-binary script (pinned to the immutable tag ref, which SHA-256-verifies
+  the binary per refs/tags/v0.42.4/install.sh) is fast and PATH-stable; cargo
+  (from-source, off-PATH, slow) becomes the last-resort fallback.
+- **Stays graceful.** Hardened the no-throw contract: a HOME-less environment
+  (`os.homedir()` throwing) no longer propagates out of `setup-rtk.js`.
+
+Reviewed by an adversarial workflow (correctness + supply-chain + mantras) plus a
+compliance pass; 2375/2375 tests green (49 dedicated to RTK).
+
 ## [2.29.1] - 2026-06-23
 
 ### Fixed - Republish (the 2.29.0 npm tarball was missing)

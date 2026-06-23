@@ -11,6 +11,9 @@
  */
 
 const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 /**
  * commandExists(cmd) -> boolean. Is an executable resolvable on PATH?
@@ -24,6 +27,70 @@ function commandExists(cmd, { run = execSync, platform = process.platform } = {}
   } catch {
     return false;
   }
+}
+
+/**
+ * safeHomedir() -> the home directory, or '' if it cannot be determined. WHY:
+ * os.homedir() THROWS on an env with no $HOME/$USERPROFILE AND no passwd entry
+ * for the effective uid (distroless / random-uid containers). An optional install
+ * helper must never throw on that — it degrades to "no home dir to scan".
+ */
+function safeHomedir() {
+  try {
+    return os.homedir();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * knownBinDirs() -> ordered list of directories where installers commonly drop a
+ * binary that is NOT on a non-login shell's PATH. The canonical case: `cargo
+ * install` lands in ~/.cargo/bin, which Debian's apt-packaged cargo does NOT add
+ * to PATH — so a freshly built binary is present yet invisible to a bare probe.
+ * fs/env/home are injectable for tests. `home` defaults via safeHomedir so a
+ * HOME-less environment yields a shorter scan instead of a throw.
+ */
+function knownBinDirs({ env = process.env, home = safeHomedir(), platform = process.platform } = {}) {
+  const dirs = [];
+  if (env && env.CARGO_HOME) dirs.push(path.join(env.CARGO_HOME, 'bin'));
+  dirs.push(path.join(home, '.cargo', 'bin')); // cargo install
+  dirs.push(path.join(home, '.local', 'bin')); // pip/pipx + many curl scripts
+  if (platform === 'win32') {
+    if (env && env.LOCALAPPDATA) dirs.push(path.join(env.LOCALAPPDATA, 'Programs'));
+  } else {
+    dirs.push('/usr/local/bin'); // common script target + brew (intel mac)
+    dirs.push('/opt/homebrew/bin'); // brew (apple silicon)
+    dirs.push('/usr/bin');
+  }
+  return dirs;
+}
+
+/**
+ * resolveBinary(name) -> the command to invoke the executable, or null if it
+ * cannot be located. Returns the BARE name when it is on PATH (let the shell
+ * resolve it), else an ABSOLUTE path found in a knownBinDir. WHY: an optional
+ * native install can succeed yet leave the binary off PATH; callers must verify
+ * and wire it by its real location, not declare failure. All I/O is injectable.
+ */
+function resolveBinary(name, {
+  has = commandExists,
+  existsSync = fs.existsSync,
+  env = process.env,
+  home = safeHomedir(),
+  platform = process.platform,
+} = {}) {
+  if (has(name)) return name;
+  const exe = platform === 'win32' ? `${name}.exe` : name;
+  for (const dir of knownBinDirs({ env, home, platform })) {
+    const full = path.join(dir, exe);
+    try {
+      if (existsSync(full)) return full;
+    } catch {
+      // a stat error on one candidate must not abort the scan
+    }
+  }
+  return null;
 }
 
 /**
@@ -47,4 +114,4 @@ function firstAvailable(candidates, { has = commandExists } = {}) {
   return candidates.find((c) => c && c.tool && has(c.tool)) || null;
 }
 
-module.exports = { commandExists, detectPlatform, firstAvailable };
+module.exports = { commandExists, detectPlatform, firstAvailable, knownBinDirs, resolveBinary, safeHomedir };
