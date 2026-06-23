@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.1] - 2026-06-23
+
+### Fixed - Republish (the 2.29.0 npm tarball was missing)
+
+The 2.29.0 publish registered its registry metadata + the `latest` dist-tag but
+the `.tgz` blob did not upload (a broken/interrupted publish), so
+`npm i create-byan-agent@latest` returned a 404 on install. npm does not allow
+overwriting an existing version, so 2.29.1 republishes the exact 2.29.0 content
+(the RTK token optimizer + OKF format adoption — no code change) with a clean
+tarball. Stopgap until 2.29.1 is live:
+`npm dist-tag add create-byan-agent@2.28.0 latest`.
+
 ## [2.29.0] - 2026-06-23
 
 ### Added - Native opt-in RTK token optimizer (rtk-ai/rtk)
