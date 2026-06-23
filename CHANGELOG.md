@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.0] - 2026-06-23
+
+### Added - Native opt-in RTK token optimizer (rtk-ai/rtk)
+
+- The yanstaller now offers RTK ("Rust Token Killer", Apache-2.0) during install:
+  a single zero-dep binary that compresses dev-command output before the LLM
+  context (-60/90% tokens) and wires into Claude Code via its own hook.
+- Integration is thin and delegating (`install/lib/rtk-integration.js` +
+  `native-helper.js`): the install is handed to rtk's own canonical installer
+  (brew / `cargo --tag v0.42.4` / the pinned `install.sh`, which passes
+  `RTK_VERSION` so the downloaded binary is pinned too), and the hook wiring to
+  rtk's own `rtk init -g`. No bespoke per-OS download/checksum logic.
+- Opt-in and safe: the prompt defaults to NO and discloses the install mechanism
+  and the global hook; gated on a TTY + an available installer; opt out with
+  `BYAN_SKIP_RTK=1`. Every failure path is a graceful no-op that leaves the BYAN
+  install intact. Retry anytime with `npm run setup-rtk`. 25 unit tests.
+
+### Added - Open Knowledge Format (OKF v0.1) adoption for the knowledge base
+
+- BYAN's knowledge is now interoperable with the Open Knowledge Format
+  (GoogleCloudPlatform/knowledge-catalog) — markdown + YAML frontmatter, vendor-
+  neutral, zero runtime deps. Only the FORMAT is adopted; the GCP reference agent
+  (Python + BigQuery/Gemini) is deliberately left out (not vendored).
+- `lib/okf-format.js` (parse/serialize/validate frontmatter + BYAN type mapping)
+  and `lib/okf-bundle.js` (pure, idempotent converter). `byan-okf build` emits a
+  normalized OKF bundle to the gitignored `_byan-output/okf-bundle/` (NON-
+  destructive — it leaves `_byan/connaissance` untouched); `byan-okf check`
+  validates a bundle. 24 unit tests; a real build over the 43 knowledge files
+  yields 41 valid OKF entries. The optional GCP enrichment bridge is parked as a
+  phase-2 follow-on.
+
 ## [2.28.0] - 2026-06-23
 
 ### Added - Advisory model-tiering lint for native workflows
