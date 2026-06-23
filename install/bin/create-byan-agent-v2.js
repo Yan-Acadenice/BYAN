@@ -16,6 +16,7 @@ const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
 const { setupLeantimeIntegration, validateLeantimeReachability } = require('../lib/byan-leantime-integration');
+const { setupRtkIntegration, shouldOfferRtk } = require('../lib/rtk-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupCodexNative } = require('../lib/codex-native-setup');
 const { setupMcpExtensions } = require('../lib/mcp-extensions');
@@ -1366,6 +1367,33 @@ async function install(options = {}) {
       await setupMcpExtensions(projectRoot, {});
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ MCP extensions setup skipped: ${error.message}`));
+    }
+  }
+
+  if (needsClaude && shouldOfferRtk()) {
+    console.log();
+    console.log(chalk.cyan('RTK token optimizer (optional — Rust binary, cuts dev-command tokens 60-90%)'));
+    try {
+      const { proceed } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'proceed',
+          message: 'Install rtk now? Runs its official installer (brew/cargo, or a pinned curl|sh) and adds a GLOBAL Claude Code hook via `rtk init -g`.',
+          default: false,
+        },
+      ]);
+      if (proceed) {
+        const r = setupRtkIntegration({ log: (m) => console.log(chalk.gray('  ' + m)) });
+        if (r.synced) {
+          console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate`));
+        } else {
+          console.log(chalk.yellow(`  ⚠ rtk not wired (${r.reason}) — BYAN unaffected`));
+        }
+      } else {
+        console.log(chalk.gray('  rtk skipped — run `npm run setup-rtk` anytime to enable.'));
+      }
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ rtk setup skipped: ${error.message}`));
     }
   }
 
