@@ -97,6 +97,8 @@ api/
 _byan-output/
 # Legacy BMAD-era generated output (superseded by _byan-output/); untracked 2026-06-23
 _bmad-output/
+# Copilot session-resume IDs (personal, local only)
+.resume
 # Mid-session soul-memory nudge one-shot marker (per-session, never committed;
 # reset at SessionStart). Un-rooted glob so it also covers the install/templates
 # mirror and any future memory-dir layout, not just the canonical repo copy.
