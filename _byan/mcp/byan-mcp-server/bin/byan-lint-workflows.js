@@ -2,17 +2,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { validateContract } from '../lib/workflows-lint.js';
+import { validateContract, untieredExplorationViolations } from '../lib/workflows-lint.js';
 
 // Validate native workflow scripts under .claude/workflows/ against the full
 // contract (state-coupling + clock/RNG + meta-literal) AND node --check syntax.
-// Exits non-zero on any violation (used by the pre-commit gate).
-// Usage: node bin/byan-lint-workflows.js [--root <dir>]
+// Exits non-zero on any contract violation (used by the pre-commit gate).
+//
+// Tiering is reported SEPARATELY and NON-BLOCKING: exploration-labelled leaves
+// that run deep are a possible token saving, but many legitimately stay deep
+// (they bear a gate/classification/exact-conversion). So they are an ADVISORY,
+// never a hard failure. A one-line summary always prints; --advise lists each one.
+// Usage: node bin/byan-lint-workflows.js [--root <dir>] [--advise]
 
 function parseArgs(argv) {
   const args = {};
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--root') args.projectRoot = argv[++i];
+    else if (argv[i] === '--advise') args.advise = true;
   }
   return args;
 }
@@ -32,8 +38,10 @@ try {
 }
 
 let failed = 0;
+const advisories = [];
 for (const file of files) {
-  const violations = validateContract(fs.readFileSync(file, 'utf8'));
+  const src = fs.readFileSync(file, 'utf8');
+  const violations = validateContract(src);
 
   // Syntax gate: a native script must parse.
   try {
@@ -47,6 +55,24 @@ for (const file of files) {
     for (const v of violations) {
       process.stderr.write(`[byan-lint-workflows] ${file}: ${v.id} - ${v.msg}\n`);
     }
+  }
+
+  // Non-blocking tiering advisory: exploration leaves that run deep.
+  for (const a of untieredExplorationViolations(src)) {
+    advisories.push({ file, ...a });
+  }
+}
+
+// Tiering advisory is informational only — it never changes the exit code.
+if (advisories.length) {
+  if (args.advise) {
+    for (const a of advisories) {
+      process.stdout.write(`[byan-lint-workflows] ADVISORY ${a.file}: ${a.id} - ${a.msg}\n`);
+    }
+  } else {
+    process.stdout.write(
+      `[byan-lint-workflows] advisory: ${advisories.length} exploration leaf(s) run deep (rerun with --advise to list; keep deep if they bear a gate/judgment, else add model: 'haiku')\n`
+    );
   }
 }
 

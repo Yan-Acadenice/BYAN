@@ -10,6 +10,7 @@ import {
   clockRngViolations,
   metaLiteralViolations,
   modelRoutingViolations,
+  untieredExplorationViolations,
   validateContract,
 } from '../lib/workflows-lint.js';
 
@@ -189,4 +190,81 @@ test('validateContract: aggregates a routing violation with the rest', () => {
   ].join('\n');
   const ids = validateContract(src).map((x) => x.id);
   assert.ok(ids.includes('protected-leaf-downgraded'));
+});
+
+// --- positive tiering: exploration leaves must downgrade --------------------
+
+test('untieredExplorationViolations: an exploration leaf with no model is a violation', () => {
+  const src = "const r = await agent('read the file', { label: 'load-story', phase: 'LOAD' })";
+  const v = untieredExplorationViolations(src);
+  assert.ok(v.some((x) => x.id === 'untiered-exploration'), JSON.stringify(v));
+});
+
+test('untieredExplorationViolations: an exploration leaf pinned to haiku is clean', () => {
+  const src = "const r = await agent('read', { label: 'load-story', phase: 'LOAD', model: 'haiku' })";
+  assert.deepEqual(untieredExplorationViolations(src), []);
+});
+
+test('untieredExplorationViolations: a PROTECTED leaf with no model is clean (deep = inherit)', () => {
+  const src = "const r = await agent('do', { label: 'rgr-cycle-1', phase: 'RGR' })";
+  assert.deepEqual(untieredExplorationViolations(src), []);
+});
+
+test('untieredExplorationViolations: order-independent (model before label)', () => {
+  const src = "const r = await agent('read', { model: 'haiku', label: 'scan-context' })";
+  assert.deepEqual(untieredExplorationViolations(src), []);
+});
+
+test('untieredExplorationViolations: multiline opts on an exploration leaf', () => {
+  const ok = [
+    'const loaded = await agent(',
+    '  `Read the story file. Report the story key.`,',
+    "  { label: 'load-story', phase: 'LOAD', model: 'haiku' }",
+    ')',
+  ].join('\n');
+  assert.deepEqual(untieredExplorationViolations(ok), []);
+
+  const bad = [
+    'const loaded = await agent(',
+    '  `Read the story file.`,',
+    "  { label: 'load-story', phase: 'LOAD' }",
+    ')',
+  ].join('\n');
+  assert.ok(untieredExplorationViolations(bad).some((x) => x.id === 'untiered-exploration'));
+});
+
+test('untieredExplorationViolations: a template-literal exploration label still fires', () => {
+  const src = "const r = await agent('x', { label: `fetch-evidence:${opt.name}`, phase: 'SOURCE' })";
+  assert.ok(untieredExplorationViolations(src).some((x) => x.id === 'untiered-exploration'), src);
+});
+
+test('untieredExplorationViolations: a computed (unquoted) label is never flagged (conservative)', () => {
+  const src = 'const r = await agent("x", { label: dynamicLabel, phase: "P" })';
+  assert.deepEqual(untieredExplorationViolations(src), []);
+});
+
+test('untieredExplorationViolations: two sibling objects, only the untiered exploration one fires', () => {
+  const src = "const a = [{ label: 'load-a', model: 'haiku' }, { label: 'scan-b' }]";
+  const v = untieredExplorationViolations(src);
+  assert.equal(v.length, 1, JSON.stringify(v));
+  assert.match(v[0].msg, /scan-b/);
+});
+
+test('untieredExplorationViolations: a model token in a COMMENT does not satisfy the rule', () => {
+  const src = "// model: 'haiku'\nconst r = await agent('x', { label: 'load-story' })";
+  assert.ok(untieredExplorationViolations(src).some((x) => x.id === 'untiered-exploration'));
+});
+
+test('validateContract: does NOT include untiered-exploration (advisory, not a hard rule)', () => {
+  // The positive tiering check is a FLOOR-not-ceiling decision: it must never
+  // block a commit by forcing a downgrade onto a judgment-bearing leaf.
+  const src = [
+    'export const meta = { name: "x", description: "y" }',
+    "const r = await agent('read', { label: 'load-story', phase: 'LOAD' })",
+    'return 1',
+  ].join('\n');
+  const ids = validateContract(src).map((x) => x.id);
+  assert.ok(!ids.includes('untiered-exploration'), JSON.stringify(ids));
+  // ...but the standalone advisory still surfaces it.
+  assert.ok(untieredExplorationViolations(src).some((x) => x.id === 'untiered-exploration'));
 });

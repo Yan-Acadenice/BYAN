@@ -151,9 +151,75 @@ export function modelRoutingViolations(src) {
   return out;
 }
 
+// Positive tiering ADVISORY — the symmetric half of modelRoutingViolations.
+//
+// modelRoutingViolations stops a downgrade from landing on a PROTECTED leaf
+// (the anti-downgrade direction, a HARD contract rule). This function surfaces the
+// opposite signal: an EXPLORATION-labelled leaf (read/load/parse/detect) that does
+// NOT downgrade and so runs on the session model (Opus) for cheap I/O — a possible
+// token saving. It is NON-BLOCKING (the bin's --advise mode, not validateContract):
+// classifyLeaf is permissive, so a flagged leaf may legitimately stay deep when it
+// bears judgment (a gate, a classification, an exact conversion). The human owns
+// the call. Same source of truth: classifyLeaf + isDowngradeModel from
+// native-tiers.js; this only reports against the contract those encode.
+//
+// Membership: a model: token belongs to a label when it sits in the SAME opts
+// object — between the brace that closes the previous object and the one that
+// closes this label's object — so the rule is order-independent (model: may sit
+// before OR after label: within { ... }). Comment-stripped, like the others.
+//
+// Conservative by construction: only STATIC quoted/backtick labels are seen, and
+// only labels classifyLeaf rules EXPLORATION fire. A computed (unquoted) label or
+// a non-exploration label is never flagged, so the rule never forces a downgrade
+// onto protected or unclassifiable work — it only recovers the safe savings.
+function sameOptsObjectText(code, labelStart, labelEnd) {
+  const prevClose = code.lastIndexOf('}', labelStart);
+  const left = prevClose === -1 ? 0 : prevClose + 1;
+  const nextClose = code.indexOf('}', labelEnd);
+  const right = nextClose === -1 ? code.length : nextClose;
+  return code.slice(left, right);
+}
+
+function objectHasDowngradeModel(objText) {
+  let mm;
+  MODEL_RE.lastIndex = 0;
+  while ((mm = MODEL_RE.exec(objText))) {
+    if (isDowngradeModel(mm[2])) return true;
+  }
+  return false;
+}
+
+export function untieredExplorationViolations(src) {
+  const code = stripComments(src);
+  const out = [];
+  let m;
+  LABEL_RE.lastIndex = 0;
+  while ((m = LABEL_RE.exec(code))) {
+    const label = m[2];
+    if (classifyLeaf({ label }) !== LEAF_TYPES.EXPLORATION) continue;
+    const objText = sameOptsObjectText(code, m.index, m.index + m[0].length);
+    if (!objectHasDowngradeModel(objText)) {
+      out.push({
+        id: 'untiered-exploration',
+        msg: `exploration leaf '${label}' does not pin a downgrade model; add model: 'haiku' so cheap I/O does not run on the session model (token waste)`,
+      });
+    }
+  }
+  return out;
+}
+
 // Full native-workflow contract: state-coupling (comment-stripped) + clock/RNG
 // (raw) + meta-literal-first + model-routing anti-downgrade. Returns the
 // combined [{ id, msg }] violations.
+//
+// untieredExplorationViolations is DELIBERATELY NOT in the hard contract. The
+// tiering rule is a FLOOR (forbid a downgrade on a protected leaf), not a CEILING
+// (force every exploration-labelled leaf to downgrade). classifyLeaf is permissive
+// — many exploration-labelled leaves bear judgment (a HALT/prereq gate, a
+// classification, an exact conversion consumed verbatim downstream) and MUST stay
+// deep. Forcing them to haiku would be the exact STRICT-2 No Downgrade regression.
+// So the positive check ships as a non-blocking ADVISORY (the bin's --advise mode);
+// the human keeps the per-leaf judgment. See docs/native-workflows-contract.md.
 export function validateContract(src) {
   return [
     ...lintSource(src),

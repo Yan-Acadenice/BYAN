@@ -94,7 +94,7 @@
       "name": "byan-byan",
       "module": "core",
       "tier": "connector-bound",
-      "sourceHash": "0a1f4b1333f7f42a43b1a8ad57b0d7d687aec95f149ae13ba98b78970ed3bd09"
+      "sourceHash": "88403d60531d9fb3e7cdb566429643f1f47baf9918593e8082ecc98eedebb878"
     },
     "byan-byan-v2": {
       "name": "byan-byan-v2",

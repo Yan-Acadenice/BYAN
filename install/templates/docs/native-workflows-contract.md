@@ -153,6 +153,14 @@ Enforcement (because the in-session hooks do not fire inside a script):
 - `test/native-routing-integration.test.js` pins the invariant on the SHIPPED
   scripts: every script passes the contract, and every downgrade sits on an
   exploration leaf.
+- `workflows-lint.js` -> `untieredExplorationViolations` is the SYMMETRIC
+  advisory: it surfaces an exploration-labelled leaf that runs deep (a possible
+  saving). It is DELIBERATELY OUT of `validateContract` — forcing those leaves to
+  haiku is exactly the regression the curation above rejected, so it is a
+  non-blocking report (`byan-lint-workflows.js --advise`), not a gate. The
+  per-leaf deep-vs-cheap call stays with the author. There is no per-leaf effort
+  knob (the native `agent()` / Agent API exposes only `model`), so model tier is
+  the sole token lever and effort-by-complexity reduces to model-by-complexity.
 
 If a future runtime needs full model ids instead of the `haiku`/`sonnet`
 aliases, `TIER_MODEL` in `native-tiers.js` is the only edit; the linter then

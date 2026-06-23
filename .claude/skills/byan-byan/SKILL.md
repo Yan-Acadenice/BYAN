@@ -66,6 +66,7 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
     - nature `exploration` (load/read/scan/list/parse/fetch...) → `haiku`
     - nature `implementation` / `verification` / `analysis` / unknown → deep = **inherit the session model**
     - Keep protected work (verify/analysis/implement) off haiku regardless of size ; no pin-up to opus. Pass an explicit `nature` to `byan_dispatch` when you know it.
+  - **Inside native workflow scripts** (`.claude/workflows/*.js`) the SAME tiering applies per `agent()` leaf via `opts.model`, enforced by the workflow linter as a FLOOR not a ceiling : `modelRoutingViolations` HARD-blocks a downgrade on a protected leaf (or a pin-up) ; an exploration-labelled leaf left deep is a NON-blocking ADVISORY (`byan-lint-workflows.js --advise`), since many such leaves bear a gate/classification/exact-conversion and must stay deep — the human owns that call. No per-leaf effort knob exists (the API exposes only `model`), so effort-by-complexity reduces to model-by-complexity.
 - **Output** : a table `{ feature → specialist → model → strategy → estimated_tokens }`.
 - **If no specialist matches** : halt. Ask user whether to run INT (agent recruitment) first. Do NOT fallback silently to general-purpose.
 - **Exit gate** : user validates the mapping.
