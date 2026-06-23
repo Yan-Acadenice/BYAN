@@ -10,18 +10,18 @@ Ce fichier est charge automatiquement par Claude Code pour toutes les interactio
 
 | Module | Chemin | Role |
 |--------|--------|------|
-| **Core** | `_bmad/core/` | Fondation : party-mode, brainstorming, taches de base |
-| **BMM** | `_bmad/bmm/` | Cycle de dev complet : Analyse → Planning → Solution → Implementation |
-| **BMB** | `_bmad/bmb/` | Meta-systeme : creation d'agents, modules, workflows |
-| **TEA** | `_bmad/tea/` | Architecture de tests : ATDD, automation, CI/CD, NFR |
-| **CIS** | `_bmad/cis/` | Innovation creative : design thinking, storytelling |
+| **Core** | `_byan/core/` | Fondation : party-mode, brainstorming, taches de base |
+| **BMM** | `_byan/bmm/` | Cycle de dev complet : Analyse → Planning → Solution → Implementation |
+| **BMB** | `_byan/bmb/` | Meta-systeme : creation d'agents, modules, workflows |
+| **TEA** | `_byan/tea/` | Architecture de tests : ATDD, automation, CI/CD, NFR |
+| **CIS** | `_byan/cis/` | Innovation creative : design thinking, storytelling |
 
 ## Architecture des Agents
 
 **Format** : Fichiers Markdown avec frontmatter YAML + definitions XML
-**Emplacement** : `_bmad/{module}/agents/{agent-name}.md`
+**Emplacement** : `_byan/agent/{agent-name}.md` (layout Gen3 par type)
 **Structure** : Frontmatter → Activation → Persona → Menu → Knowledge Base → Capabilities
-**Manifeste** : `_bmad/_config/agent-manifest.csv`
+**Manifeste** : `_byan/_config/agent-manifest.csv`
 
 ### Soul System (TAO)
 
@@ -71,8 +71,8 @@ Les agents executent des actions via des handlers de menu :
 ## Workflows
 
 **Format** : Markdown multi-etapes avec fichiers dans `steps/`
-**Emplacement** : `_bmad/{module}/workflows/{workflow-name}/workflow.{md|yaml}`
-**Manifeste** : `_bmad/_config/workflow-manifest.csv`
+**Emplacement** : `_byan/workflow/{workflow-name}/workflow.{md|yaml}` (layout Gen3 par type)
+**Manifeste** : `_byan/_config/workflow-manifest.csv`
 
 **Types** :
 - **Tri-modal** : Create / Validate / Edit (PRD, Architecture, Agents)
@@ -120,29 +120,26 @@ Les agents executent des actions via des handlers de menu :
 
 ```
 {project-root}/
-├── _bmad/                    # Code de la plateforme
+├── _byan/                    # Code de la plateforme + Soul System (Gen3, par type)
 │   ├── _config/              # Manifestes (agents, workflows, tasks)
-│   ├── _memory/              # Memoire persistante des agents
-│   ├── core/                 # Module fondation
-│   │   └── activation/       # Protocoles d'activation (soul-activation.md)
-│   ├── bmm/                  # Module SDLC
-│   ├── bmb/                  # Module Builder
-│   ├── tea/                  # Module Test Architecture
-│   └── cis/                  # Module Innovation
-├── _byan/                    # Soul System BYAN
-│   ├── agents/               # Agents principaux
-│   ├── soul.md               # Ame de BYAN
-│   ├── tao.md                # Voix de BYAN
-│   ├── soul-memory.md        # Journal vivant
+│   ├── agent/                # Agents (ame BYAN : agent/byan/soul.md, tao.md, soul-memory.md)
+│   ├── workflow/             # Workflows (par type)
+│   ├── connaissance/         # Base de connaissance
+│   ├── command/              # Commandes
+│   ├── worker/               # Workers
+│   ├── core/                 # Module fondation (activation/, model-selector)
+│   ├── bmm/ bmb/ tea/ cis/   # Modules (config + data)
+│   ├── mcp/                  # Serveur MCP byan
 │   └── config.yaml           # Configuration
+├── _bmad/                    # Legacy Gen1 (gele ; fallback back-compat, migre via _bmad -> _byan)
 ├── _byan-output/             # Artefacts generes
 └── .codex/prompts/           # Stubs Codex
 ```
 
 ## References
 
-- Agent Manifest : `_bmad/_config/agent-manifest.csv`
-- Workflow Manifest : `_bmad/_config/workflow-manifest.csv`
-- Task Manifest : `_bmad/_config/task-manifest.csv`
+- Agent Manifest : `_byan/_config/agent-manifest.csv`
+- Workflow Manifest : `_byan/_config/workflow-manifest.csv`
+- Task Manifest : `_byan/_config/task-manifest.csv`
 - Soul Activation : `_byan/core/activation/soul-activation.md`
 - README : `README.md`
