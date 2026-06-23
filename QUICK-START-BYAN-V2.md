@@ -360,8 +360,8 @@ ls src/byan-v2/
 - **Test plan:** `BYAN-V2-MANUAL-TEST-PLAN.md`
 
 ### Code Examples
-- **Simple demo:** `demo-byan-v2-simple.js`
-- **Full demo:** `demo-byan-v2.js`
+- **Simple demo:** `examples/demo-byan-v2-simple.js`
+- **Full demo:** `examples/demo-byan-v2.js`
 
 ### GitHub
 - **Repository:** https://github.com/Yan-Acadenice/BYAN

@@ -490,7 +490,7 @@ try {
 
 **Plan:** `BYAN-V2-MANUAL-TEST-PLAN.md`
 
-1. Run demo-byan-v2-simple.js
+1. Run examples/demo-byan-v2-simple.js
 2. Verify 12 questions asked
 3. Check profile generated
 4. Validate against GitHub Copilot CLI requirements
@@ -570,7 +570,7 @@ byan.setTemplate('my-custom-template');
 ### Tests
 - `__tests__/byan-v2/orchestrator/` - Tests unitaires
 - `__tests__/byan-v2/integration/` - Tests intégration
-- `demo-byan-v2-simple.js` - Démo complète
+- `examples/demo-byan-v2-simple.js` - Démo complète
 
 ---
 

@@ -271,7 +271,7 @@ Emojis not allowed in technical sections
 ### Integration Tests
 
 **Scenarios:**
-1. Validate demo agent (demo-byan-v2-simple.js output)
+1. Validate demo agent (examples/demo-byan-v2-simple.js output)
 2. Validate all BYAN agents in _byan/agents/
 3. Detect invalid agents (negative tests)
 
