@@ -16,6 +16,17 @@
  *
  * No credential ever touches the project tree. The .mcp.json entry only
  * declares command/args — every secret stays in ~/.google-mcp/.
+ *
+ * DURABLE + MUTUALIZED AUTH (the design choice): we guide the user to an OAuth
+ * consent screen in "Internal" mode (Workspace-org only). "External + Testing"
+ * expires the refresh token in ~7 days for scopes beyond openid/email/profile
+ * (all of gw's Drive/Docs/... scopes qualify) ; "Internal" does not, and skips
+ * Google app verification (source: developers.google.com/identity/protocols/oauth2).
+ * This OAuth client is THE single Google credential of byan — the claude.ai Drive
+ * connector becomes redundant. NOTE: this package (pm990320/google-workspace-mcp)
+ * does NOT support service accounts (README: "Service account authentication is
+ * not currently supported"), so a service-account JSON is not an option here ;
+ * "Internal" is the durable path that keeps the package's 95+ tools.
  */
 
 'use strict';
@@ -33,7 +44,7 @@ const CREDENTIALS_PATH = path.join(CONFIG_DIR, 'credentials.json');
 
 const SETUP_LINKS = [
   {
-    step: 'Créer un projet Google Cloud',
+    step: 'Créer un projet Google Cloud RATTACHÉ à ton organisation Workspace (ex : acadenice.fr) — pas un compte Gmail perso',
     url: 'https://console.cloud.google.com/projectcreate',
   },
   {
@@ -41,7 +52,7 @@ const SETUP_LINKS = [
     url: 'https://console.cloud.google.com/apis/library',
   },
   {
-    step: 'Configurer l\'écran de consentement OAuth (External, mode Test)',
+    step: 'Écran de consentement OAuth : User type = "Internal" (durable : pas d\'expiration 7 j, pas de vérification Google)',
     url: 'https://console.cloud.google.com/apis/credentials/consent',
   },
   {
@@ -92,6 +103,16 @@ function printSetupGuide(log) {
   log(chalk.gray(`  5. Télécharger le JSON OAuth Client (bouton "Download JSON")`));
   log(chalk.gray(`  6. Renommer ce fichier en : credentials.json`));
   log(chalk.gray(`  7. Le placer dans : ${CREDENTIALS_PATH}`));
+  log();
+  // The single thing that makes the credential durable. "External + Testing"
+  // expires the refresh token in ~7 days for scopes beyond openid/email/profile
+  // (all gw scopes qualify) ; "Internal" does not, and skips Google app
+  // verification. Source: developers.google.com/identity/protocols/oauth2.
+  log(chalk.yellow('  Durabilité — LE point qui compte :'));
+  log(chalk.yellow('    Écran de consentement en "Internal" → credential pérenne (token qui ne meurt pas).'));
+  log(chalk.yellow('    "External + Testing" → refresh token expiré sous ~7 jours (scopes hors openid/email/profile, donc tous ceux de gw). À éviter.'));
+  log(chalk.gray('    Limite "Internal" : seuls les comptes de ton org Workspace peuvent autoriser, et il faut UN login navigateur au premier setup.'));
+  log(chalk.gray('    Ce client OAuth devient LE credential Google unique de byan (le connecteur claude.ai Drive devient redondant).'));
   log();
 }
 
@@ -174,6 +195,8 @@ async function setup({ quiet } = {}) {
       },
     ]);
     if (reuse) {
+      log(chalk.gray('  Rappel durabilité : si ce client OAuth est en "External + Testing", son token meurt sous ~7 j (scopes Workspace gw concernés).'));
+      log(chalk.gray('  Pour un credential pérenne, l\'écran de consentement doit être en "Internal" (org Workspace).'));
       return { configured: true, message: 'reused existing credentials' };
     }
   } else {
@@ -250,7 +273,9 @@ module.exports = {
   buildMcpEntry,
   // exposed for tests
   buildEntry,
+  printSetupGuide,
   CONFIG_DIR,
   CREDENTIALS_PATH,
   PACKAGE_NAME,
+  SETUP_LINKS,
 };

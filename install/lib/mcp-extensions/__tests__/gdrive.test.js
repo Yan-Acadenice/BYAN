@@ -47,3 +47,33 @@ describe('gdrive extension contract', () => {
     expect(gdrive.PACKAGE_NAME).toBe('google-workspace-mcp');
   });
 });
+
+describe('gdrive setup guide — durable OAuth "Internal" (no 7-day expiry)', () => {
+  const consentStep = () =>
+    gdrive.SETUP_LINKS.find((s) => /consentement|consent/i.test(s.step));
+
+  test('the consent-screen step guides to "Internal", not External/Testing', () => {
+    const step = consentStep();
+    expect(step).toBeTruthy();
+    expect(step.step).toMatch(/Internal/);
+    // the old fragile guidance must be gone
+    expect(step.step).not.toMatch(/Testing|mode Test|External/i);
+  });
+
+  test('no SETUP_LINKS step still mentions the fragile External/Testing mode', () => {
+    const joined = gdrive.SETUP_LINKS.map((s) => s.step).join(' | ');
+    expect(joined).not.toMatch(/mode Test/i);
+    expect(joined).not.toMatch(/External\b/);
+  });
+
+  test('printSetupGuide surfaces the durability rationale + honest limit, never the 7-day mode', () => {
+    const lines = [];
+    gdrive.printSetupGuide((...a) => lines.push(a.join(' ')));
+    const out = lines.join('\n');
+    expect(out).toMatch(/Internal/);
+    expect(out).toMatch(/7 j|7 jours|pérenne|durab/i); // the why
+    expect(out).toMatch(/org|Workspace|login navigateur/i); // the honest limit
+    // External+Testing may appear ONLY as the thing to avoid (warned against).
+    expect(out).toMatch(/External \+ Testing.*(évit|expire)/i);
+  });
+});

@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.4] - 2026-06-24
+
+### Changed - Google Workspace (gdrive) install: durable OAuth "Internal"
+
+The installer's Google Workspace setup guide now points to an OAuth consent
+screen in "Internal" mode instead of "External / Testing". "External + Testing"
+expires the refresh token in ~7 days for scopes beyond openid/email/profile (all
+of gw's Drive/Docs/... scopes qualify); "Internal" removes that expiry and skips
+Google app verification (source: developers.google.com/identity/protocols/oauth2).
+The result: ONE durable OAuth client is byan's single Google credential, and the
+claude.ai Drive connector becomes redundant.
+
+- `install/lib/mcp-extensions/gdrive.js`: `SETUP_LINKS` + `printSetupGuide` guide
+  to Internal, with the durability rationale, the org-Workspace prerequisite, and
+  the honest limit (one browser login at setup, org-only). A durability reminder
+  fires on the reuse path too.
+- The package `google-workspace-mcp` does not support service accounts (its
+  README), so "Internal" is the durable path that keeps its 95+ tools. A
+  service-account route (for fully headless publishing) would be a separate,
+  byan-owned Google client — out of scope here.
+- New guide: `docs/google-workspace-setup.md` (one-time Internal recipe + the
+  mutualization rationale).
+
+Reviewed by bmad-compliance (auth domain, fact-check floor L1). 2378 tests green.
+
 ## [2.29.3] - 2026-06-24
 
 ### Fixed - RTK hook now actually installed (--auto-patch)
