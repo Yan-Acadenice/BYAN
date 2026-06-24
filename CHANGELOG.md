@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.30.0] - 2026-06-24
+
+### Added - byan_publish : Google Docs brandés, headless (service account)
+
+New MCP tool `byan_publish` : a byan-owned, headless Google Docs publisher. A
+service-account JWT (durable, no OAuth, no browser, no 7-day refresh-token expiry)
+creates a branded Google Doc from a content object and returns its URL, optionally
+sharing it. Distinct from the gw OAuth connector.
+
+- `lib/gdoc-content.js` (pure) : content -> Docs `batchUpdate` requests. Template
+  mode (`replaceAllText` over a branded template) or programmatic mode (insert +
+  the AcadéNice palette : marine `#0e2656`, teal `#24947a`, turquoise `#4cccb8`).
+- `lib/gdoc-client.js` : service-account auth (google-auth-library JWT, scopes
+  `documents` + `drive.file`) + create-or-copy + `batchUpdate` +
+  `permissions.create`. googleapis is lazy-loaded so the server boots without it ;
+  every failure path returns `{ ok:false, reason }` (no-credentials /
+  bad-credentials / invalid-content / dep-missing / api-error) rather than
+  throwing. The SA key is read from a path (`GOOGLE_APPLICATION_CREDENTIALS`, via
+  resolve-config) and stays on disk -- not serialized into any output.
+- `byan_publish` registered in server.js, kept OUT of `REMOTE_SAFE_TOOLS`
+  (network+auth, stdio-only). New deps : `googleapis` + `google-auth-library`.
+- Guide : `docs/google-docs-publish.md` (SA key recipe + usage + branding/template
+  + the standalone-vs-Workspace ownership model).
+
+The single manual step is creating the SA key (Google Cloud IAM). RNCP/eval
+content plugs in later as a thin adapter. Built under BYAN Strict Mode (scope
+locked, self-verified) ; reviewed by bmad-compliance (security : secrets +
+no-throw PASS, narrow scopes, fact-check floor L1). MCP suite 687/687, root jest
+2378/0.
+
 ## [2.29.4] - 2026-06-24
 
 ### Changed - Google Workspace (gdrive) install: durable OAuth "Internal"

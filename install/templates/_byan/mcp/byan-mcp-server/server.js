@@ -14,6 +14,7 @@ import { harvest as harvestInsights, renderDigest as renderInsightDigest } from 
 import { appendOutcome } from './lib/outcome-buffer.js';
 import { validateForLog, eloOutcomeForStrictComplete } from './lib/advisory-autofeed.js';
 import { readSoul, appendSoulMemory } from './lib/soul.js';
+import { createPublisher as createGdocPublisher } from './lib/gdoc-client.js';
 import {
   start as fdStart,
   status as fdStatus,
@@ -1353,6 +1354,56 @@ const tools = [
       additionalProperties: false,
     },
   },
+
+  // ─── Google Docs publish (service account, headless) ──────────────────
+  // byan-owned, durable publishing : a service-account JWT (no OAuth, no 7-day
+  // expiry) creates a branded Google Doc and returns its URL. Branding via a
+  // template (GDOC_TEMPLATE_ID) or the AcadeNice palette programmatically.
+  {
+    name: 'byan_publish',
+    description:
+      'Publish a branded Google Doc from content via a byan-owned SERVICE ACCOUNT (headless, durable, no OAuth). Copies a branded template when GDOC_TEMPLATE_ID is set (logo+palette in the template), else builds a programmatic doc branded by the AcadeNice palette. Returns the Doc URL; optionally shares it. Needs GOOGLE_APPLICATION_CREDENTIALS (SA key path). Degrades gracefully (ok:false + reason) when unconfigured. NOT remote-safe (network+auth).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Document title (required).' },
+        sections: {
+          type: 'array',
+          description: 'Ordered sections of the document.',
+          items: {
+            type: 'object',
+            properties: {
+              heading: { type: 'string' },
+              body: { type: 'string' },
+            },
+            additionalProperties: false,
+          },
+        },
+        resources: {
+          type: 'array',
+          description: 'Resource links rendered at the end.',
+          items: {
+            type: 'object',
+            properties: { label: { type: 'string' }, url: { type: 'string' } },
+            additionalProperties: false,
+          },
+        },
+        fields: {
+          type: 'object',
+          description: 'Extra {{KEY}} placeholder values for template mode.',
+        },
+        templateId: { type: 'string', description: 'Override GDOC_TEMPLATE_ID for this call.' },
+        shareWith: { type: 'string', description: 'Email address to share the Doc with.' },
+        role: {
+          type: 'string',
+          enum: ['reader', 'commenter', 'writer'],
+          description: 'Share role (default reader).',
+        },
+      },
+      required: ['title'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 // Remote-safe MVP allowlist: the ONLY tools exposed on the remote Org Connector
@@ -2090,6 +2141,25 @@ export function createByanServer({ token, remoteOnly = false } = {}) {
         force: args.force === true,
       });
       return { content: [{ type: 'text', text: JSON.stringify(instructions, null, 2) }] };
+    }
+
+    // ─── Google Docs publish (service account, headless) ──────────────
+    if (name === 'byan_publish') {
+      const publisher = createGdocPublisher();
+      const result = await publisher.publish(
+        {
+          title: args.title,
+          sections: args.sections,
+          resources: args.resources,
+          fields: args.fields,
+        },
+        {
+          templateId: args.templateId,
+          shareWith: args.shareWith,
+          role: args.role,
+        }
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
 
     // ─── Leantime tools ───────────────────────────────────────────────

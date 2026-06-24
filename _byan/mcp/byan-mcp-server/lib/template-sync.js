@@ -124,6 +124,17 @@ export const TARGET_ADDITIONS = [
   // Its test ships with the server, same convention as the tests above.
   '_byan/mcp/byan-mcp-server/lib/resolve-config.js',
   '_byan/mcp/byan-mcp-server/test/resolve-config.test.js',
+  // Google Docs publisher (byan_publish, service account / headless). server.js
+  // (already mirrored) imports ./lib/gdoc-client.js, which imports ./lib/
+  // gdoc-content.js, so both MUST ship or a fresh install crashes on boot.
+  // googleapis is lazy-loaded at publish time (not import time), so the server
+  // boots without it. The two tests ship with the server (mock googleapis), same
+  // convention as the tests above. The usage guide ships like the other docs/.
+  '_byan/mcp/byan-mcp-server/lib/gdoc-content.js',
+  '_byan/mcp/byan-mcp-server/lib/gdoc-client.js',
+  '_byan/mcp/byan-mcp-server/test/gdoc-content.test.js',
+  '_byan/mcp/byan-mcp-server/test/gdoc-client.test.js',
+  'docs/google-docs-publish.md',
 ];
 
 // The template lives under this root-relative directory.

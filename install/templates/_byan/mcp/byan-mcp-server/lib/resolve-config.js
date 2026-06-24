@@ -26,8 +26,18 @@ import nodePath from 'node:path';
 const DEFAULT_API_URL = 'http://localhost:3737';
 
 // Keys the resolver understands. BYAN_API_URL is the only one with a non-empty
-// default; tokens and the optional Leantime URL stay empty when unset.
-const KEYS = ['BYAN_API_URL', 'BYAN_API_TOKEN', 'LEANTIME_API_URL', 'LEANTIME_API_TOKEN'];
+// default; tokens, the optional Leantime URL, and the optional Google Docs
+// publish config (service-account key path, template id, logo URL) stay empty
+// when unset.
+const KEYS = [
+  'BYAN_API_URL',
+  'BYAN_API_TOKEN',
+  'LEANTIME_API_URL',
+  'LEANTIME_API_TOKEN',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'GDOC_TEMPLATE_ID',
+  'GDOC_LOGO_PNG_URL',
+];
 
 /**
  * An unexpanded `${...}` placeholder is NOT a real value. It is what a launcher
@@ -98,6 +108,9 @@ function resolveConfig(opts = {}) {
   out.BYAN_API_TOKEN = out.BYAN_API_TOKEN || '';
   out.LEANTIME_API_URL = out.LEANTIME_API_URL || '';
   out.LEANTIME_API_TOKEN = out.LEANTIME_API_TOKEN || '';
+  out.GOOGLE_APPLICATION_CREDENTIALS = out.GOOGLE_APPLICATION_CREDENTIALS || '';
+  out.GDOC_TEMPLATE_ID = out.GDOC_TEMPLATE_ID || '';
+  out.GDOC_LOGO_PNG_URL = out.GDOC_LOGO_PNG_URL || '';
   return out;
 }
 
