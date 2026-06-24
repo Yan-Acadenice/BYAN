@@ -1,9 +1,10 @@
 # byan_publish -- Google Docs brandés, headless (service account)
 
 Le tool MCP `byan_publish` crée un Google Doc brandé depuis un objet de contenu,
-via un **service account possédé par byan** : auth JWT durable, sans navigateur,
-sans refresh token, sans expiration 7 jours. C'est le chemin headless (cron,
-batch, sans humain) -- distinct du connecteur OAuth `gdrive`/gw.
+via un **service account que tu fournis** (modèle open-source, voir plus bas) :
+auth JWT durable, sans navigateur, sans refresh token, sans expiration 7 jours.
+C'est le chemin headless (cron, batch, sans humain) -- distinct du connecteur
+OAuth `gdrive`/gw.
 
 ## Modèle open-source : chacun fournit SA clé
 
