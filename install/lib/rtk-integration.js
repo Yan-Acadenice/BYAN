@@ -11,9 +11,10 @@
  *  - We do NOT reimplement per-OS download / checksum / version pinning. We
  *    DELEGATE the install to rtk's own canonical installer (brew / the official
  *    install.sh / cargo), and DELEGATE the Claude Code hook wiring to rtk's own
- *    `rtk init -g`. BYAN maintains only "pick the available installer, run it
- *    bounded + visible, locate the binary, ask rtk to wire its hook" — a tiny
- *    surface, bumped via one constant.
+ *    `rtk init -g --auto-patch` (the `--auto-patch` is what makes it non-
+ *    interactive — see wireHook). BYAN maintains only "pick the available
+ *    installer, run it bounded + visible, locate the binary, ask rtk to wire its
+ *    hook" — a tiny surface, bumped via one constant.
  *  - SUPPLY-CHAIN: we pin to a TAG, never a moving branch. cargo builds the
  *    tagged source (`--tag`), and install.sh is fetched from the IMMUTABLE tag ref.
  *    That script verifies a SHA-256 of the downloaded binary against a published
@@ -38,7 +39,7 @@
  *
  * Mirrors the ENTRY-POINT shape of byan-web-integration.js / byan-leantime-
  * integration.js (one `setup*Integration`); the return contract is { ok, synced,
- * reason, ... } because persistence is owned by rtk's own `rtk init -g`, not by
+ * reason, ... } because persistence is owned by rtk's own `rtk init -g --auto-patch`, not by
  * byan-platform-config.
  */
 
@@ -187,18 +188,27 @@ function doctor({ run = execSync, has = commandExists, resolve = resolveBinary, 
     bin: s.bin,
     pinned: RTK_VERSION,
     repo: RTK_REPO,
-    hookCommand: 'rtk init -g',
+    hookCommand: 'rtk init -g --auto-patch',
   };
 }
 
 // Delegate the Claude Code hook wiring to rtk's OWN command (idempotent). This is
 // the maintainability win: no manual settings.json merge to keep in sync. Wires
 // via the resolved `bin` so an off-PATH install still gets its hook.
+//
+// `--auto-patch` is REQUIRED: bare `rtk init -g` PROMPTS before patching
+// settings.json, and we run it non-interactively (stdio:'pipe', no TTY) — so the
+// prompt gets no answer and rtk silently writes only the instruction layer
+// (RTK.md + @RTK.md) WITHOUT the PreToolUse hook. `--auto-patch` patches
+// settings.json non-interactively, so the transparent command-rewriting hook is
+// actually installed. (Verified live: `rtk init --show` reports "Hook: not found"
+// after bare `-g` piped, "Hook: ... configured" after `-g --auto-patch`.)
 function wireHook({ run, log, installedVia, version, bin = 'rtk', env = process.env, platform = process.platform }) {
   const offPath = bin !== 'rtk';
+  const initCmd = `${bin} init -g --auto-patch`;
   try {
-    run(`${bin} init -g`, { stdio: 'pipe' });
-    log(`rtk: ready (${installedVia}, v${version || '?'}) — hook wired via '${bin} init -g'. Restart Claude Code to activate.`);
+    run(initCmd, { stdio: 'pipe' });
+    log(`rtk: ready (${installedVia}, v${version || '?'}) — hook wired via '${initCmd}'. Restart Claude Code to activate.`);
     const r = { ok: true, synced: true, reason: 'wired', installed: true, installedVia, version, hook: true, bin };
     if (offPath) {
       r.pathHint = pathHintFor(bin, { env, platform });
@@ -206,7 +216,7 @@ function wireHook({ run, log, installedVia, version, bin = 'rtk', env = process.
     }
     return r;
   } catch (err) {
-    log(`rtk: installed (${installedVia}) but '${bin} init -g' failed (${oneLine(err)}) — run it manually, BYAN unaffected.`);
+    log(`rtk: installed (${installedVia}) but '${initCmd}' failed (${oneLine(err)}) — run it manually, BYAN unaffected.`);
     const r = { ok: true, synced: false, reason: 'hook-failed', installed: true, installedVia, version, hook: false, bin };
     if (offPath) r.pathHint = pathHintFor(bin, { env, platform });
     return r;

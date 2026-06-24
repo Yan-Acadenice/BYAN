@@ -6,7 +6,7 @@
  *
  * Run on demand: `npm run setup-rtk` (or `node install/setup-rtk.js`). It delegates
  * the install to rtk's own canonical installer (brew / cargo / official script) and
- * the Claude Code hook wiring to rtk's own `rtk init -g`. It NEVER throws: a missing
+ * the Claude Code hook wiring to rtk's own `rtk init -g --auto-patch`. It NEVER throws: a missing
  * installer or a failed step is reported and exits 0 (RTK is optional; BYAN works
  * without it). The real logic lives in lib/rtk-integration.js and is unit-tested.
  */

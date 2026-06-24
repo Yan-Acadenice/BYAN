@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.29.3] - 2026-06-24
+
+### Fixed - RTK hook now actually installed (--auto-patch)
+
+2.29.2 wired only the RTK instruction layer, not the transparent hook. `wireHook`
+ran `rtk init -g` with stdio piped (no TTY), but bare `rtk init -g` PROMPTS before
+patching `settings.json`, so the prompt was skipped and rtk wrote `RTK.md` + the
+`@RTK.md` reference WITHOUT the PreToolUse hook — `rtk init --show` reported
+"Hook: not found". `wireHook` now calls `rtk init -g --auto-patch`, which patches
+`settings.json` non-interactively, so the command-rewriting hook is installed. An
+older rtk lacking the flag degrades gracefully (reason `hook-failed`; the install
+still succeeds). `doctor()` and the installer consent prompt were updated to match.
+Verified live on a Debian/zsh host: `rtk init --show` reports "Hook: configured"
+after the fix.
+
+If you installed 2.29.x before this and RTK feels inactive, re-run
+`rtk init -g --auto-patch`.
+
 ## [2.29.2] - 2026-06-23
 
 ### Fixed - RTK optional install: fail-proof, off-PATH, shell-aware

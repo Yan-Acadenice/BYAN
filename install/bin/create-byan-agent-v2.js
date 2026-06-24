@@ -1378,7 +1378,7 @@ async function install(options = {}) {
         {
           type: 'confirm',
           name: 'proceed',
-          message: 'Install rtk now? Runs its official installer (brew/cargo, or a pinned curl|sh) and adds a GLOBAL Claude Code hook via `rtk init -g`.',
+          message: 'Install rtk now? Runs its official installer (brew/cargo, or a pinned curl|sh) and adds a GLOBAL Claude Code hook via `rtk init -g --auto-patch`.',
           default: false,
         },
       ]);

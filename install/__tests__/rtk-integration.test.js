@@ -6,7 +6,7 @@
  * RTK install/wiring is exercised entirely through an INJECTED command runner +
  * PATH probe + binary resolver — no test ever shells out, installs a binary, or
  * touches the user machine. The invariants under test:
- *   - delegation: BYAN runs rtk's OWN installer (brew/script/cargo) + `rtk init -g`
+ *   - delegation: BYAN runs rtk's OWN installer (brew/script/cargo) + `rtk init -g --auto-patch`
  *   - fail-proof: the install runs BOUNDED (timeout) + VISIBLE (stdio inherit);
  *     a missing installer / failed / timed-out step is a no-op, ok stays true
  *   - off-PATH safe: an install that lands off PATH is RESOLVED, verified, wired
@@ -274,7 +274,7 @@ describe('rtk-integration — setupRtkIntegration', () => {
     const r = setup({ run, has: hasFrom(['brew', 'curl']) });
     expect(r).toMatchObject({ ok: true, synced: true, reason: 'wired', installedVia: 'brew', version: '0.42.4', hook: true });
     expect(run.calls).toContain('brew install rtk');
-    expect(run.calls).toContain('rtk init -g');
+    expect(run.calls).toContain('rtk init -g --auto-patch');
     // brew was preferred even though curl was also present.
     expect(run.calls.some((c) => /install\.sh/.test(c))).toBe(false);
   });
@@ -317,7 +317,7 @@ describe('rtk-integration — setupRtkIntegration', () => {
         if (!installed) throw new Error('not yet');
         return Buffer.from('rtk 0.42.4');
       }
-      if (cmd === `${abs} init -g`) return Buffer.from('');
+      if (cmd === `${abs} init -g --auto-patch`) return Buffer.from('');
       return Buffer.from('');
     };
     const r = setupRtkIntegration({ run, has: hasFrom(['cargo']), resolve: () => abs, env: { SHELL: '/bin/bash' }, platform: 'linux' });
@@ -330,7 +330,7 @@ describe('rtk-integration — setupRtkIntegration', () => {
     const run = (cmd) => {
       if (cmd === 'rtk --version') throw new Error('not on PATH');
       if (cmd === `${abs} --version`) return Buffer.from('rtk 0.42.4');
-      if (cmd === `${abs} init -g`) return Buffer.from('');
+      if (cmd === `${abs} init -g --auto-patch`) return Buffer.from('');
       throw new Error(`unexpected ${cmd}`); // no install command may run
     };
     const r = setupRtkIntegration({ run, has: hasFrom(['cargo']), resolve: () => abs, env: { SHELL: '/bin/bash' }, platform: 'linux' });
@@ -346,7 +346,7 @@ describe('rtk-integration — setupRtkIntegration', () => {
     expect(r.hook).toBe(true);
     expect(r.pathHint).toBeUndefined();
     expect(run.calls.some((c) => /brew install/.test(c))).toBe(false); // no reinstall
-    expect(run.calls).toContain('rtk init -g');
+    expect(run.calls).toContain('rtk init -g --auto-patch');
   });
 
   test('install command fails: graceful, ok true, reason names the strategy', () => {
@@ -430,7 +430,7 @@ describe('rtk-integration — status + doctor', () => {
 
   test('doctor reports the component status + the pinned floor + hook command', () => {
     const d = doctor({ run: makeRun({ installed: true }), resolve: () => 'rtk' });
-    expect(d).toMatchObject({ component: 'rtk', installed: true, version: '0.42.4', pinned: RTK_VERSION, hookCommand: 'rtk init -g' });
+    expect(d).toMatchObject({ component: 'rtk', installed: true, version: '0.42.4', pinned: RTK_VERSION, hookCommand: 'rtk init -g --auto-patch' });
   });
 });
 
