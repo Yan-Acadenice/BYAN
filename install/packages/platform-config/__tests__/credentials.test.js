@@ -56,6 +56,27 @@ describe('writeCredentials (global ~/.byan/credentials.json)', () => {
     expect(data.NOPE).toBeUndefined();
   });
 
+  test('persists the Google Docs publish keys (byan_publish)', async () => {
+    const home = tmpHome();
+    const res = await writeCredentials(
+      {
+        GOOGLE_APPLICATION_CREDENTIALS: '/home/u/.byan/google-sa.json',
+        GDOC_TEMPLATE_ID: 'TPL123',
+        GDOC_LOGO_PNG_URL: 'https://x/logo.png',
+      },
+      { homedir: home }
+    );
+    expect(res.written.sort()).toEqual([
+      'GDOC_LOGO_PNG_URL',
+      'GDOC_TEMPLATE_ID',
+      'GOOGLE_APPLICATION_CREDENTIALS',
+    ]);
+    const data = await readCredentials(home);
+    expect(data.GOOGLE_APPLICATION_CREDENTIALS).toBe('/home/u/.byan/google-sa.json');
+    expect(data.GDOC_TEMPLATE_ID).toBe('TPL123');
+    expect(data.GDOC_LOGO_PNG_URL).toBe('https://x/logo.png');
+  });
+
   test('the credentials file is 0600 and never group/other-readable (POSIX only)', async () => {
     if (process.platform === 'win32') return; // POSIX modes do not apply on Windows
     const home = tmpHome();

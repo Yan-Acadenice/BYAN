@@ -9,6 +9,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.31.0] - 2026-06-24
+
+### Added - Install-time service-account key setup for byan_publish
+
+BYAN is open-source, so no Google key ships in the npm package: each user
+provides their own service-account key, on their own machine. This release adds
+the install-time setup that wires that key for `byan_publish` (the headless
+Google Docs publisher from 2.30.0).
+
+- `install/lib/gdoc-setup.js` (new) : `setupGdocPublish` guides the user to the
+  Google Cloud console, imports the downloaded SA JSON into
+  `~/.byan/google-sa.json` (mode `0600`, dir `0700`), validates it
+  (`client_email` + `private_key`), then persists the path via `writeCredentials`
+  (`GOOGLE_APPLICATION_CREDENTIALS` + optional `GDOC_TEMPLATE_ID` /
+  `GDOC_LOGO_PNG_URL`). Every side-effecting dep (prompt / fs / writeCredentials)
+  is injected; the function stays graceful (a missing, invalid, or unreadable key
+  degrades to `configured:false` rather than throwing). Only the key path is
+  persisted -- the secret stays on disk in `~/.byan/`, out of the repo.
+- `install/setup-gdoc.js` (new) + `npm run setup-gdoc` : run the setup on demand,
+  outside the installer.
+- `install/bin/create-byan-agent-v2.js` : opt-in block (prompt default no, mirrors
+  the RTK block; gated by `shouldOfferGdoc` -- TTY only, skipped on
+  `BYAN_SKIP_GDOC=1`).
+- `@byan/platform-config` : `KNOWN_KEYS` extended with
+  `GOOGLE_APPLICATION_CREDENTIALS`, `GDOC_TEMPLATE_ID`, `GDOC_LOGO_PNG_URL` so
+  `writeCredentials` persists them (covered by test).
+- Guide : `docs/google-docs-publish.md` documents the open-source per-user key
+  model and the `npm run setup-gdoc` path (mirrored to `install/templates/docs/`).
+
+Built under BYAN Strict Mode (scope locked, self-verified) ; secrets and
+never-throws self-reviewed PASS (independent compliance pass to re-run before
+publish, transient API outage at review time). Root jest 2389/0.
+
 ## [2.30.0] - 2026-06-24
 
 ### Added - byan_publish : Google Docs brandés, headless (service account)

@@ -17,6 +17,7 @@ const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat'
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
 const { setupLeantimeIntegration, validateLeantimeReachability } = require('../lib/byan-leantime-integration');
 const { setupRtkIntegration, shouldOfferRtk } = require('../lib/rtk-integration');
+const { setupGdocPublish, shouldOfferGdoc } = require('../lib/gdoc-setup');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupCodexNative } = require('../lib/codex-native-setup');
 const { setupMcpExtensions } = require('../lib/mcp-extensions');
@@ -1397,6 +1398,33 @@ async function install(options = {}) {
       }
     } catch (error) {
       console.log(chalk.yellow(`  ⚠ rtk setup skipped: ${error.message}`));
+    }
+  }
+
+  if (needsClaude && shouldOfferGdoc()) {
+    console.log();
+    console.log(chalk.cyan('byan_publish — clé service account Google Docs (optionnel, headless)'));
+    try {
+      const { proceed } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'proceed',
+          message: 'Configurer ta clé service account maintenant (chacun la sienne ; rien de secret ne ship) ?',
+          default: false,
+        },
+      ]);
+      if (proceed) {
+        const r = await setupGdocPublish({ log: (...a) => console.log(...a) });
+        if (r.configured) {
+          console.log(chalk.green(`  ✓ byan_publish prêt (clé : ${r.path})`));
+        } else {
+          console.log(chalk.yellow(`  ⚠ byan_publish non configuré (${r.skipReason}) — \`npm run setup-gdoc\` à tout moment`));
+        }
+      } else {
+        console.log(chalk.gray('  byan_publish ignoré — `npm run setup-gdoc` à tout moment pour activer.'));
+      }
+    } catch (error) {
+      console.log(chalk.yellow(`  ⚠ byan_publish setup skipped: ${error.message}`));
     }
   }
 

@@ -5,6 +5,28 @@ via un **service account possédé par byan** : auth JWT durable, sans navigateu
 sans refresh token, sans expiration 7 jours. C'est le chemin headless (cron,
 batch, sans humain) -- distinct du connecteur OAuth `gdrive`/gw.
 
+## Modèle open-source : chacun fournit SA clé
+
+BYAN est open-source : **aucune clé ne ship** dans le paquet npm. Chaque
+utilisateur fournit SA propre clé service account, sur sa machine. La clé vit
+dans `~/.byan/google-sa.json` (hors dépôt, 0600) et son chemin est persisté dans
+`~/.byan/credentials.json` (`GOOGLE_APPLICATION_CREDENTIALS`) ; le MCP server la
+lit via resolve-config.
+
+## Le setup (à l'install ou à la demande)
+
+L'installeur byan **propose** ce setup (opt-in, défaut non) et il existe aussi en
+commande dédiée :
+
+```bash
+npm run setup-gdoc
+```
+
+Il te guide vers la console Google, importe le JSON téléchargé dans
+`~/.byan/google-sa.json` (0600), et persiste le chemin (+ `GDOC_TEMPLATE_ID` /
+`GDOC_LOGO_PNG_URL` optionnels). Tu peux aussi tout faire à la main (poser le
+fichier + éditer `~/.byan/credentials.json`).
+
 ## La seule étape manuelle : créer la clé service account
 
 byan ne peut pas créer cette clé à ta place (Google Cloud IAM est hors de portée

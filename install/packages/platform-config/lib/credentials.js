@@ -18,7 +18,19 @@ const path = require('path');
 const fs = require('fs-extra');
 
 // Keys the credentials file understands. Any other key passed in is ignored.
-const KNOWN_KEYS = ['BYAN_API_URL', 'BYAN_API_TOKEN', 'LEANTIME_API_URL', 'LEANTIME_API_TOKEN'];
+// The Google Docs publish keys (byan_publish) live here too so a per-user
+// service-account setup persists alongside the byan_web / Leantime config; the
+// MCP server reads them via resolve-config. GOOGLE_APPLICATION_CREDENTIALS is a
+// PATH to the SA JSON (not the key itself) -- the key file stays separate, 0600.
+const KNOWN_KEYS = [
+  'BYAN_API_URL',
+  'BYAN_API_TOKEN',
+  'LEANTIME_API_URL',
+  'LEANTIME_API_TOKEN',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'GDOC_TEMPLATE_ID',
+  'GDOC_LOGO_PNG_URL',
+];
 
 function credentialsDir(homedir = os.homedir()) {
   return path.join(homedir, '.byan');
