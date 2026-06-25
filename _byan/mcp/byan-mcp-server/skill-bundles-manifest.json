@@ -184,7 +184,7 @@
       "name": "byan-hermes-dispatch",
       "module": "core",
       "tier": "connector-bound",
-      "sourceHash": "62b9c959c77468c0e14e3dfd45039151d29b1bcdc18b04b4d0deac606052a976"
+      "sourceHash": "45003e8a525a792d1a5dbe34ecb8e1443061fa5036a81a38a841598ce5aaf5ff"
     },
     "byan-insight": {
       "name": "byan-insight",

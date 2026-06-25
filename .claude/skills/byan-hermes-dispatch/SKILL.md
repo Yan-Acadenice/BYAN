@@ -73,10 +73,12 @@ prompt: |
   Load persona first : read <specialist stub path>.
   Task : <full goal>
   Deliverables : <list>
-  When done, write a concise report (< 200 words).
+  When done, return ONLY a distilled summary (< 200 words, ~1-2k tokens) :
+  the verbose tool output, file contents and intermediate reasoning stay in
+  YOUR context and do not cross back -- only the distillate returns.
 ```
 
-**`mcp-worker`** : same Agent tool call but without `isolation`. Set the Agent's `model` to the returned `model` — `haiku` for exploration nature, otherwise omit `model` to inherit the session model. The tier follows the task nature, not its size.
+**`mcp-worker`** : same Agent tool call but without `isolation` — including the SAME distilled-summary cap in the prompt (the subagent returns only the distillate, not its verbose work). Set the Agent's `model` to the returned `model` — `haiku` for exploration nature, otherwise omit `model` to inherit the session model. The tier follows the task nature, not its size.
 
 For any spawned strategy : pass `model` to the Agent tool when it is non-null; omit it when null so the subagent inherits the session model.
 
@@ -110,9 +112,21 @@ If the user (or calling agent) provides N independent subtasks and `parallelizab
 2. Dispatch all N Agent tool calls **in one message**.
 3. Aggregate via `coordination.aggregate` and `writeSummary`.
 
+## Subagent isolation (token leverage)
+
+A subagent runs in its OWN context window — use that. Let it explore verbosely
+(read files, run tools, reason at length) inside its own context, and have it
+return ONLY a distilled summary (< 200 words, ~1-2k tokens) to the main thread.
+The verbose work does not land in the lead context : this is the Anthropic
+context-isolation principle (a subagent may burn ~9k tokens internally yet return
+~1-2k). It applies to BOTH spawn paths (worktree and mcp-worker), and it is why
+heavy, verbose or exploratory work is worth delegating even when the lead could
+do it inline — the delegation keeps the lead context lean ("plus avec moins").
+
 ## Hard rules
 
 - **Never ask for confirmation** before spawning. User opted into autonomous mode (Q1.b).
 - **Never execute the specialist's work yourself** unless strategy says `main-thread*`. You dispatch, you do not become the specialist.
 - **Never spawn with `isolation: "worktree"` for tasks < score 15** — the boot cost exceeds the gain.
 - **Never fabricate a specialist name**. If no match, say so and use `general-purpose`.
+- **Cap every subagent return.** Both spawn paths (worktree AND mcp-worker) instruct the subagent to return only a distilled summary (< 200 words / ~1-2k tokens) — the raw exploration stays in the subagent's context.
