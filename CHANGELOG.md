@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.32.0] - 2026-06-25
+
+### Changed - Token cost reduction for BYAN's persistent identity (cache + dedup)
+
+Cuts the per-turn token cost of BYAN's persistent identity payload without making
+any of it conditional: tao, mantras, skeptic, ELO and fact-check stay applied each
+turn. Two levers attack the transport/representation cost, not the presence.
+
+- **Cache-align tao injection.** The full tao was re-injected each turn via a
+  UserPromptSubmit hook (~14.9 KB per turn, re-billed at the growing edge of the
+  conversation). It now loads once at SessionStart (`inject-tao.js` -> SessionStart,
+  the cacheable prefix), and a new `inject-voice-anchor.js` injects a compact
+  ~95-token voice anchor each turn (register + signatures + tutoiement + zero-emoji
+  + IA-16). Per-turn tao transport drops 14898 -> 383 chars (97.4% lower); the full
+  tao stays present, moved to the session prefix.
+- **De-duplicate the persistent doctrine.** `strict-mode.md`, `benchmark.md` and
+  `fact-check.md` were `@`-imported by `CLAUDE.md`, force-loading the full files
+  into every turn (~5964 tokens). The `@`-imports become lean plain pointers. The
+  behavioral summary stays inline in `CLAUDE.md` and the enforcement lives in the
+  hooks (`strict-*-guard`, `autobench-stop-guard`, `fact-check-*`); the full rule
+  files stay reachable on demand via their skills. The benchmark pointer is
+  regenerated from the `sync-rules` renderer. `elo-trust` and `team-doctrine` keep
+  their `@`-import.
+
+A third idea (output-side filtering) was closed as already covered by RTK + Claude
+Code's native large-output truncation -- a documented redundancy, not a cut.
+
+Files: `.claude/hooks/inject-tao.js` (now SessionStart), `.claude/hooks/inject-voice-anchor.js`
+(new), `.claude/settings.json`, `.claude/CLAUDE.md`, `_byan/mcp/byan-mcp-server/lib/sync-rules.js`
+(renderer), `_byan/mcp/byan-mcp-server/lib/template-sync.js` (ships the new hook), `AGENTS.md`
+(regenerated), plus the template mirrors. Built under BYAN Strict Mode; reviewed by bmad-compliance
+(approve, identity line held); root jest 2420/2420, MCP node --test 689/689, zero emoji. Token
+figures are char/4 estimates; `/context` is the exact counter-test.
+
 ## [2.31.0] - 2026-06-24
 
 ### Added - Install-time service-account key setup for byan_publish
