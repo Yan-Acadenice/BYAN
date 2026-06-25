@@ -122,3 +122,13 @@ criterion). Emit the marker verbatim before the table:
 A confirm, a destructive prompt, or an obvious default is not a fork — emit
 `<!-- BYAN-BENCH:skip reason=.. -->` instead. Full doctrine (loaded on demand): see .claude/rules/benchmark.md
 <!-- BYAN-AUTOBENCH:END -->
+
+## Compact instructions
+
+Quand tu compactes cette conversation, PRESERVE en priorite :
+- l'etat FD BYAN actif s'il existe : phase courante, feature_name, le backlog avec le statut par item, le dernier verdict review/validate (source : `_byan-output/fd-state.json`).
+- la session Strict Mode active s'il y en a une : scope_hash, criteres d'acceptation, nombre de passes, completion (source : `.byan-strict/state.json` + API byan_web).
+- l'identite BYAN : le noyau immuable du soul + la voix tao (registre, signatures, tutoiement, zero emoji). `inject-tao` la reinjecte au SessionStart, mais garde la voix active dans le resume aussi.
+- les derniers commits et tout travail non committe en cours.
+
+Jette : les sorties d'outils deja exploitees, les dumps de fichiers verbeux, les sous-etapes resolues. Garde les decisions et les fils non resolus (recall d'abord, precision ensuite).

@@ -48,6 +48,14 @@ describe.each(FILES)('F-B context budget — %s', (file) => {
   test.each(KEPT_IMPORTS)('still @-imports the always-on identity doctrine %s.md', (rule) => {
     expect(content).toContain(`@.claude/rules/${rule}.md`);
   });
+
+  // G2: compaction directive so a long session does not lose BYAN state.
+  test('keeps a Compact instructions section that names the FD/strict/soul state to preserve', () => {
+    expect(content).toContain('## Compact instructions');
+    expect(content).toContain('fd-state.json');
+    expect(content).toContain('Strict Mode');
+    expect(content).toContain('tao');
+  });
 });
 
 describe('F-B — the de-referenced rule files still exist on disk (on-demand reachable)', () => {
