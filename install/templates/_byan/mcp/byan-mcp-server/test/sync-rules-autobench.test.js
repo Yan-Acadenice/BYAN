@@ -123,7 +123,10 @@ test('renderAutobenchPointerBlock is lean and points to the full doctrine', () =
   const cfg = loadAutobenchConfig({ projectRoot: tmpRoot() });
   const block = renderAutobenchPointerBlock(cfg);
   assert.ok(block.startsWith('## BYAN Auto-Benchmark'));
-  assert.ok(block.includes('@.claude/rules/benchmark.md'));
+  assert.ok(block.includes('.claude/rules/benchmark.md'));
+  // F-B: the pointer must NOT @-import (force-load) the 11.5KB doctrine into
+  // every CLAUDE.md turn; the behavior is summarized inline + hook-enforced.
+  assert.ok(!block.includes('@.claude/rules/benchmark.md'), 'lean pointer must not @-import the doctrine');
   assert.ok(block.includes('BYAN-BENCH:done'));
   assert.ok(block.includes('BYAN-BENCH:skip'));
   // Lean: the body (excluding the wrapping markers added by upsertBlock) stays
@@ -190,7 +193,8 @@ test('syncAutobench upserts the pointer block into all three platform files', ()
     const content = fs.readFileSync(path.join(root, rel), 'utf8');
     assert.ok(content.includes(AUTOBENCH_MARKERS.BEGIN), `${rel} has AUTOBENCH begin`);
     assert.ok(content.includes(AUTOBENCH_MARKERS.END), `${rel} has AUTOBENCH end`);
-    assert.ok(content.includes('@.claude/rules/benchmark.md'), `${rel} points to the doctrine`);
+    assert.ok(content.includes('.claude/rules/benchmark.md'), `${rel} points to the doctrine`);
+    assert.ok(!content.includes('@.claude/rules/benchmark.md'), `${rel} must not @-import (force-load) the doctrine`);
     // The marker note cites the autobench source, not strict-mode.
     assert.ok(content.includes('autobench.yaml'), `${rel} note cites autobench.yaml`);
     // Exactly one block per file.

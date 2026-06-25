@@ -64,7 +64,10 @@ describe('byan-sync-rules autobench extension (C5a)', () => {
         const block = content.slice(begin, end);
         expect(block).toContain('Auto-Benchmark');
         expect(block).toContain('BYAN-BENCH:done');
-        expect(block).toContain('@.claude/rules/benchmark.md');
+        // F-B: lean POINTER (no `@`), so the 11.5KB doctrine is NOT force-loaded
+        // into every CLAUDE.md turn. Behavior stays via the inline summary + hooks.
+        expect(block).toContain('.claude/rules/benchmark.md');
+        expect(block).not.toContain('@.claude/rules/benchmark.md');
         // The marker note cites the autobench source of truth, not strict-mode.
         expect(block).toContain('autobench.yaml');
         // No fabricated external URL smuggled into the pointer (link rule sanity).

@@ -271,7 +271,7 @@ both gates hold (>= 2 non-substitutable options diverging on >= 1 weighted
 criterion). Emit the marker verbatim before the table:
 \`<!-- BYAN-BENCH:done g1=<#options> g2=<#divergent-criteria> scope=<internal|external> conf=<assertive|lean> -->\`.
 A confirm, a destructive prompt, or an obvious default is not a fork — emit
-\`<!-- BYAN-BENCH:skip reason=.. -->\` instead. Full doctrine: see @.claude/rules/benchmark.md`;
+\`<!-- BYAN-BENCH:skip reason=.. -->\` instead. Full doctrine (loaded on demand): see .claude/rules/benchmark.md`;
 }
 
 // ---------------------------------------------------------------------------
