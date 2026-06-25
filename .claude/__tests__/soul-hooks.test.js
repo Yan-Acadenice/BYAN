@@ -196,6 +196,111 @@ describe('F-A inject-voice-anchor is the compact per-turn voice reminder', () =>
   });
 });
 
+// ---- F1 — heart-survival: inject-tao must re-fire on SessionStart for ALL ------
+// sources (incl. compact), so the full tao is re-injected after every compaction.
+describe('F1 heart-survival wiring (post-compaction tao re-injection)', () => {
+  const SETTINGS = [
+    path.join(__dirname, '..', 'settings.json'),
+    path.join(__dirname, '..', '..', 'install', 'templates', '.claude', 'settings.json'),
+  ];
+  test.each(SETTINGS)('%s wires inject-tao under SessionStart with an all-sources matcher', (file) => {
+    const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const ss = cfg.hooks.SessionStart;
+    expect(Array.isArray(ss)).toBe(true);
+    const group = ss.find((g) => (g.hooks || []).some((h) => /inject-tao\.js/.test(h.command)));
+    expect(group).toBeTruthy();
+    // Empty/absent matcher = fires on startup|resume|clear|compact. A restrictive
+    // matcher (e.g. "startup") would silently stop post-compaction re-injection and
+    // the heart would fade on long sessions. Pin the invariant.
+    expect(group.matcher == null || group.matcher === '' || group.matcher === '*').toBe(true);
+  });
+  test('inject-tao emits the full tao (re-injectable on every SessionStart incl. compact)', () => {
+    const dir = tmpProject();
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), 'TAO_SENTINEL_HEART');
+    const out = runHook('inject-tao.js', dir);
+    expect(out.hookSpecificOutput.hookEventName).toBe('SessionStart');
+    expect(out.hookSpecificOutput.additionalContext).toContain('TAO_SENTINEL_HEART');
+  });
+});
+
+// ---- F2 — periodic full-tao refresh (the heart does not fade between compactions) -
+describe('F2 periodic full-tao refresh', () => {
+  const anchor = require('../hooks/inject-voice-anchor');
+  const tao = require('../hooks/inject-tao');
+
+  test('decideAnchor: anchor on non-Nth turns, full tao on the Nth', () => {
+    const FULL = 'FULL_TAO_BODY';
+    expect(anchor.decideAnchor({ turn: 1, every: 12, fullTao: FULL }).mode).toBe('anchor');
+    expect(anchor.decideAnchor({ turn: 11, every: 12, fullTao: FULL }).mode).toBe('anchor');
+    expect(anchor.decideAnchor({ turn: 12, every: 12, fullTao: FULL }).mode).toBe('full');
+    expect(anchor.decideAnchor({ turn: 24, every: 12, fullTao: FULL }).additionalContext).toBe(FULL);
+  });
+  test('decideAnchor: every <= 0 disables the refresh (anchor always)', () => {
+    expect(anchor.decideAnchor({ turn: 12, every: 0, fullTao: 'X' }).mode).toBe('anchor');
+  });
+  test('refreshEvery: env override; invalid/absent -> default 12', () => {
+    expect(anchor.refreshEvery({ BYAN_TAO_REFRESH_EVERY: '5' })).toBe(5);
+    expect(anchor.refreshEvery({ BYAN_TAO_REFRESH_EVERY: 'x' })).toBe(12);
+    expect(anchor.refreshEvery({})).toBe(12);
+  });
+  test('inject-tao and the anchor agree on the SAME counter path (parity)', () => {
+    const dir = tmpProject();
+    expect(tao.turnCounterPath(dir)).toBe(path.join(dir, '_byan-output', '.tao-refresh-turn'));
+  });
+  test('SessionStart (inject-tao) resets the turn counter to 0', () => {
+    const dir = tmpProject();
+    fs.mkdirSync(path.join(dir, '_byan-output'), { recursive: true });
+    fs.writeFileSync(tao.turnCounterPath(dir), '7');
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), '# tao');
+    runHook('inject-tao.js', dir);
+    expect(fs.readFileSync(tao.turnCounterPath(dir), 'utf8').trim()).toBe('0');
+  });
+  test('end-to-end cadence: the Nth UserPromptSubmit surfaces the full tao, the others the anchor', () => {
+    const dir = tmpProject();
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), 'TAO_SENTINEL_REFRESH');
+    const fullTurns = [];
+    for (let i = 1; i <= 12; i++) {
+      const out = JSON.parse(
+        execFileSync('node', [path.join(HOOKS, 'inject-voice-anchor.js')], {
+          env: { ...process.env, CLAUDE_PROJECT_DIR: dir, BYAN_TAO_REFRESH_EVERY: '12' },
+          input: '',
+          encoding: 'utf8',
+        }) || '{}'
+      );
+      if (out.hookSpecificOutput.additionalContext.includes('TAO_SENTINEL_REFRESH')) fullTurns.push(i);
+    }
+    expect(fullTurns).toEqual([12]); // full tao surfaced once, exactly on the Nth turn
+  });
+  test('graceful degrade under a non-writable _byan-output: anchor + exit 0 (F1/compaction is the floor)', () => {
+    // POSIX modes only; root bypasses perms so the chmod would be a no-op.
+    if (process.platform === 'win32' || (process.getuid && process.getuid() === 0)) return;
+    const dir = tmpProject();
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), 'TAO_SENTINEL_FS');
+    const outDir = path.join(dir, '_byan-output');
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.chmodSync(outDir, 0o500); // r-x: the cross-turn counter cannot persist
+    try {
+      // Over many turns the stuck counter must NOT crash and must fall back to the
+      // compact anchor -- the deliberate, documented degradation. The heart still
+      // returns in full via inject-tao at SessionStart / compaction (the F1 floor).
+      for (let i = 0; i < 14; i++) {
+        const out = JSON.parse(
+          execFileSync('node', [path.join(HOOKS, 'inject-voice-anchor.js')], {
+            env: { ...process.env, CLAUDE_PROJECT_DIR: dir, BYAN_TAO_REFRESH_EVERY: '12' },
+            input: '',
+            encoding: 'utf8',
+          }) || '{}'
+        );
+        expect(out.hookSpecificOutput.hookEventName).toBe('UserPromptSubmit');
+        expect(out.hookSpecificOutput.additionalContext).toContain('Tutoiement');
+        expect(out.hookSpecificOutput.additionalContext).not.toContain('TAO_SENTINEL_FS');
+      }
+    } finally {
+      fs.chmodSync(outDir, 0o700); // restore so tmpdir cleanup can remove it
+    }
+  });
+});
+
 describe('A6 SessionStart output contract', () => {
   test('inject-soul emits hookSpecificOutput.additionalContext', () => {
     const dir = tmpProject();

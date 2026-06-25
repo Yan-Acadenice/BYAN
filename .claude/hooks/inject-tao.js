@@ -40,8 +40,29 @@ function buildTaoContext(projectDir) {
   return '';
 }
 
+// Per-session turn counter for the voice-anchor refresh cadence (inject-voice-anchor.js).
+// It lives under _byan-output/ (gitignored). inject-tao OWNS the path and the reset
+// because the full tao it injects at SessionStart (including source=compact) restarts
+// the cadence: the next periodic full-tao refresh is then N turns later. The anchor hook
+// reads/writes the same path via require('./inject-tao') -- single source, no drift.
+function turnCounterPath(projectDir) {
+  return path.join(projectDir, '_byan-output', '.tao-refresh-turn');
+}
+
+function resetTurnCounter(projectDir) {
+  try {
+    const p = turnCounterPath(projectDir);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, '0');
+  } catch {
+    // Never block session start.
+  }
+}
+
 if (require.main === module) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  // A fresh full tao is about to be injected -> restart the voice-anchor cadence.
+  resetTurnCounter(projectDir);
   const additionalContext = buildTaoContext(projectDir);
   if (additionalContext) {
     process.stdout.write(
@@ -54,4 +75,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { taoFile, buildTaoContext };
+module.exports = { taoFile, buildTaoContext, turnCounterPath, resetTurnCounter };
