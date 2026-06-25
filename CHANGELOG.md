@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.33.0] - 2026-06-25
+
+### Changed - Keep BYAN's voice alive on long sessions (tao persistence)
+
+Hardens the 2.32.0 tao cache-alignment so BYAN's voice does not fade on a long
+session, without re-introducing the per-turn cost.
+
+- **F1 -- heart-survival pinned.** A test (`.claude/__tests__/soul-hooks.test.js`)
+  now fails if `inject-tao.js` stops being wired under SessionStart with an
+  all-sources matcher (so it keeps re-firing on `source: "compact"`) or stops
+  emitting the full tao. Claude Code re-fires SessionStart after each compaction
+  (per its docs), re-injecting the full tao then; this test guards that floor
+  against a silent refactor.
+- **F2 -- periodic refresh.** `inject-voice-anchor.js` re-injects the FULL tao
+  every N turns (N via `BYAN_TAO_REFRESH_EVERY`, default 12); the other turns keep
+  the compact anchor. A per-turn counter under `_byan-output/` (gitignored), reset
+  at SessionStart by `inject-tao.js`, drives the cadence -- so the voice is
+  refreshed close to the live edge at least every N turns, between compactions.
+  Amortized cost stays well under the pre-2.32.0 per-turn tao.
+- **Honest floor.** The periodic refresh is best-effort: it needs a writable
+  counter, and each turn is a separate process. If `_byan-output/` is not writable
+  the hook degrades to the anchor (exit 0, no crash) and the SessionStart /
+  compaction re-injection remains the floor. A test pins that degradation.
+
+Built under BYAN Strict Mode; reviewed by bmad-compliance (one CHANGES round on the
+FS-degradation honesty, then approve). root jest 2430/2430, MCP node --test 689/689.
+
 ## [2.32.0] - 2026-06-25
 
 ### Changed - Token cost reduction for BYAN's persistent identity (cache + dedup)
