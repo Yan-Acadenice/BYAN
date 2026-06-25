@@ -105,6 +105,12 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/leantime-fd-core.test.js',
   '_byan/mcp/byan-mcp-server/test/leantime-fd-hook.test.js',
   '.claude/hooks/leantime-fd-sync.js',
+  // Token cache-alignment (F-A): the full tao moved to a SessionStart hook so it
+  // sits in the cacheable prefix, and a compact per-turn voice anchor replaces the
+  // old per-turn full-tao re-injection. settings.json (already mirrored) registers
+  // inject-voice-anchor.js in UserPromptSubmit, so it MUST ship or a fresh install
+  // points at a missing script -- same coupling rationale as leantime-fd-sync.js.
+  '.claude/hooks/inject-voice-anchor.js',
   // Remote MCP connector enabling layer (BYAN native to Claude Team). server.js
   // (already mirrored) gains createByanServer()+remoteOnly; these NEW files must
   // ship so a fresh install can host the connector + build/verify skill bundles.

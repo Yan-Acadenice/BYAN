@@ -2,9 +2,10 @@
 /**
  * SessionStart hook — loads BYAN soul + soul-memory and injects them into
  * the session's initial context via additionalContext. Tao is intentionally
- * NOT bundled here: inject-tao.js injects the full tao on every
- * UserPromptSubmit (including the first), so duplicating it at SessionStart
- * would double-spend ~15 KB per session for no gain.
+ * NOT bundled here: inject-tao.js is its own SessionStart hook that injects the
+ * full tao once into the cacheable prefix, and inject-voice-anchor.js carries a
+ * compact per-turn voice reminder. Keeping them separate avoids double-spending
+ * the tao payload while leaving each hook single-purpose and testable.
  *
  * Also resets the per-session mid-session-nudge one-shot marker so the
  * soul-memory-triggers nudge is per-session (not per-lifetime). Without

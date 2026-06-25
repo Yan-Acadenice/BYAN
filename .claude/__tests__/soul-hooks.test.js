@@ -17,6 +17,8 @@ const { execFileSync } = require('child_process');
 
 const HOOKS = path.join(__dirname, '..', 'hooks');
 const injectSoul = require('../hooks/inject-soul');
+const injectTao = require('../hooks/inject-tao');
+const voiceAnchor = require('../hooks/inject-voice-anchor');
 const memCheck = require('../hooks/soul-memory-check');
 const triggers = require('../hooks/soul-memory-triggers');
 
@@ -155,6 +157,45 @@ describe('Review hardening', () => {
 });
 
 // ---- A6 — SessionStart hooks emit additionalContext, not systemMessage -----
+describe('F-A inject-tao injects the FULL tao at SessionStart (cacheable prefix)', () => {
+  test('buildTaoContext returns the full tao body (Gen3 path)', () => {
+    const dir = tmpProject();
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), 'TAO_SENTINEL_FULL_VOICE');
+    expect(injectTao.buildTaoContext(dir)).toContain('TAO_SENTINEL_FULL_VOICE');
+  });
+  test('the hook emits hookEventName SessionStart, not UserPromptSubmit', () => {
+    const dir = tmpProject();
+    fs.writeFileSync(path.join(dir, '_byan', 'agent', 'byan', 'tao.md'), 'TAO_SENTINEL_FULL_VOICE');
+    const out = runHook('inject-tao.js', dir);
+    expect(out.hookSpecificOutput.hookEventName).toBe('SessionStart');
+    expect(out.hookSpecificOutput.additionalContext).toContain('TAO_SENTINEL_FULL_VOICE');
+    expect(out.systemMessage).toBeUndefined();
+  });
+  test('missing tao.md is a no-op empty object (never blocks)', () => {
+    const out = runHook('inject-tao.js', tmpProject());
+    expect(out).toEqual({});
+  });
+});
+
+describe('F-A inject-voice-anchor is the compact per-turn voice reminder', () => {
+  test('emits UserPromptSubmit + an anchor carrying the voice markers', () => {
+    const out = runHook('inject-voice-anchor.js', tmpProject());
+    expect(out.hookSpecificOutput.hookEventName).toBe('UserPromptSubmit');
+    const a = out.hookSpecificOutput.additionalContext;
+    expect(a).toContain('Tutoiement');
+    expect(a).toContain('On construit'); // a verbal signature
+    expect(a.toLowerCase()).toContain('emoji'); // the zero-emoji rule survives
+  });
+  test('the anchor is compact and is NOT the full tao (the whole point)', () => {
+    const a = voiceAnchor.buildVoiceAnchor();
+    expect(a.length).toBeLessThan(800);
+    expect(a).not.toContain('TAO_SENTINEL_FULL_VOICE');
+  });
+  test('the anchor is byte-stable across calls (no per-turn variable -> cache-safe)', () => {
+    expect(voiceAnchor.buildVoiceAnchor()).toBe(voiceAnchor.buildVoiceAnchor());
+  });
+});
+
 describe('A6 SessionStart output contract', () => {
   test('inject-soul emits hookSpecificOutput.additionalContext', () => {
     const dir = tmpProject();

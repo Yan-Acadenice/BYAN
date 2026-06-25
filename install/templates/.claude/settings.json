@@ -10,6 +10,10 @@
           },
           {
             "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
+          },
+          {
+            "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-check.js"
           }
         ]
@@ -21,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-voice-anchor.js"
           },
           {
             "type": "command",
