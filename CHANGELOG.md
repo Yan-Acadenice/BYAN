@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.34.0] - 2026-06-25
+
+### Changed - Context engineering: do more with less (compaction + subagent isolation)
+
+Two context-engineering moves from Anthropic's guidance, applied without touching
+BYAN's persistent identity.
+
+- **G2 -- compaction directive.** A `## Compact instructions` section in
+  `.claude/CLAUDE.md` tells the compaction what to preserve when a long session is
+  summarized: the active FD state (phase, backlog, verdicts -- `_byan-output/fd-state.json`),
+  the active Strict Mode session, BYAN's soul/tao voice, and recent commits. It
+  complements the `pre-compact-save` PreCompact hook (which writes a file snapshot):
+  one says what to keep in-context, the other persists a snapshot to disk.
+- **G3 -- subagent isolation doctrine in hermes.** The dispatcher's worktree path
+  already capped the subagent's return; the `mcp-worker` path did not, and the
+  isolation principle was unnamed. Both spawn paths now cap the return to a
+  distilled summary (< 200 words / ~1-2k tokens) -- verbose tool output and
+  intermediate reasoning stay in the subagent's own context. A new "Subagent
+  isolation (token leverage)" section + a hard rule codify it (Anthropic: a
+  subagent may burn ~9k tokens internally yet return ~1-2k).
+
+Files: `.claude/CLAUDE.md` (+ template), `.claude/skills/byan-hermes-dispatch/SKILL.md`
+(+ template), skill-bundles manifest + ZIP rebuilt, `.claude/__tests__/claude-md-context-budget.test.js`.
+root jest 2432/2432, MCP node --test 689/689. Source: Anthropic "Effective context engineering for AI agents".
+
 ## [2.33.0] - 2026-06-25
 
 ### Changed - Keep BYAN's voice alive on long sessions (tao persistence)
