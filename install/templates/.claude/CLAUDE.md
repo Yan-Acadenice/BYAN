@@ -64,6 +64,7 @@ Doctrine d'equipe complete (template role-in-team, analogie orchestre, principes
 - Systeme de confiance epistemique: voir @.claude/rules/elo-trust.md
 - Protocol fact-check scientifique: voir .claude/rules/fact-check.md (charge a la demande via le skill byan-fact-check)
 - Mode strict anti-downgrade: voir .claude/rules/strict-mode.md (charge a la demande via le skill byan-strict)
+- Architecture portable (noyau portable, projection native): voir .claude/rules/portable-core.md (charge a la demande)
 - Systeme API byan_web: voir @.claude/rules/byan-api.md
 
 ## API byan_web

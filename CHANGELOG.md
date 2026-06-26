@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.35.0] - 2026-06-26
+
+### Added - Portable core / native projection doctrine + degradation litmus
+
+BYAN's memory/identity is now governed by an explicit architecture doctrine: a
+portable in-repo core, with native Claude features as opportunistic write-through
+accelerators rather than dependencies.
+
+- **F1 -- doctrine.** New `.claude/rules/portable-core.md` (+ install template)
+  states the boundary: source of truth lives under `_byan/` (+ byan_web); native
+  features (prompt caching, `@-import` memory files, hooks, subagent isolation)
+  are write-through accelerators; the native AutoMem
+  (`~/.claude/projects/<hash>/memory/`) is explicitly out-of-perimeter
+  (per-machine, not shippable, not a BYAN source). Carries a feature -> adapter
+  -> degraded-path table. Mirrored to `AGENTS.md` (Codex) and pointed to from
+  `.claude/CLAUDE.md` WITHOUT an `@-import` (token budget).
+- **F2 -- degradation litmus.** New `.claude/__tests__/portable-core.test.js`
+  makes independence mechanical: identity (soul/tao/soul-memory) reconstructs from
+  portable `_byan/` artifacts alone, and no critical read path depends on the
+  native AutoMem (regression guard).
+
+Origin: a memory-integration audit found BYAN runs a parallel memory stack that
+does not touch the native AutoMem -- largely justified by npm portability, but
+undocumented and drift-prone. This codifies the boundary instead of syncing two
+stores (F3 anti-drift guard cut, YAGNI).
+
+Files: `.claude/rules/portable-core.md` (+ template), `AGENTS.md`,
+`.claude/CLAUDE.md` (+ template), `.claude/__tests__/portable-core.test.js`.
+root jest 2441/2441, MCP node --test 689/689. Strict mode: scope 591e6e49.
+
 ## [2.34.0] - 2026-06-25
 
 ### Changed - Context engineering: do more with less (compaction + subagent isolation)
