@@ -5,6 +5,8 @@ import {
   parseFdState,
   columnForState,
   decideActions,
+  priorityToLeantime,
+  complexityToStorypoints,
   FD_ADVANCE,
   FD_UPDATE,
 } from '../lib/leantime-fd-core.js';
@@ -63,6 +65,40 @@ test('columnForState uses the LAST review finding when several rounds exist', ()
     review_findings: [{ status: 'needs-rework' }, { status: 'ready-for-validate' }],
   };
   assert.equal(columnForState(state), 'review');
+});
+
+// --- priorityToLeantime ----------------------------------------------------
+
+test('priorityToLeantime maps P1/P2/P3 to 3/2/1 and an unknown to undefined', () => {
+  assert.equal(priorityToLeantime('P1'), 3);
+  assert.equal(priorityToLeantime('P2'), 2);
+  assert.equal(priorityToLeantime('P3'), 1);
+  assert.equal(priorityToLeantime('P9'), undefined);
+  assert.equal(priorityToLeantime(undefined), undefined);
+});
+
+// --- complexityToStorypoints -----------------------------------------------
+
+test('complexityToStorypoints buckets a finite complexity onto the Fibonacci scale', () => {
+  assert.equal(complexityToStorypoints({ complexity: 0 }), 2);
+  assert.equal(complexityToStorypoints({ complexity: 15 }), 2);
+  assert.equal(complexityToStorypoints({ complexity: 16 }), 5);
+  assert.equal(complexityToStorypoints({ complexity: 39 }), 5);
+  assert.equal(complexityToStorypoints({ complexity: 40 }), 8);
+  assert.equal(complexityToStorypoints({ complexity: 69 }), 8);
+  assert.equal(complexityToStorypoints({ complexity: 70 }), 13);
+  assert.equal(complexityToStorypoints({ complexity: 100 }), 13);
+});
+
+test('complexityToStorypoints falls back to priority then to a default, always a number', () => {
+  assert.equal(complexityToStorypoints({ priority: 'P1' }), 8);
+  assert.equal(complexityToStorypoints({ priority: 'P2' }), 5);
+  assert.equal(complexityToStorypoints({ priority: 'P3' }), 3);
+  assert.equal(complexityToStorypoints({ priority: 'P9' }), 3); // unknown priority -> default
+  assert.equal(complexityToStorypoints({}), 3); // no complexity, no priority -> default
+  assert.equal(complexityToStorypoints(undefined), 3); // no item at all -> default
+  // a non-finite complexity must not short-circuit the Fibonacci path
+  assert.equal(complexityToStorypoints({ complexity: NaN, priority: 'P1' }), 8);
 });
 
 // --- decideActions: gating -------------------------------------------------
@@ -126,6 +162,36 @@ test('DISPATCH creates a task per unmapped backlog item in todo, skips skipped i
   const moves = intents.filter((i) => i.op === 'task_move');
   assert.ok(moves.every((m) => m.column === 'todo'));
   assert.deepEqual(moves.map((m) => m.backlogId), ['F1', 'F2']);
+});
+
+test('DISPATCH task_create carries storypoints + priority + a traceable description', () => {
+  const state = {
+    phase: 'DISPATCH',
+    fd_id: 'fd42',
+    project_context: { name: 'Demo' },
+    backlog: [{ id: 'F1', title: 'Build the thing', status: 'pending', priority: 'P1', complexity: 50 }],
+  };
+  const { intents } = decideActions({ toolName: FD_UPDATE, state, sidecar: { projectId: 9, tasks: {} } });
+  const create = intents.find((i) => i.op === 'task_create');
+  assert.equal(create.backlogId, 'F1');
+  assert.equal(create.headline, 'Build the thing');
+  assert.equal(create.storypoints, 8); // complexity 50 -> 8 (40..69 bucket)
+  assert.equal(create.priority, 3); // P1 -> 3
+  assert.equal(create.description, 'BYAN FD fd42 -- Build the thing [complexity:50]');
+});
+
+test('task_create OMITS priority for an unknown priority and the complexity tag when absent', () => {
+  const state = {
+    phase: 'DISPATCH',
+    fd_id: 'fd7',
+    project_context: { name: 'Demo' },
+    backlog: [{ id: 'F1', title: 'No prio', status: 'pending' }],
+  };
+  const { intents } = decideActions({ toolName: FD_ADVANCE, state, sidecar: { projectId: 9, tasks: {} } });
+  const create = intents.find((i) => i.op === 'task_create');
+  assert.ok(!('priority' in create)); // unknown priority -> key omitted
+  assert.equal(create.storypoints, 3); // no complexity, no priority -> default
+  assert.equal(create.description, 'BYAN FD fd7 -- No prio'); // no [complexity:..] tag
 });
 
 test('before DISPATCH, backlog items are NOT created (create gated to DISPATCH onward)', () => {

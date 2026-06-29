@@ -216,7 +216,7 @@ export async function ensureProject({ name, slug, clientId, details } = {}, opts
 // `id` so the caller can store it back into fd-state (idempotency lives in the
 // caller: create-only-if the backlog item has no leantime_task_id yet).
 export async function createTask(
-  { projectId, headline, description, status, priority, editorId, tags, type = 'task' } = {},
+  { projectId, headline, description, status, priority, storypoints, editorId, tags, type = 'task' } = {},
   opts = {},
 ) {
   if (!projectId) return { ok: false, synced: false, reason: 'no_project_id' };
@@ -226,6 +226,9 @@ export async function createTask(
   if (description != null) values.description = description;
   if (status != null) values.status = status;
   if (priority != null) values.priority = priority;
+  // storypoints is the presumed Leantime effort field (UNVERIFIED against a live
+  // instance); an unknown key is at worst ignored by addTicket, so this is safe.
+  if (storypoints != null) values.storypoints = storypoints;
   // Default the assignee to the configured human (LEANTIME_ASSIGN_USER_ID) so an
   // auto-created task shows on a person's board, not only the API service user.
   const resolvedEditor = editorId != null ? editorId : assignUserId();

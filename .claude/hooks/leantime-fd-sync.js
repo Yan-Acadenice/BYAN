@@ -162,7 +162,18 @@ function logLine(entry) {
     if (createIntents.length && sidecar.projectId && timeLeft() > 0) {
       const results = await Promise.allSettled(
         createIntents.map((i) =>
-          lt.createTask({ projectId: sidecar.projectId, headline: i.headline }, opts).then((r) => ({ i, r })),
+          lt
+            .createTask(
+              {
+                projectId: sidecar.projectId,
+                headline: i.headline,
+                description: i.description,
+                priority: i.priority,
+                storypoints: i.storypoints,
+              },
+              opts,
+            )
+            .then((r) => ({ i, r })),
         ),
       );
       for (const s of results) {

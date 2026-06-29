@@ -70,6 +70,47 @@ const PHASE_RANK = {
   ABORTED: 9,
 };
 
+// Map an FD backlog item's priority (P1/P2/P3) to a Leantime priority int.
+// Leantime priority is high=3 .. low=1; an unknown priority yields undefined so
+// the caller can OMIT the key (an absent priority must not be forced to a value).
+export function priorityToLeantime(priority) {
+  switch (priority) {
+    case 'P1':
+      return 3;
+    case 'P2':
+      return 2;
+    case 'P3':
+      return 1;
+    default:
+      return undefined;
+  }
+}
+
+// Map an FD backlog item to a Leantime story-points effort estimate. Prefers a
+// finite numeric `complexity` (0-100 scale, bucketed onto the Fibonacci scale
+// Leantime uses for estimates), and falls back to the coarse priority signal
+// when complexity is absent. ALWAYS returns a number so the caller can post a
+// non-null estimate on every created task.
+export function complexityToStorypoints(item) {
+  if (item && Number.isFinite(item.complexity)) {
+    const c = item.complexity;
+    if (c <= 15) return 2;
+    if (c <= 39) return 5;
+    if (c <= 69) return 8;
+    return 13;
+  }
+  switch (item && item.priority) {
+    case 'P1':
+      return 8;
+    case 'P2':
+      return 5;
+    case 'P3':
+      return 3;
+    default:
+      return 3;
+  }
+}
+
 function lastReviewStatus(state) {
   const arr = Array.isArray(state.review_findings) ? state.review_findings : [];
   for (let i = arr.length - 1; i >= 0; i -= 1) {
@@ -126,7 +167,7 @@ export function columnForState(state) {
 // Intent ops (the shell maps each to a leantime-sync call):
 //   { op:'project_ensure', name, slug, details }
 //   { op:'assign_user' }                              // only if configured (shell sequences it after project_ensure)
-//   { op:'task_create', backlogId, headline }
+//   { op:'task_create', backlogId, headline, storypoints, description, priority? }
 //   { op:'task_move', backlogId, column }
 export function decideActions({ toolName, state, sidecar = {}, assignUserConfigured = false } = {}) {
   const kind = fdToolKind(toolName);
@@ -161,7 +202,24 @@ export function decideActions({ toolName, state, sidecar = {}, assignUserConfigu
       if (!item || !item.id) continue;
       if (item.status === 'skipped') continue;
       if (!tasks[item.id]) {
-        intents.push({ op: 'task_create', backlogId: item.id, headline: item.title || item.id });
+        const headline = item.title || item.id;
+        // Enrich the create with effort + priority + a traceable description so
+        // the board item carries the BYAN signal, not just a bare title.
+        const priority = priorityToLeantime(item.priority);
+        const hasComplexity = Number.isFinite(item.complexity);
+        const description =
+          `BYAN FD ${state.fd_id || ''} -- ${headline}`.trim() +
+          (hasComplexity ? ` [complexity:${item.complexity}]` : '');
+        const intent = {
+          op: 'task_create',
+          backlogId: item.id,
+          headline,
+          storypoints: complexityToStorypoints(item),
+          description,
+        };
+        // priority is OMITTED when unknown (do not force an absent priority).
+        if (priority !== undefined) intent.priority = priority;
+        intents.push(intent);
       }
     }
   }

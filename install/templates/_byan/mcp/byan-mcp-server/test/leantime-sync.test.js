@@ -119,6 +119,23 @@ test('createTask requires projectId and headline, wraps values, returns id', asy
   assert.equal(calls[0].body.params.values.headline, 'Build F1');
 });
 
+test('createTask forwards storypoints into the addTicket values', async () => {
+  const { calls, fetchImpl } = queueFetch([rpcOk(124)]);
+  const r = await createTask(
+    { projectId: 5, headline: 'Build F1', priority: 2, storypoints: 8 },
+    { ...ENV, fetchImpl },
+  );
+  assert.equal(r.id, 124);
+  assert.equal(calls[0].body.params.values.storypoints, 8);
+  assert.equal(calls[0].body.params.values.priority, 2);
+});
+
+test('createTask omits storypoints from the values when not provided', async () => {
+  const { calls, fetchImpl } = queueFetch([rpcOk(125)]);
+  await createTask({ projectId: 5, headline: 'Build F1' }, { ...ENV, fetchImpl });
+  assert.ok(!('storypoints' in calls[0].body.params.values));
+});
+
 test('moveTask resolves a column to a status id then updates the ticket', async () => {
   // 1st call: getStatusLabels ; 2nd call: updateTicket
   const labels = { 11: { name: 'In Progress' }, 12: { name: 'Done' } };

@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.35.0",
+  "version": "2.36.0",
   "description": "BYAN - Intelligent AI agent installer with multi-platform native support (Claude Code, Codex/OpenCode)",
   "bin": {
     "create-byan-agent": "bin/create-byan-agent-v2.js"

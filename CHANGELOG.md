@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.36.0] - 2026-06-29
+
+### Added - Leantime auto-sync: complexity, priority and description on task creation
+
+The FD->Leantime auto-sync (which already creates tasks and drives the
+todo/doing/review/done lifecycle) now enriches each created task with effort,
+priority and a traceable description -- no manual board work.
+
+- **F1 -- pure resolvers + enriched intent** (`leantime-fd-core.js`). Two
+  exported pure functions: `priorityToLeantime` (P1/P2/P3 -> 3/2/1, omitted when
+  unknown) and `complexityToStorypoints` (a finite `item.complexity` bucketed on
+  the Fibonacci scale <=15->2 / 16-39->5 / 40-69->8 / >=70->13, else derived from
+  priority P1->8 / P2->5 / P3->3, default 3 -- returns a numeric estimate).
+  `decideActions` now emits `{ priority?, storypoints, description }` in the
+  `task_create` intent (`description` = `BYAN FD <id> -- <headline>` +
+  ` [complexity:N]` when finite).
+- **F2 -- carrier + passthrough** (`leantime-sync.js` + the `leantime-fd-sync`
+  hook, source + install template). `createTask` accepts and sends `storypoints`;
+  the hook passes `description` / `priority` / `storypoints` through to it. The
+  lifecycle sync is untouched.
+
+Note: `storypoints` is the presumed Leantime effort field, `[UNVERIFIED]` against
+a live instance (Leantime unreachable at build time). An unknown key is at worst
+ignored by `addTicket` (no break), and the complexity is also carried in the
+description as a fallback. Flagged for a live-verify when reachable.
+
+Files: `_byan/mcp/byan-mcp-server/lib/leantime-fd-core.js`, `lib/leantime-sync.js`,
+`.claude/hooks/leantime-fd-sync.js` (+ install template), `test/leantime-fd-core.test.js`
++ `test/leantime-sync.test.js` (+7 tests). MCP node --test 696/696, root jest
+2441/2441. Strict scope 80405c59.
+
 ## [2.35.0] - 2026-06-26
 
 ### Added - Portable core / native projection doctrine + degradation litmus

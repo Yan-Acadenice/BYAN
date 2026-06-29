@@ -13,7 +13,7 @@ events:
 | FD phase / event | Effect on the board |
 |------------------|---------------------|
 | DISCOVERY (project confirmed) | create-or-fetch the Leantime project |
-| DISPATCH (per backlog feature) | one task per feature |
+| DISPATCH (per backlog feature) | one task per feature, with effort (storypoints), priority and a description |
 | BUILD (feature starts) | task -> column `doing` |
 | REVIEW needs-rework / VALIDATE KO | task -> column `blocked` |
 | VALIDATE OK | task -> column `review` |
@@ -22,6 +22,16 @@ events:
 The FD lifecycle columns (`todo|doing|blocked|review|done`) are resolved to the
 project's configured Leantime status ids at call time (statuses are per-project
 ints), with a conservative fallback when the labels cannot be read.
+
+Each created task also carries the BYAN signal, not just a bare title:
+
+- **effort** -- `storypoints` from the feature's complexity: a finite `complexity`
+  (0-100) bucketed on the Fibonacci scale (`<=15->2`, `16-39->5`, `40-69->8`,
+  `>=70->13`), else derived from priority (`P1->8`, `P2->5`, `P3->3`, default 3).
+- **priority** -- `P1`/`P2`/`P3` mapped to Leantime `3`/`2`/`1` (omitted when unknown).
+- **description** -- `BYAN FD <id> -- <headline>`, plus `[complexity:N]` when known.
+  It also carries the complexity if the Leantime effort field name differs from
+  the presumed `storypoints` (a `[UNVERIFIED]` wire detail, see Troubleshooting).
 
 ## Automatic sync (the leantime-fd-sync hook)
 
