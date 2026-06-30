@@ -27,6 +27,13 @@ const path = require('path');
 const fs = require('fs-extra');
 
 const MCP_SERVER_REL_PATH = '_byan/mcp/byan-mcp-server/server.js';
+// Channel entrypoint: a SEPARATE MCP server (research preview) spawned by Claude
+// Code via --dangerously-load-development-channels. Same relative-path discipline
+// as the main server (relative to projectRoot, never absolute) so the entry is
+// portable across machines/OSes and stays valid when the repo is moved or shipped
+// via npm. The entry is INERT by default: registering it in .mcp.json does NOT
+// enable the channel (that needs the explicit --dangerously-load flag at launch).
+const MCP_CHANNEL_REL_PATH = '_byan/mcp/byan-mcp-server/channel-entry.js';
 const TOKEN_PLACEHOLDER = '${BYAN_API_TOKEN}';
 const LEANTIME_URL_PLACEHOLDER = '${LEANTIME_API_URL}';
 const LEANTIME_TOKEN_PLACEHOLDER = '${LEANTIME_API_TOKEN}';
@@ -87,15 +94,66 @@ function mergeByanEntry(existingConfig, { apiUrl, token } = {}) {
   delete env.BYAN_API_URL;
   delete env.BYAN_API_TOKEN;
 
+  // The canonical RELATIVE path is forced on `args` AFTER ...existing so it always
+  // wins -- this REPAIRS a stale entry that carried an absolute path (a pre-2.37.x
+  // install): relative survives a moved / npm-shipped repo, absolute does not, and
+  // Claude Code spawns the server with cwd=projectRoot so the relative path resolves
+  // identically. `command` is only F1-orthogonal (the interpreter, not a path), so a
+  // user-chosen command is preserved; we default to 'node' only when absent. Other
+  // pre-existing keys are still preserved.
   const entry = {
-    command: 'node',
-    args: [MCP_SERVER_REL_PATH],
     ...existing,
+    command: existing.command || 'node',
+    args: [MCP_SERVER_REL_PATH],
   };
   if (Object.keys(env).length > 0) entry.env = env;
   else delete entry.env;
 
   cfg.mcpServers.byan = entry;
+
+  // The channel entry is written alongside byan from the SAME merge so there is
+  // a single source of truth for the byan MCP registration. It is inert.
+  return mergeChannelEntry(cfg);
+}
+
+/**
+ * Pure merge — no I/O. Adds the `byan-channel` MCP server entry alongside byan.
+ *
+ * This entry is a Claude Code research-preview channel (CC v2.1.80+). It is
+ * INERT by default: present in .mcp.json but only loaded when the user launches
+ * with `claude --dangerously-load-development-channels server:byan-channel`.
+ * Registering it does NOT auto-activate anything — this function writes NO
+ * channelsEnabled / allowedChannelPlugins / --dangerously-load flag.
+ *
+ * Same portability discipline as the byan entry: a RELATIVE path (never
+ * absolute), no secret in env (the channel resolves its own config at boot via
+ * resolve-config.js: env -> ~/.byan/credentials.json -> defaults). An existing
+ * byan-channel entry is preserved (command/args/env) so the merge is idempotent.
+ *
+ * @param {object} existingConfig — current parsed config
+ * @returns {object} new merged config
+ */
+function mergeChannelEntry(existingConfig) {
+  const cfg = existingConfig && typeof existingConfig === 'object' ? { ...existingConfig } : {};
+  cfg.mcpServers = { ...(cfg.mcpServers || {}) };
+
+  const existing = cfg.mcpServers['byan-channel'] || {};
+
+  // The canonical RELATIVE path + the empty (secret-free) env are forced AFTER
+  // ...existing so they always win, normalizing a stale entry (absolute path, or
+  // a stray env) while preserving any other pre-existing key. env stays empty: the
+  // channel resolves BYAN_API_URL/TOKEN itself via resolve-config.js -- writing a
+  // secret here would land it in tracked git, and the channel has no legitimate
+  // env contract of its own (Leantime refs live on the byan entry). `command` is
+  // F1-orthogonal so a user-chosen interpreter is preserved, 'node' only as the
+  // default. Idempotent: re-running yields the same entry.
+  cfg.mcpServers['byan-channel'] = {
+    ...existing,
+    command: existing.command || 'node',
+    args: [MCP_CHANNEL_REL_PATH],
+    env: {},
+  };
+
   return cfg;
 }
 
@@ -141,14 +199,20 @@ function mergeLeantimeRefs(existingConfig) {
   env.LEANTIME_API_URL = LEANTIME_URL_PLACEHOLDER;
   env.LEANTIME_API_TOKEN = LEANTIME_TOKEN_PLACEHOLDER;
 
+  // Same discipline as mergeByanEntry: args forced to the canonical RELATIVE path
+  // (normalizes a stale absolute one), command preserved (F1-orthogonal), env
+  // carries the merged Leantime refs.
   cfg.mcpServers.byan = {
-    command: 'node',
-    args: [MCP_SERVER_REL_PATH],
     ...existing,
+    command: existing.command || 'node',
+    args: [MCP_SERVER_REL_PATH],
     env,
   };
 
-  return cfg;
+  // Keep the channel entry coherent with the byan entry: ensureLeantimeRefs runs
+  // after ensureMcpConfig in the installer, but routing through mergeChannelEntry
+  // here makes the byan-channel registration robust to call order (idempotent).
+  return mergeChannelEntry(cfg);
 }
 
 /**
@@ -252,12 +316,14 @@ module.exports = {
   ensureMcpConfig,
   readMcpConfig,
   mergeByanEntry,
+  mergeChannelEntry,
   mergeLeantimeRefs,
   ensureLeantimeRefs,
   addMcpEntry,
   removeMcpEntry,
   looksLikeSecret,
   MCP_SERVER_REL_PATH,
+  MCP_CHANNEL_REL_PATH,
   TOKEN_PLACEHOLDER,
   LEANTIME_URL_PLACEHOLDER,
   LEANTIME_TOKEN_PLACEHOLDER,

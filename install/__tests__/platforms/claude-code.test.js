@@ -158,26 +158,74 @@ describe('Claude Code Platform', () => {
   describe('install()', () => {
     it('should return success for supported platforms', async () => {
       mockPlatform('darwin');
-      
-      // Mock file operations for direct MCP install
+
+      // Mock file operations for direct MCP install. The probe now targets the
+      // REAL server at its repo-relative path (_byan/mcp/byan-mcp-server/server.js),
+      // not the old fictional 'byan-mcp-server.js' filename.
       fileUtils.exists = jest.fn()
-        .mockImplementation((path) => {
-          // Config exists, MCP server exists
-          if (path.includes('claude_desktop_config.json')) return Promise.resolve(true);
-          if (path.includes('byan-mcp-server.js')) return Promise.resolve(true);
+        .mockImplementation((p) => {
+          if (p.includes('claude_desktop_config.json')) return Promise.resolve(true);
+          if (p.includes(path.join('_byan', 'mcp', 'byan-mcp-server', 'server.js'))) return Promise.resolve(true);
           return Promise.resolve(false);
         });
       fileUtils.copy = jest.fn().mockResolvedValue(undefined);
       fileUtils.readJson = jest.fn().mockResolvedValue({ mcpServers: {} });
       fileUtils.writeJson = jest.fn().mockResolvedValue(undefined);
-      
+
       const result = await claudeCode.install('/project', ['agent1', 'agent2'], {}, { useAgent: false });
-      
-      expect(result).toEqual({ 
-        success: true, 
+
+      expect(result).toEqual({
+        success: true,
         installed: 2,
         method: 'direct-mcp'
       });
+    });
+
+    it('installDirectMCP merges byan + inert byan-channel with RELATIVE paths and PRESERVES siblings', async () => {
+      mockPlatform('linux');
+
+      fileUtils.exists = jest.fn().mockImplementation((p) => {
+        if (p.includes('claude_desktop_config.json')) return Promise.resolve(true);
+        if (p.includes(path.join('_byan', 'mcp', 'byan-mcp-server', 'server.js'))) return Promise.resolve(true);
+        return Promise.resolve(false);
+      });
+      fileUtils.copy = jest.fn().mockResolvedValue(undefined);
+      // A PRE-EXISTING unrelated MCP server must survive the merge (non-destructive).
+      fileUtils.readJson = jest.fn().mockResolvedValue({
+        mcpServers: { autre: { command: 'python', args: ['autre.py'] } },
+      });
+      let written;
+      fileUtils.writeJson = jest.fn().mockImplementation((_p, data) => {
+        written = data;
+        return Promise.resolve(undefined);
+      });
+
+      await claudeCode.install('/project', ['agent1'], {}, { useAgent: false });
+
+      // Both byan entries present.
+      expect(written.mcpServers.byan).toBeDefined();
+      expect(written.mcpServers['byan-channel']).toBeDefined();
+      // Pre-existing sibling preserved (merge, not overwrite).
+      expect(written.mcpServers.autre.command).toBe('python');
+
+      // Relative paths — never absolute, never a /home/ leak.
+      const byanArg = written.mcpServers.byan.args[0];
+      const chanArg = written.mcpServers['byan-channel'].args[0];
+      expect(byanArg).toBe('_byan/mcp/byan-mcp-server/server.js');
+      expect(chanArg).toBe('_byan/mcp/byan-mcp-server/channel-entry.js');
+      expect(path.isAbsolute(byanArg)).toBe(false);
+      expect(path.isAbsolute(chanArg)).toBe(false);
+
+      // No secret, no absolute path anywhere in the serialized config.
+      const raw = JSON.stringify(written);
+      expect(raw).not.toMatch(/\/home\//);
+      expect(raw).not.toMatch(/byan_[a-f0-9]{20,}/i);
+      // Channel is INERT: no auto-activation flags written.
+      expect(raw).not.toContain('channelsEnabled');
+      expect(raw).not.toContain('allowedChannelPlugins');
+      expect(raw).not.toContain('dangerously-load');
+      // Channel env stays empty (server resolves its own config).
+      expect(written.mcpServers['byan-channel'].env).toEqual({});
     });
 
     it('should throw error for unsupported platform', async () => {

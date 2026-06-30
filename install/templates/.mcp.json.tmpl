@@ -2,7 +2,12 @@
   "mcpServers": {
     "byan": {
       "command": "node",
-      "args": ["{{PROJECT_ROOT}}/_byan/mcp/byan-mcp-server/server.js"]
+      "args": ["_byan/mcp/byan-mcp-server/server.js"]
+    },
+    "byan-channel": {
+      "command": "node",
+      "args": ["_byan/mcp/byan-mcp-server/channel-entry.js"],
+      "env": {}
     }
   }
 }

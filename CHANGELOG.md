@@ -9,6 +9,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.38.0] - 2026-06-30
+
+### Added - yanstaller installs the byan-channel MCP entry by default (inert)
+
+`npx create-byan-agent` now registers a second MCP server, `byan-channel`,
+alongside `byan` in the project `.mcp.json`. It is a Claude Code RESEARCH PREVIEW
+channel (v2.1.80+) and ships INERT: registering it enables nothing on its own --
+it is only loaded when the user launches
+`claude --dangerously-load-development-channels server:byan-channel`. No
+`channelsEnabled`, no `allowedChannelPlugins`, no auto-activation flag is written.
+Codex is not covered by this feature.
+
+- **Port (read-only from byan_web)**: `channel-entry.js`, `lib/channel-server.js`,
+  `lib/channel-poll.js` brought into `_byan/mcp/byan-mcp-server/`. The entry
+  resolves its own config at boot via `resolve-config.js` (env ->
+  `~/.byan/credentials.json` -> defaults), so no secret is needed in `.mcp.json`.
+- **Wiring -- one shape, every writer**: the byan + byan-channel entry shape has a
+  single source of truth, `mcpConfig.mergeByanEntry`. Both `.mcp.json` writers
+  route through it -- `generateMcpConfig` (the primary native-setup path) and
+  `installDirectMCP` -- so they are byte-coherent. Each writes a project-relative
+  path (not absolute, not `{{PROJECT_ROOT}}`), preserves an existing custom
+  `command` and non-byan env, strips `BYAN_API_URL`/`BYAN_API_TOKEN`, and merges
+  into an existing `.mcp.json` without clobbering other servers.
+- **Portable + secret-free**: relative paths survive a moved / npm-shipped repo;
+  the channel env is forced empty; no token shape can land in tracked `.mcp.json`.
+- **Shipped**: the 3 runtime files + 2 tests are in `TARGET_ADDITIONS` and
+  mirrored to `install/templates`, parity enforced by `byan-sync-template --check`.
+- **Honest post-install message**: states research-preview, version gate, inert
+  default, the activation flag, and that Codex is not covered.
+
+Files: `install/packages/platform-config/lib/mcp-config.js` (mergeByanEntry /
+mergeChannelEntry / mergeLeantimeRefs -- relative args, command preserved),
+`install/lib/claude-native-setup.js` (generateMcpConfig delegates to the shared
+merge), `install/lib/platforms/claude-code.js` (installDirectMCP),
+`install/templates/.mcp.json.tmpl`, `install/bin/create-byan-agent-v2.js`
+(message), `_byan/mcp/byan-mcp-server/{channel-entry,lib/channel-server,lib/channel-poll}.js`,
+`_byan/mcp/byan-mcp-server/lib/template-sync.js`,
+`_byan/mcp/byan-mcp-server/test/{channel,channel-resolve}.test.js` (+ install
+templates). Adversarial review (bmad-compliance) caught 3 message/coherence gaps,
+all fixed before merge. jest root 2472/2472, MCP node --test 723/723.
+
 ## [2.37.1] - 2026-06-30
 
 ### Fixed - strict-stop-guard false positive on mentioned completion markers

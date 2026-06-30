@@ -79,14 +79,14 @@ describe('claude-native-setup', () => {
     ).toBe(false);
   });
 
-  test('generateMcpConfig renders absolute path', async () => {
+  test('generateMcpConfig renders a RELATIVE byan path (portable, no absolute leak)', async () => {
     const r = await setup.generateMcpConfig(tmpRoot);
     expect(r.path).toContain('.mcp.json');
     const cfg = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
-    expect(cfg.mcpServers.byan.args[0]).toBe(
-      `${tmpRoot}/_byan/mcp/byan-mcp-server/server.js`
-    );
+    expect(cfg.mcpServers.byan.args[0]).toBe('_byan/mcp/byan-mcp-server/server.js');
     expect(cfg.mcpServers.byan.args[0]).not.toContain('{{PROJECT_ROOT}}');
+    expect(path.isAbsolute(cfg.mcpServers.byan.args[0])).toBe(false);
+    expect(cfg.mcpServers.byan.args[0]).not.toContain(tmpRoot);
   });
 
   test('generateMcpConfig preserves existing other servers', async () => {
@@ -97,6 +97,24 @@ describe('claude-native-setup', () => {
     const cfg = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
     expect(cfg.mcpServers.other).toBeDefined();
     expect(cfg.mcpServers.byan).toBeDefined();
+  });
+
+  test('generateMcpConfig writes an inert byan-channel entry with a RELATIVE path', async () => {
+    await setup.generateMcpConfig(tmpRoot);
+    const cfg = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
+    const chan = cfg.mcpServers['byan-channel'];
+    expect(chan).toBeDefined();
+    // Relative path on purpose — never {{PROJECT_ROOT}}-prefixed, never absolute.
+    expect(chan.args[0]).toBe('_byan/mcp/byan-mcp-server/channel-entry.js');
+    expect(chan.args[0]).not.toContain('{{PROJECT_ROOT}}');
+    expect(path.isAbsolute(chan.args[0])).toBe(false);
+    expect(chan.args[0]).not.toMatch(/\/home\//);
+    // Inert: empty env, no auto-activation flags.
+    expect(chan.env).toEqual({});
+    const raw = await fs.readFile(path.join(tmpRoot, '.mcp.json'), 'utf8');
+    expect(raw).not.toContain('channelsEnabled');
+    expect(raw).not.toContain('allowedChannelPlugins');
+    expect(raw).not.toContain('dangerously-load');
   });
 
   test('setupClaudeNative runs full pipeline (skip deps)', async () => {

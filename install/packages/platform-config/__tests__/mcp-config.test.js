@@ -85,7 +85,7 @@ describe('mcp-config', () => {
       expect(content.mcpServers.byan).toBeDefined();
     });
 
-    test('preserves byan command/args and REPAIRS a stale entry by stripping BYAN_API_URL/TOKEN', async () => {
+    test('preserves byan command, NORMALIZES a stale absolute path to canonical relative, strips BYAN_API_URL/TOKEN', async () => {
       const filePath = path.join(tmpRoot, '.mcp.json');
       await fs.writeJson(filePath, {
         mcpServers: {
@@ -98,13 +98,18 @@ describe('mcp-config', () => {
       });
       await ensureMcpConfig(tmpRoot, { apiUrl: 'http://new:3737', token: 'tok' });
       const content = await fs.readJson(filePath);
+      // command is F1-orthogonal (interpreter, not a path) -> a user choice survives.
       expect(content.mcpServers.byan.command).toBe('custom-node');
-      expect(content.mcpServers.byan.args[0]).toBe('/absolute/path/server.js');
+      // F1: a stale absolute path is normalized to the canonical relative one,
+      // portable across a moved / npm-shipped repo.
+      expect(content.mcpServers.byan.args[0]).toBe('_byan/mcp/byan-mcp-server/server.js');
+      expect(path.isAbsolute(content.mcpServers.byan.args[0])).toBe(false);
       // Both stale byan keys stripped -> env empty -> omitted entirely.
       expect(content.mcpServers.byan.env).toBeUndefined();
       const raw = await fs.readFile(filePath, 'utf8');
       expect(raw).not.toContain('leaked_in_clear');
       expect(raw).not.toContain('http://old:3737');
+      expect(raw).not.toContain('/absolute/path');
     });
 
     test('returns an object with path property', async () => {
@@ -180,7 +185,7 @@ describe('mcp-config', () => {
       expect(r2.mcpServers.byan).toBeDefined();
     });
 
-    test('preserves existing command/args on merge', () => {
+    test('preserves an existing command but normalizes args to the canonical relative path', () => {
       const input = {
         mcpServers: {
           byan: { command: 'custom', args: ['/abs/server.js'], env: {} },
@@ -188,7 +193,63 @@ describe('mcp-config', () => {
       };
       const result = mergeByanEntry(input, { apiUrl: 'http://x:1', token: 't' });
       expect(result.mcpServers.byan.command).toBe('custom');
-      expect(result.mcpServers.byan.args).toEqual(['/abs/server.js']);
+      expect(result.mcpServers.byan.args).toEqual(['_byan/mcp/byan-mcp-server/server.js']);
+      expect(path.isAbsolute(result.mcpServers.byan.args[0])).toBe(false);
+    });
+
+    test('writes an INERT byan-channel entry: relative path, empty env, no secret', () => {
+      const result = mergeByanEntry(
+        { mcpServers: { autre: { command: 'python', args: ['a.py'] } } },
+        { apiUrl: 'http://localhost:3737', token: 'byan_' + '0'.repeat(64) }
+      );
+      const chan = result.mcpServers['byan-channel'];
+      expect(chan.command).toBe('node');
+      expect(chan.args).toEqual(['_byan/mcp/byan-mcp-server/channel-entry.js']);
+      expect(path.isAbsolute(chan.args[0])).toBe(false);
+      expect(chan.env).toEqual({});
+      // Sibling preserved (non-destructive merge).
+      expect(result.mcpServers.autre.command).toBe('python');
+      // No secret, no auto-activation flags, no absolute /home/ leak.
+      const raw = JSON.stringify(result);
+      expect(raw).not.toMatch(/byan_0{20,}/);
+      expect(raw).not.toContain('channelsEnabled');
+      expect(raw).not.toContain('allowedChannelPlugins');
+      expect(raw).not.toContain('dangerously-load');
+      expect(raw).not.toMatch(/\/home\//);
+    });
+
+    test('normalizes an existing byan-channel entry to the canonical relative path + empty env (idempotent)', () => {
+      const input = {
+        mcpServers: {
+          'byan-channel': { command: 'node', args: ['custom/channel.js'], env: { X: '1' } },
+        },
+      };
+      const result = mergeByanEntry(input, { apiUrl: 'http://x:1' });
+      // The channel entry is BYAN-owned: args forced to canonical relative, env
+      // forced empty (config comes from resolve-config.js, never tracked env).
+      expect(result.mcpServers['byan-channel'].args).toEqual(['_byan/mcp/byan-mcp-server/channel-entry.js']);
+      expect(result.mcpServers['byan-channel'].env).toEqual({});
+      // Idempotent: a second merge yields the exact same entry.
+      const again = mergeByanEntry(result, { apiUrl: 'http://x:1' });
+      expect(again.mcpServers['byan-channel']).toEqual(result.mcpServers['byan-channel']);
+    });
+  });
+
+  describe('mergeChannelEntry (pure)', () => {
+    test('adds an inert byan-channel without touching byan or siblings', () => {
+      const { mergeChannelEntry } = require('../lib/mcp-config');
+      const input = { mcpServers: { byan: { command: 'node', args: ['s.js'] }, foo: { command: 'x' } } };
+      const result = mergeChannelEntry(input);
+      expect(result.mcpServers['byan-channel'].args).toEqual(['_byan/mcp/byan-mcp-server/channel-entry.js']);
+      expect(result.mcpServers['byan-channel'].env).toEqual({});
+      expect(result.mcpServers.byan.args).toEqual(['s.js']);
+      expect(result.mcpServers.foo.command).toBe('x');
+    });
+
+    test('handles null/empty input gracefully', () => {
+      const { mergeChannelEntry } = require('../lib/mcp-config');
+      expect(mergeChannelEntry(null).mcpServers['byan-channel']).toBeDefined();
+      expect(mergeChannelEntry({}).mcpServers['byan-channel'].command).toBe('node');
     });
   });
 

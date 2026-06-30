@@ -9,7 +9,8 @@
  *   - _byan/mcp/byan-mcp-server/** (no node_modules)
  *
  * Generates:
- *   - .mcp.json with the absolute path to the target project's MCP server
+ *   - .mcp.json with the RELATIVE path to the target project's MCP server
+ *     (byan + inert byan-channel entries, via the shared pure merge)
  *
  * Runs:
  *   - npm install inside the copied MCP server dir (with fallback warning)
@@ -22,6 +23,7 @@ const chalk = require('chalk');
 
 const TEMPLATE_ROOT = path.resolve(__dirname, '..', 'templates');
 const { whitelistMcpServer } = require('./settings-local');
+const { mcpConfig } = require('byan-platform-config');
 
 async function copyClaudeHooks(projectRoot) {
   const src = path.join(TEMPLATE_ROOT, '.claude', 'hooks');
@@ -81,27 +83,7 @@ async function generateMcpConfig(projectRoot, options = {}) {
   const tmplPath = path.join(TEMPLATE_ROOT, '.mcp.json.tmpl');
   const dstPath = path.join(projectRoot, '.mcp.json');
 
-  let template;
-  if (await fs.pathExists(tmplPath)) {
-    template = await fs.readFile(tmplPath, 'utf8');
-  } else {
-    template = JSON.stringify(
-      {
-        mcpServers: {
-          byan: {
-            command: 'node',
-            args: ['{{PROJECT_ROOT}}/_byan/mcp/byan-mcp-server/server.js'],
-            env: { BYAN_API_URL: options.apiUrl || 'http://localhost:3737' },
-          },
-        },
-      },
-      null,
-      2
-    );
-  }
-
-  const rendered = template.replace(/\{\{PROJECT_ROOT\}\}/g, projectRoot);
-
+  // Preserve every entry the project's .mcp.json already has.
   let existing = {};
   if (await fs.pathExists(dstPath)) {
     try {
@@ -111,20 +93,33 @@ async function generateMcpConfig(projectRoot, options = {}) {
     }
   }
 
-  const merged = JSON.parse(rendered);
-  merged.mcpServers = { ...(existing.mcpServers || {}), ...merged.mcpServers };
-
-  // Security: BYAN_API_TOKEN is never written into .mcp.json (git-tracked); the
-  // token reaches the MCP server via .claude/settings.local.json env. Also honor
-  // the caller's apiUrl: the template URL is only a default.
-  const byanEntry = merged.mcpServers && merged.mcpServers.byan;
-  if (byanEntry && byanEntry.env) {
-    delete byanEntry.env.BYAN_API_TOKEN;
-    if (options.apiUrl) {
-      byanEntry.env.BYAN_API_URL = options.apiUrl;
+  // The byan + inert byan-channel entries have ONE source of truth:
+  // mcpConfig.mergeByanEntry (relative args, secret-free, custom command and
+  // non-byan env preserved, channel added inert). generateMcpConfig routes them
+  // through it so this PRIMARY writer is byte-coherent with installDirectMCP --
+  // no divergence in entry shape. The .mcp.json.tmpl is the declarative place for
+  // ADDITIONAL default servers only; its own byan/byan-channel entries are not
+  // consumed here by design (edit mcp-config.js to change their shape, not the
+  // template). {{PROJECT_ROOT}} is still substituted for any extra server entry.
+  const base = { ...existing, mcpServers: { ...(existing.mcpServers || {}) } };
+  if (await fs.pathExists(tmplPath)) {
+    let tmplCfg = {};
+    try {
+      const raw = (await fs.readFile(tmplPath, 'utf8')).replace(
+        /\{\{PROJECT_ROOT\}\}/g,
+        projectRoot
+      );
+      tmplCfg = JSON.parse(raw);
+    } catch {
+      tmplCfg = {};
+    }
+    for (const [name, entry] of Object.entries(tmplCfg.mcpServers || {})) {
+      if (name === 'byan' || name === 'byan-channel') continue; // owned by mergeByanEntry
+      if (!base.mcpServers[name]) base.mcpServers[name] = entry; // never clobber an existing one
     }
   }
 
+  const merged = mcpConfig.mergeByanEntry(base, { apiUrl: options.apiUrl });
   await fs.writeJson(dstPath, merged, { spaces: 2 });
   return { path: dstPath };
 }
@@ -197,7 +192,7 @@ async function setupClaudeNative(projectRoot, options = {}) {
   );
 
   results.mcpConfig = await generateMcpConfig(projectRoot, options);
-  log(chalk.green(`  ✓ .mcp.json generated (absolute path)`));
+  log(chalk.green(`  byan + inert byan-channel entries in .mcp.json (relative paths)`));
 
   // Whitelist the byan MCP server: a project .mcp.json entry is inert in Claude
   // Code until its id is listed in .claude/settings.local.json.

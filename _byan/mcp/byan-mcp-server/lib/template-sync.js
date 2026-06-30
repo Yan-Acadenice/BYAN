@@ -157,6 +157,19 @@ export const TARGET_ADDITIONS = [
   '.claude/hooks/lib/punt-detect.js',
   '_byan/mcp/byan-mcp-server/lib/completeness-evidence.js',
   '_byan/mcp/byan-mcp-server/test/completeness-evidence.test.js',
+  // Claude Code channel (research preview). The yanstaller registers an INERT
+  // byan-channel entry in .mcp.json pointing at channel-entry.js, so these NEW
+  // files MUST ship or a fresh install's registration points at a missing
+  // script. channel-entry.js imports ./lib/channel-server.js (already imports
+  // ./lib/resolve-config.js, shipped above) which imports ./lib/channel-poll.js,
+  // so all three runtime files must ship together. Its tests ship with the
+  // server, same convention as the tests above: channel.test.js (poll/reply
+  // behaviour) and channel-resolve.test.js (the env-absent resolver path).
+  '_byan/mcp/byan-mcp-server/channel-entry.js',
+  '_byan/mcp/byan-mcp-server/lib/channel-server.js',
+  '_byan/mcp/byan-mcp-server/lib/channel-poll.js',
+  '_byan/mcp/byan-mcp-server/test/channel.test.js',
+  '_byan/mcp/byan-mcp-server/test/channel-resolve.test.js',
 ];
 
 // The template lives under this root-relative directory.

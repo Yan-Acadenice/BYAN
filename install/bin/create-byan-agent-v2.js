@@ -1296,6 +1296,21 @@ async function install(options = {}) {
     console.log(chalk.cyan('Claude Code native setup (hooks, skills, MCP server)'));
     try {
       await setupClaudeNative(projectRoot);
+      // Honest disclosure about the byan-channel entry now in .mcp.json. It is a
+      // Claude Code RESEARCH PREVIEW feature and ships INERT: registering it does
+      // not enable it. We tell the user exactly what it is, what it requires, how
+      // to turn it on, and that Codex is not covered — no overselling.
+      console.log(
+        chalk.gray(
+          '    - byan-channel = Claude Code RESEARCH PREVIEW channel (v2.1.80+), INERT by default.'
+        )
+      );
+      console.log(
+        chalk.gray(
+          '      To activate: claude --dangerously-load-development-channels server:byan-channel'
+        )
+      );
+      console.log(chalk.gray('      Codex is not covered by this feature.'));
     } catch (error) {
       console.log(chalk.red(`  ✘ Claude native setup failed: ${error.message}`));
       console.log(
