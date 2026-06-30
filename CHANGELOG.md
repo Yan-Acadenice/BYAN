@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.37.1] - 2026-06-30
+
+### Fixed - strict-stop-guard false positive on mentioned completion markers
+
+`claimsCompletion` matched a completion marker ANYWHERE in the assistant message,
+so a turn was blocked even when a marker was merely MENTIONED, not claimed:
+`complete` inside `byan_strict_complete`, `done` inside the `BYAN-BENCH:done`
+marker comment, or an accented marker embedded in another word (`fini` in
+`indefini`, `termine` in `determine`). Hit repeatedly in one session. Hardened: a
+working copy is denoised first (fenced + inline code, HTML comments, snake_case /
+namespaced identifiers stripped), then markers match only as a standalone claim
+with Unicode-aware boundaries and a permissive trailing inflection (`livre` ->
+`livree` / `livres`). Bias toward fewer false blocks -- the pre-commit gate stays
+the hard net for a real premature completion. Genuine claims (`done`,
+`c'est termine`, `feature livree`, `the build is complete`) still fire. +4
+regression tests.
+
+Files: `.claude/hooks/strict-stop-guard.js` (+ install template),
+`_byan/mcp/byan-mcp-server/test/strict-hooks.test.js`. MCP node --test 714/714,
+root jest 2466/2466.
+
 ## [2.37.0] - 2026-06-30
 
 ### Added - Prod-grade + maximal scope as the mechanical default (anti-downgrade)

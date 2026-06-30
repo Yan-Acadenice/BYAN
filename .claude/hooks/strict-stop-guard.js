@@ -23,15 +23,38 @@ const { extractLastAssistantText } = require('./lib/transcript-read');
 
 const DEFAULT_MARKERS = ['done', 'finished', 'complete', 'delivered', 'ready'];
 
+// Strip the contexts where a completion marker is a MENTION, not a CLAIM:
+// fenced + inline code, HTML comments (the BYAN-BENCH:done marker lives there),
+// and snake_case / namespaced identifiers (byan_strict_complete, BENCH:done). A
+// marker that survives this strip is prose -- the only place a real "it is done"
+// claim lives. Exported so the regression cases are unit-testable.
+function denoiseForClaim(text) {
+  return String(text)
+    .replace(/```[\s\S]*?```/g, ' ') // fenced code blocks
+    .replace(/`[^`]*`/g, ' ') // inline code spans
+    .replace(/<!--[\s\S]*?-->/g, ' ') // HTML comments (e.g. <!-- BYAN-BENCH:done -->)
+    .replace(/[A-Za-z0-9]+(?:[_:][A-Za-z0-9]+)+/g, ' '); // snake_case / ns identifiers
+}
+
+// A completion marker counts only as a STANDALONE claim, bounded by non-letters
+// (Unicode-aware via the u flag, so "indefini" does not embed "fini" and
+// "determine" does not embed "termine"), with a permissive trailing inflection
+// (livre -> livree / livres). Bias: a false negative is caught by the pre-commit
+// gate (the hard net), while a false positive traps a legitimate turn -- so a
+// marker that is only mentioned is NOT read as a claim.
 function claimsCompletion(text, markers) {
   if (!text) return false;
-  const lower = text.toLowerCase();
+  const clean = denoiseForClaim(text).toLowerCase();
   return (markers || DEFAULT_MARKERS).some((m) => {
-    const marker = String(m).toLowerCase();
-    if (/^[a-z]+$/.test(marker)) {
-      return new RegExp(`\\b${marker}\\b`).test(lower);
+    const marker = String(m).toLowerCase().trim();
+    if (!marker) return false;
+    const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    try {
+      return new RegExp(`(?<![\\p{L}])${escaped}(?:s|e|es|ée|ées|és)?(?![\\p{L}])`, 'iu').test(clean);
+    } catch {
+      // Older runtimes without lookbehind/\p{L} -> fall back to a plain include.
+      return clean.includes(marker);
     }
-    return lower.includes(marker);
   });
 }
 
@@ -85,4 +108,4 @@ if (require.main === module) {
   })();
 }
 
-module.exports = { decideStop, claimsCompletion, extractLastAssistantText };
+module.exports = { decideStop, claimsCompletion, denoiseForClaim, extractLastAssistantText };

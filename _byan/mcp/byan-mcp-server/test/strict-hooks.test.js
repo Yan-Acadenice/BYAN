@@ -68,6 +68,39 @@ test('stop: completion markers are word-bounded', () => {
   assert.equal(stopGuard.claimsCompletion('it is done now', ['done']), true);
 });
 
+test('stop: a marker MENTIONED in code / an identifier / an HTML comment is not a claim (FP fix)', () => {
+  const markers = ['done', 'complete'];
+  // the BYAN-BENCH marker lives in an HTML comment -> mention, not a claim
+  assert.equal(
+    stopGuard.claimsCompletion('voici le marqueur <!-- BYAN-BENCH:done g1=2 --> puis la table', markers),
+    false
+  );
+  // the strict tool name is a snake_case identifier -> mention, not a claim
+  assert.equal(
+    stopGuard.claimsCompletion('il faut appeler byan_strict_complete apres 3 passes', markers),
+    false
+  );
+  // an inline-code span -> mention, not a claim
+  assert.equal(stopGuard.claimsCompletion('le hook expose `byan_strict_complete` comme outil', markers), false);
+});
+
+test('stop: an accented marker embedded in a DIFFERENT word is not a claim (FP fix)', () => {
+  assert.equal(stopGuard.claimsCompletion('un cas indéfini reste a trancher', ['fini']), false);
+  assert.equal(stopGuard.claimsCompletion("j'ai déterminé la cause racine", ['terminé']), false);
+  assert.equal(stopGuard.claimsCompletion('les fichiers ont ete délivrés au client', ['livré']), false);
+});
+
+test('stop: a genuine completion claim still fires, including inflected forms', () => {
+  assert.equal(stopGuard.claimsCompletion("voilà, c'est terminé", ['terminé']), true);
+  assert.equal(stopGuard.claimsCompletion('la feature est livrée', ['livré']), true);
+  assert.equal(stopGuard.claimsCompletion('the build is complete', ['complete']), true);
+});
+
+test('stop: denoiseForClaim strips code spans, html comments and identifiers', () => {
+  const out = stopGuard.denoiseForClaim('a `inline` b ```fenced``` c <!-- x --> d snake_case_id');
+  assert.equal(/inline|fenced|snake_case_id/.test(out), false);
+});
+
 // --- Stop guard : payload extraction (production shape) ------------------
 // The real Stop-hook payload has NO inline transcript: a last_assistant_message
 // string + a transcript_path JSONL. Reading payload.transcript||messages alone
