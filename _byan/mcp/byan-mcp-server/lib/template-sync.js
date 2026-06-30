@@ -141,6 +141,22 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/gdoc-content.test.js',
   '_byan/mcp/byan-mcp-server/test/gdoc-client.test.js',
   'docs/google-docs-publish.md',
+  // Delivery-default chantier (F1/F2/F3): make prod-grade + maximal scope the
+  // mechanical default. F1 (the delivery-contract anchor + hook) ships LIVE and
+  // is registered in .claude/settings.json (already mirrored), so the hook +
+  // its pure lib + the config MUST ship or a fresh install points at a missing
+  // script. F2 (completeness-evidence) is required by strict-mode.js (already
+  // mirrored) at import time -> the lib MUST ship or the server crashes on boot;
+  // its test ships with the server, same convention as the tests above. F3 (the
+  // punt-guard Stop hook + its pure detector) is likewise registered in
+  // settings.json. The config carries both blockers DISARMED by default.
+  '_byan/_config/delivery-default.json',
+  '.claude/hooks/inject-delivery-default.js',
+  '.claude/hooks/lib/delivery-contract.js',
+  '.claude/hooks/punt-guard.js',
+  '.claude/hooks/lib/punt-detect.js',
+  '_byan/mcp/byan-mcp-server/lib/completeness-evidence.js',
+  '_byan/mcp/byan-mcp-server/test/completeness-evidence.test.js',
 ];
 
 // The template lives under this root-relative directory.

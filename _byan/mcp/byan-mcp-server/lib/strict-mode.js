@@ -1,11 +1,49 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { buildEvidence } from './completeness-evidence.js';
 
 const STRICT_DIR = '.byan-strict';
 const STATE_FILE = 'state.json';
 const AUDIT_FILE = 'audit.log';
 const MIN_SELF_VERIFY_PASSES = 3;
+
+// F2 completeness-evidence gate. complete() ATTACHES an evidence report and, when
+// the gate is ARMED (delivery-default.json completenessGate.armed === true),
+// hard-rejects a completion that leaves code-shaped criteria without evidence.
+// Default DISARMED: complete() behaves exactly as before (passCount >= 3 + last
+// verdict ok), the report is pure observation, and every completion appends one
+// line to the completeness ledger so arming later is data-informed.
+const DELIVERY_CONFIG_REL = path.join('_byan', '_config', 'delivery-default.json');
+const COMPLETENESS_LEDGER_REL = path.join('_byan-output', 'completeness-ledger.jsonl');
+
+function readDeliveryConfig(projectRoot) {
+  try {
+    const p = path.join(resolveRoot(projectRoot), DELIVERY_CONFIG_REL);
+    if (fs.existsSync(p)) {
+      const cfg = JSON.parse(fs.readFileSync(p, 'utf8'));
+      if (cfg && typeof cfg === 'object') return cfg;
+    }
+  } catch {
+    // A broken config must NOT arm the gate — fail safe toward disarmed.
+  }
+  return {};
+}
+
+function completenessGateArmed(config) {
+  const g = config && config.completenessGate;
+  return !!(g && g.armed === true);
+}
+
+function appendCompletenessLedger(entry, projectRoot) {
+  try {
+    const p = path.join(resolveRoot(projectRoot), COMPLETENESS_LEDGER_REL);
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.appendFileSync(p, JSON.stringify(entry) + '\n');
+  } catch {
+    // The observation ledger is best-effort — never break completion.
+  }
+}
 
 function resolveRoot(projectRoot) {
   return projectRoot || process.env.CLAUDE_PROJECT_DIR || process.cwd();
@@ -234,7 +272,7 @@ export function selfVerify({
   };
 }
 
-export function complete({ projectRoot, now = new Date() } = {}) {
+export function complete({ projectRoot, now = new Date(), context = {}, evidenceIo } = {}) {
   const state = readState(projectRoot);
   if (!state || !state.active) {
     throw new Error('No active strict session.');
@@ -255,6 +293,42 @@ export function complete({ projectRoot, now = new Date() } = {}) {
   if (lastPass.verdict !== 'ok') {
     throw new Error(
       `Cannot complete: last self-verify pass returned verdict="${lastPass.verdict}". Final pass must be "ok" (zero gaps).`
+    );
+  }
+
+  // F2 (additive): collect the completeness-evidence report over the locked
+  // criteria + allowed paths. Always observed + ledgered; only ENFORCED when the
+  // gate is armed in delivery-default.json (default false -> behaviour unchanged).
+  const deliveryConfig = readDeliveryConfig(projectRoot);
+  const gateArmed = completenessGateArmed(deliveryConfig);
+  const evidence = buildEvidence({
+    criteria: state.scope_lock.acceptance_criteria || [],
+    allowedPaths: state.scope_lock.allowed_paths || [],
+    context,
+    projectRoot: resolveRoot(projectRoot),
+    io: evidenceIo,
+  });
+  appendCompletenessLedger(
+    {
+      ts: now.toISOString(),
+      event: gateArmed ? (evidence.missing.length ? 'would-reject' : 'pass') : 'observed-disarmed',
+      strict_session_id: state.strict_session_id,
+      scope_hash: state.scope_lock.scope_hash,
+      armed: gateArmed,
+      missing: evidence.missing,
+      per_criterion: evidence.perCriterion.map((c) => ({
+        criterion: c.criterion,
+        kind: c.kind,
+        hasEvidence: c.hasEvidence,
+      })),
+    },
+    projectRoot
+  );
+  if (gateArmed && evidence.missing.length) {
+    throw new Error(
+      `Cannot complete: completeness gate is ARMED and ${evidence.missing.length} ` +
+        `code-shaped criteria have no evidence (file / green test / diff): ` +
+        `${evidence.missing.join('; ')}. Provide the missing artifacts or re-lock the scope.`
     );
   }
 
@@ -296,6 +370,9 @@ export function complete({ projectRoot, now = new Date() } = {}) {
     // Surfaced for the C3 learning-loop feed: an explicit ELO domain on the
     // locked scope means a completed session is a VALIDATED outcome.
     domain: state.scope_lock.domain || '',
+    // F2 (additive): the completeness-evidence report. Attached whether or not
+    // the gate is armed; with the gate disarmed it is pure observation.
+    evidence,
   };
 }
 

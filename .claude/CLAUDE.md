@@ -127,6 +127,7 @@ A confirm, a destructive prompt, or an obvious default is not a fork — emit
 ## Compact instructions
 
 Quand tu compactes cette conversation, PRESERVE en priorite :
+- le contrat de livraison par defaut (F1) : grade=PROD, scope=MAXIMAL, etalon de cout=AI-2026 (temps-agent x10, jamais temps-humain-a-la-main). Pas de proposition d'MVP/livrable-court/decoupage-pour-ne-pas-bloquer-le-lourd sauf opt-out explicite du message courant. Source : `_byan/_config/delivery-default.json` ; reinjecte chaque tour par `inject-delivery-default`.
 - l'etat FD BYAN actif s'il existe : phase courante, feature_name, le backlog avec le statut par item, le dernier verdict review/validate (source : `_byan-output/fd-state.json`).
 - la session Strict Mode active s'il y en a une : scope_hash, criteres d'acceptation, nombre de passes, completion (source : `.byan-strict/state.json` + API byan_web).
 - l'identite BYAN : le noyau immuable du soul + la voix tao (registre, signatures, tutoiement, zero emoji). `inject-tao` la reinjecte au SessionStart, mais garde la voix active dans le resume aussi.

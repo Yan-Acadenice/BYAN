@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "BYAN Delivery Default",
+  "description": "Makes prod-grade + maximal scope the mechanical default. F1 (the delivery-contract anchor) ships LIVE: it is pure injected context, no risk. F2 (completeness reject) and F3 (punt-guard) ship DISARMED behind armed flags: arming a turn/commit blocker without first measuring false positives would break the flow and could lock an in-progress strict session.",
+  "optOutWords": [
+    "mvp",
+    "quick",
+    "brouillon",
+    "jette",
+    "prototype",
+    "vite fait",
+    "pas besoin que ce soit parfait",
+    "poc",
+    "draft"
+  ],
+  "completenessGate": {
+    "armed": false
+  },
+  "puntGuard": {
+    "armed": false
+  }
+}

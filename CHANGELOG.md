@@ -9,6 +9,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.37.0] - 2026-06-30
+
+### Added - Prod-grade + maximal scope as the mechanical default (anti-downgrade)
+
+A 4-lens diagnosis workflow established WHY the agent kept drifting toward MVP /
+half-work despite the whole anti-downgrade arsenal: it was OPT-IN (every guard a
+no-op until a scope is locked), the strict loop was self-judged (agent writes the
+contract, grades its own verdict), and the cost model was anchored on human-2010
+time, generating the MVP-split reflex. This ships the mechanical, default-on fix.
+
+- **F1 -- delivery-contract anchor (LIVE).** New `inject-delivery-default.js`
+  (UserPromptSubmit) + pure lib `delivery-contract.js` re-inject a contract every
+  turn: grade=PROD, scope=MAXIMAL (proposing an MVP / short-deliverable /
+  dont-block-the-heavy split is forbidden unless the user types an opt-out word
+  THIS message), cost yardstick=AI-2026 (estimate in agent-time x10, not
+  human-by-hand). Opt-out wordlist in `_byan/_config/delivery-default.json`. The
+  opt-out parser is biased toward PROD: a single opt-out word counts only as a
+  short directive or with a go-cheap cue, is dropped when negated ("pas de mvp"),
+  and a mere mention in a long meta message leaves the anchor armed. Preserved
+  across compaction (CLAUDE.md) and mirrored to AGENTS.md (Codex).
+- **F2 -- non-agent completeness judge (built, DISARMED).** `completeness-evidence.js`
+  wired additively into strict `complete()` + the pre-commit gate: a "done" claim
+  is backed by a non-fabricable artifact (a real test-runner exit, a `git diff`
+  vs the locked paths, a file that exists), breaking the judge=defendant loop.
+  Ships behind `completenessGate.armed=false` (collect + ledger only) so it does
+  not change behavior or self-lock until the ledger validates arming.
+- **F3 -- punt-guard (built, DISARMED).** Stop hook + pure `punt-detect.js`
+  flags handing the user a runnable command the agent could run itself, with a
+  creds carve-out (git push / npm publish). Ships behind `puntGuard.armed=false`
+  (observe + ledger).
+
+Caught in build: F1's first live turn revealed a false positive (the anchor
+self-disabled on any message that merely mentioned an opt-out word). Fixed in
+place with the negation + directive-context hardening above + 3 regression tests.
+
+Files: `.claude/hooks/inject-delivery-default.js`, `.claude/hooks/lib/delivery-contract.js`,
+`.claude/hooks/punt-guard.js`, `.claude/hooks/lib/punt-detect.js`,
+`_byan/mcp/byan-mcp-server/lib/completeness-evidence.js`, wired into `strict-mode.js`
++ `precommit-gate.js`, `_byan/_config/delivery-default.json`, `.claude/settings.json`,
+CLAUDE.md + AGENTS.md (+ install templates) + tests. MCP node --test 710/710, root
+jest 2466/2466. Strict scope 9f8c6048.
+
 ## [2.36.0] - 2026-06-29
 
 ### Added - Leantime auto-sync: complexity, priority and description on task creation

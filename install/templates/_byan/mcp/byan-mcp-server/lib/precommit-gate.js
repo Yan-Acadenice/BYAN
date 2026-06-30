@@ -1,5 +1,65 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { getStatus, MIN_PASSES } from './strict-mode.js';
 import { fetchSession, syncEnabled } from './strict-sync.js';
+
+// F2 (additive): the completeness-evidence gate at commit time. Reads the
+// completeness ledger written by strict complete(). It only ever BLOCKS when
+// delivery-default.json completenessGate.armed === true (default false). With
+// the gate disarmed this is a no-op and the gate decision is exactly as before.
+const DELIVERY_CONFIG_REL = path.join('_byan', '_config', 'delivery-default.json');
+const COMPLETENESS_LEDGER_REL = path.join('_byan-output', 'completeness-ledger.jsonl');
+
+function completenessGateArmed(projectRoot) {
+  try {
+    const p = path.join(projectRoot || process.cwd(), DELIVERY_CONFIG_REL);
+    if (!fs.existsSync(p)) return false;
+    const cfg = JSON.parse(fs.readFileSync(p, 'utf8'));
+    return !!(cfg && cfg.completenessGate && cfg.completenessGate.armed === true);
+  } catch {
+    return false; // A broken/absent config never arms the gate.
+  }
+}
+
+// Last completeness-ledger entry for the given scope_hash, or null. Best-effort.
+function lastCompletenessEntry(projectRoot, scopeHash) {
+  try {
+    const p = path.join(projectRoot || process.cwd(), COMPLETENESS_LEDGER_REL);
+    if (!fs.existsSync(p)) return null;
+    const lines = fs
+      .readFileSync(p, 'utf8')
+      .split('\n')
+      .filter((l) => l.trim());
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try {
+        const e = JSON.parse(lines[i]);
+        if (!scopeHash || e.scope_hash === scopeHash) return e;
+      } catch {
+        // skip a malformed line
+      }
+    }
+  } catch {
+    // unreadable ledger -> treat as no evidence record
+  }
+  return null;
+}
+
+// Pure overlay: given a base decision (PASS), apply the armed completeness gate.
+// Returns the base decision untouched when disarmed or when the base already
+// blocks; otherwise blocks when the completeness ledger shows missing criteria.
+export function applyCompletenessGate(base, { armed, entry }) {
+  if (!base.pass || !armed) return base;
+  if (entry && Array.isArray(entry.missing) && entry.missing.length) {
+    return {
+      pass: false,
+      reason:
+        `Completeness gate ARMED: the completed strict session left ` +
+        `${entry.missing.length} code-shaped criteria without evidence ` +
+        `(${entry.missing.join('; ')}). Provide the artifacts before committing.`,
+    };
+  }
+  return base;
+}
 
 // BYAN Strict Mode pre-commit gate.
 //
@@ -104,6 +164,7 @@ export async function evaluateGate({ projectRoot, fetchImpl } = {}) {
   const local = getStatus({ projectRoot });
   const normalizedLocal = normalizeLocal(local);
 
+  let base;
   // Consult the authority when there is a session to check and a token is set.
   if (normalizedLocal.sessionId && syncEnabled()) {
     const remote = await fetchSession(
@@ -111,10 +172,15 @@ export async function evaluateGate({ projectRoot, fetchImpl } = {}) {
       fetchImpl ? { fetchImpl } : {}
     );
     if (remote.ok && remote.data) {
-      return decide(normalizeApi(remote.data));
+      base = decide(normalizeApi(remote.data));
     }
     // API unreachable / not found -> fall back to local mirror.
   }
+  if (!base) base = decide(normalizedLocal);
 
-  return decide(normalizedLocal);
+  // F2 overlay: disarmed by default -> returns `base` unchanged.
+  const armed = completenessGateArmed(projectRoot);
+  if (!armed) return base;
+  const entry = lastCompletenessEntry(projectRoot, local.scope_hash);
+  return applyCompletenessGate(base, { armed, entry });
 }

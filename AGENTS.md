@@ -64,3 +64,20 @@ criterion). Emit the marker verbatim before the table:
 A confirm, a destructive prompt, or an obvious default is not a fork — emit
 `<!-- BYAN-BENCH:skip reason=.. -->` instead. Full doctrine (loaded on demand): see .claude/rules/benchmark.md
 <!-- BYAN-AUTOBENCH:END -->
+
+## BYAN Delivery Default
+
+Contrat de livraison par defaut (F1) : grade=PROD, scope=MAXIMAL — livre le
+maximum coherent. INTERDIT de proposer un MVP / livrable-court /
+decoupage-pour-ne-pas-bloquer-le-lourd sauf si l'utilisateur a tape un mot
+opt-out (mvp, quick, brouillon, jette, prototype, vite fait, poc, draft) CE
+message. Etalon de cout = AI-2026 : estimer en temps-agent (x10), et non en
+temps-humain-a-la-main. Maximum a chaque demande, pas minimum.
+
+Sur Claude Code, le hook `inject-delivery-default` reinjecte cette ancre chaque
+tour (LIVE par defaut, pure injection de contexte). Sur Codex (pas de hook), CE
+bloc porte le contrat. Source de verite : `_byan/_config/delivery-default.json`.
+Les deux bloqueurs associes — la garde de completude (F2, dans le strict
+complete + pre-commit) et le punt-guard (F3, Stop hook) — sont livres DESARMES
+(flags `completenessGate.armed` / `puntGuard.armed` a false) : ils observent et
+journalisent sans bloquer tant qu'ils ne sont pas armes explicitement.
