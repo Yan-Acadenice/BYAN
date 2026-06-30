@@ -80,10 +80,15 @@ async function copyMcpServer(projectRoot) {
 }
 
 async function generateMcpConfig(projectRoot, options = {}) {
-  const tmplPath = path.join(TEMPLATE_ROOT, '.mcp.json.tmpl');
   const dstPath = path.join(projectRoot, '.mcp.json');
 
-  // Preserve every entry the project's .mcp.json already has.
+  // Read-merge-write through the single source of truth for the byan + inert
+  // byan-channel entry shape: mcpConfig.mergeByanEntry (relative args, secret-free,
+  // existing siblings + custom command + non-byan env preserved, channel added
+  // inert). This is byte-coherent with installDirectMCP, which routes through the
+  // same merge. Additional default MCP servers are registered via addMcpEntry
+  // (mcp-extensions), not here -- so there is no .mcp.json template to drift out
+  // of sync with the merge.
   let existing = {};
   if (await fs.pathExists(dstPath)) {
     try {
@@ -93,33 +98,7 @@ async function generateMcpConfig(projectRoot, options = {}) {
     }
   }
 
-  // The byan + inert byan-channel entries have ONE source of truth:
-  // mcpConfig.mergeByanEntry (relative args, secret-free, custom command and
-  // non-byan env preserved, channel added inert). generateMcpConfig routes them
-  // through it so this PRIMARY writer is byte-coherent with installDirectMCP --
-  // no divergence in entry shape. The .mcp.json.tmpl is the declarative place for
-  // ADDITIONAL default servers only; its own byan/byan-channel entries are not
-  // consumed here by design (edit mcp-config.js to change their shape, not the
-  // template). {{PROJECT_ROOT}} is still substituted for any extra server entry.
-  const base = { ...existing, mcpServers: { ...(existing.mcpServers || {}) } };
-  if (await fs.pathExists(tmplPath)) {
-    let tmplCfg = {};
-    try {
-      const raw = (await fs.readFile(tmplPath, 'utf8')).replace(
-        /\{\{PROJECT_ROOT\}\}/g,
-        projectRoot
-      );
-      tmplCfg = JSON.parse(raw);
-    } catch {
-      tmplCfg = {};
-    }
-    for (const [name, entry] of Object.entries(tmplCfg.mcpServers || {})) {
-      if (name === 'byan' || name === 'byan-channel') continue; // owned by mergeByanEntry
-      if (!base.mcpServers[name]) base.mcpServers[name] = entry; // never clobber an existing one
-    }
-  }
-
-  const merged = mcpConfig.mergeByanEntry(base, { apiUrl: options.apiUrl });
+  const merged = mcpConfig.mergeByanEntry(existing, { apiUrl: options.apiUrl });
   await fs.writeJson(dstPath, merged, { spaces: 2 });
   return { path: dstPath };
 }

@@ -117,6 +117,37 @@ describe('claude-native-setup', () => {
     expect(raw).not.toContain('dangerously-load');
   });
 
+  test('generateMcpConfig preserves a custom command + non-byan env, normalizes args to relative (delegates to the shared merge)', async () => {
+    // A pre-existing entry with a custom interpreter, a stale absolute path, a
+    // Leantime env ref, a byan secret, and a sibling server. Fixture token is a
+    // non-shaped placeholder (no real secret in tests).
+    await fs.writeJson(path.join(tmpRoot, '.mcp.json'), {
+      mcpServers: {
+        byan: {
+          command: 'bun',
+          args: ['/abs/old/_byan/mcp/byan-mcp-server/server.js'],
+          env: { LEANTIME_API_URL: '${LEANTIME_API_URL}', BYAN_API_TOKEN: 'placeholder_not_a_token' },
+        },
+        other: { command: 'python', args: ['o.py'] },
+      },
+    });
+    await setup.generateMcpConfig(tmpRoot);
+    const cfg = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
+    // command preserved (F1-orthogonal); args normalized to the canonical relative path.
+    expect(cfg.mcpServers.byan.command).toBe('bun');
+    expect(cfg.mcpServers.byan.args).toEqual(['_byan/mcp/byan-mcp-server/server.js']);
+    expect(path.isAbsolute(cfg.mcpServers.byan.args[0])).toBe(false);
+    // Non-byan env preserved; byan secret stripped.
+    expect(cfg.mcpServers.byan.env.LEANTIME_API_URL).toBe('${LEANTIME_API_URL}');
+    expect('BYAN_API_TOKEN' in cfg.mcpServers.byan.env).toBe(false);
+    // Sibling preserved + inert channel added (same shape installDirectMCP produces).
+    expect(cfg.mcpServers.other.command).toBe('python');
+    expect(cfg.mcpServers['byan-channel'].args).toEqual(['_byan/mcp/byan-mcp-server/channel-entry.js']);
+    expect(cfg.mcpServers['byan-channel'].env).toEqual({});
+    const raw = await fs.readFile(path.join(tmpRoot, '.mcp.json'), 'utf8');
+    expect(raw).not.toContain('placeholder_not_a_token');
+  });
+
   test('setupClaudeNative runs full pipeline (skip deps)', async () => {
     const result = await setup.setupClaudeNative(tmpRoot, {
       quiet: true,
