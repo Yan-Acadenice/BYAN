@@ -11,6 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.39.0] - 2026-07-02
 
+### Added - shippable soul stays in sync with the active soul (byan-sync-soul)
+
+BYAN's active identity (`_byan/agent/byan/soul.md`, `tao.md`) is shipped to a
+fresh install via the prefixed copies `byan-soul.md` / `byan-tao.md`, which the
+installer copies into place at setup. Those copies were a MANUAL mirror and had
+drifted: `byan-soul.md` had missed the `## Valeurs` section and the 2026-07-02
+couche-vivante revision, so a fresh install shipped a stale identity. The
+2026-03-27 revision had warned that soul transmission needs maintenance — the
+manual sync did not hold.
+
+- **New generator `byan-sync-soul`** (`lib/sync-soul.js` + `bin/byan-sync-soul.js`)
+  mirrors the active soul + tao into the shippable prefixed copies. `--check`
+  reports drift and exits non-zero.
+- **Pre-commit gate**: `.githooks/pre-commit` runs `byan-sync-soul --check`, so a
+  commit whose shippable soul drifted from the active one is blocked. Dev-repo
+  tooling — the bin is not shipped, so the gate no-ops in installed projects
+  (`[ -f ]` guard), where it is not needed.
+- **Caught up**: `byan-soul.md` now carries the `## Valeurs` section and the
+  2026-07-02 revision; `byan-tao.md` was already in sync.
+- **soul-memory is out of scope**: `byan-soul-memory.md` is a curated seed journal
+  (distinct from this repo's living `soul-memory.md`), so it is not mirrored.
+
+Files: `_byan/mcp/byan-mcp-server/lib/sync-soul.js` + `bin/byan-sync-soul.js` +
+`test/sync-soul.test.js`, `.githooks/pre-commit` (+ template mirror),
+`_byan/agent/byan/byan-soul.md` (+ template mirror). Adversarial review
+(bmad-compliance) approved, 0 must_fix; it corrected an inaccurate rationale in
+the comments (the installer copies, it does not rename), fixed before merge.
+MCP node --test 733/733, jest root 2473/2473.
+
 ### Added - strict self-verify checklist from measured recurring gaps
 
 Strict mode now carries a self-verify checklist of BYAN's OWN most frequent

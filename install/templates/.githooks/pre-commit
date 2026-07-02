@@ -82,6 +82,24 @@ if [ -f "$TEMPLATE_SYNC" ]; then
   fi
 fi
 
+# Soul source drift gate — BYAN's active soul (_byan/agent/byan/{soul,tao}.md) is
+# mirrored into the shippable prefixed copies (byan-{soul,tao}.md) that the
+# installer copies to soul.md/tao.md at setup. This gate blocks a commit whose
+# shippable soul has drifted from the active one, so a fresh install ships a
+# current identity. soul-memory is out of scope (curated seed). Dev-repo tooling:
+# the bin is not shipped, so this gate no-ops in installed projects (the [ -f ]
+# guard below). Re-sync with the apply command, then restage.
+SOUL_SYNC="_byan/mcp/byan-mcp-server/bin/byan-sync-soul.js"
+if [ -f "$SOUL_SYNC" ]; then
+  if ! node "$SOUL_SYNC" --check --root "$(git rev-parse --show-toplevel)"; then
+    echo ""
+    echo "Commit blocked : the shippable soul has drifted from the active soul."
+    echo "Re-sync with 'node $SOUL_SYNC' then restage, or bypass with"
+    echo "'git commit --no-verify' (emergency only)."
+    exit 1
+  fi
+fi
+
 # Stub path drift gate — the installer generated platform stubs (.codex/prompts,
 # .github/agents, .claude/skills) over many versions; older generators emitted the
 # legacy _bmad/@bmad path layout while the agent sources are clean. This gate
