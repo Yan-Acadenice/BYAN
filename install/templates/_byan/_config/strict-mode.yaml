@@ -37,6 +37,31 @@ self_verify:
   verdicts:
     - ok        # no gap against the locked acceptance criteria
     - gap       # a gap was found; findings array must be non-empty
+  # Measured recurring blind spots, harvested from the strict audit log by
+  # byan_insight_digest (self-verify gap clustering). These are BYAN's OWN most
+  # frequent gaps, so each self-verify pass checks them explicitly on top of the
+  # locked criteria. `observed` is the frequency at capture time (2026-07-02) —
+  # the WHY, a signal, not a target. The heterogeneous "other" cluster (18) is
+  # deliberately excluded: too mixed to become a single check.
+  checklist:
+    - theme: tests/coverage
+      observed: 20
+      check: >-
+        Every changed branch has a test, the pre-existing suite still passes with
+        no regression, and any new behaviour has a test that would fail without
+        the change?
+    - theme: doc-follows-code
+      observed: 10
+      check: >-
+        Did a public-surface or contract change leave a doc behind that must move
+        with it — CHANGELOG, README, a rule @-reference, a manifest, a template
+        mirror?
+    - theme: scope-discovery
+      observed: 7
+      check: >-
+        Anything discovered mid-build outside the locked scope (a legacy tree, an
+        extra decision, an adjacent bug) surfaced to the user rather than silently
+        absorbed or cut?
 
 # ---------------------------------------------------------------------------
 # Source floors per domain when strict mode is active.

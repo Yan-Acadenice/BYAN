@@ -37,6 +37,12 @@ The strict tools (`byan_strict_lock_scope`, `byan_strict_self_verify`,
 by the `byan` MCP server. A commit without a fresh, matching audit token is
 blocked by the pre-commit gate.
 
+Self-verify checklist (measured recurring blind spots — check each pass):
+
+- **tests/coverage** — Every changed branch has a test, the pre-existing suite still passes with no regression, and any new behaviour has a test that would fail without the change?
+- **doc-follows-code** — Did a public-surface or contract change leave a doc behind that must move with it — CHANGELOG, README, a rule @-reference, a manifest, a template mirror?
+- **scope-discovery** — Anything discovered mid-build outside the locked scope (a legacy tree, an extra decision, an adjacent bug) surfaced to the user rather than silently absorbed or cut?
+
 Hard mantras:
 
 - **STRICT-1 Scope Lock First** — Reformulate the request and lock the scope before any build. The locked scope is the contract for the rest of the task.

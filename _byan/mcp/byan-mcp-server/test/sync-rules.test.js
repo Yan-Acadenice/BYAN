@@ -25,6 +25,13 @@ confidence:
 self_verify:
   min_passes: 3
   last_verdict_must_be: ok
+  checklist:
+    - theme: tests/coverage
+      observed: 20
+      check: Every changed branch has a test?
+    - theme: doc-follows-code
+      observed: 10
+      check: Did a contract change leave a doc behind?
 activation:
   manual_mode: strict
   auto_keywords: [prod, production, client]
@@ -88,6 +95,22 @@ test('renderStrictConfig projects the runtime subset', () => {
   assert.deepEqual(out.completion_claim_markers, ['done', 'finished', 'fini']);
   assert.ok(out.banners.context.includes('STRICT MODE ACTIVE'));
   assert.equal(out.scope_guard.enforce_paths, true);
+  // The measured self-verify checklist propagates into the runtime config, with
+  // `observed` stripped (the count is source-only WHY, not runtime state).
+  assert.equal(out.self_verify_checklist.length, 2);
+  assert.deepEqual(
+    out.self_verify_checklist.map((c) => c.theme),
+    ['tests/coverage', 'doc-follows-code']
+  );
+  assert.equal(out.self_verify_checklist[0].check, 'Every changed branch has a test?');
+  assert.equal(out.self_verify_checklist[0].observed, undefined);
+});
+
+test('renderStrictConfig emits an empty checklist when the YAML omits it', () => {
+  const cfg = loadConfig({ projectRoot: tmpRoot() });
+  delete cfg.self_verify.checklist;
+  const out = renderStrictConfig(cfg);
+  assert.deepEqual(out.self_verify_checklist, []);
 });
 
 test('renderSkill embeds frontmatter, tools, and mantras', () => {
@@ -101,6 +124,19 @@ test('renderSkill embeds frontmatter, tools, and mantras', () => {
   // Hooks are registered globally in settings.json (self-gating), not in the
   // skill frontmatter — avoids double-firing.
   assert.ok(!md.includes('strict-stop-guard.js'));
+  // The measured self-verify checklist renders as its own section with each theme.
+  assert.ok(md.includes('## Self-verify checklist'));
+  assert.ok(md.includes('**tests/coverage**'));
+  assert.ok(md.includes('**doc-follows-code**'));
+});
+
+test('renderSkill omits the checklist section when the config has none', () => {
+  const cfg = loadConfig({ projectRoot: tmpRoot() });
+  delete cfg.self_verify.checklist;
+  const md = renderSkill(cfg);
+  assert.ok(!md.includes('## Self-verify checklist'));
+  // The rest of the skill still renders.
+  assert.ok(md.includes('## Hard claims'));
 });
 
 test('renderAgentsBlock includes banner and mantras', () => {
@@ -108,6 +144,9 @@ test('renderAgentsBlock includes banner and mantras', () => {
   const block = renderAgentsBlock(cfg);
   assert.ok(block.includes('BYAN Strict Mode'));
   assert.ok(block.includes('STRICT-2 No Downgrade'));
+  // Codex parity: the self-verify checklist is carried into the AGENTS block too.
+  assert.ok(block.includes('Self-verify checklist'));
+  assert.ok(block.includes('**tests/coverage**'));
 });
 
 test('upsertBlock creates a file with markers when absent', () => {
@@ -169,4 +208,29 @@ test('syncRules is idempotent on second run', () => {
   for (const action of Object.values(report)) {
     assert.equal(action, 'unchanged');
   }
+});
+
+// Anti-drop guard against the REAL source of truth. The self-verify checklist
+// was derived from measured recurring gaps (byan_insight_digest); this test
+// fails if a future edit silently removes it from _byan/_config/strict-mode.yaml
+// or breaks its propagation into the runtime config.
+test('the real strict-mode.yaml carries the 3 measured checklist themes and they propagate', () => {
+  const repoRoot = path.resolve(
+    path.dirname(new URL(import.meta.url).pathname),
+    '..',
+    '..',
+    '..',
+    '..'
+  );
+  const cfg = loadConfig({ projectRoot: repoRoot });
+  const themes = (cfg.self_verify.checklist || []).map((c) => c.theme);
+  for (const expected of ['tests/coverage', 'doc-follows-code', 'scope-discovery']) {
+    assert.ok(themes.includes(expected), `strict-mode.yaml checklist missing "${expected}"`);
+  }
+  // Each item is a testable question, and the propagation into the runtime
+  // config keeps all three (anti-drop through the generator).
+  for (const item of cfg.self_verify.checklist) {
+    assert.ok(item.check && item.check.trim().length > 0, `checklist "${item.theme}" has no check`);
+  }
+  assert.equal(renderStrictConfig(cfg).self_verify_checklist.length, 3);
 });

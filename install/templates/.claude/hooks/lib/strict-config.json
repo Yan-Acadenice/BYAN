@@ -3,6 +3,20 @@
   "version": 1,
   "min_passes": 3,
   "last_verdict_must_be": "ok",
+  "self_verify_checklist": [
+    {
+      "theme": "tests/coverage",
+      "check": "Every changed branch has a test, the pre-existing suite still passes with no regression, and any new behaviour has a test that would fail without the change?"
+    },
+    {
+      "theme": "doc-follows-code",
+      "check": "Did a public-surface or contract change leave a doc behind that must move with it — CHANGELOG, README, a rule @-reference, a manifest, a template mirror?"
+    },
+    {
+      "theme": "scope-discovery",
+      "check": "Anything discovered mid-build outside the locked scope (a legacy tree, an extra decision, an adjacent bug) surfaced to the user rather than silently absorbed or cut?"
+    }
+  ],
   "min_score": 95,
   "auto_keywords": [
     "prod",

@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.39.0] - 2026-07-02
+
+### Added - strict self-verify checklist from measured recurring gaps
+
+Strict mode now carries a self-verify checklist of BYAN's OWN most frequent
+blind spots, so each self-verify pass checks them on top of the locked
+acceptance criteria. The three themes are not guessed — they were harvested from
+the strict audit log by `byan_insight_digest` (self-verify gap clustering):
+tests/coverage (observed 20x), doc-follows-code (10x), scope-discovery (7x). The
+heterogeneous "other" cluster (18x) was deliberately excluded — too mixed to
+become a single check.
+
+- **Single source of truth**: the checklist lives under `self_verify.checklist`
+  in `_byan/_config/strict-mode.yaml`. Each item is a testable question plus an
+  `observed` count kept as the WHY (a signal, not a target).
+- **Propagated by the generator**: `byan-sync-rules` renders it into the three
+  operative surfaces — the `byan-strict` SKILL (a `## Self-verify checklist`
+  section), `.claude/hooks/lib/strict-config.json` (`self_verify_checklist`, with
+  `observed` stripped as source-only), and the `AGENTS.md` block (Codex parity).
+  Idempotent; an older config with no checklist renders an empty list and no
+  section.
+- **Anti-drop**: a test asserts the real `strict-mode.yaml` carries the three
+  themes and that they survive the generator, so a future edit cannot silently
+  drop them. Additive only — `min_passes`, `last_verdict_must_be`, mantras,
+  banners and the scope guard are unchanged.
+
+This closes the insight loop from the 2026-07-02 soul revision: a measured,
+recurring gap becomes a mechanized check rather than a remembered intention.
+
+Files: `_byan/_config/strict-mode.yaml`, `_byan/mcp/byan-mcp-server/lib/sync-rules.js`,
+`_byan/mcp/byan-mcp-server/test/sync-rules.test.js`, regenerated
+`.claude/skills/byan-strict/SKILL.md` + `.claude/hooks/lib/strict-config.json` +
+`AGENTS.md` (+ install template mirrors). Adversarial review (bmad-compliance)
+approved, 0 must_fix, 7/7 criteria. MCP node --test 726/726, jest root 2473/2473.
+
 ## [2.38.0] - 2026-06-30
 
 ### Added - yanstaller installs the byan-channel MCP entry by default (inert)

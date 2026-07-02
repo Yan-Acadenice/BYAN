@@ -36,6 +36,15 @@ complete. Downgrading the scope is the failure this mode exists to prevent.
 4. **Complete** with `byan_strict_complete` to earn the audit token. Without it,
    the pre-commit gate blocks the commit.
 
+## Self-verify checklist
+
+Measured recurring blind spots (harvested by `byan_insight_digest`). Check these
+each self-verify pass, on top of the locked acceptance criteria:
+
+- **tests/coverage** — Every changed branch has a test, the pre-existing suite still passes with no regression, and any new behaviour has a test that would fail without the change?
+- **doc-follows-code** — Did a public-surface or contract change leave a doc behind that must move with it — CHANGELOG, README, a rule @-reference, a manifest, a template mirror?
+- **scope-discovery** — Anything discovered mid-build outside the locked scope (a legacy tree, an extra decision, an adjacent bug) surfaced to the user rather than silently absorbed or cut?
+
 ## Hard claims
 
 Claims in security, performance, or compliance need LEVEL-1 sourcing

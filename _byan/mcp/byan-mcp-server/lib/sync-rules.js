@@ -83,6 +83,15 @@ export function renderStrictConfig(cfg) {
     version: cfg.version,
     min_passes: cfg.self_verify.min_passes,
     last_verdict_must_be: cfg.self_verify.last_verdict_must_be,
+    // Measured recurring self-verify blind spots (from byan_insight_digest).
+    // Carried into the runtime config so a hook/UI can surface them at verify
+    // time; [] when the YAML omits the block (older source stays valid).
+    self_verify_checklist: Array.isArray(cfg.self_verify.checklist)
+      ? cfg.self_verify.checklist.map((c) => ({
+          theme: c.theme,
+          check: String(c.check || '').trim(),
+        }))
+      : [],
     min_score: cfg.confidence.min_score,
     auto_keywords: cfg.activation.auto_keywords,
     completion_claim_markers: cfg.hooks.completion_claim_markers,
@@ -99,6 +108,16 @@ export function renderStrictConfig(cfg) {
 function mantraLines(cfg) {
   return cfg.mantras
     .map((m) => `- **${m.id} ${m.name}** — ${m.rule.trim()}`)
+    .join('\n');
+}
+
+// Renders the measured self-verify checklist (cfg.self_verify.checklist) as
+// markdown bullets. Empty string when the block is absent, so an older config
+// simply omits the section rather than emitting an empty header.
+function checklistLines(cfg) {
+  const items = Array.isArray(cfg.self_verify.checklist) ? cfg.self_verify.checklist : [];
+  return items
+    .map((c) => `- **${c.theme}** — ${String(c.check || '').trim()}`)
     .join('\n');
 }
 
@@ -168,7 +187,18 @@ complete. Downgrading the scope is the failure this mode exists to prevent.
 4. **Complete** with \`byan_strict_complete\` to earn the audit token. Without it,
    the pre-commit gate blocks the commit.
 
-## Hard claims
+${
+  checklistLines(cfg)
+    ? `## Self-verify checklist
+
+Measured recurring blind spots (harvested by \`byan_insight_digest\`). Check these
+each self-verify pass, on top of the locked acceptance criteria:
+
+${checklistLines(cfg)}
+
+`
+    : ''
+}## Hard claims
 
 Claims in security, performance, or compliance need LEVEL-1 sourcing
 (${cfg.confidence.min_score}%) or they are BLOCKED.
@@ -189,7 +219,15 @@ The strict tools (\`byan_strict_lock_scope\`, \`byan_strict_self_verify\`,
 by the \`byan\` MCP server. A commit without a fresh, matching audit token is
 blocked by the pre-commit gate.
 
-Hard mantras:
+${
+  checklistLines(cfg)
+    ? `Self-verify checklist (measured recurring blind spots — check each pass):
+
+${checklistLines(cfg)}
+
+`
+    : ''
+}Hard mantras:
 
 ${mantraLines(cfg)}`;
 }

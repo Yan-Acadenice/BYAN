@@ -244,7 +244,7 @@
       "name": "byan-strict",
       "module": "core",
       "tier": "connector-bound",
-      "sourceHash": "e8e0ac502220056a5057d2801ad5a512ce2bc7e54c08d9bc1844419d93ff58a6"
+      "sourceHash": "f9fb75d4fbd93ec8b624a61369b205889cd27c79cf2a5701e67a1619af60d0b0"
     },
     "byan-suitability": {
       "name": "byan-suitability",
