@@ -11,10 +11,21 @@
  * reads): CODEX_API_KEY (billed per token, no weekly cap) wins when set, else the
  * ChatGPT-subscription session in ~/.codex/auth.json (the 5h + weekly window).
  *
- * Security posture for automation: `-a never` (no approval pauses) with a bounded
- * sandbox (`-s`, default read-only). A workspace-write run is opt-in via config.
- * The API key is read from the environment and passed to the child process env;
- * it is never logged, never written to disk, never placed in argv.
+ * Entitled-model rule (live-verified on codex-cli 0.101 against a ChatGPT
+ * subscription): the OpenAI backend REJECTS every `-codex`-suffixed model on a
+ * subscription account ("The '<model>' model is not supported when using Codex
+ * with a ChatGPT account") — those ids are API-key only. Only the plain gpt-5.x
+ * family (e.g. gpt-5.4) is entitled on a subscription. So the default model is a
+ * plain entitled id, and resolveCodexModel normalizes a `-codex` request to that
+ * default when the active pool is the subscription. On an API key, `-codex`
+ * models bill fine and pass through untouched.
+ *
+ * Security posture for automation: a bounded sandbox (`-s`, default read-only)
+ * keeps a delegated run safe; a workspace-write run is opt-in via config. There
+ * is no approval flag — `codex exec` is already non-interactive, so no `-a` is
+ * passed (it would be a hard "unexpected argument" error; see send()). The API
+ * key is read from the environment and passed to the child process env; it is
+ * never logged, never written to disk, never placed in argv.
  *
  * Testability: parseCodexJsonl and detectCodexAuth are pure; the spawn is behind
  * this._runCodex and the binary probe behind this._probeBinary, so the unit tests
@@ -97,6 +108,25 @@ function isRateLimitFailure({ code, stderr }) {
   return code !== 0 && RATE_LIMIT_RE.test(String(stderr || ''));
 }
 
+// The plain gpt-5.x id verified entitled on a ChatGPT subscription (codex-cli
+// 0.101). The CLI/companion default is a `-codex` id that a subscription rejects,
+// so this is the safe default and the subscription remap target.
+const SUBSCRIPTION_DEFAULT_MODEL = 'gpt-5.4';
+
+// Pick the model that will actually be accepted by the active auth pool. On a
+// subscription, a `-codex`-suffixed id is API-only and would be rejected, so it
+// is remapped to the known-entitled default (we only remap what we KNOW fails,
+// and only to the one id verified to work — we do not guess stripped variants).
+// On an API key, or for an already-plain id, the request passes through. Pure.
+function resolveCodexModel({ requested, authPool } = {}) {
+  const model = String(requested || '').trim();
+  if (!model) return SUBSCRIPTION_DEFAULT_MODEL;
+  if (authPool === 'subscription' && /-codex$/i.test(model)) {
+    return SUBSCRIPTION_DEFAULT_MODEL;
+  }
+  return model;
+}
+
 class CodexProvider extends BaseProvider {
   constructor(providerConfig = {}) {
     super('codex', providerConfig);
@@ -168,7 +198,10 @@ class CodexProvider extends BaseProvider {
     if (!this.initialized) throw new Error('CodexProvider not initialized');
 
     const start = Date.now();
-    const model = opts.model || this.config.models?.agent || 'gpt-5-codex';
+    const requested = opts.model || this.config.models?.agent || SUBSCRIPTION_DEFAULT_MODEL;
+    // Normalize to an id the active auth pool will accept (a -codex model is
+    // API-only; a subscription would reject it). See resolveCodexModel.
+    const model = resolveCodexModel({ requested, authPool: this._detectAuth() });
     const sandbox = this.config.sandbox || 'read-only';
 
     // Non-interactive automation contract, verified against codex-cli 0.101.0
@@ -224,4 +257,4 @@ class CodexProvider extends BaseProvider {
   }
 }
 
-module.exports = { CodexProvider, parseCodexJsonl, detectCodexAuth, isRateLimitFailure };
+module.exports = { CodexProvider, parseCodexJsonl, detectCodexAuth, isRateLimitFailure, resolveCodexModel, SUBSCRIPTION_DEFAULT_MODEL };

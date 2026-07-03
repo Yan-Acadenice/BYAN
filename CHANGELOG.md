@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **lb: Codex pool targeted a non-entitled model on ChatGPT subscription.** The
+  provider defaulted to `gpt-5-codex`; the OpenAI backend rejects every
+  `-codex`-suffixed model on a subscription account (API-key only). Default is
+  now the entitled `gpt-5.4`, and a new pure `resolveCodexModel({ requested,
+  authPool })` remaps a `-codex` request to `gpt-5.4` under subscription auth
+  only (passthrough on api-key or an already-plain id). `loadbalancer.default.yaml`
+  codex models set to `gpt-5.4`. Covered by 7 new unit tests (mock runner, no
+  real CLI/network). See `docs/loadbalancer-multipool.md`.
+
 ## [2.41.0] - 2026-07-03
 
 ### Added - multi-pool subscription arbitrage: Codex as a second pool + the 5h-window ladder

@@ -36,9 +36,11 @@ providers:
     auth_env: "CODEX_API_KEY"
     sandbox: "read-only"
     max_context_tokens: 256000
+    # Plain gpt-5.x is the entitled family on a ChatGPT subscription; -codex ids
+    # are API-key only (rejected on subscription). See resolveCodexModel.
     models:
-      worker: "gpt-5-codex"
-      agent: "gpt-5-codex"
+      worker: "gpt-5.4"
+      agent: "gpt-5.4"
 
   byan_api:
     enabled: false

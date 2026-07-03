@@ -1,4 +1,4 @@
-const { CodexProvider, parseCodexJsonl, detectCodexAuth } = require('../../src/loadbalancer/providers/codex-provider');
+const { CodexProvider, parseCodexJsonl, detectCodexAuth, resolveCodexModel, SUBSCRIPTION_DEFAULT_MODEL } = require('../../src/loadbalancer/providers/codex-provider');
 
 // Codex is a SYSTEM CLI (codex exec), not an npm SDK. The provider spawns it and
 // parses the --json JSONL stream. The parser is a pure function (fixture-tested)
@@ -74,6 +74,60 @@ describe('loadbalancer/codex-provider', () => {
     });
   });
 
+  describe('resolveCodexModel (pure, entitled-model policy)', () => {
+    test('subscription + a -codex model -> remapped to the entitled default', () => {
+      expect(resolveCodexModel({ requested: 'gpt-5-codex', authPool: 'subscription' })).toBe('gpt-5.4');
+      expect(resolveCodexModel({ requested: 'gpt-5.3-codex', authPool: 'subscription' })).toBe('gpt-5.4');
+      expect(resolveCodexModel({ requested: 'gpt-5.2-codex', authPool: 'subscription' })).toBe(SUBSCRIPTION_DEFAULT_MODEL);
+    });
+
+    test('subscription + a plain model passes through untouched', () => {
+      expect(resolveCodexModel({ requested: 'gpt-5.4', authPool: 'subscription' })).toBe('gpt-5.4');
+      expect(resolveCodexModel({ requested: 'gpt-5.4-mini', authPool: 'subscription' })).toBe('gpt-5.4-mini');
+    });
+
+    test('api-key pool never remaps -codex (those ids bill fine on a key)', () => {
+      expect(resolveCodexModel({ requested: 'gpt-5-codex', authPool: 'api-key' })).toBe('gpt-5-codex');
+      expect(resolveCodexModel({ requested: 'gpt-5.3-codex', authPool: 'api-key' })).toBe('gpt-5.3-codex');
+    });
+
+    test('empty / missing request falls back to the entitled default', () => {
+      expect(resolveCodexModel({ requested: '', authPool: 'subscription' })).toBe(SUBSCRIPTION_DEFAULT_MODEL);
+      expect(resolveCodexModel({})).toBe(SUBSCRIPTION_DEFAULT_MODEL);
+      expect(resolveCodexModel()).toBe(SUBSCRIPTION_DEFAULT_MODEL);
+    });
+
+    test('the entitled default is a plain (non -codex) gpt-5.x id', () => {
+      expect(SUBSCRIPTION_DEFAULT_MODEL).toBe('gpt-5.4');
+      expect(/-codex$/i.test(SUBSCRIPTION_DEFAULT_MODEL)).toBe(false);
+    });
+  });
+
+  describe('send model policy (integration of resolveCodexModel)', () => {
+    test('default model is the entitled gpt-5.4 when config sets none', async () => {
+      const p = new CodexProvider({});
+      p.initialized = true;
+      p._detectAuth = () => 'subscription';
+      let capturedArgs = null;
+      p._runCodex = async (args) => { capturedArgs = args; return { stdout: JSONL_OK, stderr: '', code: 0 }; };
+      const r = await p.send({ prompt: 'x' });
+      expect(r.model).toBe('gpt-5.4');
+      expect(capturedArgs).toEqual(expect.arrayContaining(['-m', 'gpt-5.4']));
+    });
+
+    test('a -codex request on subscription is remapped before hitting the CLI', async () => {
+      const p = new CodexProvider({});
+      p.initialized = true;
+      p._detectAuth = () => 'subscription';
+      let capturedArgs = null;
+      p._runCodex = async (args) => { capturedArgs = args; return { stdout: JSONL_OK, stderr: '', code: 0 }; };
+      const r = await p.send({ prompt: 'x', model: 'gpt-5-codex' });
+      expect(r.model).toBe('gpt-5.4');
+      expect(capturedArgs).not.toContain('gpt-5-codex');
+      expect(capturedArgs).toEqual(expect.arrayContaining(['-m', 'gpt-5.4']));
+    });
+  });
+
   describe('CodexProvider', () => {
     test('name is "codex", starts uninitialized', () => {
       const p = new CodexProvider({});
@@ -122,6 +176,9 @@ describe('loadbalancer/codex-provider', () => {
     test('send parses an injected codex run into a ProviderResponse with usage', async () => {
       const p = new CodexProvider({ models: { agent: 'gpt-5-codex' } });
       p.initialized = true;
+      // Pin the API-key pool so the -codex id is not remapped (that policy is
+      // covered by the resolveCodexModel tests); here we only assert parsing.
+      p._detectAuth = () => 'api-key';
       p._runCodex = async () => ({ stdout: JSONL_OK, stderr: '', code: 0 });
       const r = await p.send({ prompt: 'do it' });
       expect(r.provider).toBe('codex');
