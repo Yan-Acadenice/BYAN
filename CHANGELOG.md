@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Codex auto-delegation (opt-in, native)
+- **BYAN now proposes handing delegable work to Codex on your ChatGPT
+  subscription (no API credit) when Claude nears its 5h limit.** A
+  `UserPromptSubmit` hook estimates the rolling-5h Claude consumption from the
+  local transcripts (live) + session-meta (fallback), and nudges delegation on
+  three triggers: pressure (>= 80% estimated, configurable), task nature
+  (delegable coding work), and an opt-in perf forces table. The red line holds:
+  only delegable natures are proposed; judgment / soul / verification stay on
+  Claude. Disarmed by default — the yanstaller arms it on opt-in (device-flow
+  `codex login --device-auth`, entitled model gpt-5.4) by writing
+  `_byan/_config/autodelegate.json`. The 5h gauge is an honest ESTIMATE (no
+  provider exposes a machine-readable quota; `pct` is null without a configured
+  budget), and perf routing ships neutral (below the L2 perf floor, tagged
+  heuristic). New: `.claude/hooks/codex-autodelegate.js` +
+  `.claude/hooks/lib/{usage-estimator,autodelegate-decision,perf-routing}.js`,
+  `install/lib/codex-autodelegate-setup.js`. 47 unit tests. See
+  `docs/codex-auto-delegation.md`.
+
 ### Fixed
 - **lb: Codex pool targeted a non-entitled model on ChatGPT subscription.** The
   provider defaulted to `gpt-5-codex`; the OpenAI backend rejects every
