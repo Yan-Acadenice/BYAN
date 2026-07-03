@@ -12,7 +12,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { isKnownTierModel, isDowngradeModel, classifyLeaf, LEAF_TYPES } from './native-tiers.js';
+import { isKnownTierModel, isDowngradeModel, classifyLeaf, LEAF_TYPES, TIER_MODEL } from './native-tiers.js';
 
 // Strip /* block */ and // line comments. Preserve "://" inside strings (URLs)
 // by only treating // as a comment when not preceded by a colon.
@@ -137,14 +137,56 @@ export function modelRoutingViolations(src) {
     if (!label) {
       out.push({
         id: 'downgrade-without-label',
-        msg: `a model downgrade ('${model}') must sit on a labelled exploration leaf; no label found in this opts object`,
+        msg: `a model downgrade ('${model}') must sit on a labelled exploration/mech- leaf; no label found in this opts object`,
       });
       continue;
     }
-    if (isDowngradeModel(model) && classifyLeaf({ label }) !== LEAF_TYPES.EXPLORATION) {
+    if (!isDowngradeModel(model)) continue;
+    // Per-class floor: exploration accepts any downgrade tier (haiku or sonnet,
+    // both at-or-above its cheap floor); a mech- leaf accepts exactly the
+    // balanced tier (haiku would sit BELOW the tier its label declares); every
+    // protected class refuses both (STRICT-2 No Downgrade).
+    const cls = classifyLeaf({ label });
+    if (cls === LEAF_TYPES.EXPLORATION) continue;
+    if (cls === LEAF_TYPES.MECHANICAL) {
+      if (model !== TIER_MODEL.balanced) {
+        out.push({
+          id: 'mechanical-below-tier',
+          msg: `mech- leaf '${label}' carries '${model}' but the mechanical tier is '${TIER_MODEL.balanced}'; a declared-mechanical check must not drop further`,
+        });
+      }
+      continue;
+    }
+    out.push({
+      id: 'protected-leaf-downgraded',
+      msg: `leaf '${label}' is protected (${cls}) but carries downgrade model '${model}'; only exploration (read/load/parse/detect) and explicit mech- leaves may downgrade (STRICT-2 No Downgrade)`,
+    });
+  }
+  return out;
+}
+
+// MECHANICAL opt-in consistency (HARD rule, part of validateContract).
+//
+// A mech- label is an explicit authoring declaration: "this check is binary and
+// judgment-free, run it on the balanced tier". Declaring it and then omitting
+// opts.model half-applies the opt-in — the leaf silently runs deep, which is
+// exactly the waste the label promised to avoid. Since the prefix exists only
+// as this convention (no legacy labels carry it), enforcing it hard cannot trip
+// legitimate work. Order-independent via sameOptsObjectText, comment-stripped.
+export function mechanicalLabelViolations(src) {
+  const code = stripComments(src);
+  const out = [];
+  let m;
+  LABEL_RE.lastIndex = 0;
+  while ((m = LABEL_RE.exec(code))) {
+    const label = m[2];
+    if (classifyLeaf({ label }) !== LEAF_TYPES.MECHANICAL) continue;
+    const objText = sameOptsObjectText(code, m.index, m.index + m[0].length);
+    MODEL_RE.lastIndex = 0;
+    if (!MODEL_RE.exec(objText)) {
       out.push({
-        id: 'protected-leaf-downgraded',
-        msg: `leaf '${label}' is not exploration but carries downgrade model '${model}'; only read/load/parse/detect leaves may downgrade (STRICT-2 No Downgrade)`,
+        id: 'mechanical-without-model',
+        msg: `mech- leaf '${label}' declares a mechanical check but omits opts.model; add model: '${TIER_MODEL.balanced}' (or drop the mech- prefix if the check bears judgment)`,
       });
     }
   }
@@ -208,6 +250,25 @@ export function untieredExplorationViolations(src) {
   return out;
 }
 
+// Shared parsing primitive — every statically-labelled opts object with its
+// order-independent model (or null). This is the ONE place that knows how to
+// read agent() opts out of a script source; tier-script.js (the per-leaf
+// report + hook gate) consumes it instead of re-owning the regexes. Fresh
+// regex instances per call: no shared lastIndex across modules.
+export function extractLabelledLeaves(src) {
+  const code = stripComments(src);
+  const out = [];
+  const labelRe = new RegExp(LABEL_RE.source, 'g');
+  let m;
+  while ((m = labelRe.exec(code))) {
+    const objText = sameOptsObjectText(code, m.index, m.index + m[0].length);
+    const modelRe = new RegExp(MODEL_RE.source, 'g');
+    const mm = modelRe.exec(objText);
+    out.push({ label: m[2], model: mm ? mm[2] : null });
+  }
+  return out;
+}
+
 // Full native-workflow contract: state-coupling (comment-stripped) + clock/RNG
 // (raw) + meta-literal-first + model-routing anti-downgrade. Returns the
 // combined [{ id, msg }] violations.
@@ -226,6 +287,7 @@ export function validateContract(src) {
     ...clockRngViolations(src),
     ...metaLiteralViolations(src),
     ...modelRoutingViolations(src),
+    ...mechanicalLabelViolations(src),
   ];
 }
 

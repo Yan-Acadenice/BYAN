@@ -123,3 +123,45 @@ test('determinism: same label yields the same tier across calls', () => {
   assert.equal(modelForLeaf({ label: 'load-story' }), modelForLeaf({ label: 'load-story' }));
   assert.equal(classifyLeaf({ label: 'verify-cycle-9' }), classifyLeaf({ label: 'verify-cycle-9' }));
 });
+
+// --- MECHANICAL: explicit mech- opt-in activates the balanced tier ---------
+
+test('LEAF_TYPES exposes MECHANICAL', () => {
+  assert.equal(LEAF_TYPES.MECHANICAL, 'mechanical');
+});
+
+test('classifyLeaf: a mech- prefixed label is MECHANICAL (explicit opt-in wins over keywords)', () => {
+  // 'mech-validate-json' contains 'validate' (a VERIFICATION keyword) — the
+  // explicit mech- prefix must win, that is the whole point of the opt-in.
+  assert.equal(classifyLeaf({ label: 'mech-validate-json' }), LEAF_TYPES.MECHANICAL);
+  assert.equal(classifyLeaf({ label: 'mech-json-validate' }), LEAF_TYPES.MECHANICAL);
+  assert.equal(classifyLeaf({ label: 'mech-syntax-check' }), LEAF_TYPES.MECHANICAL);
+  assert.equal(classifyLeaf({ label: 'MECH-schema-check' }), LEAF_TYPES.MECHANICAL);
+});
+
+test('classifyLeaf: NO fuzzy mechanical matching — only the mech- prefix opts in', () => {
+  // mechanical-sounding labels WITHOUT the prefix keep their protected class.
+  assert.equal(classifyLeaf({ label: 'json-validate' }), LEAF_TYPES.VERIFICATION);
+  assert.equal(classifyLeaf({ label: 'validate-json' }), LEAF_TYPES.VERIFICATION);
+  assert.equal(classifyLeaf({ label: 'syntax-check' }), LEAF_TYPES.VERIFICATION);
+  // prefix must be at the START with the hyphen: neither of these opts in.
+  assert.notEqual(classifyLeaf({ label: 'validate-mech-json' }), LEAF_TYPES.MECHANICAL);
+  assert.notEqual(classifyLeaf({ label: 'mechanics-report' }), LEAF_TYPES.MECHANICAL);
+});
+
+test('tierFor: mechanical -> balanced; exploration -> cheap; everything else deep', () => {
+  assert.equal(tierFor(LEAF_TYPES.MECHANICAL), TIERS.BALANCED);
+  assert.equal(tierFor(LEAF_TYPES.EXPLORATION), TIERS.CHEAP);
+  assert.equal(tierFor(LEAF_TYPES.VERIFICATION), TIERS.DEEP);
+});
+
+test('modelForLeaf: mech- leaf -> sonnet', () => {
+  assert.equal(modelForLeaf({ label: 'mech-validate-json' }), 'sonnet');
+  assert.equal(modelForLeaf({ label: 'mech-lint-run' }), 'sonnet');
+});
+
+test('INVARIANT holds with MECHANICAL in the vocabulary: protected labels still never downgrade', () => {
+  for (const label of ['verify-cycle-1', 'validate-content', 'build-elements', 'risk-and-testability']) {
+    assert.equal(isDowngradeModel(modelForLeaf({ label })), false, `${label} must stay deep`);
+  }
+});

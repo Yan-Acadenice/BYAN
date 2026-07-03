@@ -11,6 +11,7 @@ import {
   metaLiteralViolations,
   modelRoutingViolations,
   untieredExplorationViolations,
+  mechanicalLabelViolations,
   validateContract,
 } from '../lib/workflows-lint.js';
 
@@ -267,4 +268,62 @@ test('validateContract: does NOT include untiered-exploration (advisory, not a h
   assert.ok(!ids.includes('untiered-exploration'), JSON.stringify(ids));
   // ...but the standalone advisory still surfaces it.
   assert.ok(untieredExplorationViolations(src).some((x) => x.id === 'untiered-exploration'));
+});
+
+// --- MECHANICAL: the mech- opt-in and its floor -----------------------------
+
+test('modelRoutingViolations: sonnet on a mech- leaf is allowed (the balanced tier in use)', () => {
+  const src = "const r = await agent('check json', { label: 'mech-validate-json', model: 'sonnet' })";
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
+test('modelRoutingViolations: haiku on a mech- leaf is below its tier (violation)', () => {
+  const src = "const r = await agent('check json', { label: 'mech-validate-json', model: 'haiku' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'mechanical-below-tier'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations: sonnet on a PROTECTED leaf stays a violation (no fuzzy mechanical)', () => {
+  const src = "const r = await agent('verify', { label: 'verify-adversarial', model: 'sonnet' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'protected-leaf-downgraded'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations: sonnet on an exploration leaf is allowed (above its floor)', () => {
+  const src = "const r = await agent('read', { label: 'load-story', model: 'sonnet' })";
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
+test('mechanicalLabelViolations: a mech- label with NO model is a hard violation (half-applied opt-in)', () => {
+  const src = "const r = await agent('check', { label: 'mech-validate-json', phase: 'VALIDATE' })";
+  const v = mechanicalLabelViolations(src);
+  assert.ok(v.some((x) => x.id === 'mechanical-without-model'), JSON.stringify(v));
+});
+
+test('mechanicalLabelViolations: a mech- label with sonnet is clean (order-independent)', () => {
+  assert.deepEqual(
+    mechanicalLabelViolations("const r = await agent('c', { label: 'mech-lint-run', model: 'sonnet' })"),
+    []
+  );
+  assert.deepEqual(
+    mechanicalLabelViolations("const r = await agent('c', { model: 'sonnet', label: 'mech-lint-run' })"),
+    []
+  );
+});
+
+test('mechanicalLabelViolations: non-mech labels are never touched', () => {
+  const src = "const r = await agent('v', { label: 'validate-content' })\nconst s = await agent('r', { label: 'load-story' })";
+  assert.deepEqual(mechanicalLabelViolations(src), []);
+});
+
+test('validateContract: includes the mechanical hard rules', () => {
+  const src = [
+    'export const meta = { name: "x", description: "y" }',
+    "const a = await agent('c', { label: 'mech-validate-json' })",
+    "const b = await agent('c2', { label: 'mech-schema-check', model: 'haiku' })",
+    'return 1',
+  ].join('\n');
+  const ids = validateContract(src).map((x) => x.id);
+  assert.ok(ids.includes('mechanical-without-model'), JSON.stringify(ids));
+  assert.ok(ids.includes('mechanical-below-tier'), JSON.stringify(ids));
 });
