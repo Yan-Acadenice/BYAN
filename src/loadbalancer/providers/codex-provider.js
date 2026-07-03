@@ -171,9 +171,13 @@ class CodexProvider extends BaseProvider {
     const model = opts.model || this.config.models?.agent || 'gpt-5-codex';
     const sandbox = this.config.sandbox || 'read-only';
 
-    // Non-interactive automation contract (developers.openai.com/codex/noninteractive):
-    // exec + JSONL, no approval pauses, bounded sandbox, explicit model.
-    const args = ['exec', '--json', '-a', 'never', '-s', sandbox, '-m', model];
+    // Non-interactive automation contract, verified against codex-cli 0.101.0
+    // `codex exec --help`: exec is ALREADY non-interactive (reads the prompt from
+    // stdin, prints JSONL events) so there is no `-a`/approval flag on the exec
+    // subcommand — passing one is a hard "unexpected argument" error. The bounded
+    // sandbox (`-s read-only` by default) is what keeps a delegated run safe; a
+    // workspace-write run is an explicit config opt-in.
+    const args = ['exec', '--json', '-s', sandbox, '-m', model];
 
     const { stdout, stderr, code } = await this._runCodex(args, opts.prompt, {});
 

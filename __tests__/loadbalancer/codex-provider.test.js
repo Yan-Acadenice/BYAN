@@ -132,7 +132,7 @@ describe('loadbalancer/codex-provider', () => {
       expect(typeof r.latencyMs).toBe('number');
     });
 
-    test('send passes the sandbox + model + no-approval flags to the runner', async () => {
+    test('send passes exec --json + sandbox + model, and NO -a flag (exec is non-interactive in codex-cli 0.101)', async () => {
       const p = new CodexProvider({});
       p.initialized = true;
       let capturedArgs = null;
@@ -140,8 +140,9 @@ describe('loadbalancer/codex-provider', () => {
       await p.send({ prompt: 'x', model: 'gpt-5' });
       expect(capturedArgs).toEqual(expect.arrayContaining(['exec', '--json']));
       expect(capturedArgs).toEqual(expect.arrayContaining(['-m', 'gpt-5']));
-      // non-interactive automation: never pause for approval, sandboxed writes
-      expect(capturedArgs).toEqual(expect.arrayContaining(['-a', 'never']));
+      // regression guard: `codex exec` rejects `-a` ("unexpected argument") — it
+      // must never be passed. exec is already non-interactive.
+      expect(capturedArgs).not.toContain('-a');
       const sIdx = capturedArgs.indexOf('-s');
       expect(sIdx).toBeGreaterThan(-1);
       expect(['read-only', 'workspace-write']).toContain(capturedArgs[sIdx + 1]);
