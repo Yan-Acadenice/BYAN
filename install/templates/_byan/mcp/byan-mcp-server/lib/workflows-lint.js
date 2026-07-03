@@ -108,6 +108,9 @@ const LABEL_RE = /\blabel:\s*(['"`])([^'"`]*)\1/g;
 // tokens. The harness meta spec allows `model` on a phases entry (a per-phase
 // display/override declaration) — it carries no label by design and must not
 // read as a leaf downgrade. Balanced-brace walk; no-op when unbalanced.
+// String-unaware by choice: a brace inside a meta string unbalances the walk,
+// which then no-ops and the meta model token stays visible to the scan — the
+// failure mode OVER-reports (fails closed), never hides a real violation.
 // Exported: the routing integration test scans sources with its own regexes
 // (an independent double-check) but must share THIS meta-handling.
 export function stripMetaLiteral(code) {

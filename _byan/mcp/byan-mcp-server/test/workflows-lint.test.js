@@ -334,6 +334,23 @@ test('modelRoutingViolations: a model in a meta.phases entry is NOT a leaf downg
   assert.deepEqual(modelRoutingViolations(src), []);
 });
 
+test('stripMetaLiteral edge: a brace inside a meta string unbalances the walk and fails CLOSED', () => {
+  // The walk is string-unaware by choice. An unbalanced brace inside a meta
+  // string makes it no-op, so the meta model token stays visible and the scan
+  // OVER-reports (a false downgrade-without-label) rather than hiding a real
+  // violation. This test locks that benign-degraded direction.
+  const src = [
+    "export const meta = {",
+    "  name: 'x',",
+    "  description: 'y',",
+    "  phases: [{ title: 'VALIDATE', detail: 'coverage {x', model: 'sonnet' }],",
+    "}",
+    "const r = await agent('do', { label: 'rgr-cycle-1' })",
+  ].join('\n');
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'downgrade-without-label'), JSON.stringify(v));
+});
+
 test('validateContract: includes the mechanical hard rules', () => {
   const src = [
     'export const meta = { name: "x", description: "y" }',
