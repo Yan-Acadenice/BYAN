@@ -1370,7 +1370,7 @@ async function install(options = {}) {
       try {
         await setupCodexAutodelegate(projectRoot);
       } catch (error) {
-        console.log(chalk.yellow(`  ⚠ Codex auto-delegation setup skipped: ${error.message}`));
+        console.log(chalk.yellow(`  ! Codex auto-delegation setup skipped: ${error.message}`));
         console.log(chalk.gray(`    ${DEVICE_FLOW_INSTRUCTION.replace(/\n/g, '\n    ')}`));
       }
     }
