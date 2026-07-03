@@ -20,6 +20,7 @@ const { setupRtkIntegration, shouldOfferRtk } = require('../lib/rtk-integration'
 const { setupGdocPublish, shouldOfferGdoc } = require('../lib/gdoc-setup');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupCodexNative } = require('../lib/codex-native-setup');
+const { setupCodexAutodelegate, DEVICE_FLOW_INSTRUCTION } = require('../lib/codex-autodelegate-setup');
 const { setupMcpExtensions } = require('../lib/mcp-extensions');
 const { setupStagingConsent } = require('../lib/staging-consent');
 const { getLatestVersion, compareVersions } = require('../lib/utils/version-compare');
@@ -1333,6 +1334,45 @@ async function install(options = {}) {
           `    → Edit ~/.codex/config.toml manually to add the byan MCP entry.`
         )
       );
+    }
+
+    // Optional: opt into a Codex BACKUP pool. When enabled, BYAN auto-proposes
+    // handing delegable work to Codex on the ChatGPT subscription (no API credit)
+    // to spare the Claude 5h budget. Arms the F5 hook by writing
+    // _byan/_config/autodelegate.json. TTY -> prompt; non-TTY -> env opt-in.
+    console.log();
+    console.log(chalk.cyan('Codex backup pool (auto-delegation)'));
+    let wantAutodelegate = false;
+    if (process.stdin.isTTY) {
+      try {
+        const ans = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'enable',
+            message:
+              'Add Codex as a backup pool? BYAN will propose offloading delegable work to Codex (your ChatGPT subscription, no API credit) when Claude is under 5h pressure.',
+            default: true,
+          },
+        ]);
+        wantAutodelegate = ans.enable;
+      } catch {
+        wantAutodelegate = false;
+      }
+    } else {
+      wantAutodelegate = process.env.BYAN_CODEX_AUTODELEGATE === '1';
+      if (!wantAutodelegate) {
+        console.log(
+          chalk.gray('  · non-TTY — skipped (set BYAN_CODEX_AUTODELEGATE=1 to arm)')
+        );
+      }
+    }
+    if (wantAutodelegate) {
+      try {
+        await setupCodexAutodelegate(projectRoot);
+      } catch (error) {
+        console.log(chalk.yellow(`  ⚠ Codex auto-delegation setup skipped: ${error.message}`));
+        console.log(chalk.gray(`    ${DEVICE_FLOW_INSTRUCTION.replace(/\n/g, '\n    ')}`));
+      }
     }
   }
 
