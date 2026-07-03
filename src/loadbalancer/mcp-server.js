@@ -369,6 +369,33 @@ class LoadBalancerLive extends EventEmitter {
     return this.degradation ? this.degradation.getStatus() : null;
   }
 
+  // Unified cross-pool budget view — the anti-"limite atteinte" dashboard. Per
+  // pool: rolling-5h + weekly burn, proximity (null when no budget is configured
+  // -> honest estimate), ETA, recommendation. Plus the current ladder rung. The
+  // note states the two hard truths plainly: this is an ESTIMATE (no provider
+  // exposes a machine-readable 5h quota), and load-balancing DOUBLES the ceiling,
+  // it does not remove it (Codex has its own 5h window).
+  getBudget(now = Date.now()) {
+    const windows = this.getWindowStates(now);
+    const pools = {};
+    for (const [name, w] of Object.entries(windows)) {
+      pools[name] = {
+        windowTokens: w.windowTokens,
+        windowProximity: w.windowProximity,
+        weekTokens: w.weekTokens,
+        weekProximity: w.weekProximity,
+        etaMinutes: w.etaMinutes === Infinity ? null : w.etaMinutes,
+        recommendation: w.recommendation,
+        budgetConfigured: w.windowBudget != null,
+      };
+    }
+    return {
+      pools,
+      rung: this.planRoute('exploration', now).rung,
+      note: 'estimate from observed token usage (no provider exposes a machine-readable 5h quota); load-balancing doubles the ceiling across pools, it does not remove it',
+    };
+  }
+
   // Advisory routing plan for a task of a given nature: assembles the ladder
   // snapshot from the window tracker + pressure + circuit-breaker state and
   // returns the degradation decision (route to a pool, or queue). Side-effect

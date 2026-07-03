@@ -9,7 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.40.0] - 2026-07-03
+## [2.41.0] - 2026-07-03
+
+### Added - multi-pool subscription arbitrage: Codex as a second pool + the 5h-window ladder
+
+The load-balancer had claude + copilot + byan_api but no OpenAI pool, and its
+pressure-score modelled API-burst (429) pressure, not the rolling 5h subscription
+window that users actually hit. This release adds the second pool and the window
+tracking that switches before the wall, without denaturing BYAN.
+
+- **CodexProvider** (`src/loadbalancer/providers/codex-provider.js`) - wraps the
+  `codex exec --json` SYSTEM CLI (not an npm SDK); degrades to disabled if the
+  binary is absent; two auth pools (CODEX_API_KEY per-token, else the
+  ChatGPT-subscription session). Rate-limit exhaustion read from stderr (no
+  machine-readable quota, OpenAI issue #10233). Registered in the yaml +
+  capability-matrix; provider factory (`providers/factory.js`).
+- **subscription-window tracker** (`subscription-window.js`) - per-pool rolling-5h
+  + weekly token burn, a `window-proximity` signal (distinct from 429-pressure) +
+  ETA. Honest estimate: `null` proximity without a configured budget, no
+  fabricated percentage.
+- **Execution stubs unblocked** (`mcp-server.js`) - `lb_send` / `lb_switch` /
+  `lb_get_context` now really route / transfer context / read state; the
+  SessionBridge and GracefulDegradation (previously orphaned) are wired; all
+  seams injectable so tests avoid spawning codex or hitting the OpenAI quota.
+- **switch-tolerance** (`switch-tolerance.js`) - the red line: only delegable
+  natures (exploration / mechanical / implementation) may cross to Codex;
+  verification / analysis / soul / identity / review / gate stay on Claude and
+  queue rather than denature.
+- **4-rung degradation ladder** (`degradation-ladder.js`) - HEALTHY ->
+  PRIMARY_HOT -> PRIMARY_EXHAUSTED -> ALL_EXHAUSTED, driven by the window
+  proximity, obeying the red line at every rung. `planRoute(nature)` on the live
+  shell.
+- **lb_budget** MCP tool + `getBudget()` - the anti-"5h limit reached" dashboard:
+  per-pool 5h/weekly burn, proximity, ETA, rung, with the honest estimate/
+  doubles-the-ceiling note.
+- **Docs** - `docs/loadbalancer-multipool.md` (architecture, the red line, the two
+  hard truths, honest shipping status).
 
 ### Added - native workflow model tiering: the sonnet tier lives, ad-hoc scripts are gated
 

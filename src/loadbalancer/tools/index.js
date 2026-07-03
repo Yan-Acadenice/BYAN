@@ -117,6 +117,21 @@ function createTools(lb) {
         return { content: [{ type: 'text', text: summaries + '\n\n' + JSON.stringify(quota, null, 2) }] };
       },
     },
+    {
+      name: 'lb_budget',
+      description: 'Unified cross-pool subscription budget: rolling-5h + weekly token burn per pool (Claude / Codex), proximity to the cap (null when no budget configured), ETA to exhaustion, and the current degradation rung. The anti-"5h limit reached" dashboard. Honest estimate: no provider exposes a machine-readable 5h quota, and load-balancing doubles the ceiling across pools without removing it.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      handler: async () => {
+        if (typeof lb.getBudget !== 'function') {
+          return { content: [{ type: 'text', text: 'lb_budget requires LoadBalancerLive with the subscription-window tracker.' }] };
+        }
+        const budget = lb.getBudget();
+        return { content: [{ type: 'text', text: JSON.stringify(budget, null, 2) }] };
+      },
+    },
   ];
 }
 

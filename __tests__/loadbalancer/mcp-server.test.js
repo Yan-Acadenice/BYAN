@@ -220,9 +220,10 @@ describe('loadbalancer/mcp-server', () => {
       lb.destroy();
     });
 
-    test('registers the 7 canonical tools', () => {
+    test('registers the 8 canonical tools (incl. lb_budget)', () => {
       const names = tools.map((t) => t.name).sort();
       expect(names).toEqual([
+        'lb_budget',
         'lb_get_context',
         'lb_history',
         'lb_quota',
@@ -305,5 +306,43 @@ describe('loadbalancer/mcp-server', () => {
       expect(r.content[0].text).toContain('copilot');
       expect(r.content[0].text).toContain('/100');
     });
+
+    test('lb_budget handler returns the cross-pool budget with the honest estimate note', async () => {
+      const tool = tools.find((t) => t.name === 'lb_budget');
+      const r = await tool.handler({});
+      const parsed = JSON.parse(r.content[0].text);
+      expect(parsed.pools[config.primary]).toBeDefined();
+      expect(parsed.pools[config.primary]).toHaveProperty('windowTokens');
+      expect(parsed.pools[config.primary]).toHaveProperty('windowProximity');
+      expect(parsed.rung).toBe('HEALTHY');
+      expect(parsed.note).toMatch(/estimate/i);
+      expect(parsed.note).toMatch(/doubles the ceiling/i);
+    });
+  });
+});
+
+describe('loadbalancer/getBudget', () => {
+  const path = require('path');
+  const { loadConfig } = require('../../src/loadbalancer/config');
+  const config = loadConfig(path.resolve(__dirname, '..', '..'));
+
+  test('getBudget reports per-pool burn + proximity (null without a configured budget)', () => {
+    const lb = new LoadBalancerLive(config);
+    const b = lb.getBudget();
+    expect(b.pools[config.primary].windowTokens).toBe(0);
+    expect(b.pools[config.primary].windowProximity).toBeNull(); // no budget configured -> honest null
+    expect(b.pools[config.primary].budgetConfigured).toBe(false);
+    lb.destroy();
+  });
+
+  test('getBudget proximity becomes a number once a pool budget is configured', () => {
+    const cfg = JSON.parse(JSON.stringify(config));
+    cfg.providers[config.primary].window_token_budget = 10000;
+    const lb = new LoadBalancerLive(cfg);
+    lb.windows[config.primary].record({ tokens: 4000, timestamp: Date.now() });
+    const b = lb.getBudget();
+    expect(b.pools[config.primary].windowProximity).toBeCloseTo(0.4, 5);
+    expect(b.pools[config.primary].budgetConfigured).toBe(true);
+    lb.destroy();
   });
 });
