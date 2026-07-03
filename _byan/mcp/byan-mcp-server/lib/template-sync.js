@@ -170,6 +170,17 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/lib/channel-poll.js',
   '_byan/mcp/byan-mcp-server/test/channel.test.js',
   '_byan/mcp/byan-mcp-server/test/channel-resolve.test.js',
+  // Native workflow model tiering (FD native-workflow-model-tiering). The
+  // tier-script lib is the analysis engine under BOTH the bin and the
+  // tier-script-guard.js PreToolUse hook; the hook is registered in
+  // .claude/settings.json (already mirrored), so lib + bin + hook MUST ship
+  // together or a fresh install's registration points at a missing script.
+  // Tests ship with the server, same convention as above.
+  '_byan/mcp/byan-mcp-server/lib/tier-script.js',
+  '_byan/mcp/byan-mcp-server/bin/byan-tier-script.js',
+  '_byan/mcp/byan-mcp-server/test/tier-script.test.js',
+  '_byan/mcp/byan-mcp-server/test/tier-hook.test.js',
+  '.claude/hooks/tier-script-guard.js',
 ];
 
 // The template lives under this root-relative directory.
