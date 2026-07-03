@@ -27,7 +27,7 @@ function createTools(lb) {
         properties: {
           prompt: { type: 'string', description: 'The prompt to send' },
           session_id: { type: 'string', description: 'Optional session ID for sticky routing' },
-          prefer_provider: { type: 'string', enum: ['claude', 'copilot', 'auto'], description: 'Provider preference (default: auto)' },
+          prefer_provider: { type: 'string', enum: ['claude', 'copilot', 'codex', 'auto'], description: 'Provider preference (default: auto)' },
         },
         required: ['prompt'],
       },
@@ -46,7 +46,7 @@ function createTools(lb) {
       inputSchema: {
         type: 'object',
         properties: {
-          target_provider: { type: 'string', enum: ['claude', 'copilot'], description: 'Provider to switch to' },
+          target_provider: { type: 'string', enum: ['claude', 'copilot', 'codex'], description: 'Provider to switch to' },
           session_id: { type: 'string', description: 'Session to transfer context from' },
           reason: { type: 'string', description: 'Reason for the switch' },
         },

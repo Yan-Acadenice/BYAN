@@ -24,12 +24,21 @@ const { RateLimitTracker } = require('./rate-limit-tracker');
 const { Metrics } = require('./metrics');
 const { VelocityEstimator } = require('./velocity-estimator');
 const { calculatePressure, formatPressureSummary } = require('./pressure-score');
+const { buildProviders } = require('./providers/factory');
+const { SessionBridge } = require('./session-bridge');
+const { GracefulDegradation } = require('./graceful-degradation');
+const { SubscriptionWindow } = require('./subscription-window');
 const { EventEmitter } = require('events');
 
 const VERSION = '0.2.0';
 
 class LoadBalancerLive extends EventEmitter {
-  constructor(config) {
+  /**
+   * @param {object} config - loaded loadbalancer config
+   * @param {object} [deps] - injectable seams for tests: { providers, bridge,
+   *   degradation, windows }. Omitted in production -> built from config.
+   */
+  constructor(config, deps = {}) {
     super();
     this.config = config;
     this.activeProvider = config.primary;
@@ -38,6 +47,7 @@ class LoadBalancerLive extends EventEmitter {
 
     this.trackers = {};
     this.velocities = {};
+    this.windows = {}; // subscription-window tracker per pool (F2 -> F3 wiring)
     this.metrics = new Metrics();
 
     const rlOpts = config.rate_limits || {};
@@ -60,10 +70,59 @@ class LoadBalancerLive extends EventEmitter {
         this.velocities[name].on('threshold_warning', (evt) => {
           this.emit('velocity_warning', evt);
         });
+
+        // Subscription-window burn tracker per pool (5h + weekly). Budgets are
+        // optional per-provider config; absent -> honest null proximity.
+        this.windows[name] = (deps.windows && deps.windows[name]) || new SubscriptionWindow(name, {
+          windowTokenBudget: prov.window_token_budget || null,
+          weeklyTokenBudget: prov.weekly_token_budget || null,
+        });
       }
     }
 
+    // Real execution surface (LB-01/LB-04/LB-STATE unblocked): a provider
+    // registry, a session bridge for cross-provider context transfer, and the
+    // graceful-degradation queue wired to this emitter's rate_limit_change events.
+    this.providers = deps.providers || buildProviders(config);
+    this.bridge = deps.bridge || (deps.store ? new SessionBridge({ store: deps.store, maxTokens: config.sessions?.context_summary_max_tokens }) : null);
+    this._initializedProviders = new Set();
+    this.degradation = deps.degradation || new GracefulDegradation({ lb: this });
+
     this.metrics.attachToLoadBalancer(this);
+  }
+
+  // Order of pools to try: preferred first (if not 'auto'), then primary, then
+  // configured fallback order. Deduped, enabled-only.
+  _providerOrder(prefer) {
+    const order = [];
+    if (prefer && prefer !== 'auto') order.push(prefer);
+    order.push(this.config.primary, ...(this.config.fallback_order || []));
+    return [...new Set(order)].filter((n) => this.trackers[n]);
+  }
+
+  async _ensureAvailable(name) {
+    const provider = this.providers[name];
+    if (!provider) return false;
+    if (!this._initializedProviders.has(name)) {
+      try {
+        await provider.initialize();
+      } catch {
+        return false;
+      }
+      this._initializedProviders.add(name);
+    }
+    try {
+      return await provider.isAvailable();
+    } catch {
+      return false;
+    }
+  }
+
+  _recordWindowUsage(name, response) {
+    const w = this.windows[name];
+    if (w && typeof w.recordFromResponse === 'function') {
+      w.recordFromResponse(response, Date.now());
+    }
   }
 
   getTracker(provider) {
@@ -201,43 +260,112 @@ class LoadBalancerLive extends EventEmitter {
     return result;
   }
 
-  async send(opts) {
+  // Real send (LB-01 unblocked): walk the provider order, skip pools that are
+  // rate-limited (tracker) or unauthenticated/absent (isAvailable), call the
+  // first healthy one, record success/429 + window usage. When NONE can serve,
+  // return a graceful degraded result (never a throw, never a stub message).
+  async send(opts = {}) {
+    for (const name of this._providerOrder(opts.preferProvider)) {
+      const tracker = this.trackers[name];
+      const provider = this.providers[name];
+      if (!provider || !tracker || !tracker.canAcceptRequest()) continue;
+      if (!(await this._ensureAvailable(name))) continue;
+
+      try {
+        const res = await provider.send({ prompt: opts.prompt, model: opts.model, sessionId: opts.sessionId });
+        if (res && res.rateLimited) {
+          this.record429(name, res.rateLimitHeaders || {});
+          continue; // try the next pool
+        }
+        this.recordSuccess(name);
+        this._recordWindowUsage(name, res);
+        this.activeProvider = name;
+        return { ...res, provider: name, degraded: false };
+      } catch (err) {
+        // Hard failure on this pool: record and try the next one.
+        this.record429(name, { source: 'send_error' });
+        continue;
+      }
+    }
+
     return {
       provider: this.activeProvider,
-      status: 'stub',
-      message: 'ProviderAdapter not yet integrated (LB-01). Use lb_status/lb_quota for monitoring.',
-      prompt: opts.prompt?.substring(0, 100),
+      content: null,
+      degraded: true,
+      rateLimited: true,
+      reason: 'no provider available (all rate-limited, unauthenticated, or absent)',
     };
   }
 
-  async switchProvider(opts) {
+  // Real switch (LB-04 unblocked): flip the active pool + record history, and —
+  // when a session bridge is configured — transfer the portable context so the
+  // target pool resumes with the summary/decisions, not a cold start. Without a
+  // bridge, the switch still happens; contextTransferred is honestly false.
+  async switchProvider(opts = {}) {
     const prev = this.activeProvider;
-    this.activeProvider = opts.target;
+    const target = opts.target;
+
+    let injectionPrompt = null;
+    let contextTransferred = false;
+    if (this.bridge && opts.sessionId && this.providers[prev]) {
+      try {
+        const transfer = await this.bridge.transfer(
+          this.providers[prev], target, opts.sessionId, opts.reason || 'manual_switch'
+        );
+        injectionPrompt = transfer.injectionPrompt;
+        contextTransferred = true;
+      } catch {
+        contextTransferred = false;
+      }
+    }
+
+    this.activeProvider = target;
     const entry = {
       timestamp: new Date().toISOString(),
       from: prev,
-      to: opts.target,
+      to: target,
       reason: opts.reason || 'manual_switch',
+      contextTransferred,
     };
     this.switchHistory.push(entry);
     this.emit('switch', entry);
+
+    return { switched: true, from: prev, to: target, reason: opts.reason, contextTransferred, injectionPrompt };
+  }
+
+  // Real context read (LB-STATE unblocked): the portable context via the bridge
+  // when a store is configured; otherwise the honest current-provider view with a
+  // note that no session store is wired (no fabricated "not yet integrated" stub).
+  async getSessionContext(sessionId) {
+    const id = sessionId || 'current';
+    if (this.bridge && sessionId && this.providers[this.activeProvider]) {
+      try {
+        const context = await this.bridge.extract(this.providers[this.activeProvider], sessionId);
+        return { sessionId, provider: this.activeProvider, context };
+      } catch {
+        /* fall through to the no-context view */
+      }
+    }
     return {
-      switched: true,
-      from: prev,
-      to: opts.target,
-      reason: opts.reason,
-      contextTransferred: false,
-      message: 'SessionBridge not yet integrated (LB-04). No context transfer.',
+      sessionId: id,
+      provider: this.activeProvider,
+      context: null,
+      note: 'no session store configured; context transfer is unavailable this run',
     };
   }
 
-  async getSessionContext(sessionId) {
-    return {
-      sessionId: sessionId || 'current',
-      provider: this.activeProvider,
-      context: null,
-      message: 'SharedStateStore not yet integrated (LB-STATE).',
-    };
+  // Per-pool subscription-window burn (F2), for the degradation ladder (F5) and
+  // the budget surface (F6).
+  getWindowStates(now = Date.now()) {
+    const out = {};
+    for (const [name, w] of Object.entries(this.windows)) {
+      out[name] = w.getState(now);
+    }
+    return out;
+  }
+
+  getDegradationStatus() {
+    return this.degradation ? this.degradation.getStatus() : null;
   }
 
   destroy() {
@@ -246,6 +374,9 @@ class LoadBalancerLive extends EventEmitter {
     }
     for (const ve of Object.values(this.velocities)) {
       ve.destroy();
+    }
+    if (this.degradation && typeof this.degradation.destroy === 'function') {
+      this.degradation.destroy();
     }
     this.removeAllListeners();
   }

@@ -87,16 +87,45 @@ describe('loadbalancer/mcp-server', () => {
       lb.destroy();
     });
 
-    test('send returns stub response with active provider', async () => {
-      const lb = new LoadBalancerLive(config);
-      const result = await lb.send({ prompt: 'x'.repeat(200) });
-      expect(result.provider).toBe(config.primary);
-      expect(result.status).toBe('stub');
-      expect(result.prompt.length).toBeLessThanOrEqual(100);
+    test('send delegates to an available injected provider and records window usage', async () => {
+      const fake = {
+        name: 'claude',
+        initialize: async () => {},
+        isAvailable: async () => true,
+        send: async () => ({ provider: 'claude', content: 'real answer', usage: { totalTokens: 500 }, rateLimited: false }),
+      };
+      const lb = new LoadBalancerLive(config, { providers: { claude: fake } });
+      const result = await lb.send({ prompt: 'hi' });
+      expect(result.content).toBe('real answer');
+      expect(result.degraded).toBe(false);
+      expect(result.status).toBeUndefined(); // no more stub marker
+      // window tracker got the usage
+      expect(lb.getWindowStates().claude.windowTokens).toBe(500);
       lb.destroy();
     });
 
-    test('switchProvider updates activeProvider and records history', async () => {
+    test('send returns a graceful degraded result (no throw) when no provider is available', async () => {
+      const unavailable = { name: 'claude', initialize: async () => {}, isAvailable: async () => false, send: async () => { throw new Error('should not be called'); } };
+      const lb = new LoadBalancerLive(config, { providers: { claude: unavailable } });
+      const result = await lb.send({ prompt: 'hi' });
+      expect(result.degraded).toBe(true);
+      expect(result.rateLimited).toBe(true);
+      expect(result.content).toBeNull();
+      expect(result.reason).toMatch(/no provider available/);
+      lb.destroy();
+    });
+
+    test('send skips a rate-limited pool and falls through to a healthy one', async () => {
+      const limited = { name: 'claude', initialize: async () => {}, isAvailable: async () => true, send: async () => ({ provider: 'claude', content: null, rateLimited: true, rateLimitHeaders: {} }) };
+      const healthy = { name: 'codex', initialize: async () => {}, isAvailable: async () => true, send: async () => ({ provider: 'codex', content: 'from codex', usage: { totalTokens: 10 }, rateLimited: false }) };
+      const lb = new LoadBalancerLive(config, { providers: { claude: limited, codex: healthy } });
+      const result = await lb.send({ prompt: 'hi' });
+      expect(result.provider).toBe('codex');
+      expect(result.content).toBe('from codex');
+      lb.destroy();
+    });
+
+    test('switchProvider updates activeProvider and records history (no stub message)', async () => {
       const lb = new LoadBalancerLive(config);
       const prev = lb.activeProvider;
       const target = Object.keys(config.providers).find((n) => n !== prev && config.providers[n].enabled !== false);
@@ -104,16 +133,32 @@ describe('loadbalancer/mcp-server', () => {
       expect(result.switched).toBe(true);
       expect(result.from).toBe(prev);
       expect(result.to).toBe(target);
+      expect(result.message).toBeUndefined(); // stub message gone
+      expect(result.contextTransferred).toBe(false); // no bridge configured
       expect(lb.activeProvider).toBe(target);
       expect(lb.switchHistory).toHaveLength(1);
       lb.destroy();
     });
 
-    test('getSessionContext returns current sessionId when none provided', async () => {
+    test('switchProvider transfers context when a bridge is injected', async () => {
+      const bridge = {
+        transfer: async () => ({ injectionPrompt: '--- CONTEXT TRANSFER ---', context: {} }),
+      };
+      const lb = new LoadBalancerLive(config, { bridge, providers: { claude: { name: 'claude' }, codex: { name: 'codex' } } });
+      const result = await lb.switchProvider({ target: 'codex', sessionId: 's1', reason: 'quota' });
+      expect(result.contextTransferred).toBe(true);
+      expect(result.injectionPrompt).toMatch(/CONTEXT TRANSFER/);
+      lb.destroy();
+    });
+
+    test('getSessionContext returns current sessionId + honest no-store note when none provided', async () => {
       const lb = new LoadBalancerLive(config);
       const ctx = await lb.getSessionContext();
       expect(ctx.sessionId).toBe('current');
       expect(ctx.provider).toBe(config.primary);
+      expect(ctx.context).toBeNull();
+      expect(ctx.note).toMatch(/no session store/);
+      expect(ctx.message).toBeUndefined(); // no fabricated stub message
       lb.destroy();
     });
 
@@ -121,6 +166,16 @@ describe('loadbalancer/mcp-server', () => {
       const lb = new LoadBalancerLive(config);
       const ctx = await lb.getSessionContext('abc-123');
       expect(ctx.sessionId).toBe('abc-123');
+      lb.destroy();
+    });
+
+    test('getWindowStates + getDegradationStatus are wired (no longer orphaned)', () => {
+      const lb = new LoadBalancerLive(config);
+      const ws = lb.getWindowStates();
+      expect(ws[config.primary]).toBeDefined();
+      expect(ws[config.primary].pool).toBe(config.primary);
+      const deg = lb.getDegradationStatus();
+      expect(deg).toHaveProperty('queueSize');
       lb.destroy();
     });
 
@@ -180,7 +235,7 @@ describe('loadbalancer/mcp-server', () => {
     test('lb_switch requires target_provider and enums it', () => {
       const tool = tools.find((t) => t.name === 'lb_switch');
       expect(tool.inputSchema.required).toContain('target_provider');
-      expect(tool.inputSchema.properties.target_provider.enum).toEqual(['claude', 'copilot']);
+      expect(tool.inputSchema.properties.target_provider.enum).toEqual(['claude', 'copilot', 'codex']);
     });
 
     test('lb_status handler returns MCP text content with valid JSON', async () => {
