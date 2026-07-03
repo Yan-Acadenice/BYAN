@@ -4,7 +4,7 @@ const {
   renderNudge,
   DEFAULT_THRESHOLD,
   DEFAULT_INVOCATION,
-} = require('../../src/loadbalancer/autodelegate-decision');
+} = require('../../.claude/hooks/lib/autodelegate-decision');
 
 // Pure decision core for Codex auto-delegation. Given the user's request text
 // and the (estimated) Claude 5h usage, it decides whether BYAN should be nudged

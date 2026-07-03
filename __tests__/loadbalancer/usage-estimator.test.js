@@ -6,7 +6,7 @@ const {
   sumTranscriptWindow,
   estimateClaudeUsage,
   FIVE_HOURS_MS,
-} = require('../../src/loadbalancer/usage-estimator');
+} = require('../../.claude/hooks/lib/usage-estimator');
 
 // The usage estimator reads Claude Code's LOCAL usage accounting
 // (~/.claude/usage-data/session-meta/*.json) and estimates how many tokens were

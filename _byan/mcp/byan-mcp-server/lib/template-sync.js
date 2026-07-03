@@ -181,6 +181,17 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/tier-script.test.js',
   '_byan/mcp/byan-mcp-server/test/tier-hook.test.js',
   '.claude/hooks/tier-script-guard.js',
+  // Codex auto-delegation (FD codex-auto-delegation, F1/F5). The
+  // codex-autodelegate.js UserPromptSubmit hook is registered in
+  // .claude/settings.json (already mirrored), so the hook + its two pure libs
+  // MUST ship or a fresh install points at a missing script / a broken require.
+  // The libs live under .claude/hooks/lib/ (the shippable home) precisely so the
+  // hook is self-contained in a user project (no dependency on the repo-only
+  // src/loadbalancer subsystem). The hook is DISARMED by default (no-ops until
+  // the yanstaller writes _byan/_config/autodelegate.json on opt-in).
+  '.claude/hooks/codex-autodelegate.js',
+  '.claude/hooks/lib/usage-estimator.js',
+  '.claude/hooks/lib/autodelegate-decision.js',
 ];
 
 // The template lives under this root-relative directory.
