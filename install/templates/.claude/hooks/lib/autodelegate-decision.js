@@ -9,12 +9,18 @@
  *   2. PRESSURE (only when a usage gauge is supplied): the estimated Claude 5h
  *      consumption is at/above the threshold (default 80%) -> mode 'all', propose
  *      offloading everything delegable to spare the remaining budget.
+ *   3. PERF (opt-in, off by default): a config-driven forces table says Codex is
+ *      reputed stronger for this kind of task -> mode 'perf-routed'. Honest: this
+ *      is a heuristic below BYAN's L2 perf floor, so it ships neutral (empty
+ *      table) and asserts nothing until the user populates it. See perf-routing.
  *
  * The red line is never crossed: only DELEGABLE natures are ever proposed —
  * judgment / analysis / soul / verification stay on Claude. This module states
  * that in `redLine` so the hook's nudge always carries it. Pure (no I/O): the
  * hook is a thin shell that feeds it the request text + the F1 usage estimate.
  */
+
+const { perfFavors } = require('./perf-routing');
 
 const DEFAULT_THRESHOLD = 80;
 const DEFAULT_INVOCATION = 'codex:codex-rescue --model gpt-5.4';
@@ -76,6 +82,22 @@ function decideAutodelegation({ requestText = '', usage = null, config = {} } = 
     };
   }
 
+  // PERF (opt-in): the forces table (user-populated) may favor Codex for this
+  // kind of task even at low pressure. Off by default; always heuristic.
+  if (config.perfRouting) {
+    const pf = perfFavors(requestText, config.perfForces || []);
+    if (pf.favors === 'codex') {
+      return {
+        delegate: true,
+        mode: 'perf-routed',
+        pct,
+        reason: `perf heuristic favors Codex for '${pf.category}' (heuristic, NOT a measured benchmark)`,
+        redLine: RED_LINE,
+        invocation,
+      };
+    }
+  }
+
   return {
     delegate: false,
     mode: 'none',
@@ -97,7 +119,9 @@ function renderNudge(decision) {
   const gauge = decision.pct != null ? ` (estimated Claude 5h usage ~${decision.pct}%)` : '';
   const scope = decision.mode === 'all'
     ? 'Consider offloading ALL delegable work this session to Codex'
-    : 'This looks like delegable coding work — consider handing it to Codex';
+    : decision.mode === 'perf-routed'
+      ? 'Codex is heuristically favored for this kind of task (not a measured benchmark) — consider handing it over'
+      : 'This looks like delegable coding work — consider handing it to Codex';
   return [
     `[BYAN auto-delegate]${gauge}: ${scope} via \`${decision.invocation}\` `
       + '(runs on the ChatGPT subscription, no API credit).',

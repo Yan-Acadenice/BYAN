@@ -78,6 +78,31 @@ describe('loadbalancer/autodelegate-decision', () => {
     });
   });
 
+  describe('perf routing (F3, opt-in, off by default)', () => {
+    // category chosen to NOT overlap the delegable-verb heuristic, so it isolates
+    // the perf branch (a 'mockup' is not a coding verb).
+    const forces = [{ category: 'ui-mockup', pattern: 'mockup|wireframe', favors: 'codex' }];
+    test('off by default -> no perf-routed delegation even if forces would match', () => {
+      const d = decideAutodelegation({ requestText: 'a mockup of the dashboard', usage: { pct: 10 }, config: { perfForces: forces } });
+      expect(d.mode).not.toBe('perf-routed');
+      expect(d.delegate).toBe(false);
+    });
+    test('enabled + forces favor codex -> mode perf-routed (below pressure, non-verb task)', () => {
+      const d = decideAutodelegation({ requestText: 'a mockup of the dashboard', usage: { pct: 10 }, config: { perfRouting: true, perfForces: forces } });
+      expect(d.delegate).toBe(true);
+      expect(d.mode).toBe('perf-routed');
+      expect(d.reason).toMatch(/heuristic/i);
+    });
+    test('nature still wins over perf when both apply', () => {
+      const d = decideAutodelegation({ requestText: 'write the mockup module', usage: { pct: 10 }, config: { perfRouting: true, perfForces: forces } });
+      expect(d.mode).toBe('delegable-only');
+    });
+    test('pressure still wins over perf', () => {
+      const d = decideAutodelegation({ requestText: 'a mockup of the dashboard', usage: { pct: 90 }, config: { perfRouting: true, perfForces: forces } });
+      expect(d.mode).toBe('all');
+    });
+  });
+
   describe('renderNudge', () => {
     test('no delegation -> empty string (hook injects nothing)', () => {
       expect(renderNudge({ delegate: false })).toBe('');

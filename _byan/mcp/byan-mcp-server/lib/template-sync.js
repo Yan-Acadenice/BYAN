@@ -192,6 +192,10 @@ export const TARGET_ADDITIONS = [
   '.claude/hooks/codex-autodelegate.js',
   '.claude/hooks/lib/usage-estimator.js',
   '.claude/hooks/lib/autodelegate-decision.js',
+  // F3 perf-routing mechanism: autodelegate-decision.js requires it, so it MUST
+  // ship alongside. Neutral by default (empty forces) — asserts no unsourced
+  // perf ranking (below BYAN's L2 perf floor); opt-in via config.
+  '.claude/hooks/lib/perf-routing.js',
 ];
 
 // The template lives under this root-relative directory.
