@@ -113,6 +113,9 @@ _bmad-output/
 # BYAN Leantime auto-sync sidecar (per-fd id map + sync log, never committed)
 .byan-leantime/
 
+# BYAN tier gate sidecar (deny-once memory + off switch, never committed)
+.byan-tier/
+
 # BYAN runtime memoire state — mutated at runtime by EloStore / KnowledgeGraph,
 # so it generated constant git noise. Root-only paths (the separators anchor them
 # to repo root); the template keeps its own seed copies under install/templates/.

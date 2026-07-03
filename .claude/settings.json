@@ -102,6 +102,15 @@
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/strict-scope-guard.js"
           }
         ]
+      },
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tier-script-guard.js"
+          }
+        ]
       }
     ],
     "PostToolUse": [
