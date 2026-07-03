@@ -110,6 +110,18 @@ function decideAutodelegation({ requestText = '', usage = null, config = {} } = 
   };
 }
 
+// Defense-in-depth: the invocation string is interpolated into BYAN's injected
+// context. It is config/installer-controlled today (safe), but sanitising before
+// interpolation closes the door on any future path feeding untrusted text in —
+// strip newlines/control chars (no context-structure injection) and cap length.
+function sanitizeForContext(value, max = 120) {
+  return String(value == null ? "" : value)
+    .replace(/[\u0000-\u001F\u007F]+/g, " ") // control chars + newlines -> space
+    .replace(/\s+/g, " ")                       // collapse whitespace runs
+    .trim()
+    .slice(0, max);
+}
+
 // Render a decision into the one-paragraph nudge injected into BYAN's context.
 // Empty string when there is nothing to propose (so the hook injects nothing).
 // The nudge is ADVISORY: it proposes, it never forces — BYAN still owns the call
@@ -117,13 +129,14 @@ function decideAutodelegation({ requestText = '', usage = null, config = {} } = 
 function renderNudge(decision) {
   if (!decision || !decision.delegate) return '';
   const gauge = decision.pct != null ? ` (estimated Claude 5h usage ~${decision.pct}%)` : '';
+  const invocation = sanitizeForContext(decision.invocation) || DEFAULT_INVOCATION;
   const scope = decision.mode === 'all'
     ? 'Consider offloading ALL delegable work this session to Codex'
     : decision.mode === 'perf-routed'
       ? 'Codex is heuristically favored for this kind of task (not a measured benchmark) — consider handing it over'
       : 'This looks like delegable coding work — consider handing it to Codex';
   return [
-    `[BYAN auto-delegate]${gauge}: ${scope} via \`${decision.invocation}\` `
+    `[BYAN auto-delegate]${gauge}: ${scope} via \`${invocation}\` `
       + '(runs on the ChatGPT subscription, no API credit).',
     `Red line: ${decision.redLine}. This is advisory — you decide, and you still verify Codex's output before commit.`,
   ].join(' ');
