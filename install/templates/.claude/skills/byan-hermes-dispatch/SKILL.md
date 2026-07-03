@@ -55,7 +55,9 @@ Call the `byan_dispatch` MCP tool with `{ task: <goal>, parallelizable: <bool>, 
   - `main-thread` — do it inline, no delegation
   - `agent-subagent-worktree` — spawn Agent tool with isolation worktree
   - `mcp-worker` — spawn Agent tool, no worktree
-- **model** (WHICH model), from the task NATURE via native-tiers, not its size : `haiku` (exploration only) or `null` = deep (inherit the session model). Pass an explicit `nature` (`exploration`/`implementation`/`verification`/`analysis`) when you know it; protected natures stay off haiku.
+- **model** (WHICH model), from the task NATURE via native-tiers, not its size : `haiku` (exploration), `sonnet` (mechanical — explicit binary judgment-free checks only), or `null` = deep (inherit the session model). Pass an explicit `nature` (`exploration`/`mechanical`/`implementation`/`verification`/`analysis`) when you know it; protected natures stay off haiku/sonnet.
+
+**Batch mode (workflow authoring)** : before WRITING a workflow script, call `byan_dispatch` with `{ leaves: [{ label, nature? }, ...] }` — it returns the `opts.model` value per leaf from the same source of truth. Write `model:` only where it is non-null. The `tier-script-guard` PreToolUse hook gates every Workflow invocation against this contract (deny-once with the exact leaf list; acknowledge deliberate deep choices with the `// BYAN-TIER: reviewed` comment marker).
 
 ### 4. Spawn the work
 

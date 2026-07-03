@@ -8,7 +8,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import { dispatch } from './lib/dispatch.js';
+import { dispatch, dispatchBatch } from './lib/dispatch.js';
 import { resolveConfig } from './lib/resolve-config.js';
 import { harvest as harvestInsights, renderDigest as renderInsightDigest } from './lib/insight-harvest.js';
 import { appendOutcome } from './lib/outcome-buffer.js';
@@ -333,11 +333,11 @@ const tools = [
   {
     name: 'byan_dispatch',
     description:
-      'BYAN Dispatcher: routes a unit of work along two independent axes. STRATEGY (where it runs: main-thread / agent-subagent-worktree / mcp-worker) from the scalar score + parallelizable. TIER (which model) from the task NATURE via native-tiers (the single source of truth): only exploration downgrades to haiku; implementation/verification/analysis stay deep (inherit the session model); never pins up to opus. Rule-based, no API call. Returns { score, strategy, nature, tier, model, reasoning }.',
+      'BYAN Dispatcher: routes a unit of work along two independent axes. STRATEGY (where it runs: main-thread / agent-subagent-worktree / mcp-worker) from the scalar score + parallelizable. TIER (which model) from the task NATURE via native-tiers (the single source of truth): exploration downgrades to haiku, explicit mechanical checks to sonnet; implementation/verification/analysis stay deep (inherit the session model); never pins up to opus. Rule-based, no API call. Returns { score, strategy, nature, tier, model, reasoning }. BATCH mode: pass `leaves` (array of { label, nature? }) to tier every agent() leaf of a workflow script BEFORE writing it — returns one { label, nature, tier, model } per leaf, no strategy axis.',
     inputSchema: {
       type: 'object',
       properties: {
-        task: { type: 'string', description: 'Short task description.' },
+        task: { type: 'string', description: 'Short task description. Required unless `leaves` is passed (batch mode).' },
         complexity: {
           type: 'number',
           description: 'Complexity score 0-100 (optional, will estimate from task length if absent).',
@@ -348,11 +348,26 @@ const tools = [
         },
         nature: {
           type: 'string',
-          enum: ['exploration', 'implementation', 'verification', 'analysis'],
-          description: 'Optional task nature. A valid value sets the model tier directly; otherwise the nature is classified from the task text. Only exploration is downgrade-safe.',
+          enum: ['exploration', 'mechanical', 'implementation', 'verification', 'analysis'],
+          description: 'Optional task nature. A valid value sets the model tier directly; otherwise the nature is classified from the task text. Exploration (haiku) and mechanical (sonnet) are the only downgrade-safe natures.',
+        },
+        leaves: {
+          type: 'array',
+          description: 'Batch mode: the planned agent() leaves of a workflow script, each { label, nature? }. Returns the opts.model value per leaf; write model: only where it is non-null.',
+          items: {
+            type: 'object',
+            properties: {
+              label: { type: 'string', description: 'The leaf label (the curated signal classifyLeaf keys on).' },
+              nature: {
+                type: 'string',
+                enum: ['exploration', 'mechanical', 'implementation', 'verification', 'analysis'],
+                description: 'Optional explicit nature; wins over label classification.',
+              },
+            },
+            additionalProperties: false,
+          },
         },
       },
-      required: ['task'],
       additionalProperties: false,
     },
   },
@@ -1561,7 +1576,7 @@ export function createByanServer({ token, remoteOnly = false } = {}) {
     }
 
     if (name === 'byan_dispatch') {
-      const result = dispatch(args);
+      const result = Array.isArray(args.leaves) ? dispatchBatch(args.leaves) : dispatch(args);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

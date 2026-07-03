@@ -73,3 +73,25 @@ export function dispatch({ task, complexity, parallelizable, nature } = {}) {
     reasoning: `${strategyReason}. ${tierReason}.`,
   };
 }
+
+// Batch tiering — the authoring aid for workflow scripts. The author passes the
+// planned leaves BEFORE writing the script and gets the opts.model value per
+// leaf from the same source of truth (native-tiers). No strategy axis here:
+// the leaves all run inside one Workflow invocation, so WHERE they run is the
+// script's concern, only WHICH model each deserves is answered. An explicit
+// valid nature wins; otherwise the label classifies; a miss stays protected
+// (implementation -> deep -> null), same conservative path as dispatch().
+export function dispatchBatch(leaves) {
+  if (!Array.isArray(leaves)) return [];
+  return leaves.map((leaf) => {
+    const { label, nature } = leaf && typeof leaf === 'object' ? leaf : {};
+    const leafType = VALID_NATURES.has(nature) ? nature : classifyLeaf({ label: label || '' });
+    const tier = tierFor(leafType);
+    return {
+      label: label || '',
+      nature: leafType,
+      tier,
+      model: TIER_MODEL[tier],
+    };
+  });
+}

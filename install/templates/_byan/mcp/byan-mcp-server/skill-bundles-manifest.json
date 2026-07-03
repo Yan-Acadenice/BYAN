@@ -94,7 +94,7 @@
       "name": "byan-byan",
       "module": "core",
       "tier": "connector-bound",
-      "sourceHash": "88403d60531d9fb3e7cdb566429643f1f47baf9918593e8082ecc98eedebb878"
+      "sourceHash": "a0d73cf82fcf228965de722e7d01c785ae79a6382975e3045b4eeb902633062a"
     },
     "byan-byan-v2": {
       "name": "byan-byan-v2",
@@ -184,7 +184,7 @@
       "name": "byan-hermes-dispatch",
       "module": "core",
       "tier": "connector-bound",
-      "sourceHash": "45003e8a525a792d1a5dbe34ecb8e1443061fa5036a81a38a841598ce5aaf5ff"
+      "sourceHash": "e890a80916fedcf888170f550fc4d7ce289f6dc15243d00675e72e80c8579fdb"
     },
     "byan-insight": {
       "name": "byan-insight",

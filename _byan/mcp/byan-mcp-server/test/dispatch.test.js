@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dispatch } from '../lib/dispatch.js';
+import { dispatch, dispatchBatch } from '../lib/dispatch.js';
 
 // --- CASE 1: score < 15 -> strategy 'main-thread' ---
 test('score < 15 -> strategy main-thread', () => {
@@ -161,4 +161,57 @@ test('dispatch({}) with empty object -> score 0, implementation, model null', ()
   assert.equal(r.score, 0);
   assert.equal(r.nature, 'implementation');
   assert.equal(r.model, null);
+});
+
+// --- BATCH: per-leaf model routing in one call (authoring aid) --------------
+// dispatchBatch answers "which model per leaf" BEFORE a workflow script is
+// written, from the same source of truth (native-tiers). It routes NO strategy
+// (leaves run inside one workflow; where they run is the script's concern).
+
+test('dispatchBatch: one entry per leaf, model from the label via native-tiers', () => {
+  const r = dispatchBatch([
+    { label: 'load-story' },
+    { label: 'mech-validate-json' },
+    { label: 'verify-adversarial' },
+    { label: 'implement-fix' },
+  ]);
+  assert.equal(r.length, 4);
+  assert.deepEqual(
+    r.map((x) => [x.label, x.nature, x.model]),
+    [
+      ['load-story', 'exploration', 'haiku'],
+      ['mech-validate-json', 'mechanical', 'sonnet'],
+      ['verify-adversarial', 'verification', null],
+      ['implement-fix', 'implementation', null],
+    ]
+  );
+});
+
+test('dispatchBatch: an explicit valid nature wins over the label', () => {
+  const r = dispatchBatch([{ label: 'ambiguous-thing', nature: 'exploration' }]);
+  assert.equal(r[0].nature, 'exploration');
+  assert.equal(r[0].model, 'haiku');
+});
+
+test('dispatchBatch: an invalid nature falls back to label classification (conservative)', () => {
+  const r = dispatchBatch([{ label: 'verify-it', nature: 'garbage' }]);
+  assert.equal(r[0].nature, 'verification');
+  assert.equal(r[0].model, null);
+});
+
+test('dispatchBatch: mechanical nature is addressable explicitly', () => {
+  const r = dispatchBatch([{ label: 'check-json-shape', nature: 'mechanical' }]);
+  assert.equal(r[0].model, 'sonnet');
+});
+
+test('dispatchBatch: empty/invalid input -> empty array, never throws', () => {
+  assert.deepEqual(dispatchBatch([]), []);
+  assert.deepEqual(dispatchBatch(), []);
+  assert.deepEqual(dispatchBatch('nope'), []);
+});
+
+test('dispatchBatch: a leaf with no label defaults protected (implementation, model null)', () => {
+  const r = dispatchBatch([{}]);
+  assert.equal(r[0].nature, 'implementation');
+  assert.equal(r[0].model, null);
 });
