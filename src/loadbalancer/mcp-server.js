@@ -28,6 +28,7 @@ const { buildProviders } = require('./providers/factory');
 const { SessionBridge } = require('./session-bridge');
 const { GracefulDegradation } = require('./graceful-degradation');
 const { SubscriptionWindow } = require('./subscription-window');
+const { decideRoute } = require('./degradation-ladder');
 const { EventEmitter } = require('events');
 
 const VERSION = '0.2.0';
@@ -366,6 +367,29 @@ class LoadBalancerLive extends EventEmitter {
 
   getDegradationStatus() {
     return this.degradation ? this.degradation.getStatus() : null;
+  }
+
+  // Advisory routing plan for a task of a given nature: assembles the ladder
+  // snapshot from the window tracker + pressure + circuit-breaker state and
+  // returns the degradation decision (route to a pool, or queue). Side-effect
+  // free (uses canAccept, does not probe provider availability), so it is safe
+  // to call for planning; the actual send() still verifies isAvailable.
+  planRoute(nature, now = Date.now()) {
+    const quota = this.getQuota();
+    const windows = this.getWindowStates(now);
+    const secondaries = (this.config.fallback_order || []).filter((n) => this.trackers[n]);
+    const pools = {};
+    for (const name of [this.config.primary, ...secondaries]) {
+      const tracker = this.trackers[name];
+      if (!tracker) continue;
+      pools[name] = {
+        windowProximity: windows[name] ? windows[name].windowProximity : null,
+        pressureRecommendation: quota[name] ? quota[name].recommendation : 'ok',
+        canAccept: tracker.canAcceptRequest(),
+        usable: tracker.canAcceptRequest(),
+      };
+    }
+    return decideRoute({ primary: this.config.primary, secondaries, pools }, nature);
   }
 
   destroy() {

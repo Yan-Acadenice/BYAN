@@ -179,6 +179,23 @@ describe('loadbalancer/mcp-server', () => {
       lb.destroy();
     });
 
+    test('planRoute (F5 ladder wired): healthy primary keeps work on the primary', () => {
+      const lb = new LoadBalancerLive(config);
+      const plan = lb.planRoute('mechanical');
+      expect(plan.action).toBe('route');
+      expect(plan.target).toBe(config.primary); // idle -> healthy -> stays primary
+      expect(plan.rung).toBe('HEALTHY');
+      lb.destroy();
+    });
+
+    test('planRoute honours the red line: primary-only nature never targets a secondary', () => {
+      const lb = new LoadBalancerLive(config);
+      const plan = lb.planRoute('verification');
+      expect(plan.delegable).toBe(false);
+      expect(plan.target).toBe(config.primary);
+      lb.destroy();
+    });
+
     test('getQuota returns pressure data per enabled provider', () => {
       const lb = new LoadBalancerLive(config);
       const quota = lb.getQuota();
