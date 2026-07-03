@@ -35,6 +35,20 @@ const DEFAULT_CAPABILITIES = {
     tool_use: true,
     image_input: true,
   },
+  codex: {
+    file_edit: true,
+    file_read: true,
+    bash: true,
+    web_search: false,
+    mcp_tools: true,
+    subagents: false,
+    git: true,
+    streaming: false, // codex exec is request/response (JSONL events, not token stream)
+    multi_turn: true, // thread id enables continuation
+    max_context_tokens: 256000,
+    tool_use: true,
+    image_input: false,
+  },
   byan_api: {
     file_edit: false,
     file_read: false,

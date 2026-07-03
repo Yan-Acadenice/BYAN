@@ -3,6 +3,9 @@
 
 providers:
   copilot:
+    # Optional pool. Needs @github/copilot-sdk, an EXTERNAL optional dep NOT pinned
+    # in package.json (no fabricated version): the provider degrades to disabled if
+    # the SDK is absent. Install it manually to enable this pool.
     enabled: true
     sdk: "@github/copilot-sdk"
     transport: "json-rpc"
@@ -20,13 +23,30 @@ providers:
       worker: "claude-haiku-4.5"
       agent: "claude-sonnet-4.5"
 
+  codex:
+    # OpenAI Codex pool. Backed by the `codex` SYSTEM CLI (codex-cli), spawned in
+    # headless `codex exec --json` mode — NOT an npm SDK, so nothing to install via
+    # package.json; the provider degrades to disabled if the binary is absent.
+    # Two auth pools back the same binary: CODEX_API_KEY (per-token, no weekly cap)
+    # wins when set, else the ChatGPT-subscription session (~/.codex/auth.json,
+    # the 5h + weekly window). Sandbox is bounded for automation.
+    enabled: true
+    bin: "codex"
+    transport: "cli-exec"
+    auth_env: "CODEX_API_KEY"
+    sandbox: "read-only"
+    max_context_tokens: 256000
+    models:
+      worker: "gpt-5-codex"
+      agent: "gpt-5-codex"
+
   byan_api:
     enabled: false
     url: "http://localhost:3737"
     auth_env: "BYAN_API_TOKEN"
 
 primary: "claude"
-fallback_order: ["copilot", "byan_api"]
+fallback_order: ["codex", "copilot", "byan_api"]
 
 rate_limits:
   window_ms: 60000
