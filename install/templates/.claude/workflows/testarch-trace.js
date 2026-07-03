@@ -6,7 +6,7 @@ export const meta = {
     { title: 'DISCOVER_TESTS' },
     { title: 'MAP_CRITERIA' },
     { title: 'ANALYZE_GAPS' },
-    { title: 'GATE_DECISION' }
+    { title: 'GATE_DECISION', model: 'sonnet' }
   ]
 }
 
@@ -260,8 +260,9 @@ const gate = await agent(
     'Return the deterministic decision, the rationale string, and the gate criteria (p0 met?, overall status MET/PARTIAL/NOT MET).'
   ].join(' '),
   {
-    label: 'gate-decision',
+    label: 'mech-gate-decision',
     phase: 'GATE_DECISION',
+    model: 'sonnet',
     schema: {
       type: 'object',
       required: ['decision', 'rationale', 'gateCriteria'],

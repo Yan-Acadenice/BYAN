@@ -316,6 +316,24 @@ test('mechanicalLabelViolations: non-mech labels are never touched', () => {
   assert.deepEqual(mechanicalLabelViolations(src), []);
 });
 
+test('modelRoutingViolations: a model in a meta.phases entry is NOT a leaf downgrade', () => {
+  // The harness meta spec allows `model` on a phase entry (display/override
+  // declaration). It carries no label by design and must not read as a
+  // downgrade-without-label.
+  const src = [
+    "export const meta = {",
+    "  name: 'x',",
+    "  description: 'y',",
+    "  phases: [",
+    "    { title: 'VALIDATE', detail: 'checks', model: 'sonnet' },",
+    "    { title: 'BUILD' },",
+    "  ],",
+    "}",
+    "const r = await agent('check', { label: 'mech-validate-status', model: 'sonnet' })",
+  ].join('\n');
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
 test('validateContract: includes the mechanical hard rules', () => {
   const src = [
     'export const meta = { name: "x", description: "y" }',

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateContract } from '../lib/workflows-lint.js';
+import { validateContract, stripMetaLiteral } from '../lib/workflows-lint.js';
 import { classifyLeaf, isDowngradeModel, LEAF_TYPES } from '../lib/native-tiers.js';
 
 // Integration guard for the model-routing feature (F4). It asserts the SHIPPED
@@ -39,15 +39,16 @@ test('every shipped native script passes the full contract (incl. model-routing)
   }
 });
 
-test('every model: downgrade in a shipped script sits on an exploration leaf', () => {
-  let downgrades = 0;
+test('every model: downgrade in a shipped script sits on its matching leaf class', () => {
+  let haikuDowngrades = 0;
+  let sonnetDowngrades = 0;
   for (const file of scriptFiles()) {
-    const src = fs.readFileSync(file, 'utf8');
+    // meta.phases entries may carry a legit unlabelled model (display field)
+    const src = stripMetaLiteral(fs.readFileSync(file, 'utf8'));
     MODEL_RE.lastIndex = 0;
     let m;
     while ((m = MODEL_RE.exec(src))) {
       if (!isDowngradeModel(m[2])) continue;
-      downgrades += 1;
       // nearest preceding label in the same opts object
       const before = src.slice(0, m.index);
       let lbl = null;
@@ -55,17 +56,28 @@ test('every model: downgrade in a shipped script sits on an exploration leaf', (
       LABEL_RE.lastIndex = 0;
       while ((lm = LABEL_RE.exec(before))) lbl = { value: lm[2], end: lm.index + lm[0].length };
       assert.ok(lbl && !before.slice(lbl.end).includes('}'), `${path.basename(file)}: downgrade without an in-object label`);
-      assert.equal(
-        classifyLeaf({ label: lbl.value }),
-        LEAF_TYPES.EXPLORATION,
-        `${path.basename(file)}: leaf '${lbl.value}' is downgraded but is not exploration`,
-      );
+      const cls = classifyLeaf({ label: lbl.value });
+      // Shipped-set discipline is TIGHTER than the linter floor: haiku sits on
+      // exploration only, sonnet on explicit mech- leaves only (the linter also
+      // tolerates sonnet-on-exploration; no shipped script uses it).
+      if (m[2] === 'haiku') {
+        haikuDowngrades += 1;
+        assert.equal(cls, LEAF_TYPES.EXPLORATION,
+          `${path.basename(file)}: leaf '${lbl.value}' carries haiku but is not exploration`);
+      } else {
+        sonnetDowngrades += 1;
+        assert.equal(cls, LEAF_TYPES.MECHANICAL,
+          `${path.basename(file)}: leaf '${lbl.value}' carries sonnet but is not a mech- leaf`);
+      }
     }
   }
   // The feature must actually be applied, not silently a no-op. The floor tracks
   // the known downgraded set: 5 original (dev-story:load-story + 4 excalidraw
   // load-resources) + 6 from widen-safe-downgrades (document-project scan-existing-docs
-  // & source-tree, plus the 4 excalidraw context-read leaves) = 11. A revert that
-  // drops below this is a deliberate edit and must move the floor with it.
-  assert.ok(downgrades >= 11, `expected the 11 known exploration downgrades, found ${downgrades}`);
+  // & source-tree, plus the 4 excalidraw context-read leaves) = 11 haiku, plus the
+  // 2 mech- conversions from the F5 tier audit (sprint-planning
+  // mech-validate-status, testarch-trace mech-gate-decision) = 2 sonnet. A revert
+  // that drops below either floor is a deliberate edit and must move it here.
+  assert.ok(haikuDowngrades >= 11, `expected the 11 known exploration downgrades, found ${haikuDowngrades}`);
+  assert.ok(sonnetDowngrades >= 2, `expected the 2 known mechanical downgrades, found ${sonnetDowngrades}`);
 });

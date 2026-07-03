@@ -104,6 +104,27 @@ export function metaLiteralViolations(src) {
 const MODEL_RE = /\bmodel:\s*(['"`])([^'"`]*)\1/g;
 const LABEL_RE = /\blabel:\s*(['"`])([^'"`]*)\1/g;
 
+// Remove the `export const meta = { ... }` literal before scanning model
+// tokens. The harness meta spec allows `model` on a phases entry (a per-phase
+// display/override declaration) — it carries no label by design and must not
+// read as a leaf downgrade. Balanced-brace walk; no-op when unbalanced.
+// Exported: the routing integration test scans sources with its own regexes
+// (an independent double-check) but must share THIS meta-handling.
+export function stripMetaLiteral(code) {
+  const start = code.search(/export const meta\s*=\s*\{/);
+  if (start === -1) return code;
+  const open = code.indexOf('{', start);
+  let depth = 0;
+  for (let i = open; i < code.length; i++) {
+    if (code[i] === '{') depth += 1;
+    else if (code[i] === '}') {
+      depth -= 1;
+      if (depth === 0) return code.slice(0, open + 1) + code.slice(i);
+    }
+  }
+  return code;
+}
+
 function nearestLabelBefore(code, modelIndex) {
   const before = code.slice(0, modelIndex);
   let last = null;
@@ -120,7 +141,7 @@ function nearestLabelBefore(code, modelIndex) {
 }
 
 export function modelRoutingViolations(src) {
-  const code = stripComments(src);
+  const code = stripMetaLiteral(stripComments(src));
   const out = [];
   let m;
   MODEL_RE.lastIndex = 0;

@@ -6,7 +6,7 @@ export const meta = {
     { title: 'STRUCTURE', detail: 'build the ordered development_status map: epic, its stories, its retrospective' },
     { title: 'DETECT', detail: 'intelligent per-story status detection, never downgrade an existing status' },
     { title: 'GENERATE', detail: 'write sprint-status.yaml with metadata as comments AND as parseable fields' },
-    { title: 'VALIDATE', detail: 'coverage + legal-status + YAML checks, then count totals and report' },
+    { title: 'VALIDATE', detail: 'coverage + legal-status + YAML checks, then count totals and report', model: 'sonnet' },
   ],
 }
 
@@ -236,7 +236,7 @@ const validation = await agent(
     `- validYaml: the file parses as YAML.\n` +
     `Count totals: epicCount, storyCount, epicsInProgress, storiesDone. ` +
     `passed = true only if ALL six checks hold; otherwise list specific failures.`,
-  { label: 'validate-and-report', phase: 'VALIDATE', schema: VALIDATE_SCHEMA }
+  { label: 'mech-validate-status', phase: 'VALIDATE', schema: VALIDATE_SCHEMA, model: 'sonnet' }
 )
 
 // Single top-level return — DATA only. The orchestrating skill presents this at
