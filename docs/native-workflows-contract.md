@@ -96,20 +96,29 @@ tier vocabulary, the leaf classifier, and the model map.
 | Tier | `opts.model` | Used for |
 |------|--------------|----------|
 | `deep` | **omitted** (inherit the session model) | implement, verify, analysis — the default |
-| `balanced` | `sonnet` | mid-weight leaf, explicit manual opt-in only |
+| `balanced` | `sonnet` | MECHANICAL verification, opt-in only via the `mech-` label prefix |
 | `cheap` | `haiku` | a pure exploration leaf: read / load / parse / detect |
 
-Two hard rules:
+Three hard rules:
 
 - **No pin-up.** `deep` is an omission, not `model: 'opus'`. Omitting lets a
   leaf inherit whatever the session runs — Opus by default, Sonnet if the user
   chose Sonnet. Pinning a fixed high tier would override that and could silently
   downgrade a Sonnet/Opus session's heavy leaf.
-- **Only exploration downgrades.** A leaf is pinned to `cheap` only when it is
-  unambiguous read/extract work. `classifyLeaf` keys off the LABEL (the prompt
-  is too noisy — an exploration leaf often says "report what you found").
-  Protected types (implementation / verification / analysis) and any unknown
-  label default to `deep`.
+- **Only exploration and mech- downgrade.** A leaf is pinned to `cheap` only
+  when it is unambiguous read/extract work. `classifyLeaf` keys off the LABEL
+  (the prompt is too noisy — an exploration leaf often says "report what you
+  found"). Protected types (implementation / verification / analysis) and any
+  unknown label default to `deep`.
+- **`mech-` is a held declaration.** The `balanced` tier is reachable ONLY
+  through the explicit `mech-` label prefix (`mech-validate-json`): a binary,
+  judgment-free check — JSON parses, schema matches, lint passes — whose FIXING
+  (if any) happens in a different leaf. The prefix wins over keyword
+  classification (that is the point of the opt-in), and the linter holds the
+  script to it: a `mech-` leaf with no model (`mechanical-without-model`) or
+  with `haiku` (`mechanical-below-tier`) is a hard violation. Verification that
+  reads MEANING (content vs requirements, coverage adequacy, adversarial
+  review) is not mechanical and stays deep.
 
 The classifier is permissive (it labels by keyword), so it is a FLOOR, not a
 ceiling: the linter forbids downgrading a protected leaf, but it does not force
@@ -146,13 +155,15 @@ verbatim/gate sink, making the re-read net-negative or marginal.
 Enforcement (because the in-session hooks do not fire inside a script):
 
 - `workflows-lint.js` -> `modelRoutingViolations` rejects (a) a `model:` value
-  that is not a known downgrade tier, (b) a downgrade on a non-exploration leaf
-  (`protected-leaf-downgraded`), (c) a downgrade with no in-object label.
-  It is part of `validateContract`, so `byan-lint-workflows` and the pre-commit
-  gate enforce it.
+  that is not a known downgrade tier, (b) a downgrade on a protected leaf
+  (`protected-leaf-downgraded`), (c) a downgrade with no in-object label,
+  (d) `haiku` on a `mech-` leaf (`mechanical-below-tier`); and
+  `mechanicalLabelViolations` rejects a `mech-` leaf with no model at all
+  (`mechanical-without-model`). Both are part of `validateContract`, so
+  `byan-lint-workflows` and the pre-commit gate enforce them.
 - `test/native-routing-integration.test.js` pins the invariant on the SHIPPED
   scripts: every script passes the contract, and every downgrade sits on an
-  exploration leaf.
+  exploration or `mech-` leaf.
 - `workflows-lint.js` -> `untieredExplorationViolations` is the SYMMETRIC
   advisory: it surfaces an exploration-labelled leaf that runs deep (a possible
   saving). It is DELIBERATELY OUT of `validateContract` — forcing those leaves to
@@ -161,6 +172,38 @@ Enforcement (because the in-session hooks do not fire inside a script):
   per-leaf deep-vs-cheap call stays with the author. There is no per-leaf effort
   knob (the native `agent()` / Agent API exposes only `model`), so model tier is
   the sole token lever and effort-by-complexity reduces to model-by-complexity.
+
+## Ad-hoc scripts — the tier gate at the Workflow chokepoint
+
+The repo linter only sees committed `.claude/workflows/*.js`. A script authored
+inline for one run (the "adversarial review" pattern) is invisible to it and
+used to run every leaf on the session model. It crosses exactly one enforceable
+chokepoint before executing — the Workflow tool invocation — and that is where
+the gate now sits:
+
+| Piece | File | Role |
+|-------|------|------|
+| Engine | `lib/tier-script.js` | per-leaf report (`analyzeScript`) + pure gate decision (`decideTierGate`) against native-tiers; parsing stays in `workflows-lint.js` (`extractLabelledLeaves`) |
+| Hook | `.claude/hooks/tier-script-guard.js` | PreToolUse (matcher `Workflow`), CJS shell around the engine |
+| CLI | `bin/byan-tier-script.js` | standalone report on any script file; exit 0 clean/acknowledged, 1 gaps, 2 violations |
+| Batch aid | `byan_dispatch { leaves: [...] }` | per-leaf `opts.model` BEFORE the script is written |
+| Ledger | `_byan-output/tier-ledger.jsonl` | every gate decision + per-model histogram — the measurement basis for token gains |
+
+Gate behaviour, deliberately narrow:
+
+- **Deny once, with the exact fix.** Undecided exploration/`mech-` leaves deny
+  the invocation ONE time, listing each leaf and the value to write. An
+  identical resubmission passes — the gate forces a decision, it does not trap
+  the turn (same one-regen shape as the autobench Stop hook).
+- **It rewrites nothing.** An auto-stamped model on a misclassified leaf would
+  be the STRICT-2 No Downgrade regression; the author keeps the pen.
+- **Acknowledgment marker.** `// BYAN-TIER: reviewed` in the script asserts the
+  deep choices are deliberate; the gate then passes and logs `acknowledged`.
+- **Registry passes.** A name-only invocation resolves to a committed script the
+  pre-commit linter already owns.
+- **Escape hatch.** `touch .byan-tier/off` disables gating; the ledger still
+  records `escape-hatch` so misses stay auditable. Deny-once memory lives in the
+  gitignored `.byan-tier/` sidecar, keyed by script hash.
 
 If a future runtime needs full model ids instead of the `haiku`/`sonnet`
 aliases, `TIER_MODEL` in `native-tiers.js` is the only edit; the linter then

@@ -9,7 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.39.0] - 2026-07-02
+## [2.40.0] - 2026-07-03
+
+### Added - native workflow model tiering: the sonnet tier lives, ad-hoc scripts are gated
+
+Claude Code's Workflow tool runs every `agent()` leaf on the session model
+unless the script pins `opts.model`, and the tiering contract only reached
+committed `.claude/workflows/*.js` through the repo linter. Two consequences,
+both observed live: ad-hoc scripts (written inline for one run) executed
+all-deep (14 agents on Opus for one review), and the `balanced` tier was
+unreachable (0/131 committed leaves on sonnet). This release closes both.
+
+- **`mech-` opt-in class (native-tiers)** - a `mech-` label prefix
+  (`mech-validate-json`) declares a MECHANICAL verification: a binary,
+  judgment-free check (JSON parses, schema matches, lint passes) that tiers to
+  `balanced` (sonnet). Explicit opt-in only, no keyword fuzziness:
+  `validate-json` without the prefix stays protected (deep). The linter holds
+  the script to the declaration: `mechanical-without-model` and
+  `mechanical-below-tier` are hard contract violations.
+- **tier-script engine + CLI** - `lib/tier-script.js` analyzes any workflow
+  script TEXT (committed, ad-hoc or draft): one verdict per labelled leaf
+  against native-tiers, plus the deny-once gate decision. Parsing stays in
+  `workflows-lint.js` (`extractLabelledLeaves`). `bin/byan-tier-script.js`
+  prints the report (exit 0 clean/acknowledged, 1 gaps, 2 violations).
+- **tier gate hook** - `.claude/hooks/tier-script-guard.js` (PreToolUse,
+  matcher `Workflow`) gates EVERY Workflow invocation at the one chokepoint an
+  ad-hoc script crosses. Undecided exploration/`mech-` leaves deny ONCE with
+  the exact leaf list; `// BYAN-TIER: reviewed` acknowledges deliberate deep
+  choices; an identical resubmission passes (deny-once by design); registry
+  invocations pass. It rewrites nothing (STRICT-2 No Downgrade). Every
+  decision lands in `_byan-output/tier-ledger.jsonl` with a per-model
+  histogram - the measurement basis for token gains. Escape hatch:
+  `.byan-tier/off`.
+- **`byan_dispatch` batch mode** - `{ leaves: [{ label, nature? }] }` returns
+  the `opts.model` per planned leaf BEFORE the script is written; the nature
+  enum gains `mechanical` on both axes.
+- **Docs** - `native-workflows.md` rule + `docs/native-workflows-contract.md`
+  describe the three live tiers, the two nets (repo linter floor + tier gate
+  hook) and the authoring flow; byan-byan and hermes-dispatch skills carry the
+  same doctrine.
 
 ### Added - shippable soul stays in sync with the active soul (byan-sync-soul)
 

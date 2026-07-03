@@ -26,22 +26,48 @@ A native workflow script mutates FD/strict state only through the `byan_fd_*` /
 
 Each `agent()` leaf runs on the session model unless the call sets `opts.model`.
 The tiering decision lives in one place — `_byan/mcp/byan-mcp-server/lib/native-tiers.js`
-(tier vocabulary, leaf classifier, model map). The doctrine is binary: a pure
-EXPLORATION leaf (read/load/parse/detect) may downgrade to `model: 'haiku'`;
-implementation / verification / analysis leaves OMIT `opts.model` and inherit the
-session model (no pin-up to opus).
+(tier vocabulary, leaf classifier, model map). Three tiers:
+
+- **cheap (`model: 'haiku'`)** — a pure EXPLORATION leaf (read/load/parse/detect).
+- **balanced (`model: 'sonnet'`)** — MECHANICAL verification, opt-in ONLY through
+  the `mech-` label prefix (`mech-validate-json`): a binary, judgment-free check
+  (JSON parses, schema matches, lint passes). Semantic/adversarial verification
+  is NOT mechanical and stays deep. The prefix is an authoring declaration the
+  linter holds the script to: a `mech-` leaf without `model: 'sonnet'` is a hard
+  violation (`mechanical-without-model` / `mechanical-below-tier`).
+- **deep (OMIT `opts.model`)** — implementation / verification / analysis leaves
+  inherit the session model (no pin-up to opus).
 
 The linter splits the two directions:
 
-- **Floor (HARD, blocks the commit)** — a downgrade model on a PROTECTED leaf, or
-  a pin-up, is a contract violation (`modelRoutingViolations`). This is the
-  STRICT-2 No Downgrade net.
+- **Floor (HARD, blocks the commit)** — a downgrade model on a PROTECTED leaf, a
+  pin-up, or a half-applied `mech-` opt-in is a contract violation
+  (`modelRoutingViolations` + `mechanicalLabelViolations`). This is the STRICT-2
+  No Downgrade net.
 - **Ceiling (ADVISORY, non-blocking)** — an exploration-labelled leaf that runs
   deep is *reported* (`byan-lint-workflows.js --advise`), not forced. `classifyLeaf`
   is permissive: many exploration-labelled leaves legitimately stay deep because
   they bear a HALT/prerequisite gate, a classification, or an exact conversion
   consumed verbatim downstream. The human owns that per-leaf call. Forcing haiku
   on them would be the very downgrade the floor forbids.
+
+## Ad-hoc scripts — the tier gate hook
+
+The repo linter only sees committed files. An AD-HOC script (written inline for
+one run) crosses exactly one chokepoint before it executes: the Workflow tool
+invocation. `.claude/hooks/tier-script-guard.js` (PreToolUse, matcher `Workflow`)
+runs the same analysis there via `lib/tier-script.js` and DENIES ONCE when
+exploration/`mech-` leaves carry no tier — with the exact leaf list to fix. The
+`// BYAN-TIER: reviewed` comment marker acknowledges deliberate deep choices; an
+identical resubmission passes (deny-once by design); registry (name-only)
+invocations pass untouched. Every decision lands in
+`_byan-output/tier-ledger.jsonl` with a per-model histogram — the measurement
+basis for token gains. Escape hatch: `touch .byan-tier/off`.
+
+Authoring flow: BEFORE writing a script, call `byan_dispatch` with
+`{ leaves: [{ label, nature? }] }` (batch mode) to get the `opts.model` per leaf;
+write `model:` only where non-null. Standalone report:
+`node _byan/mcp/byan-mcp-server/bin/byan-tier-script.js <file> [--json]`.
 
 A per-leaf "effort" knob is not available: the native `agent()` / Agent API exposes
 only `model`, so model tier is the sole token lever. Effort-by-complexity reduces
