@@ -147,6 +147,44 @@ describe('loadbalancer/codex-provider', () => {
       expect(['read-only', 'workspace-write']).toContain(capturedArgs[sIdx + 1]);
     });
 
+    test('SECURITY: send never leaks the prompt or CODEX_API_KEY into argv (no ps leak); prompt rides stdin', async () => {
+      const SECRET = 'sk-codex-super-secret-value-xyz';
+      const prevKey = process.env.CODEX_API_KEY;
+      process.env.CODEX_API_KEY = SECRET;
+      try {
+        const p = new CodexProvider({});
+        p.initialized = true;
+        let capturedArgs = null;
+        let capturedInput = null;
+        p._runCodex = async (args, input) => {
+          capturedArgs = args;
+          capturedInput = input;
+          return { stdout: JSONL_OK, stderr: '', code: 0 };
+        };
+        const prompt = 'implement the confidential feature and here is context';
+        await p.send({ prompt });
+        // The strict-domain guarantee: neither the prompt nor the secret is ever
+        // an argv element (argv is world-readable via `ps`).
+        expect(capturedArgs.some((a) => String(a).includes(prompt))).toBe(false);
+        expect(capturedArgs.some((a) => String(a).includes(SECRET))).toBe(false);
+        // The prompt is delivered on stdin (the input param), not argv.
+        expect(capturedInput).toBe(prompt);
+      } finally {
+        if (prevKey === undefined) delete process.env.CODEX_API_KEY;
+        else process.env.CODEX_API_KEY = prevKey;
+      }
+    });
+
+    test('SECURITY: a rate-limited/errored response never carries the secret or prompt', async () => {
+      const p = new CodexProvider({});
+      p.initialized = true;
+      p._runCodex = async () => ({ stdout: '', stderr: 'error: usage limit reached', code: 1 });
+      const r = await p.send({ prompt: 'secret prompt body' });
+      const serialized = JSON.stringify(r);
+      expect(serialized).not.toContain('secret prompt body');
+      expect(serialized.toLowerCase()).not.toContain('codex_api_key');
+    });
+
     test('send detects a rate-limit exit and returns rateLimited=true, not a throw', async () => {
       const p = new CodexProvider({});
       p.initialized = true;

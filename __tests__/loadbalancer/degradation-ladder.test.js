@@ -2,6 +2,11 @@ const {
   computeRung,
   decideRoute,
   RUNGS,
+  poolHot,
+  poolExhausted,
+  poolUsable,
+  CAUTION,
+  SWITCH_NOW,
 } = require('../../src/loadbalancer/degradation-ladder');
 
 // The 4-rung ladder, driven by the subscription-window tracker (F2), NOT by 429s:
@@ -77,6 +82,36 @@ describe('loadbalancer/degradation-ladder', () => {
         const d = decideRoute(snap(exhausted, healthy), nature);
         expect(d.target).not.toBe('codex');
       }
+    });
+  });
+
+  describe('pool predicate band edges (explicit coverage)', () => {
+    test('constants: CAUTION=0.5, SWITCH_NOW=0.8', () => {
+      expect(CAUTION).toBe(0.5);
+      expect(SWITCH_NOW).toBe(0.8);
+    });
+    test('poolExhausted at the SWITCH_NOW boundary (0.8 inclusive) and on !canAccept', () => {
+      expect(poolExhausted({ windowProximity: 0.8, pressureRecommendation: 'ok', canAccept: true })).toBe(true);
+      expect(poolExhausted({ windowProximity: 0.79, pressureRecommendation: 'ok', canAccept: true })).toBe(false);
+      expect(poolExhausted({ windowProximity: 0.1, pressureRecommendation: 'ok', canAccept: false })).toBe(true);
+      expect(poolExhausted({ windowProximity: 0.1, pressureRecommendation: 'switch_now', canAccept: true })).toBe(true);
+    });
+    test('poolHot at the CAUTION boundary (0.5 inclusive), below exhausted', () => {
+      expect(poolHot({ windowProximity: 0.5, pressureRecommendation: 'ok', canAccept: true })).toBe(true);
+      expect(poolHot({ windowProximity: 0.49, pressureRecommendation: 'ok', canAccept: true })).toBe(false);
+      expect(poolHot({ windowProximity: 0.2, pressureRecommendation: 'caution', canAccept: true })).toBe(true);
+      // exhausted is not "hot" (a spent pool is past hot)
+      expect(poolHot({ windowProximity: 0.9, pressureRecommendation: 'ok', canAccept: true })).toBe(false);
+    });
+    test('poolUsable: needs canAccept + usable + not exhausted', () => {
+      expect(poolUsable({ windowProximity: 0.1, pressureRecommendation: 'ok', canAccept: true, usable: true })).toBe(true);
+      expect(poolUsable({ windowProximity: 0.1, pressureRecommendation: 'ok', canAccept: true, usable: false })).toBe(false);
+      expect(poolUsable({ windowProximity: 0.9, pressureRecommendation: 'ok', canAccept: true, usable: true })).toBe(false);
+      expect(poolUsable(null)).toBe(false);
+    });
+    test('null windowProximity does not trip the band (estimate-only pool)', () => {
+      expect(poolExhausted({ windowProximity: null, pressureRecommendation: 'ok', canAccept: true })).toBe(false);
+      expect(poolHot({ windowProximity: null, pressureRecommendation: 'ok', canAccept: true })).toBe(false);
     });
   });
 
