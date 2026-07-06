@@ -45,4 +45,4 @@ name,description,module,path
 "turbo-whisper-docker-setup","Setup self-hosted faster-whisper-server with Docker for privacy and cost-free transcription","bmb","_byan/workflow/simple/turbo-whisper/docker-setup-workflow.md"
 "turbo-whisper-integrate","Integrate Turbo Whisper with GitHub Copilot CLI, Claude Code, and Codex platforms","bmb","_byan/workflow/simple/turbo-whisper/integrate-workflow.md"
 "byan-benchmark","DATA-only benchmark engine for any decision fork: options x weighted-criteria matrix + best-first reco + dissent","bmb","_byan/workflow/simple/bmb/byan-benchmark/workflow.md"
-
+"project-handoff","Export/import portable Markdown project state between Claude Code and Codex","core","_byan/workflow/simple/byan/project-handoff-workflow.md"

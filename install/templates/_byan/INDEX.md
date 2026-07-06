@@ -3,7 +3,7 @@
 > Carte du systeme de fichiers BYAN. Genere automatiquement — ne pas editer a la main.
 > Source : `_byan/_config/*-manifest.csv` + scan `_byan/projet/`. Regenerer : `byan-build-index`.
 
-## Agents (26)
+## Agents (28)
 
 ### bmb
 - `agent-builder` — Agent Building Expert — `_byan/agent/agent-builder/agent-builder.md`
@@ -18,6 +18,8 @@
 - `architect` — Architect — `_byan/agent/architect/architect.md`
 - `dev` — Developer Agent — `_byan/agent/dev/dev.md`
 - `expert-merise-agile` — Expert Merise Agile - Assistant de Conception & Rédaction — `_byan/agent/expert-merise-agile/expert-merise-agile.md`
+- `jimmy` — Spécialiste Documentation Technique & Processus Internes — `_byan/agent/jimmy/jimmy.md`
+- `mike` — Gestionnaire de Projet — Spécialiste Leantime — `_byan/agent/mike/mike.md`
 - `pm` — Product Manager — `_byan/agent/pm/pm.md`
 - `quick-flow-solo-dev` — Quick Flow Solo Dev — `_byan/agent/quick-flow-solo-dev/quick-flow-solo-dev.md`
 - `quinn` — QA Engineer — `_byan/agent/quinn/quinn.md`
@@ -41,10 +43,11 @@
 ### tea
 - `tea` — Master Test Architect and Quality Advisor — `_byan/agent/tea/tea.md`
 
-## Workflows (45)
+## Workflows (47)
 
 ### bmb
 - `agent` — Tri-modal workflow for creating, editing, and validating BMAD Core compliant agents — `_byan/workflow/simple/agent/workflow.md`
+- `byan-benchmark` — DATA-only benchmark engine for any decision fork: options x weighted-criteria matrix + best-first reco + dissent — `_byan/workflow/simple/bmb/byan-benchmark/workflow.md`
 - `module` — Quad-modal workflow for creating BMAD modules (Brief + Create + Edit + Validate) — `_byan/workflow/simple/module/workflow.md`
 - `turbo-whisper-configure` — Configure Turbo Whisper API, hotkeys, and preferences — `_byan/workflow/simple/turbo-whisper/configure-workflow.md`
 - `turbo-whisper-docker-setup` — Setup self-hosted faster-whisper-server with Docker for privacy and cost-free transcription — `_byan/workflow/simple/turbo-whisper/docker-setup-workflow.md`
@@ -86,6 +89,7 @@
 ### core
 - `brainstorming` — Facilitate interactive brainstorming sessions using diverse creative techniques and ideation methods — `_byan/workflow/simple/brainstorming/workflow.md`
 - `party-mode` — Orchestrates group discussions between all installed BMAD agents, enabling natural multi-agent conversations — `_byan/workflow/simple/party-mode/workflow.md`
+- `project-handoff` — Export/import portable Markdown project state between Claude Code and Codex — `_byan/workflow/simple/byan/project-handoff-workflow.md`
 
 ### tea
 - `teach-me-testing` — Multi-session learning companion that teaches testing progressively through 7 structured sessions with state persistence — `_byan/workflow/simple/testarch/teach-me-testing/workflow.md`

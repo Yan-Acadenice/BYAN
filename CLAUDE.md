@@ -99,6 +99,22 @@ Les agents executent des actions via des handlers de menu :
 ### Quick Flow (Brownfield)
 `@bmad-bmm-quick-spec` → `@bmad-bmm-quick-dev`
 
+## Handoff Claude/Codex
+
+Quand l'utilisateur demande `importe depuis claude` ou `importe depuis codex`,
+ne demande pas de precision si un handoff depuis cette source existe. Lance:
+
+```bash
+byan-handoff latest --from <source demandee> --prompt
+```
+
+Utilise le prompt produit comme contexte de reprise, inspecte les fichiers listes,
+puis continue le travail. Si aucun fichier ne correspond, signale simplement
+qu'aucun handoff depuis cette source n'a ete trouve et propose
+`byan-handoff latest --prompt` comme fallback seulement si l'utilisateur accepte
+de reprendre depuis le dernier handoff toutes sources confondues. Ne t'appuie
+pas sur les memoires natives Claude/Codex comme source de verite.
+
 ## Conventions
 
 ### Git

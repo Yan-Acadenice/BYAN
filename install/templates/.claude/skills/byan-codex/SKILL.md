@@ -19,3 +19,10 @@ description: "OpenCode/Codex integration specialist for BYAN skills Role: OpenCo
 - Validate .codex/prompts/ structure
 - Test skill detection before deployment
 - Handle Codex-specific terminology (skills not agents)
+- When the user says `importe depuis claude` or `importe depuis codex`, run
+  `byan-handoff latest --from <requested source> --prompt`, then resume from
+  the generated prompt after inspecting the listed files. If none matches,
+  report that no handoff from that source exists and offer
+  `byan-handoff latest --prompt` as fallback only if the user accepts resuming
+  from the newest handoff across all sources. Native Claude/Codex memory is not
+  the source of truth.

@@ -9,6 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.42.0] - 2026-07-06
+
+### Changed - Handoff auto-import instructions
+- **Claude and Codex activation surfaces now know how to handle
+  `importe depuis claude` / `importe depuis codex` automatically.** `CLAUDE.md`
+  and BYAN skills instruct the assistant to run
+  `byan-handoff latest --from <source> --prompt` and resume from the generated
+  context without relying on native assistant memory.
+
+### Added - Portable Claude/Codex Markdown handoff
+- **BYAN can now export/import project state as a portable Markdown handoff for
+  switching between Claude Code and Codex.** The new `byan-handoff` CLI writes
+  handoffs under `_byan-output/handoffs/`, embeds a parseable
+  `json byan-handoff` block, and can print a compact resume prompt via
+  `byan-handoff latest --from <source> --prompt` or
+  `byan-handoff import <file> --prompt`.
+  A new `project-handoff` BYAN workflow documents the limit-switch protocol.
+  Covered by `install/__tests__/project-handoff.test.js`.
+
+### Changed - RTK offered on Codex-selected installs
+- **Yanstaller now offers RTK when the selected target includes Codex, not only
+  Claude Code.** Claude Code keeps the transparent `rtk init -g --auto-patch`
+  hook path. Codex installs get the verified native `rtk` binary and an explicit
+  no-transparent-hook status, matching BYAN's current Codex adapter model.
+  Covered by `install/__tests__/rtk-integration.test.js`.
+
+### Added - Codex native skills in yanstaller
+- **Codex installs now get real native skills, not just project prompt stubs.**
+  When the yanstaller target includes Codex (Codex-only or Claude+Codex), it
+  writes the BYAN MCP entry to `~/.codex/config.toml` and copies BYAN skill
+  folders into `~/.codex/skills`, creating `~/.codex` when Codex was explicitly
+  selected. The project template also ships `.codex/skills/byan/SKILL.md`, so a
+  fresh Codex install has a native skill named `byan` in addition to the
+  Claude-derived BYAN specialty skills. This closes the gap where a fresh
+  machine had `.codex/prompts/` and MCP wiring but no native `$byan` / BYAN skill
+  surface for delegation. Covered by `install/__tests__/codex-native-setup.test.js`.
+
 ### Added - Codex auto-delegation (opt-in, native)
 - **BYAN now proposes handing delegable work to Codex on your ChatGPT
   subscription (no API credit) when Claude nears its 5h limit.** A

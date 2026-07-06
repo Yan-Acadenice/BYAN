@@ -18,6 +18,20 @@ Invoke this protocol when the user :
 
 If the user request is a simple question or chat, stay out of FD — respond normally.
 
+## 1.25. Claude/Codex handoff import trigger
+
+When the user says `importe depuis claude` or `importe depuis codex`, handle it
+before starting a new FD cycle:
+
+1. Run `byan-handoff latest --from <requested source> --prompt`.
+2. Use the generated prompt as resume context, inspect the listed files, then
+   continue the current work.
+
+If no matching handoff exists, say that no handoff from that source was found and
+offer `byan-handoff latest --prompt` as the fallback only if the user accepts
+resuming from the newest handoff across all sources. Do not rely on native
+Claude/Codex memory as the source of truth.
+
 ## 1.5. Freshness check (silent, once per session)
 
 Before responding to the user's first activation message in a session, call the MCP tool `byan_update_check` once. It is read-only and cheap (single npm registry lookup, 5s timeout, no side effects).

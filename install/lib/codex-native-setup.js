@@ -25,6 +25,10 @@ function getCodexConfigPath() {
   return path.join(os.homedir(), '.codex', 'config.toml');
 }
 
+function getCodexSkillsDir() {
+  return path.join(os.homedir(), '.codex', 'skills');
+}
+
 async function detectCodex() {
   return fs.pathExists(path.join(os.homedir(), '.codex'));
 }
@@ -123,6 +127,81 @@ async function patchCodexConfig(projectRoot, options = {}) {
   return { path: configPath, hadExisting: existing.length > 0, tokenSet: apiToken.length > 0 };
 }
 
+function uniqueExistingDirs(dirs) {
+  const seen = new Set();
+  const out = [];
+  for (const dir of dirs.filter(Boolean)) {
+    const resolved = path.resolve(dir);
+    if (seen.has(resolved)) continue;
+    seen.add(resolved);
+    out.push(resolved);
+  }
+  return out;
+}
+
+async function findSkillDirs(sourceDirs = []) {
+  const skills = [];
+  const seenNames = new Set();
+
+  for (const sourceDir of uniqueExistingDirs(sourceDirs)) {
+    if (!(await fs.pathExists(sourceDir))) continue;
+    const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const skillName = entry.name;
+      if (seenNames.has(skillName)) continue;
+      const skillDir = path.join(sourceDir, skillName);
+      const skillFile = path.join(skillDir, 'SKILL.md');
+      if (!(await fs.pathExists(skillFile))) continue;
+      seenNames.add(skillName);
+      skills.push({ name: skillName, path: skillDir, sourceDir });
+    }
+  }
+
+  return skills;
+}
+
+function defaultSkillSourceDirs(projectRoot, options = {}) {
+  const templateDir = options.templateDir;
+  return [
+    path.join(projectRoot, '.codex', 'skills'),
+    path.join(projectRoot, '.claude', 'skills'),
+    templateDir ? path.join(templateDir, '.codex', 'skills') : null,
+    templateDir ? path.join(templateDir, '.claude', 'skills') : null,
+  ];
+}
+
+async function installCodexNativeSkills(projectRoot, options = {}) {
+  const destDir = options.destDir || getCodexSkillsDir();
+  const sourceDirs = options.sourceDirs || defaultSkillSourceDirs(projectRoot, options);
+  const overwrite = options.overwrite !== false;
+
+  await fs.ensureDir(destDir);
+
+  const skills = await findSkillDirs(sourceDirs);
+  const result = {
+    destDir,
+    installed: 0,
+    skipped: 0,
+    skills: [],
+  };
+
+  for (const skill of skills) {
+    const dest = path.join(destDir, skill.name);
+    const exists = await fs.pathExists(dest);
+    if (exists && !overwrite) {
+      result.skipped++;
+      result.skills.push({ name: skill.name, status: 'skipped-existing', path: dest });
+      continue;
+    }
+    await fs.copy(skill.path, dest, { overwrite: true, errorOnExist: false });
+    result.installed++;
+    result.skills.push({ name: skill.name, status: exists ? 'updated' : 'installed', path: dest });
+  }
+
+  return result;
+}
+
 async function setupCodexNative(projectRoot, options = {}) {
   const log = options.quiet ? () => {} : (...a) => console.log(...a);
 
@@ -142,15 +221,28 @@ async function setupCodexNative(projectRoot, options = {}) {
     );
     log(chalk.gray('      (or rerun with BYAN_API_TOKEN=byan_xxx in the env)'));
   }
-  log(chalk.gray('    Restart Codex CLI for the new MCP server to load'));
-  return result;
+  const skills = await installCodexNativeSkills(projectRoot, options);
+  if (skills.installed > 0) {
+    log(chalk.green(`  ✓ Codex native skills installed to ${skills.destDir} (${skills.installed})`));
+  } else {
+    log(chalk.yellow(`  ! No Codex native skills found to install into ${skills.destDir}`));
+  }
+  if (skills.skipped > 0) {
+    log(chalk.gray(`    ${skills.skipped} existing skill(s) skipped`));
+  }
+  log(chalk.gray('    Restart Codex CLI for the new MCP server and skills to load'));
+  return { ...result, skills };
 }
 
 module.exports = {
   setupCodexNative,
   patchCodexConfig,
+  installCodexNativeSkills,
+  findSkillDirs,
+  defaultSkillSourceDirs,
   stripServerSections,
   buildByanBlock,
   getCodexConfigPath,
+  getCodexSkillsDir,
   detectCodex,
 };

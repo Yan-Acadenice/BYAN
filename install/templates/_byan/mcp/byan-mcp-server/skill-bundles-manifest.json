@@ -94,7 +94,7 @@
       "name": "byan-byan",
       "module": "core",
       "tier": "connector-bound",
-      "sourceHash": "a0d73cf82fcf228965de722e7d01c785ae79a6382975e3045b4eeb902633062a"
+      "sourceHash": "6798beb68df9831e0b9bf3ca17100174316c51b2671d96b2ef5bff6def4eabc7"
     },
     "byan-byan-v2": {
       "name": "byan-byan-v2",
@@ -154,7 +154,7 @@
       "name": "byan-codex",
       "module": "core",
       "tier": "standalone",
-      "sourceHash": "0f0d7a1108a43a0c0c8093cc5600bc2649d6766c6ae94c2a2a9dafa315180627"
+      "sourceHash": "32f2ae4a9bfe7a0f90f2ca9787e472c57b847bc36ac9bc6fa0050af70c0af27c"
     },
     "byan-drawio": {
       "name": "byan-drawio",

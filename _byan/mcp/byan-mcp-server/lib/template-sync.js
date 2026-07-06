@@ -196,6 +196,18 @@ export const TARGET_ADDITIONS = [
   // ship alongside. Neutral by default (empty forces) — asserts no unsourced
   // perf ranking (below BYAN's L2 perf floor); opt-in via config.
   '.claude/hooks/lib/perf-routing.js',
+  // Codex auto-delegation usage guide ships with the hook. It explains the
+  // three Codex layers: MCP config, native skills in ~/.codex/skills, and the
+  // optional backup-pool/autodelegate config.
+  'docs/codex-auto-delegation.md',
+  // Native Codex entrypoint skill. Fresh Codex installs need a skill named
+  // "byan" so `$byan` resolves directly, not only the Claude-derived specialty
+  // skills copied from .claude/skills.
+  '.codex/skills/byan/SKILL.md',
+  // Portable Claude <-> Codex project handoff workflow. The CLI ships through
+  // package files[] (install/bin + install/lib); the workflow must also ship in
+  // the project template so assistants can invoke the operational procedure.
+  '_byan/workflow/simple/byan/project-handoff-workflow.md',
 ];
 
 // The template lives under this root-relative directory.

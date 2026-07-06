@@ -5,16 +5,20 @@
  *
  * RTK ("Rust Token Killer", Apache-2.0) is a single zero-dependency binary that
  * filters/compresses dev-command output before it reaches the LLM context
- * (-60/90% tokens). It wires into Claude Code through its OWN hook installer.
+ * (-60/90% tokens). It wires into Claude Code through its OWN hook installer;
+ * for Codex installs BYAN can make the native binary available, but does not
+ * claim a transparent hook layer where Codex has no BYAN hook adapter.
  *
  * MAINTAINABILITY by design (the whole point of choosing this shape):
  *  - We do NOT reimplement per-OS download / checksum / version pinning. We
  *    DELEGATE the install to rtk's own canonical installer (brew / the official
  *    install.sh / cargo), and DELEGATE the Claude Code hook wiring to rtk's own
  *    `rtk init -g --auto-patch` (the `--auto-patch` is what makes it non-
- *    interactive — see wireHook). BYAN maintains only "pick the available
- *    installer, run it bounded + visible, locate the binary, ask rtk to wire its
- *    hook" — a tiny surface, bumped via one constant.
+ *    interactive — see wireHook). For Codex, BYAN stops at verified native
+ *    binary availability and reports that honestly. BYAN maintains only "pick
+ *    the available installer, run it bounded + visible, locate the binary, ask
+ *    rtk to wire its hook when Claude is targeted" — a tiny surface, bumped via
+ *    one constant.
  *  - SUPPLY-CHAIN: we pin to a TAG, never a moving branch. cargo builds the
  *    tagged source (`--tag`), and install.sh is fetched from the IMMUTABLE tag ref.
  *    That script verifies a SHA-256 of the downloaded binary against a published
@@ -39,8 +43,8 @@
  *
  * Mirrors the ENTRY-POINT shape of byan-web-integration.js / byan-leantime-
  * integration.js (one `setup*Integration`); the return contract is { ok, synced,
- * reason, ... } because persistence is owned by rtk's own `rtk init -g --auto-patch`, not by
- * byan-platform-config.
+ * reason, ... } because persistence is owned by rtk's own `rtk init -g
+ * --auto-patch`, not by byan-platform-config.
  */
 
 const { execSync } = require('child_process');
@@ -128,6 +132,48 @@ function pathHintFor(bin, { env = process.env, platform = process.platform } = {
   return `export PATH="${dir}:$PATH"`;
 }
 
+function normalizeTargetPlatforms(targetPlatforms = ['claude']) {
+  const raw = Array.isArray(targetPlatforms) ? targetPlatforms : [targetPlatforms];
+  const set = new Set();
+  for (const p of raw) {
+    const key = String(p || '').trim().toLowerCase();
+    if (key === 'claude' || key === 'claude-code') set.add('claude');
+    if (key === 'codex') set.add('codex');
+  }
+  if (!set.size) set.add('claude');
+  return set;
+}
+
+function codexReady({
+  log,
+  installedVia,
+  version,
+  bin = 'rtk',
+  env = process.env,
+  platform = process.platform,
+  claudeHook = false,
+} = {}) {
+  const offPath = bin !== 'rtk';
+  log(`rtk: ready for Codex (${installedVia}, v${version || '?'}) — native binary available; no transparent Codex hook is wired.`);
+  const r = {
+    ok: true,
+    synced: true,
+    reason: 'codex-binary-ready',
+    installed: true,
+    installedVia,
+    version,
+    hook: Boolean(claudeHook),
+    claudeHook: Boolean(claudeHook),
+    codexReady: true,
+    bin,
+  };
+  if (offPath) {
+    r.pathHint = pathHintFor(bin, { env, platform });
+    log(`rtk: note — installed at ${bin}, not on your PATH. Add it: ${r.pathHint}`);
+  }
+  return r;
+}
+
 /**
  * rtkStatus() -> { installed, version, bin }. Never throws. Probes `<bin>
  * --version` ("rtk 0.42.4"), default bin "rtk" (on PATH). An installed-but-
@@ -209,7 +255,7 @@ function wireHook({ run, log, installedVia, version, bin = 'rtk', env = process.
   try {
     run(initCmd, { stdio: 'pipe' });
     log(`rtk: ready (${installedVia}, v${version || '?'}) — hook wired via '${initCmd}'. Restart Claude Code to activate.`);
-    const r = { ok: true, synced: true, reason: 'wired', installed: true, installedVia, version, hook: true, bin };
+    const r = { ok: true, synced: true, reason: 'wired', installed: true, installedVia, version, hook: true, claudeHook: true, bin };
     if (offPath) {
       r.pathHint = pathHintFor(bin, { env, platform });
       log(`rtk: note — installed at ${bin}, not on your PATH. Add it: ${r.pathHint}`);
@@ -217,7 +263,7 @@ function wireHook({ run, log, installedVia, version, bin = 'rtk', env = process.
     return r;
   } catch (err) {
     log(`rtk: installed (${installedVia}) but '${initCmd}' failed (${oneLine(err)}) — run it manually, BYAN unaffected.`);
-    const r = { ok: true, synced: false, reason: 'hook-failed', installed: true, installedVia, version, hook: false, bin };
+    const r = { ok: true, synced: false, reason: 'hook-failed', installed: true, installedVia, version, hook: false, claudeHook: false, bin };
     if (offPath) r.pathHint = pathHintFor(bin, { env, platform });
     return r;
   }
@@ -240,6 +286,9 @@ function wireHook({ run, log, installedVia, version, bin = 'rtk', env = process.
  * @param {Function} [o.resolve]  binary resolver (default resolveBinary) — injected in tests
  * @param {Function} [o.log]      one-line breadcrumb sink (default no-op)
  * @param {object}   [o.env]      environment (default process.env) — for the timeout override
+ * @param {string[]|string} [o.targetPlatforms] platforms to prepare:
+ *                    claude wires RTK's Claude Code hook; codex verifies the
+ *                    native binary and reports no transparent hook.
  */
 function setupRtkIntegration({
   run = execSync,
@@ -248,16 +297,33 @@ function setupRtkIntegration({
   log = () => {},
   env = process.env,
   platform = process.platform,
+  targetPlatforms = ['claude'],
 } = {}) {
+  const targets = normalizeTargetPlatforms(targetPlatforms);
+  const wantsClaude = targets.has('claude');
+  const wantsCodex = targets.has('codex');
+  const finishReady = ({ installedVia, version, bin }) => {
+    if (!wantsClaude && wantsCodex) {
+      return codexReady({ log, installedVia, version, bin, env, platform });
+    }
+    const r = wireHook({ run, log, installedVia, version, bin, env, platform });
+    if (wantsCodex && r.installed) {
+      r.codexReady = true;
+      if (r.reason === 'wired') r.reason = 'wired+codex-binary-ready';
+      log('rtk: also ready for Codex — native binary available; no transparent Codex hook is wired.');
+    }
+    return r;
+  };
+
   const before = locateRtk({ run, has, resolve, env });
   if (before.installed) {
-    return wireHook({ run, log, installedVia: 'already-present', version: before.version, bin: before.bin, env, platform });
+    return finishReady({ installedVia: 'already-present', version: before.version, bin: before.bin });
   }
 
   const strat = pickStrategy({ has });
   if (!strat) {
     log('rtk: no installer found (brew / curl / cargo) — skipped. BYAN install unaffected.');
-    return { ok: true, synced: false, reason: 'no-installer', installed: false, hook: false };
+    return { ok: true, synced: false, reason: 'no-installer', installed: false, hook: false, claudeHook: false, codexReady: false };
   }
 
   // Breadcrumb BEFORE the delegated install. stdio is INHERITED so the installer's
@@ -269,10 +335,10 @@ function setupRtkIntegration({
   } catch (err) {
     if (isTimeout(err)) {
       log(`rtk: install via ${strat.id} exceeded ${Math.round(timeoutMs / MIN)}min — stopped (a background build may still continue). Retry with 'npm run setup-rtk' (or widen BYAN_RTK_TIMEOUT_MS). BYAN unaffected.`);
-      return { ok: true, synced: false, reason: `install-timeout:${strat.id}`, installed: false, hook: false };
+      return { ok: true, synced: false, reason: `install-timeout:${strat.id}`, installed: false, hook: false, claudeHook: false, codexReady: false };
     }
     log(`rtk: install via ${strat.id} failed (${oneLine(err)}) — skipped gracefully.`);
-    return { ok: true, synced: false, reason: `install-failed:${strat.id}`, installed: false, hook: false };
+    return { ok: true, synced: false, reason: `install-failed:${strat.id}`, installed: false, hook: false, claudeHook: false, codexReady: false };
   }
 
   // The binary may be installed but OFF PATH (cargo -> ~/.cargo/bin). Resolve it
@@ -280,10 +346,10 @@ function setupRtkIntegration({
   const after = locateRtk({ run, has, resolve, env });
   if (!after.installed) {
     log(`rtk: install via ${strat.id} ran but 'rtk --version' did not confirm — skipped.`);
-    return { ok: true, synced: false, reason: 'install-unverified', installed: false, hook: false };
+    return { ok: true, synced: false, reason: 'install-unverified', installed: false, hook: false, claudeHook: false, codexReady: false };
   }
 
-  return wireHook({ run, log, installedVia: strat.id, version: after.version, bin: after.bin, env, platform });
+  return finishReady({ installedVia: strat.id, version: after.version, bin: after.bin });
 }
 
 /**
@@ -307,6 +373,7 @@ module.exports = {
   timeoutFor,
   isTimeout,
   pathHintFor,
+  normalizeTargetPlatforms,
   doctor,
   shouldOfferRtk,
   RTK_VERSION,

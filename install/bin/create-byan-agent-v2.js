@@ -1324,14 +1324,14 @@ async function install(options = {}) {
 
   if (needsCodex) {
     console.log();
-    console.log(chalk.cyan('Codex CLI MCP setup (~/.codex/config.toml)'));
+    console.log(chalk.cyan('Codex CLI native setup (~/.codex/config.toml + ~/.codex/skills)'));
     try {
-      await setupCodexNative(projectRoot);
+      await setupCodexNative(projectRoot, { templateDir, force: true });
     } catch (error) {
-      console.log(chalk.red(`  ✘ Codex MCP setup failed: ${error.message}`));
+      console.log(chalk.red(`  ✘ Codex native setup failed: ${error.message}`));
       console.log(
         chalk.yellow(
-          `    → Edit ~/.codex/config.toml manually to add the byan MCP entry.`
+          `    → Edit ~/.codex/config.toml manually to add the byan MCP entry, then copy BYAN skills into ~/.codex/skills.`
         )
       );
     }
@@ -1426,26 +1426,47 @@ async function install(options = {}) {
     }
   }
 
-  if (needsClaude && shouldOfferRtk()) {
+  if ((needsClaude || needsCodex) && shouldOfferRtk()) {
     console.log();
     console.log(chalk.cyan('RTK token optimizer (optional — Rust binary, cuts dev-command tokens 60-90%)'));
     try {
+      const rtkTargets = [
+        ...(needsClaude ? ['claude'] : []),
+        ...(needsCodex ? ['codex'] : []),
+      ];
+      const rtkMessage = needsClaude && needsCodex
+        ? 'Install rtk now? Runs its official installer, adds the GLOBAL Claude Code hook via `rtk init -g --auto-patch`, and makes the native rtk binary available for Codex (no transparent Codex hook).'
+        : needsClaude
+          ? 'Install rtk now? Runs its official installer (brew/cargo, or a pinned curl|sh) and adds a GLOBAL Claude Code hook via `rtk init -g --auto-patch`.'
+          : 'Install rtk now? Runs its official installer (brew/cargo, or a pinned curl|sh) and makes the native rtk binary available for Codex workflows. Codex has no transparent RTK hook here.';
       const { proceed } = await inquirer.prompt([
         {
           type: 'confirm',
           name: 'proceed',
-          message: 'Install rtk now? Runs its official installer (brew/cargo, or a pinned curl|sh) and adds a GLOBAL Claude Code hook via `rtk init -g --auto-patch`.',
+          message: rtkMessage,
           default: false,
         },
       ]);
       if (proceed) {
         console.log(chalk.gray('  Installing... progress streams below. The cargo fallback compiles from source (can take minutes); Ctrl+C is safe — BYAN is already installed.'));
-        const r = setupRtkIntegration({ log: (m) => console.log(chalk.gray('  ' + m)) });
+        const r = setupRtkIntegration({ targetPlatforms: rtkTargets, log: (m) => console.log(chalk.gray('  ' + m)) });
         if (r.synced) {
-          console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate`));
+          if (r.claudeHook && r.codexReady) {
+            console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate; Codex can use the native rtk binary`));
+          } else if (r.claudeHook) {
+            console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate`));
+          } else if (r.codexReady) {
+            console.log(chalk.green(`  ✓ rtk ready for Codex (${r.installedVia}, v${r.version || '?'}) — native binary installed; no transparent Codex hook`));
+          } else {
+            console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'})`));
+          }
           if (r.pathHint) console.log(chalk.yellow(`  ⚠ rtk is not on your PATH — add it: ${r.pathHint}`));
         } else {
-          console.log(chalk.yellow(`  ⚠ rtk not wired (${r.reason}) — BYAN unaffected; re-run \`npm run setup-rtk\` anytime`));
+          if (r.codexReady) {
+            console.log(chalk.yellow(`  ⚠ rtk Claude hook not wired (${r.reason}) — Codex can still use the native rtk binary; re-run \`npm run setup-rtk\` anytime`));
+          } else {
+            console.log(chalk.yellow(`  ⚠ rtk not ready (${r.reason}) — BYAN unaffected; re-run \`npm run setup-rtk\` anytime`));
+          }
           if (r.pathHint) console.log(chalk.yellow(`  ⚠ rtk found off-PATH — add it then re-run: ${r.pathHint}`));
         }
       } else {

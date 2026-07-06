@@ -12,6 +12,8 @@
  *   - off-PATH safe: an install that lands off PATH is RESOLVED, verified, wired
  *     by its real path, and reported with a pathHint (the cargo ~/.cargo/bin case)
  *   - idempotent: an already-present rtk still (re)wires the hook
+ *   - Codex target: installs/verifies the native binary without pretending there
+ *     is a transparent Codex hook
  *   - never breaks BYAN: setupRtkIntegration NEVER throws and ok===true always
  */
 
@@ -25,6 +27,7 @@ const {
   timeoutFor,
   isTimeout,
   pathHintFor,
+  normalizeTargetPlatforms,
   doctor,
   shouldOfferRtk,
   RTK_VERSION,
@@ -349,6 +352,53 @@ describe('rtk-integration — setupRtkIntegration', () => {
     expect(run.calls).toContain('rtk init -g --auto-patch');
   });
 
+  test('Codex-only target: already installed binary is ready without Claude hook wiring', () => {
+    const run = makeRun({ installed: true });
+    const r = setup({ run, has: hasFrom(['brew']), targetPlatforms: ['codex'] });
+    expect(r).toMatchObject({
+      ok: true,
+      synced: true,
+      reason: 'codex-binary-ready',
+      installedVia: 'already-present',
+      codexReady: true,
+      claudeHook: false,
+      hook: false,
+    });
+    expect(run.calls.some((c) => /brew install/.test(c))).toBe(false);
+    expect(run.calls).not.toContain('rtk init -g --auto-patch');
+  });
+
+  test('Codex-only target: installs via available strategy, verifies binary, and does not run Claude hook init', () => {
+    const run = makeRun();
+    const r = setup({ run, has: hasFrom(['brew']), targetPlatforms: ['codex'] });
+    expect(r).toMatchObject({
+      ok: true,
+      synced: true,
+      reason: 'codex-binary-ready',
+      installedVia: 'brew',
+      codexReady: true,
+      claudeHook: false,
+      hook: false,
+    });
+    expect(run.calls).toContain('brew install rtk');
+    expect(run.calls).not.toContain('rtk init -g --auto-patch');
+  });
+
+  test('Claude+Codex target: wires Claude hook and marks Codex binary ready', () => {
+    const run = makeRun({ installed: true });
+    const r = setup({ run, has: hasFrom(['brew']), targetPlatforms: ['claude', 'codex'] });
+    expect(r).toMatchObject({
+      ok: true,
+      synced: true,
+      reason: 'wired+codex-binary-ready',
+      installedVia: 'already-present',
+      codexReady: true,
+      claudeHook: true,
+      hook: true,
+    });
+    expect(run.calls).toContain('rtk init -g --auto-patch');
+  });
+
   test('install command fails: graceful, ok true, reason names the strategy', () => {
     const run = makeRun({ installSucceeds: false });
     const r = setup({ run, has: hasFrom(['brew']) });
@@ -431,6 +481,17 @@ describe('rtk-integration — status + doctor', () => {
   test('doctor reports the component status + the pinned floor + hook command', () => {
     const d = doctor({ run: makeRun({ installed: true }), resolve: () => 'rtk' });
     expect(d).toMatchObject({ component: 'rtk', installed: true, version: '0.42.4', pinned: RTK_VERSION, hookCommand: 'rtk init -g --auto-patch' });
+  });
+});
+
+describe('rtk-integration — target platform normalization', () => {
+  test('defaults to Claude to preserve npm run setup-rtk behavior', () => {
+    expect([...normalizeTargetPlatforms()]).toEqual(['claude']);
+  });
+
+  test('accepts aliases and filters unknown values', () => {
+    expect([...normalizeTargetPlatforms(['claude-code', 'codex', 'unknown'])].sort()).toEqual(['claude', 'codex']);
+    expect([...normalizeTargetPlatforms(['unknown'])]).toEqual(['claude']);
   });
 });
 
