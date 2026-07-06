@@ -5,14 +5,10 @@ module.exports = {
     'lib/**/*.js',
     '!lib/templates/**',
     '!**/node_modules/**',
-    // Exclude Phase 2+ modules (not implemented yet)
-    '!lib/yanstaller/installer.js',
-    '!lib/yanstaller/wizard.js',
-    '!lib/yanstaller/interviewer.js',
+    // yanstaller surface without a dedicated coverage suite (exercised indirectly
+    // via the CLI/webui, not gated here). The former Phase-2 stub modules that
+    // used to sit here were excised.
     '!lib/yanstaller/backuper.js',
-    '!lib/yanstaller/validator.js',
-    '!lib/yanstaller/recommender.js',
-    '!lib/yanstaller/troubleshooter.js',
     '!lib/yanstaller/index.js',
     '!lib/errors.js',
     '!lib/exit-codes.js',

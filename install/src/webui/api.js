@@ -165,19 +165,6 @@ const routes = {
         await sleep(300);
       }
 
-      if (yanstaller) {
-        try {
-          await yanstaller.install({
-            mode: config.mode || 'full',
-            platforms: config.platforms,
-            yes: true,
-            projectRoot
-          });
-        } catch (err) {
-          server.broadcastLog('warn', `Yanstaller: ${err.message} (continuing with stub install)`);
-        }
-      }
-
       ensureDirectoryStructure(projectRoot);
       writeBaseConfig(projectRoot, config);
 

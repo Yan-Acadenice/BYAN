@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.42.1] - 2026-07-06
+
+### Changed - Excised the dead stub half of the yanstaller module
+
+- Removed six pure-stub files under `install/lib/yanstaller/` that had no caller
+  (`installer.js`, `validator.js`, `recommender.js`, `interviewer.js`,
+  `troubleshooter.js`, `wizard.js`). `installer.js` faked a successful install
+  without touching the disk; `validator.js` returned `passed: true` for its ten
+  checks without inspecting anything. The real installer is
+  `install/bin/create-byan-agent-v2.js`.
+- Dropped the half-implemented `install()`/`uninstall()` orchestrator from
+  `install/lib/yanstaller/index.js`. The live surface consumed by the CLI
+  (`update` / `rollback` / `backups` / `check`) and the web UI is untouched:
+  `update`, `rollback`, `listBackups`, plus the `detector` / `platformSelector`
+  / `updater` / `backuper` modules.
+- Removed the dead `yanstaller.install()` call from the web UI install path
+  (`install/src/webui/api.js`); it already had its own directory/config
+  fallback and had logged that call as a stub.
+- Added `install/__tests__/yanstaller/no-stub-guard.test.js`, a regression guard
+  that keeps the excised stubs from creeping back and locks the surviving public
+  surface. Net: -853 / +11 lines shipped to npm consumers.
+
 ## [2.42.0] - 2026-07-06
 
 ### Fixed - Shipped Claude Code hooks no longer spam MODULE_NOT_FOUND
