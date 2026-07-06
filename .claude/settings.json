@@ -6,15 +6,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-soul.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-soul.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-tao.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-tao.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-check.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/soul-memory-check.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       }
@@ -25,27 +25,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-voice-anchor.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-voice-anchor.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/inject-delivery-default.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/inject-delivery-default.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/soul-memory-triggers.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/soul-memory-triggers.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fd-phase-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/fd-phase-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/strict-context-inject.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/strict-context-inject.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/codex-autodelegate.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/codex-autodelegate.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       }
@@ -56,35 +56,35 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mantra-validate.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/mantra-validate.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fact-check-claims.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/fact-check-claims.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fd-response-check.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/fd-response-check.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stage-to-byan.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/stage-to-byan.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/strict-stop-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/strict-stop-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/autobench-stop-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/autobench-stop-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/punt-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/punt-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/drain-advisory.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/drain-advisory.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       }
@@ -95,15 +95,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-transparency.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/tool-transparency.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/fact-check-absolutes.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/fact-check-absolutes.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/strict-scope-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/strict-scope-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       },
@@ -112,7 +112,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tier-script-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/tier-script-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       }
@@ -123,11 +123,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-failure-guard.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/tool-failure-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/leantime-fd-sync.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/leantime-fd-sync.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       }
@@ -138,7 +138,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact-save.js"
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact-save.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       }

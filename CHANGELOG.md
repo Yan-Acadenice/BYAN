@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.42.0] - 2026-07-06
 
+### Fixed - Shipped Claude Code hooks no longer spam MODULE_NOT_FOUND
+- **Every hook command in the shipped `.claude/settings.json` is now
+  self-guarded.** The hooks run on every tool (empty matcher); a bare
+  `node "$CLAUDE_PROJECT_DIR"/.claude/hooks/X.js` threw `MODULE_NOT_FOUND` on
+  every tool call whenever the script was not resolvable — a non-BYAN project, an
+  empty `$CLAUDE_PROJECT_DIR`, a partial install, or version drift. Each command
+  is now `p="$CLAUDE_PROJECT_DIR/.claude/hooks/X.js"; [ -f "$p" ] || exit 0; exec
+  node "$p"`: a missing script no-ops with exit 0 (the tool proceeds), a present
+  script runs via `exec` so its exit code is preserved (a blocking PreToolUse /
+  Stop guard still blocks). Covered by
+  `install/__tests__/hook-invocation-guard.test.js` (guarded-shape on all 24
+  commands + runtime sh simulation: absent/empty -> 0, blocker -> 2, stdin
+  passthrough).
+
 ### Changed - Handoff auto-import instructions
 - **Claude and Codex activation surfaces now know how to handle
   `importe depuis claude` / `importe depuis codex` automatically.** `CLAUDE.md`
