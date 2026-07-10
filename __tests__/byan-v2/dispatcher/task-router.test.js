@@ -1,6 +1,6 @@
 /**
  * TaskRouter Tests - TDD
- * AC: Intègre ComplexityScorer + TaskToolInterface
+ * AC: Intègre ComplexityScorer
  * Thresholds: <30 → task-tool, 30-60 → task-tool+fallback, >60 → local
  */
 

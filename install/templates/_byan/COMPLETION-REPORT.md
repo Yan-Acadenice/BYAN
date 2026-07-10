@@ -99,7 +99,6 @@ Suite à la migration `_byan` → `_byan`, la structure BYAN v2 a été complét
    - ComplexityScorer: Analyse complexité tâches (0.0-1.0)
    - TaskRouter: Routage intelligent (local vs délégation)
    - LocalExecutor: Exécution locale
-   - TaskToolInterface: Interface avec sous-agents Copilot CLI
 
 3. **Generation Worker** (`generation/`)
    - ProfileTemplate: Templates markdown avec placeholders

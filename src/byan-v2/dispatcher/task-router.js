@@ -1,6 +1,6 @@
 /**
  * TaskRouter - Routes tasks based on complexity
- * Integrates ComplexityScorer + TaskToolInterface
+ * Integrates ComplexityScorer
  * 
  * Thresholds:
  * - < 30: task-tool only
