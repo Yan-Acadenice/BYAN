@@ -151,23 +151,23 @@ async function setupClaudeNative(projectRoot, options = {}) {
   const results = {};
 
   results.hooks = await copyClaudeHooks(projectRoot);
-  log(chalk.green(`  ✓ Claude Code hooks: ${results.hooks.copied} files`));
+  log(chalk.green(`  [OK] Claude Code hooks: ${results.hooks.copied} files`));
 
   results.skills = await copyClaudeSkills(projectRoot);
-  log(chalk.green(`  ✓ Claude Code skills: ${results.skills.copied} skills`));
+  log(chalk.green(`  [OK] Claude Code skills: ${results.skills.copied} skills`));
 
   results.settings = await copyClaudeSettings(projectRoot);
   log(
     results.settings.copied
-      ? chalk.green(`  ✓ Claude Code settings.json (hooks wired)`)
-      : chalk.yellow(`  ⚠ settings.json template absent`)
+      ? chalk.green(`  [OK] Claude Code settings.json (hooks wired)`)
+      : chalk.yellow(`  [WARN] settings.json template absent`)
   );
 
   results.mcp = await copyMcpServer(projectRoot);
   log(
     results.mcp.copied
-      ? chalk.green(`  ✓ MCP server copied to _byan/mcp/byan-mcp-server/`)
-      : chalk.yellow(`  ⚠ MCP server template absent`)
+      ? chalk.green(`  [OK] MCP server copied to _byan/mcp/byan-mcp-server/`)
+      : chalk.yellow(`  [WARN] MCP server template absent`)
   );
 
   results.mcpConfig = await generateMcpConfig(projectRoot, options);
@@ -180,18 +180,18 @@ async function setupClaudeNative(projectRoot, options = {}) {
 
   results.gitHooks = await copyGitHooks(projectRoot);
   if (results.gitHooks.copied && results.gitHooks.hooksPath) {
-    log(chalk.green(`  ✓ Strict pre-commit gate wired (.githooks + core.hooksPath)`));
+    log(chalk.green(`  [OK] Strict pre-commit gate wired (.githooks + core.hooksPath)`));
   } else if (results.gitHooks.copied) {
-    log(chalk.yellow(`  ⚠ .githooks copied but not wired (${results.gitHooks.reason || 'no git repo'}); run: git config core.hooksPath .githooks`));
+    log(chalk.yellow(`  [WARN] .githooks copied but not wired (${results.gitHooks.reason || 'no git repo'}); run: git config core.hooksPath .githooks`));
   }
 
   if (results.mcp.copied && options.installDeps !== false) {
     results.mcpDeps = await installMcpDependencies(results.mcp.path);
     if (results.mcpDeps.installed) {
-      log(chalk.green(`  ✓ MCP dependencies installed (npm install)`));
+      log(chalk.green(`  [OK] MCP dependencies installed (npm install)`));
     } else {
-      log(chalk.yellow(`  ⚠ MCP npm install failed: ${results.mcpDeps.error}`));
-      log(chalk.yellow(`    → Run manually: cd _byan/mcp/byan-mcp-server && npm install`));
+      log(chalk.yellow(`  [WARN] MCP npm install failed: ${results.mcpDeps.error}`));
+      log(chalk.yellow(`    -> Run manually: cd _byan/mcp/byan-mcp-server && npm install`));
     }
   }
 

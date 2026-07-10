@@ -103,7 +103,7 @@ async function assertVersionFresh({ skip = false, timeoutMs = 5000 } = {}) {
 const banner = `
 ${chalk.blue('╔════════════════════════════════════════════════════════════╗')}
 ${chalk.blue('║')}                                                            ${chalk.blue('║')}
-${chalk.blue('║')}   ${chalk.bold('🏗️  BYAN INSTALLER v' + BYAN_VERSION)}                          ${chalk.blue('║')}
+${chalk.blue('║')}   ${chalk.bold('BYAN INSTALLER v' + BYAN_VERSION)}                          ${chalk.blue('║')}
 ${chalk.blue('║')}   ${chalk.gray('Builder of YAN - Agent Creator')}                          ${chalk.blue('║')}
 ${chalk.blue('║')}                                                            ${chalk.blue('║')}
 ${chalk.blue('║')}   ${chalk.gray('Architecture: _byan/ + Model Selector')}                ${chalk.blue('║')}
@@ -127,7 +127,7 @@ const getTemplateDir = () => {
     return devPath;
   }
   
-  console.error(chalk.red('⚠️  WARNING: Template directory not found!'));
+  console.error(chalk.red('[WARN] WARNING: Template directory not found!'));
   console.error(chalk.red(`   Searched: ${npmPackagePath}`));
   console.error(chalk.red(`   Also searched: ${devPath}`));
   return null;
@@ -167,10 +167,10 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
     if (await fs.pathExists(sourcePath)) {
       await fs.copy(sourcePath, destPath, { overwrite: false });
       spinner.text = `Installing ${file.desc}...`;
-      console.log(chalk.green(`  ✓ ${file.desc}: ${file.src} → ${file.dest}`));
+      console.log(chalk.green(`  [OK] ${file.desc}: ${file.src} -> ${file.dest}`));
       copiedCount++;
     } else {
-      console.log(chalk.yellow(`  ⚠ Skipping ${file.desc} (not found in template)`));
+      console.log(chalk.yellow(`  [WARN] Skipping ${file.desc} (not found in template)`));
     }
   }
   
@@ -292,7 +292,7 @@ async function mergePackageJson(templateDir, projectRoot, spinner) {
     
     await fs.writeJson(projectPkgPath, projectPkg, { spaces: 2 });
     spinner.text = 'Updated package.json with v2.0 dependencies';
-    console.log(chalk.green('  ✓ package.json merged with v2.0 config'));
+    console.log(chalk.green('  [OK] package.json merged with v2.0 config'));
     return true;
   } else {
     // Create new package.json based on template
@@ -308,7 +308,7 @@ async function mergePackageJson(templateDir, projectRoot, spinner) {
     
     await fs.writeJson(projectPkgPath, newPkg, { spaces: 2 });
     spinner.text = 'Created package.json with v2.0 config';
-    console.log(chalk.green('  ✓ package.json created'));
+    console.log(chalk.green('  [OK] package.json created'));
     return true;
   }
 }
@@ -364,7 +364,7 @@ async function install(options = {}) {
   
   if (v2Detection.isV2Available) {
     detectSpinner.succeed('BYAN v2.0 detected (Runtime + Platform)');
-    console.log(chalk.cyan('  ℹ Architecture 4 Pilliers + v2.0 Core Components'));
+    console.log(chalk.cyan('  [INFO] Architecture 4 Pilliers + v2.0 Core Components'));
   } else {
     detectSpinner.succeed('BYAN v1.0 detected (Platform only)');
   }
@@ -375,17 +375,17 @@ async function install(options = {}) {
   const detectedPlatforms = await detectPlatforms();
   platformSpinner.succeed('Platform detection complete');
   
-  console.log(chalk.cyan('\n📦 Installed Platforms:'));
-  console.log(`  OpenAI Codex:       ${detectedPlatforms.codex ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
-  console.log(`  Claude Code:        ${detectedPlatforms.claude ? chalk.green('✓ Detected') : chalk.gray('✗ Not found')}`);
+  console.log(chalk.cyan('\nInstalled Platforms:'));
+  console.log(`  OpenAI Codex:       ${detectedPlatforms.codex ? chalk.green('[OK] Detected') : chalk.gray('[x] Not found')}`);
+  console.log(`  Claude Code:        ${detectedPlatforms.claude ? chalk.green('[OK] Detected') : chalk.gray('[x] Not found')}`);
   console.log('');
   
   // Calculate recommended model for installation
   const complexity = calculateInstallComplexity();
-  console.log(chalk.cyan('🧠 Model Selector (Complexity Analysis):'));
+  console.log(chalk.cyan('Model Selector (Complexity Analysis):'));
   console.log(`  Installation Score: ${chalk.yellow(complexity.score)} (simple task)`);
   console.log(`  Recommended Model:  ${chalk.green(complexity.recommended)}`);
-  console.log(chalk.gray('  → Optimized for cost efficiency during installation'));
+  console.log(chalk.gray('  -> Optimized for cost efficiency during installation'));
   console.log('');
   
   // Step 2.8: Installation mode selection
@@ -395,9 +395,9 @@ async function install(options = {}) {
       name: 'installMode',
       message: 'Choose installation mode:',
       choices: [
-        { name: '🚀 AUTO - Quick install with smart defaults (Recommended)', value: 'auto' },
-        { name: '🎯 CUSTOM - Guided interview with personalized recommendations', value: 'custom' },
-        { name: '📋 MANUAL - Choose agents individually from the full catalog', value: 'manual' }
+        { name: 'AUTO - Quick install with smart defaults (Recommended)', value: 'auto' },
+        { name: 'CUSTOM - Guided interview with personalized recommendations', value: 'custom' },
+        { name: 'MANUAL - Choose agents individually from the full catalog', value: 'manual' }
       ],
       default: 'auto'
     }
@@ -414,7 +414,7 @@ async function install(options = {}) {
     console.log('');
     console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
     console.log(chalk.blue('║                                                            ║'));
-    console.log(chalk.blue('║   📋 MANUAL MODE - Agent Catalog Selection                 ║'));
+    console.log(chalk.blue('║   MANUAL MODE - Agent Catalog Selection                 ║'));
     console.log(chalk.blue('║   Choose your agents from the full BYAN catalog             ║'));
     console.log(chalk.blue('║                                                            ║'));
     console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
@@ -422,12 +422,12 @@ async function install(options = {}) {
 
     // Step 1: Select target platform(s)
     const availableManualPlatforms = [];
-    if (detectedPlatforms.codex) availableManualPlatforms.push({ name: '🔷 OpenAI Codex (skills: .codex/prompts/)', value: 'codex' });
-    if (detectedPlatforms.claude) availableManualPlatforms.push({ name: '🧠 Claude Code (rules: .claude/)', value: 'claude' });
+    if (detectedPlatforms.codex) availableManualPlatforms.push({ name: 'OpenAI Codex (skills: .codex/prompts/)', value: 'codex' });
+    if (detectedPlatforms.claude) availableManualPlatforms.push({ name: 'Claude Code (rules: .claude/)', value: 'claude' });
 
     // Always allow manual selection even if not detected
-    if (!detectedPlatforms.codex) availableManualPlatforms.push({ name: '🔷 OpenAI Codex (not detected)', value: 'codex' });
-    if (!detectedPlatforms.claude) availableManualPlatforms.push({ name: '🧠 Claude Code (not detected)', value: 'claude' });
+    if (!detectedPlatforms.codex) availableManualPlatforms.push({ name: 'OpenAI Codex (not detected)', value: 'codex' });
+    if (!detectedPlatforms.claude) availableManualPlatforms.push({ name: 'Claude Code (not detected)', value: 'claude' });
 
     const { manualPlatforms } = await inquirer.prompt([{
       type: 'checkbox',
@@ -439,7 +439,7 @@ async function install(options = {}) {
 
     // Step 2: Show agent catalog grouped by category (module + role)
     console.log('');
-    console.log(chalk.cyan('📦 Agent Catalog'));
+    console.log(chalk.cyan('Agent Catalog'));
     console.log(chalk.gray('  Hermes (dispatcher) is always installed - it routes tasks to the right agent.'));
     console.log(chalk.gray('  Agents are organized by role: Workflow, Context, and Worker.'));
     console.log('');
@@ -533,7 +533,7 @@ async function install(options = {}) {
     };
 
     console.log('');
-    console.log(chalk.cyan('📋 Manual Selection Summary:'));
+    console.log(chalk.cyan('Manual Selection Summary:'));
     console.log(chalk.green(`  Platforms: ${manualPlatforms.join(', ')}`));
     console.log(chalk.green(`  Agents (${finalAgents.length}): ${finalAgents.join(', ')}`));
     console.log(chalk.gray(`  Roles: dispatcher=hermes, workflow/context/worker agents selected`));
@@ -545,7 +545,7 @@ async function install(options = {}) {
     console.log('');
     console.log(chalk.blue('╔════════════════════════════════════════════════════════════╗'));
     console.log(chalk.blue('║                                                            ║'));
-    console.log(chalk.blue('║   🎯 YANSTALLER - Intelligent Interview                    ║'));
+    console.log(chalk.blue('║   YANSTALLER - Intelligent Interview                    ║'));
     console.log(chalk.blue('║   Powered by bmad-agent-yanstaller                         ║'));
     console.log(chalk.blue('║                                                            ║'));
     console.log(chalk.blue('╚════════════════════════════════════════════════════════════╝'));
@@ -710,7 +710,7 @@ async function install(options = {}) {
             interviewResults = JSON.parse(jsonStr);
             
             console.log('');
-            console.log(chalk.cyan('📊 Yanstaller Recommendations:'));
+            console.log(chalk.cyan('Yanstaller Recommendations:'));
             if (interviewResults.platforms) {
               console.log(chalk.green(`  Platforms: ${interviewResults.platforms.join(', ')}`));
             }
@@ -726,11 +726,11 @@ async function install(options = {}) {
             console.log(chalk.green(`  Model: ${interviewResults.recommended_model || interviewComplexity}`));
             console.log(chalk.green(`  Complexity: ${interviewResults.complexity_score || 'N/A'}`));
           } catch (parseErr) {
-            console.log(chalk.yellow('  ⚠ JSON parse error, using detection defaults'));
+            console.log(chalk.yellow('  [WARN] JSON parse error, using detection defaults'));
             interviewResults = null;
           }
         } else {
-          console.log(chalk.yellow('  ⚠ No JSON in agent response, using detection defaults'));
+          console.log(chalk.yellow('  [WARN] No JSON in agent response, using detection defaults'));
           interviewResults = null;
         }
       } catch (error) {
@@ -754,7 +754,7 @@ async function install(options = {}) {
         };
         
         console.log('');
-        console.log(chalk.cyan('📊 Local Recommendations (from interview):'));
+        console.log(chalk.cyan('Local Recommendations (from interview):'));
         console.log(chalk.green(`  Platforms: ${interviewResults.platforms.join(', ')}`));
         console.log(chalk.green(`  Turbo Whisper: ${interviewResults.turboWhisper.mode}`));
         console.log(chalk.green(`  Essential agents: ${interviewResults.agents.essential.join(', ')}`));
@@ -775,7 +775,7 @@ async function install(options = {}) {
         complexity_score: 15
       };
       
-      console.log(chalk.yellow('⚠ No AI platform detected, using defaults'));
+      console.log(chalk.yellow('[WARN] No AI platform detected, using defaults'));
     }
     
     // Cleanup temp prompt file
@@ -808,7 +808,7 @@ async function install(options = {}) {
   
   if (installMode === 'custom' && interviewResults) {
     // Use agent/interview recommendations
-    console.log(chalk.blue('🎯 Recommandations personnalisées:'));
+    console.log(chalk.blue('Recommandations personnalisées:'));
     console.log('');
     
     // Platform recommendations (from agent JSON or detected platforms)
@@ -816,32 +816,32 @@ async function install(options = {}) {
     if (agentPlatforms.length > 0) {
       agentPlatforms.forEach(p => {
         recommendedPlatforms.push(p);
-        console.log(chalk.green(`  ✓ ${p} - Recommandé par yanstaller`));
+        console.log(chalk.green(`  [OK] ${p} - Recommandé par yanstaller`));
       });
     } else {
-      if (detectedPlatforms.codex) { recommendedPlatforms.push('codex'); console.log(chalk.green('  ✓ Codex - Détecté')); }
-      if (detectedPlatforms.claude) { recommendedPlatforms.push('claude'); console.log(chalk.green('  ✓ Claude Code - Détecté')); }
+      if (detectedPlatforms.codex) { recommendedPlatforms.push('codex'); console.log(chalk.green('  [OK] Codex - Détecté')); }
+      if (detectedPlatforms.claude) { recommendedPlatforms.push('claude'); console.log(chalk.green('  [OK] Claude Code - Détecté')); }
     }
     
     // Turbo Whisper (from agent or interview data)
     if (interviewResults.turboWhisper) {
       recommendedTurboWhisper = interviewResults.turboWhisper.mode || 'skip';
       if (recommendedTurboWhisper !== 'skip') {
-        console.log(chalk.cyan(`  🎤 Turbo Whisper (${recommendedTurboWhisper}) - ${interviewResults.turboWhisper.reason || 'Recommandé'}`));
+        console.log(chalk.cyan(`  Turbo Whisper (${recommendedTurboWhisper}) - ${interviewResults.turboWhisper.reason || 'Recommandé'}`));
       }
     }
     
     // Agents recommendation
     if (interviewResults.agents) {
-      console.log(chalk.cyan(`  📦 Agents essentiels: ${(interviewResults.agents.essential || []).join(', ')}`));
+      console.log(chalk.cyan(`  Agents essentiels: ${(interviewResults.agents.essential || []).join(', ')}`));
       if (interviewResults.agents.optional && interviewResults.agents.optional.length > 0) {
-        console.log(chalk.gray(`  📦 Agents optionnels: ${interviewResults.agents.optional.join(', ')}`));
+        console.log(chalk.gray(`  Agents optionnels: ${interviewResults.agents.optional.join(', ')}`));
       }
     }
     
     // Model recommendation
     if (interviewResults.recommended_model) {
-      console.log(chalk.cyan(`  🧠 Model recommandé: ${interviewResults.recommended_model} (score: ${interviewResults.complexity_score || 'N/A'})`));
+      console.log(chalk.cyan(`  Model recommandé: ${interviewResults.recommended_model} (score: ${interviewResults.complexity_score || 'N/A'})`));
     }
     
     console.log('');
@@ -850,8 +850,8 @@ async function install(options = {}) {
     let selectedPlatform = null;
     const availablePlatforms = [];
     
-    if (detectedPlatforms.codex) availablePlatforms.push({ name: '🔷 OpenAI Codex', value: 'codex' });
-    if (detectedPlatforms.claude) availablePlatforms.push({ name: '🧠 Claude Code (Anthropic)', value: 'claude' });
+    if (detectedPlatforms.codex) availablePlatforms.push({ name: 'OpenAI Codex', value: 'codex' });
+    if (detectedPlatforms.claude) availablePlatforms.push({ name: 'Claude Code (Anthropic)', value: 'claude' });
     
     if (availablePlatforms.length > 1) {
       const { platform } = await inquirer.prompt([{
@@ -864,9 +864,9 @@ async function install(options = {}) {
       selectedPlatform = platform;
     } else if (availablePlatforms.length === 1) {
       selectedPlatform = availablePlatforms[0].value;
-      console.log(chalk.cyan(`🤖 Plateforme détectée: ${availablePlatforms[0].name}`));
+      console.log(chalk.cyan(`Plateforme détectée: ${availablePlatforms[0].name}`));
     } else {
-      console.log(chalk.red('❌ Aucune plateforme IA détectée. Installation en mode AUTO.'));
+      console.log(chalk.red('[ERROR] Aucune plateforme IA détectée. Installation en mode AUTO.'));
       installMode = 'auto';
     }
     
@@ -875,14 +875,14 @@ async function install(options = {}) {
       const oldModel = interviewResults.recommended_model || '';
       if (oldModel.includes('gpt')) {
         interviewResults.recommended_model = 'claude-haiku-4.5';
-        console.log(chalk.cyan(`  🧠 Model adapté: claude-haiku-4.5 (plateforme: Claude)`));
+        console.log(chalk.cyan(`  Model adapté: claude-haiku-4.5 (plateforme: Claude)`));
       }
     }
     
     // Verify authentication for selected platform
     if (selectedPlatform && installMode === 'custom') {
       console.log('');
-      console.log(chalk.gray('🔐 Vérification de l\'authentification...'));
+      console.log(chalk.gray('Vérification de l\'authentification...'));
       
       let isAuthenticated = false;
       
@@ -921,11 +921,11 @@ async function install(options = {}) {
           }
           
           isAuthenticated = true;
-          console.log(chalk.green(`✓ ${selectedPlatform} authentifié et disponible`));
+          console.log(chalk.green(`[OK] ${selectedPlatform} authentifié et disponible`));
           
         } catch (error) {
           console.log('');
-          console.log(chalk.yellow(`⚠️  ${selectedPlatform} n'est pas authentifié ou non disponible`));
+          console.log(chalk.yellow(`[WARN] ${selectedPlatform} n'est pas authentifié ou non disponible`));
           console.log(chalk.gray(`   Erreur: ${(error.message || '').substring(0, 120)}`));
           console.log('');
           console.log(chalk.bold('   Pour vous connecter:'));
@@ -948,14 +948,14 @@ async function install(options = {}) {
             name: 'authAction',
             message: 'Que souhaitez-vous faire?',
             choices: [
-              { name: '🔄 Réessayer (après connexion dans un autre terminal)', value: 'retry' },
-              { name: '⚡ Continuer en mode AUTO (sans conversation IA)', value: 'auto' },
-              { name: '❌ Annuler l\'installation', value: 'cancel' }
+              { name: 'Réessayer (après connexion dans un autre terminal)', value: 'retry' },
+              { name: 'Continuer en mode AUTO (sans conversation IA)', value: 'auto' },
+              { name: '[ERROR] Annuler l\'installation', value: 'cancel' }
             ]
           }]);
           
           if (authAction === 'retry') {
-            console.log(chalk.gray('\n🔐 Nouvelle vérification...'));
+            console.log(chalk.gray('\nNouvelle vérification...'));
             continue;
           } else if (authAction === 'auto') {
             installMode = 'auto';
@@ -978,9 +978,9 @@ async function install(options = {}) {
       name: 'enterPhase2',
       message: 'Phase 2 - Configuration avancée?',
       choices: [
-        { name: '💬 Chat - Conversation personnalisée avec Yanstaller', value: 'chat' },
-        { name: '⚡ Auto - Configuration par défaut (rapide)', value: 'auto' },
-        { name: '⏭️  Skip - Passer Phase 2', value: 'skip' }
+        { name: 'Chat - Conversation personnalisée avec Yanstaller', value: 'chat' },
+        { name: 'Auto - Configuration par défaut (rapide)', value: 'auto' },
+        { name: 'Skip - Passer Phase 2', value: 'skip' }
       ],
       default: 'chat'
     }]);
@@ -1023,7 +1023,7 @@ async function install(options = {}) {
     // Display Phase 2 results if available
     if (phase2Results) {
       console.log('');
-      console.log(chalk.cyan('📋 Configuration Agents:'));
+      console.log(chalk.cyan('Configuration Agents:'));
       if (phase2Results.coreAgents) {
         console.log(chalk.green(`  Core: ${phase2Results.coreAgents.map(a => a.name).join(', ')}`));
       }
@@ -1039,7 +1039,7 @@ async function install(options = {}) {
       try {
         const outputDir = path.join(projectRoot, '_byan-output');
         const docPath = await generateProjectAgentsDoc(phase2Results, interviewAnswers, {}, outputDir);
-        console.log(chalk.green(`  ✓ Généré: ${path.relative(projectRoot, docPath)}`));
+        console.log(chalk.green(`  [OK] Généré: ${path.relative(projectRoot, docPath)}`));
         console.log('');
       } catch (error) {
         // Silent fail - document generation is optional
@@ -1056,12 +1056,12 @@ async function install(options = {}) {
     // In MANUAL mode, use the first selected platform as primary
     // (all selected platforms will be used for stub generation)
     platform = manualSelection.platforms.length === 1 ? manualSelection.platforms[0] : 'all';
-    console.log(chalk.cyan(`📦 Platform(s): ${manualSelection.platforms.join(', ')} (from manual selection)`));
+    console.log(chalk.cyan(`Platform(s): ${manualSelection.platforms.join(', ')} (from manual selection)`));
     console.log('');
   } else {
     const platformChoices = [
-      { name: `Claude Code ${detectedPlatforms.claude ? chalk.green('(✓ Detected)') : ''}`, value: 'claude' },
-      { name: `Codex ${detectedPlatforms.codex ? chalk.green('(✓ Detected)') : ''}`, value: 'codex' },
+      { name: `Claude Code ${detectedPlatforms.claude ? chalk.green('([OK] Detected)') : ''}`, value: 'claude' },
+      { name: `Codex ${detectedPlatforms.codex ? chalk.green('([OK] Detected)') : ''}`, value: 'codex' },
       { name: 'All platforms', value: 'all' }
     ];
 
@@ -1113,20 +1113,20 @@ async function install(options = {}) {
   }
   
   // Step 5.5: Turbo Whisper voice dictation (optional, with interview recommendation)
-  console.log(chalk.blue('\n🎤 Voice Dictation Setup'));
+  console.log(chalk.blue('\nVoice Dictation Setup'));
   console.log(chalk.gray('Turbo Whisper enables voice-to-text with local Whisper AI server.\n'));
   
   let turboWhisperChoices = [
-    { name: '🖥️  Local (CPU) - Run Whisper server locally', value: 'local' },
-    { name: '🚀 Docker (GPU) - Run Whisper in Docker with GPU', value: 'docker' },
-    { name: '⏭️  Skip - Install later manually', value: 'skip' }
+    { name: 'Local (CPU) - Run Whisper server locally', value: 'local' },
+    { name: 'Docker (GPU) - Run Whisper in Docker with GPU', value: 'docker' },
+    { name: 'Skip - Install later manually', value: 'skip' }
   ];
   
   // Adjust default based on interview
   let defaultTurboMode = 'skip';
   if (installMode === 'custom' && recommendedTurboWhisper !== 'skip') {
     defaultTurboMode = recommendedTurboWhisper;
-    console.log(chalk.cyan(`💡 Recommandation: ${recommendedTurboWhisper === 'docker' ? 'Docker (GPU)' : 'Local (CPU)'} basé sur votre profil\n`));
+    console.log(chalk.cyan(`Recommandation: ${recommendedTurboWhisper === 'docker' ? 'Docker (GPU)' : 'Local (CPU)'} basé sur votre profil\n`));
   }
   
   const { turboWhisperMode } = await inquirer.prompt([
@@ -1188,7 +1188,7 @@ async function install(options = {}) {
     // module dirs keep only their config/help/teams/data).
     const byanSource = path.join(templateDir, '_byan');
 
-    // Directories to copy from templates/_byan/ → project/_byan/.
+    // Directories to copy from templates/_byan/ -> project/_byan/.
     // Gen3 by-type dirs (agent, workflow, connaissance, command, worker,
     // memoire) plus the retained module config dirs and _config/data.
     const byanDirs = ['agent', 'workflow', 'connaissance', 'command', 'worker', 'memoire',
@@ -1213,7 +1213,7 @@ async function install(options = {}) {
     }
     
     copySpinner.text = 'Copied platform files...';
-    console.log(chalk.green(`  ✓ Platform: _byan/ (agent, workflow, connaissance, command, worker, memoire, config)`));
+    console.log(chalk.green(`  [OK] Platform: _byan/ (agent, workflow, connaissance, command, worker, memoire, config)`));
     
     // Copy cost optimizer worker if enabled
     if (interviewAnswers && interviewAnswers.costOptimizer) {
@@ -1226,10 +1226,10 @@ async function install(options = {}) {
       if (await fs.pathExists(workerSource)) {
         await fs.copy(workerSource, workerDest, { overwrite: true });
         copySpinner.text = 'Copied cost optimizer worker...';
-        console.log(chalk.green(`  ✓ Cost Optimizer: ${workerSource} → ${workerDest}`));
-        console.log(chalk.cyan('    💰 Automatic LLM cost optimization enabled (~54% savings)'));
+        console.log(chalk.green(`  [OK] Cost Optimizer: ${workerSource} -> ${workerDest}`));
+        console.log(chalk.cyan('    Automatic LLM cost optimization enabled (~54% savings)'));
       } else {
-        copySpinner.warn(`⚠ Cost optimizer source not found: ${workerSource}`);
+        copySpinner.warn(`[WARN] Cost optimizer source not found: ${workerSource}`);
       }
     }
     
@@ -1251,7 +1251,7 @@ async function install(options = {}) {
           await fs.writeFile(skillPath, skillContent, 'utf8');
           codexCount++;
         }
-        console.log(chalk.green(`  ✓ Codex: ${codexCount} skills → .codex/prompts/`));
+        console.log(chalk.green(`  [OK] Codex: ${codexCount} skills -> .codex/prompts/`));
       }
       
       // --- CLAUDE: Copy rules + generate agent rules ---
@@ -1262,11 +1262,11 @@ async function install(options = {}) {
         if (await fs.pathExists(claudeSource)) {
           await fs.ensureDir(path.join(claudeDest, 'rules'));
           await fs.copy(claudeSource, claudeDest, { overwrite: true });
-          console.log(chalk.green(`  ✓ Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
+          console.log(chalk.green(`  [OK] Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
         }
       }
       
-      console.log(chalk.gray(`  ℹ Agent roles: dispatcher(hermes), workflow agents, context agents, workers`));
+      console.log(chalk.gray(`  [INFO] Agent roles: dispatcher(hermes), workflow agents, context agents, workers`));
       
     } else {
       // AUTO/CUSTOM mode: Copy all platform stubs (existing behavior)
@@ -1280,7 +1280,7 @@ async function install(options = {}) {
           await fs.ensureDir(path.join(claudeDest, 'rules'));
           await fs.copy(claudeSource, claudeDest, { overwrite: true });
           copySpinner.text = 'Copied Claude Code rules + Hermes dispatcher...';
-          console.log(chalk.green(`  ✓ Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
+          console.log(chalk.green(`  [OK] Claude Code: CLAUDE.md + rules/ (Hermes, agents, methodology)`));
         }
       }
     }
@@ -1313,10 +1313,10 @@ async function install(options = {}) {
       );
       console.log(chalk.gray('      Codex is not covered by this feature.'));
     } catch (error) {
-      console.log(chalk.red(`  ✘ Claude native setup failed: ${error.message}`));
+      console.log(chalk.red(`  [ERROR] Claude native setup failed: ${error.message}`));
       console.log(
         chalk.yellow(
-          `    → MCP, hooks or skills may be incomplete. Inspect _byan/mcp/byan-mcp-server/ and re-run if empty.`
+          `    -> MCP, hooks or skills may be incomplete. Inspect _byan/mcp/byan-mcp-server/ and re-run if empty.`
         )
       );
     }
@@ -1328,10 +1328,10 @@ async function install(options = {}) {
     try {
       await setupCodexNative(projectRoot, { templateDir, force: true });
     } catch (error) {
-      console.log(chalk.red(`  ✘ Codex native setup failed: ${error.message}`));
+      console.log(chalk.red(`  [ERROR] Codex native setup failed: ${error.message}`));
       console.log(
         chalk.yellow(
-          `    → Edit ~/.codex/config.toml manually to add the byan MCP entry, then copy BYAN skills into ~/.codex/skills.`
+          `    -> Edit ~/.codex/config.toml manually to add the byan MCP entry, then copy BYAN skills into ~/.codex/skills.`
         )
       );
     }
@@ -1383,7 +1383,7 @@ async function install(options = {}) {
     try {
       byanWebResult = await setupByanWebIntegration(projectRoot);
     } catch (error) {
-      console.log(chalk.yellow(`  ⚠ byan_web setup skipped: ${error.message}`));
+      console.log(chalk.yellow(`  [WARN] byan_web setup skipped: ${error.message}`));
     }
 
     if (byanWebResult && byanWebResult.configured) {
@@ -1393,11 +1393,11 @@ async function install(options = {}) {
           token: byanWebResult.token,
         });
         if (check.reachable && check.status < 400) {
-          console.log(chalk.green(`  ✓ byan_web reachable (${check.latencyMs}ms)`));
+          console.log(chalk.green(`  [OK] byan_web reachable (${check.latencyMs}ms)`));
         } else if (check.reachable) {
-          console.log(chalk.yellow(`  ⚠ byan_web responded ${check.status} — check token/URL`));
+          console.log(chalk.yellow(`  [WARN] byan_web responded ${check.status} — check token/URL`));
         } else {
-          console.log(chalk.yellow(`  ⚠ byan_web UNREACHABLE (${check.error})`));
+          console.log(chalk.yellow(`  [WARN] byan_web UNREACHABLE (${check.error})`));
           console.log(chalk.gray(`    Re-run installer or edit .env / .mcp.json to fix later.`));
         }
       } catch (_) {
@@ -1413,7 +1413,7 @@ async function install(options = {}) {
           byanWebConfigured: true,
         });
       } catch (error) {
-        console.log(chalk.yellow(`  ⚠ memory-sync setup skipped: ${error.message}`));
+        console.log(chalk.yellow(`  [WARN] memory-sync setup skipped: ${error.message}`));
       }
     }
   }
@@ -1422,7 +1422,7 @@ async function install(options = {}) {
     try {
       await setupMcpExtensions(projectRoot, {});
     } catch (error) {
-      console.log(chalk.yellow(`  ⚠ MCP extensions setup skipped: ${error.message}`));
+      console.log(chalk.yellow(`  [WARN] MCP extensions setup skipped: ${error.message}`));
     }
   }
 
@@ -1452,28 +1452,28 @@ async function install(options = {}) {
         const r = setupRtkIntegration({ targetPlatforms: rtkTargets, log: (m) => console.log(chalk.gray('  ' + m)) });
         if (r.synced) {
           if (r.claudeHook && r.codexReady) {
-            console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate; Codex can use the native rtk binary`));
+            console.log(chalk.green(`  [OK] rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate; Codex can use the native rtk binary`));
           } else if (r.claudeHook) {
-            console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate`));
+            console.log(chalk.green(`  [OK] rtk ready (${r.installedVia}, v${r.version || '?'}) — restart Claude Code to activate`));
           } else if (r.codexReady) {
-            console.log(chalk.green(`  ✓ rtk ready for Codex (${r.installedVia}, v${r.version || '?'}) — native binary installed; no transparent Codex hook`));
+            console.log(chalk.green(`  [OK] rtk ready for Codex (${r.installedVia}, v${r.version || '?'}) — native binary installed; no transparent Codex hook`));
           } else {
-            console.log(chalk.green(`  ✓ rtk ready (${r.installedVia}, v${r.version || '?'})`));
+            console.log(chalk.green(`  [OK] rtk ready (${r.installedVia}, v${r.version || '?'})`));
           }
-          if (r.pathHint) console.log(chalk.yellow(`  ⚠ rtk is not on your PATH — add it: ${r.pathHint}`));
+          if (r.pathHint) console.log(chalk.yellow(`  [WARN] rtk is not on your PATH — add it: ${r.pathHint}`));
         } else {
           if (r.codexReady) {
-            console.log(chalk.yellow(`  ⚠ rtk Claude hook not wired (${r.reason}) — Codex can still use the native rtk binary; re-run \`npm run setup-rtk\` anytime`));
+            console.log(chalk.yellow(`  [WARN] rtk Claude hook not wired (${r.reason}) — Codex can still use the native rtk binary; re-run \`npm run setup-rtk\` anytime`));
           } else {
-            console.log(chalk.yellow(`  ⚠ rtk not ready (${r.reason}) — BYAN unaffected; re-run \`npm run setup-rtk\` anytime`));
+            console.log(chalk.yellow(`  [WARN] rtk not ready (${r.reason}) — BYAN unaffected; re-run \`npm run setup-rtk\` anytime`));
           }
-          if (r.pathHint) console.log(chalk.yellow(`  ⚠ rtk found off-PATH — add it then re-run: ${r.pathHint}`));
+          if (r.pathHint) console.log(chalk.yellow(`  [WARN] rtk found off-PATH — add it then re-run: ${r.pathHint}`));
         }
       } else {
         console.log(chalk.gray('  rtk skipped — run `npm run setup-rtk` anytime to enable.'));
       }
     } catch (error) {
-      console.log(chalk.yellow(`  ⚠ rtk setup skipped: ${error.message}`));
+      console.log(chalk.yellow(`  [WARN] rtk setup skipped: ${error.message}`));
     }
   }
 
@@ -1492,15 +1492,15 @@ async function install(options = {}) {
       if (proceed) {
         const r = await setupGdocPublish({ log: (...a) => console.log(...a) });
         if (r.configured) {
-          console.log(chalk.green(`  ✓ byan_publish prêt (clé : ${r.path})`));
+          console.log(chalk.green(`  [OK] byan_publish prêt (clé : ${r.path})`));
         } else {
-          console.log(chalk.yellow(`  ⚠ byan_publish non configuré (${r.skipReason}) — \`npm run setup-gdoc\` à tout moment`));
+          console.log(chalk.yellow(`  [WARN] byan_publish non configuré (${r.skipReason}) — \`npm run setup-gdoc\` à tout moment`));
         }
       } else {
         console.log(chalk.gray('  byan_publish ignoré — `npm run setup-gdoc` à tout moment pour activer.'));
       }
     } catch (error) {
-      console.log(chalk.yellow(`  ⚠ byan_publish setup skipped: ${error.message}`));
+      console.log(chalk.yellow(`  [WARN] byan_publish setup skipped: ${error.message}`));
     }
   }
 
@@ -1511,7 +1511,7 @@ async function install(options = {}) {
     try {
       leantimeResult = await setupLeantimeIntegration(projectRoot);
     } catch (error) {
-      console.log(chalk.yellow(`  ⚠ Leantime setup skipped: ${error.message}`));
+      console.log(chalk.yellow(`  [WARN] Leantime setup skipped: ${error.message}`));
     }
 
     if (leantimeResult && leantimeResult.configured) {
@@ -1521,13 +1521,13 @@ async function install(options = {}) {
           token: leantimeResult.token,
         });
         if (check.reachable && !check.reason) {
-          console.log(chalk.green(`  ✓ Leantime reachable (${check.latencyMs}ms)`));
+          console.log(chalk.green(`  [OK] Leantime reachable (${check.latencyMs}ms)`));
         } else if (check.reason === 'non_json') {
-          console.log(chalk.yellow(`  ⚠ Leantime responded with non-JSON — ${check.hint}`));
+          console.log(chalk.yellow(`  [WARN] Leantime responded with non-JSON — ${check.hint}`));
         } else if (check.reachable) {
-          console.log(chalk.yellow(`  ⚠ Leantime responded (${check.reason}) — check URL/token`));
+          console.log(chalk.yellow(`  [WARN] Leantime responded (${check.reason}) — check URL/token`));
         } else {
-          console.log(chalk.yellow(`  ⚠ Leantime UNREACHABLE (${check.reason})`));
+          console.log(chalk.yellow(`  [WARN] Leantime UNREACHABLE (${check.reason})`));
           console.log(chalk.gray(`    Re-run installer or edit .env / .mcp.json to fix later.`));
         }
       } catch (_) {
@@ -1782,7 +1782,7 @@ async function install(options = {}) {
   }
   
   if (passed === checks.length) {
-    verifySpinner.succeed(`Verification: ${passed}/${checks.length} checks passed ✅`);
+    verifySpinner.succeed(`Verification: ${passed}/${checks.length} checks passed [OK]`);
   } else {
     verifySpinner.warn(`Verification: ${passed}/${checks.length} checks passed`);
     if (failed.length > 0) {
@@ -1794,7 +1794,7 @@ async function install(options = {}) {
   console.log('');
   console.log(chalk.green('╔════════════════════════════════════════════════════════════╗'));
   console.log(chalk.green('║                                                            ║'));
-  console.log(chalk.green('║   ✅ BYAN INSTALLATION COMPLETE!                           ║'));
+  console.log(chalk.green('║   [OK] BYAN INSTALLATION COMPLETE!                           ║'));
   console.log(chalk.green('║                                                            ║'));
   console.log(chalk.green('╚════════════════════════════════════════════════════════════╝'));
   console.log('');
@@ -1813,19 +1813,19 @@ async function install(options = {}) {
   
   if (isManual && manualSelection) {
     console.log(chalk.cyan(`\n  Agents Installed (${manualSelection.agents.length}):`));
-    console.log(chalk.cyan(`  ✓ Dispatcher: hermes (always installed)`));
+    console.log(chalk.cyan(`  [OK] Dispatcher: hermes (always installed)`));
     const otherAgents = manualSelection.agents.filter(a => a !== 'hermes');
     if (otherAgents.length > 0) {
-      console.log(chalk.cyan(`  ✓ Selected: ${otherAgents.join(', ')}`));
+      console.log(chalk.cyan(`  [OK] Selected: ${otherAgents.join(', ')}`));
     }
   }
   if (v2Installed) {
     console.log(chalk.cyan('\n  v2.2 Components Installed:'));
-    console.log(chalk.cyan('  ✓ Core: Context, Cache, Dispatcher, Worker Pool, Workflow'));
-    console.log(chalk.cyan('  ✓ Model Selector: Intelligent model selection'));
-    console.log(chalk.cyan('  ✓ Observability: Logger, Metrics, Dashboard'));
-    console.log(chalk.cyan('  ✓ Tests: 9 test suites with 364 tests'));
-    console.log(chalk.cyan('  ✓ Entry Point: src/index.js'));
+    console.log(chalk.cyan('  [OK] Core: Context, Cache, Dispatcher, Worker Pool, Workflow'));
+    console.log(chalk.cyan('  [OK] Model Selector: Intelligent model selection'));
+    console.log(chalk.cyan('  [OK] Observability: Logger, Metrics, Dashboard'));
+    console.log(chalk.cyan('  [OK] Tests: 9 test suites with 364 tests'));
+    console.log(chalk.cyan('  [OK] Entry Point: src/index.js'));
   }
   
   console.log('');
@@ -1854,12 +1854,12 @@ async function install(options = {}) {
   if (platform === 'claude') {
     console.log(`   ${chalk.blue('claude')}`);
     console.log(`   Hermes est integre via ${chalk.cyan('.claude/CLAUDE.md')}`);
-    console.log(`   Demande: ${chalk.cyan('"quel agent pour mon projet?"')} → Hermes repond`);
+    console.log(`   Demande: ${chalk.cyan('"quel agent pour mon projet?"')} -> Hermes repond`);
     console.log(`   Regles: ${chalk.cyan('.claude/rules/')} (hermes, agents, methodologie)`);
   } else if (platform === 'codex') {
     console.log(`   ${chalk.blue('codex')}`);
     console.log(`   Skills installes dans ${chalk.cyan('.codex/prompts/')}`);
-    console.log(`   Lance: ${chalk.cyan('codex skill hermes')} → Hermes route vers le bon agent`);
+    console.log(`   Lance: ${chalk.cyan('codex skill hermes')} -> Hermes route vers le bon agent`);
   } else {
     console.log('   Follow your platform\'s agent activation procedure');
   }
@@ -1867,13 +1867,13 @@ async function install(options = {}) {
   // Turbo Whisper instructions
   if (turboWhisperInstalled) {
     console.log('');
-    console.log(chalk.yellow('🎤 Turbo Whisper Voice Dictation:'));
+    console.log(chalk.yellow('Turbo Whisper Voice Dictation:'));
     console.log('');
     
     if (turboWhisperMode === 'local' || turboWhisperMode === 'docker') {
       console.log(chalk.gray('  Lancement simplifié (1 commande):'));
       console.log(`   ${chalk.blue('./scripts/launch-turbo-whisper.sh')}`);
-      console.log(chalk.gray('   → Démarre automatiquement le serveur si nécessaire'));
+      console.log(chalk.gray('   -> Démarre automatiquement le serveur si nécessaire'));
       console.log('');
     }
     
@@ -1884,7 +1884,7 @@ async function install(options = {}) {
   console.log('');
   console.log(chalk.gray('Need help? Type \'/bmad-help\' when BYAN is active'));
   console.log('');
-  console.log(chalk.blue('Happy agent building! 🏗️'));
+  console.log(chalk.blue('Happy agent building! '));
 }
 
 // CLI Program

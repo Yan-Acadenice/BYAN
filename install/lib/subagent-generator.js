@@ -16,7 +16,7 @@ const path = require('path');
 const fs = require('fs');
 
 const ROLE_MODEL_MAP = {
-  // Reasoning-heavy → opus
+  // Reasoning-heavy -> opus
   architect: 'opus',
   'bmm-architect': 'opus',
   tea: 'opus',
@@ -28,7 +28,7 @@ const ROLE_MODEL_MAP = {
   'creative-problem-solver': 'opus',
   'cis-creative-problem-solver': 'opus',
 
-  // Narrow mechanical → haiku
+  // Narrow mechanical -> haiku
   carmack: 'haiku',
   rachid: 'haiku',
   marc: 'haiku',

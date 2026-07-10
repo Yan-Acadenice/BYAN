@@ -55,7 +55,7 @@ async function setupLeantimeIntegration(projectRoot, options = {}) {
     if (!options.quiet) {
       console.log(
         chalk.gray(
-          '  ℹ Leantime board sync skipped. Re-run installer or edit .env / .claude/settings.local.json to enable later.'
+          '  [INFO] Leantime board sync skipped. Re-run installer or edit .env / .claude/settings.local.json to enable later.'
         )
       );
     }
@@ -78,7 +78,7 @@ async function setupLeantimeIntegration(projectRoot, options = {}) {
   const mcpPath = mcpResult.path;
 
   if (!options.quiet) {
-    console.log(chalk.green('  ✓ Leantime board sync configured'));
+    console.log(chalk.green('  [OK] Leantime board sync configured'));
     console.log(chalk.gray(`    - Token (Claude Code) -> ${path.relative(projectRoot, settingsPath)}`));
     console.log(chalk.gray(`    - Token (shell / env) -> ${path.relative(projectRoot, envPath)}`));
     console.log(chalk.gray(`    - Refs (\${LEANTIME_*}) -> ${path.relative(projectRoot, mcpPath)}`));

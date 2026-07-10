@@ -212,18 +212,18 @@ async function setupCodexNative(projectRoot, options = {}) {
   }
 
   const result = await patchCodexConfig(projectRoot, options);
-  log(chalk.green(`  ✓ Codex MCP entry written to ${result.path}`));
+  log(chalk.green(`  [OK] Codex MCP entry written to ${result.path}`));
   if (!result.tokenSet) {
     log(
       chalk.yellow(
-        `    ⚠ BYAN_API_TOKEN left empty. Edit ${result.path} and set BYAN_API_TOKEN`
+        `    [WARN] BYAN_API_TOKEN left empty. Edit ${result.path} and set BYAN_API_TOKEN`
       )
     );
     log(chalk.gray('      (or rerun with BYAN_API_TOKEN=byan_xxx in the env)'));
   }
   const skills = await installCodexNativeSkills(projectRoot, options);
   if (skills.installed > 0) {
-    log(chalk.green(`  ✓ Codex native skills installed to ${skills.destDir} (${skills.installed})`));
+    log(chalk.green(`  [OK] Codex native skills installed to ${skills.destDir} (${skills.installed})`));
   } else {
     log(chalk.yellow(`  ! No Codex native skills found to install into ${skills.destDir}`));
   }

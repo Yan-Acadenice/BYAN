@@ -33,7 +33,7 @@ describe('Logger', () => {
     it('should log success message in green', () => {
       logger.success('Test success');
       
-      expect(consoleLogSpy).toHaveBeenCalledWith('GREEN:✓', 'Test success');
+      expect(consoleLogSpy).toHaveBeenCalledWith('GREEN:[OK]', 'Test success');
     });
   });
 
@@ -41,7 +41,7 @@ describe('Logger', () => {
     it('should log error message in red', () => {
       logger.error('Test error');
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith('RED:✖', 'Test error');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('RED:[ERROR]', 'Test error');
     });
   });
 
@@ -49,7 +49,7 @@ describe('Logger', () => {
     it('should log warning message in yellow', () => {
       logger.warn('Test warning');
       
-      expect(consoleLogSpy).toHaveBeenCalledWith('YELLOW:⚠', 'Test warning');
+      expect(consoleLogSpy).toHaveBeenCalledWith('YELLOW:[WARN]', 'Test warning');
     });
   });
 
@@ -57,7 +57,7 @@ describe('Logger', () => {
     it('should log info message in blue', () => {
       logger.info('Test info');
       
-      expect(consoleLogSpy).toHaveBeenCalledWith('BLUE:ℹ', 'Test info');
+      expect(consoleLogSpy).toHaveBeenCalledWith('BLUE:[INFO]', 'Test info');
     });
   });
 

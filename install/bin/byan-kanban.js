@@ -86,7 +86,7 @@ function renderStandups(entries) {
       const blockers = e.blockers && e.blockers.length > 0
         ? FG(COLORS.blocked, ` blockers=${e.blockers.join('|')}`)
         : '';
-      return `${e.timestamp} ${e.agent}: ${e.did || '-'}${blockers} → ${e.next || '-'}`;
+      return `${e.timestamp} ${e.agent}: ${e.did || '-'}${blockers} -> ${e.next || '-'}`;
     })
     .join('\n');
 }

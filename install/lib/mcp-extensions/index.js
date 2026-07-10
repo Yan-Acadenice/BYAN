@@ -105,14 +105,14 @@ async function setupMcpExtensions(projectRoot, options = {}) {
     try {
       setupResult = await ext.setup({ projectRoot, quiet: options.quiet });
     } catch (err) {
-      log(chalk.red(`  ✘ ${ext.id} setup failed: ${err.message}`));
+      log(chalk.red(`  [ERROR] ${ext.id} setup failed: ${err.message}`));
       results.push({ id: ext.id, configured: false, message: `setup error: ${err.message}` });
       continue;
     }
 
     if (!setupResult || setupResult.configured !== true) {
       const reason = (setupResult && (setupResult.skipReason || setupResult.message)) || 'setup not completed';
-      log(chalk.yellow(`  ⚠ ${ext.id}: ${reason}`));
+      log(chalk.yellow(`  [WARN] ${ext.id}: ${reason}`));
       results.push({ id: ext.id, configured: false, message: reason });
       continue;
     }
@@ -121,7 +121,7 @@ async function setupMcpExtensions(projectRoot, options = {}) {
     try {
       entry = await ext.buildMcpEntry({ projectRoot });
     } catch (err) {
-      log(chalk.red(`  ✘ ${ext.id} buildMcpEntry failed: ${err.message}`));
+      log(chalk.red(`  [ERROR] ${ext.id} buildMcpEntry failed: ${err.message}`));
       results.push({ id: ext.id, configured: false, message: `buildMcpEntry error: ${err.message}` });
       continue;
     }
@@ -129,10 +129,10 @@ async function setupMcpExtensions(projectRoot, options = {}) {
     try {
       await addMcpEntry(projectRoot, ext.id, entry);
       await whitelistMcpServer(projectRoot, ext.id);
-      log(chalk.green(`  ✓ ${ext.id} registered in .mcp.json`));
+      log(chalk.green(`  [OK] ${ext.id} registered in .mcp.json`));
       results.push({ id: ext.id, configured: true, message: 'registered' });
     } catch (err) {
-      log(chalk.red(`  ✘ ${ext.id} addMcpEntry failed: ${err.message}`));
+      log(chalk.red(`  [ERROR] ${ext.id} addMcpEntry failed: ${err.message}`));
       results.push({ id: ext.id, configured: false, message: `addMcpEntry error: ${err.message}` });
     }
   }

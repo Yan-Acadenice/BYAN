@@ -216,10 +216,10 @@ function formatAgentName(name) {
 
 function getComplexityBadge(complexity) {
   switch (complexity) {
-    case 'simple': return '🟢 Simple (1-2 mantras)';
-    case 'medium': return '🟡 Medium (3-5 mantras)';
-    case 'complex': return '🔴 Complex (6+ mantras)';
-    default: return '⚪ Unknown';
+    case 'simple': return 'Simple (1-2 mantras)';
+    case 'medium': return 'Medium (3-5 mantras)';
+    case 'complex': return 'Complex (6+ mantras)';
+    default: return 'Unknown';
   }
 }
 

@@ -33,13 +33,13 @@ const PLATFORM_INFO = {
     displayName: 'Claude Code',
     native: true,
     specialist: 'claude',
-    icon: '🎭'
+    icon: ''
   },
   'codex': {
     displayName: 'OpenCode/Codex',
     native: true, // NOW NATIVE!
     specialist: 'codex',
-    icon: '📝'
+    icon: ''
   }
 };
 
@@ -50,7 +50,7 @@ const PLATFORM_INFO = {
  * @returns {Promise<PlatformSelectionResult>}
  */
 async function select(detectionResult) {
-  logger.info('\n🎯 Platform Selection\n');
+  logger.info('\nPlatform Selection\n');
   
   // Build platform choices from detection
   const choices = buildChoices(detectionResult.platforms);
@@ -75,7 +75,7 @@ async function select(detectionResult) {
       {
         type: 'list',
         name: 'primary',
-        message: '🎯 Choose your PRIMARY platform for native agent invocation:',
+        message: 'Choose your PRIMARY platform for native agent invocation:',
         choices: [
           ...nativePlatforms.map(c => ({
             name: `${c.icon} ${c.name} - ${c.agentSpecialist ? `@bmad-agent-${c.agentSpecialist}` : 'No specialist'}`,
@@ -84,11 +84,11 @@ async function select(detectionResult) {
           })),
           new inquirer.Separator(),
           {
-            name: '🔧 Advanced: Install on multiple platforms',
+            name: 'Advanced: Install on multiple platforms',
             value: 'multi'
           },
           {
-            name: '⏭️  Skip native integration (manual install only)',
+            name: 'Skip native integration (manual install only)',
             value: 'skip'
           }
         ]
@@ -125,7 +125,7 @@ async function select(detectionResult) {
       message: 'Choose installation target:',
       choices: [
         {
-          name: `🚀 Auto (detect & install all available) - ${choices.length} platform(s)`,
+          name: `Auto (detect & install all available) - ${choices.length} platform(s)`,
           value: 'auto'
         },
         ...choices.map(c => ({
@@ -133,7 +133,7 @@ async function select(detectionResult) {
           value: `single:${c.id}`
         })),
         {
-          name: '🔧 Custom (select multiple)',
+          name: 'Custom (select multiple)',
           value: 'custom'
         }
       ]
@@ -167,7 +167,7 @@ function buildChoices(detectedPlatforms) {
         displayName: p.name,
         native: false,
         specialist: null,
-        icon: '❓'
+        icon: ''
       };
       
       return {
@@ -189,8 +189,8 @@ function buildChoices(detectedPlatforms) {
  * @returns {string}
  */
 function formatPlatformChoice(choice) {
-  const nativeBadge = choice.native ? '✨ Native' : '💬 Conversational';
-  const statusBadge = choice.detected ? '✓' : '✗';
+  const nativeBadge = choice.native ? 'Native' : 'Conversational';
+  const statusBadge = choice.detected ? '[OK]' : '[x]';
   
   return `${choice.icon} ${choice.name} (${nativeBadge}) ${statusBadge}`;
 }

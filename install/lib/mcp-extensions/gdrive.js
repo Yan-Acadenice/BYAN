@@ -97,7 +97,7 @@ function printSetupGuide(log) {
   log(chalk.cyan('Étapes Google Cloud (faire dans le navigateur, dans cet ordre) :'));
   SETUP_LINKS.forEach((s, i) => {
     log(chalk.gray(`  ${i + 1}. ${s.step}`));
-    log(chalk.gray(`     → ${s.url}`));
+    log(chalk.gray(`     -> ${s.url}`));
   });
   log();
   log(chalk.gray(`  5. Télécharger le JSON OAuth Client (bouton "Download JSON")`));
@@ -109,8 +109,8 @@ function printSetupGuide(log) {
   // (all gw scopes qualify) ; "Internal" does not, and skips Google app
   // verification. Source: developers.google.com/identity/protocols/oauth2.
   log(chalk.yellow('  Durabilité — LE point qui compte :'));
-  log(chalk.yellow('    Écran de consentement en "Internal" → credential pérenne (token qui ne meurt pas).'));
-  log(chalk.yellow('    "External + Testing" → refresh token expiré sous ~7 jours (scopes hors openid/email/profile, donc tous ceux de gw). À éviter.'));
+  log(chalk.yellow('    Écran de consentement en "Internal" -> credential pérenne (token qui ne meurt pas).'));
+  log(chalk.yellow('    "External + Testing" -> refresh token expiré sous ~7 jours (scopes hors openid/email/profile, donc tous ceux de gw). À éviter.'));
   log(chalk.gray('    Limite "Internal" : seuls les comptes de ton org Workspace peuvent autoriser, et il faut UN login navigateur au premier setup.'));
   log(chalk.gray('    Ce client OAuth devient LE credential Google unique de byan (le connecteur claude.ai Drive devient redondant).'));
   log();
@@ -143,7 +143,7 @@ async function importCredentialsFromPath(srcPath, log) {
   await fs.writeFile(CREDENTIALS_PATH, JSON.stringify(parsed, null, 2), {
     mode: 0o600,
   });
-  log(chalk.green(`  ✓ credentials.json copié vers ${CREDENTIALS_PATH} (perm 600)`));
+  log(chalk.green(`  [OK] credentials.json copié vers ${CREDENTIALS_PATH} (perm 600)`));
 }
 
 async function runOAuthFlow(log) {
@@ -170,7 +170,7 @@ async function runOAuthFlow(log) {
   if (result.status !== 0) {
     throw new Error(`google-workspace-mcp accounts add a échoué (exit ${result.status})`);
   }
-  log(chalk.green(`  ✓ Compte "${accountName}" ajouté`));
+  log(chalk.green(`  [OK] Compte "${accountName}" ajouté`));
   return accountName;
 }
 

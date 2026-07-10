@@ -23,7 +23,7 @@ describe('Platform Integration', () => {
       expect(info.displayName).toBe('Claude Code');
       expect(info.native).toBe(true);
       expect(info.specialist).toBe('claude');
-      expect(info.icon).toBe('🎭');
+      expect(info.icon).toBe('');
     });
   });
   

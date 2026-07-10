@@ -103,7 +103,7 @@ async function installViaClaudeAgent(projectRoot, agents, config) {
   
   // Check if native launch is available
   if (agentLauncher.supportsNativeLaunch('claude')) {
-    logger.info('\n🚀 Launching agent Claude for MCP integration...');
+    logger.info('\nLaunching agent Claude for MCP integration...');
     
     // Launch agent Claude with create-mcp-server action
     const result = await agentLauncher.launch({
@@ -125,7 +125,7 @@ async function installViaClaudeAgent(projectRoot, agents, config) {
   }
   
   // Fallback: Manual instructions
-  logger.info('\n📝 To complete Claude Code integration:');
+  logger.info('\nTo complete Claude Code integration:');
   logger.info('   1. Run: @bmad-agent-claude');
   logger.info('   2. Select option 1: Create MCP server for BYAN agents');
   logger.info('   3. Follow the guided setup\n');

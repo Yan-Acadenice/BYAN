@@ -31,6 +31,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that keeps the excised stubs from creeping back and locks the surviving public
   surface. Net: -853 / +11 lines shipped to npm consumers.
 
+### Changed - Purged emoji from the installer CLI output (Mantra IA-23)
+
+- Removed every emoji from the 16 live installer files under `install/lib/` and
+  `install/bin/` (201 occurrences). Status glyphs became bracket tags matching
+  the existing `[DEBUG]` idiom: `[OK]` / `[INFO]` / `[WARN]` / `[ERROR]` / `[x]`;
+  decorative glyphs were dropped and the arrow `->` de-symbolized. Message text,
+  colors, and control flow are unchanged (a `git diff -w` is emoji-only).
+- Updated the two coupled tests in lockstep: `install/__tests__/utils/logger.test.js`
+  and `install/__tests__/integration/platform-integration.test.js`.
+
+### Removed - Dead Copilot-era task-tool-interface stub
+
+- Deleted `task-tool-interface.js` + `-mock.js` from both `src/byan-v2/dispatcher/`
+  and `install/src/byan-v2/dispatcher/`, plus their test. The module had no caller
+  outside its own test. Scrubbed the five stale `TaskToolInterface` doc references
+  it left behind (`task-router` JSDoc + `COMPLETION-REPORT.md`).
+
 ## [2.42.0] - 2026-07-06
 
 ### Fixed - Shipped Claude Code hooks no longer spam MODULE_NOT_FOUND

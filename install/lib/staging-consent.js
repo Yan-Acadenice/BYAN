@@ -6,7 +6,7 @@
  * memory-sync without credentials is a no-op.
  *
  * On opt-in, writes :
- *   _byan/config.yaml  → memory_sync: { enabled: true }
+ *   _byan/config.yaml  -> memory_sync: { enabled: true }
  *   OR loadbalancer.yaml if _byan/config.yaml not present
  *
  * Prints a clear consent notice listing what gets sent and how to

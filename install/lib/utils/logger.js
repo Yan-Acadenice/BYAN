@@ -14,7 +14,7 @@ const chalk = require('chalk');
  * @param {string} message - Message to log
  */
 function info(message) {
-  console.log(chalk.blue('ℹ'), message);
+  console.log(chalk.blue('[INFO]'), message);
 }
 
 /**
@@ -23,7 +23,7 @@ function info(message) {
  * @param {string} message - Message to log
  */
 function success(message) {
-  console.log(chalk.green('✓'), message);
+  console.log(chalk.green('[OK]'), message);
 }
 
 /**
@@ -32,7 +32,7 @@ function success(message) {
  * @param {string} message - Message to log
  */
 function warn(message) {
-  console.log(chalk.yellow('⚠'), message);
+  console.log(chalk.yellow('[WARN]'), message);
 }
 
 /**
@@ -41,7 +41,7 @@ function warn(message) {
  * @param {string} message - Message to log
  */
 function error(message) {
-  console.error(chalk.red('✖'), message);
+  console.error(chalk.red('[ERROR]'), message);
 }
 
 /**

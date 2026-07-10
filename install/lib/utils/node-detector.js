@@ -25,7 +25,7 @@ function detect() {
  * @returns {number} - -1 if v1 < v2, 0 if equal, 1 if v1 > v2
  */
 function compareVersions(version1, version2) {
-  // Strip suffixes: '18.0.0-beta' → '18.0.0'
+  // Strip suffixes: '18.0.0-beta' -> '18.0.0'
   const cleanV1 = version1.replace(/-.*$/, '');
   const cleanV2 = version2.replace(/-.*$/, '');
   

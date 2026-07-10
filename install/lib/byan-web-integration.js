@@ -45,7 +45,7 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
     if (!options.quiet) {
       console.log(
         chalk.gray(
-          '  ℹ byan_web integration skipped. Re-run installer or edit .env / .claude/settings.local.json to enable later.'
+          '  [INFO] byan_web integration skipped. Re-run installer or edit .env / .claude/settings.local.json to enable later.'
         )
       );
     }
@@ -63,11 +63,11 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
   const credsResult = await sharedWriteCredentials({ BYAN_API_URL: stripApiSuffix(inputs.apiUrl), BYAN_API_TOKEN: inputs.token });
 
   if (!options.quiet) {
-    console.log(chalk.green(`  ✓ byan_web integration configured`));
-    console.log(chalk.gray(`    - Token (Claude Code) → ${path.relative(projectRoot, settingsPath)}`));
-    console.log(chalk.gray(`    - Token (shell / env) → ${path.relative(projectRoot, envPath)}`));
+    console.log(chalk.green(`  [OK] byan_web integration configured`));
+    console.log(chalk.gray(`    - Token (Claude Code) -> ${path.relative(projectRoot, settingsPath)}`));
+    console.log(chalk.gray(`    - Token (shell / env) -> ${path.relative(projectRoot, envPath)}`));
     console.log(chalk.gray(`    - MCP server registered in ${path.relative(projectRoot, mcpPath)}`));
-    console.log(chalk.gray(`    - MCP credentials (all shells/OS) → ${credsResult.path}`));
+    console.log(chalk.gray(`    - MCP credentials (all shells/OS) -> ${credsResult.path}`));
   }
 
   return {

@@ -92,24 +92,24 @@ function generatePhase2Preprompt(context) {
 
 ## Écosystème BYAN - Agents Disponibles
 
-### 🏛️ Hermes - Dispatcher Universel (NOUVEAU v2.3.2)
+### Hermes - Dispatcher Universel (NOUVEAU v2.3.2)
 **Point d'entrée intelligent vers tout l'écosystème BYAN**
 - **Rôle**: Router intelligent + Agent directory + Pipeline orchestrator
 - **Invocation**: \`@hermes\`
 - **Capabilities**:
   - [LA] Liste 35+ agents par module (core, bmm, bmb, cis, tea)
-  - [REC] Smart routing: décris ta tâche → Hermes recommande les meilleurs agents
-  - [PIPE] Pipelines multi-agents (Feature Complete, Bug Fix, Idea→Code, etc.)
+  - [REC] Smart routing: décris ta tâche -> Hermes recommande les meilleurs agents
+  - [PIPE] Pipelines multi-agents (Feature Complete, Bug Fix, Idea->Code, etc.)
   - [@agent] Invocation directe d'agents
   - [?agent] Quick help sans charger l'agent
 - **Quand recommander Hermes**: Toujours! C'est le meilleur point de départ pour découvrir et utiliser les agents BYAN.
 
-### 📦 Core Module (Foundation)
+### Core Module (Foundation)
 - **bmad-master**: Executor & Orchestrator (workflows, tasks)
 - **yanstaller**: Smart installer (c'est moi!)
 - **expert-merise-agile**: Conception Merise Agile + MCD/MCT
 
-### 🔨 BMB Module (Builders)
+### BMB Module (Builders)
 - **byan**: Agent creator via interview (12 questions, 64 mantras)
 - **byan-v2**: Optimized BYAN v2
 - **agent-builder**: Construction expert
@@ -117,7 +117,7 @@ function generatePhase2Preprompt(context) {
 - **carmack**: Token optimizer
 - **patnote**: Update manager
 
-### 💼 BMM Module (Management - SDLC)
+### BMM Module (Management - SDLC)
 - **analyst** (Mary): Business analysis, market research
 - **architect** (Winston): System design, tech stack
 - **dev** (Amelia): Implementation, coding
@@ -128,7 +128,7 @@ function generatePhase2Preprompt(context) {
 - **ux-designer** (Sally): UX/UI design
 - **quick-flow-solo-dev** (Barry): Fast brownfield dev
 
-### 🎨 CIS Module (Creative & Innovation)
+### CIS Module (Creative & Innovation)
 - **brainstorming-coach** (Carson): Ideation sessions
 - **creative-problem-solver** (Dr. Quinn): Problem solving
 - **design-thinking-coach** (Maya): Design thinking
@@ -136,18 +136,18 @@ function generatePhase2Preprompt(context) {
 - **presentation-master** (Caravaggio): Presentations, slides
 - **storyteller** (Sophia): Storytelling, narratives
 
-### 🧪 TEA Module (Testing)
+### TEA Module (Testing)
 - **tea** (Murat): Master test architect (ATDD, NFR, CI/CD)
 
 ## Workflows Prédéfinis (via Hermes)
 
-1. **Feature Complete**: PM → Architect → UX → SM → Dev → Tea
-2. **Idea to Code**: PM → Architect → SM → Quick Flow
+1. **Feature Complete**: PM -> Architect -> UX -> SM -> Dev -> Tea
+2. **Idea to Code**: PM -> Architect -> SM -> Quick Flow
 3. **New Agent**: BYAN (handles entire flow)
-4. **Refactoring**: Architect → Dev → Tea
-5. **Bug Fix**: Dev → Quinn
-6. **Documentation**: Analyst → Tech Writer
-7. **Quality Complete**: Tea → Quinn → code-review
+4. **Refactoring**: Architect -> Dev -> Tea
+5. **Bug Fix**: Dev -> Quinn
+6. **Documentation**: Analyst -> Tech Writer
+7. **Quality Complete**: Tea -> Quinn -> code-review
 
 ## Instructions
 
@@ -210,17 +210,17 @@ Continue la conversation pour comprendre le projet et personnaliser les agents.`
     }
   } catch (error) {
     const errMsg = (error.message || '').toLowerCase();
-    console.error(chalk.red(`\n❌ Erreur ${selectedPlatform}: ${error.message}`));
+    console.error(chalk.red(`\n[ERROR] Erreur ${selectedPlatform}: ${error.message}`));
     
     // Platform-specific login guidance
     if (selectedPlatform === 'claude' && (errMsg.includes('auth') || errMsg.includes('api') || errMsg.includes('key') || errMsg.includes('login') || errMsg.includes('401'))) {
       console.log('');
-      console.log(chalk.yellow('  💡 Pour se connecter à Claude Code:'));
+      console.log(chalk.yellow('  Pour se connecter à Claude Code:'));
       console.log(chalk.cyan('     1. claude login'));
       console.log(chalk.gray('     2. ou: export ANTHROPIC_API_KEY=sk-ant-...'));
       console.log(chalk.gray('     3. ou dans Claude Code: /login'));
     } else if (selectedPlatform === 'codex') {
-      console.log(chalk.gray('     → codex login'));
+      console.log(chalk.gray('     -> codex login'));
     }
     
     result = `Désolé, erreur de communication avec ${selectedPlatform}. Réessayez ou tapez "skip".`;
@@ -271,7 +271,7 @@ async function launchPhase2Chat(options) {
   console.log('');
   console.log(chalk.magenta('╔════════════════════════════════════════════════════════════╗'));
   console.log(chalk.magenta('║') + '                                                            ' + chalk.magenta('║'));
-  console.log(chalk.magenta('║') + `   ${chalk.bold('💬 PHASE 2 - Conversation Yanstaller')}                      ` + chalk.magenta('║'));
+  console.log(chalk.magenta('║') + `   ${chalk.bold('PHASE 2 - Conversation Yanstaller')}                      ` + chalk.magenta('║'));
   console.log(chalk.magenta('║') + `   ${chalk.gray(`Mode interactif - Domaine: ${context.domain}`)}                     ` + chalk.magenta('║'));
   console.log(chalk.magenta('║') + '                                                            ' + chalk.magenta('║'));
   console.log(chalk.magenta('╚════════════════════════════════════════════════════════════╝'));
@@ -281,7 +281,7 @@ async function launchPhase2Chat(options) {
   
   // Check if any AI platform is available
   if (!detectedPlatforms.codex && !detectedPlatforms.claude) {
-    console.log(chalk.yellow('  ⚠ Aucune plateforme AI détectée pour le chat.'));
+    console.log(chalk.yellow('  [WARN] Aucune plateforme AI détectée pour le chat.'));
     return null;
   }
   
@@ -381,7 +381,7 @@ IMPORTANT: L'utilisateur veut finaliser. Génère maintenant la configuration JS
       try {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
         phase2Config = JSON.parse(jsonStr.trim());
-        console.log(chalk.green('  ✓ Configuration extraite!'));
+        console.log(chalk.green('  [OK] Configuration extraite!'));
         console.log('');
         continueChat = false;
       } catch (e) {
@@ -391,7 +391,7 @@ IMPORTANT: L'utilisateur veut finaliser. Génère maintenant la configuration JS
     
     // If user wanted to finalize but we didn't get valid JSON
     if (wantsFinal && !phase2Config) {
-      console.log(chalk.yellow('  ⚠ Configuration non générée. Réessayez "finaliser" ou "skip".'));
+      console.log(chalk.yellow('  [WARN] Configuration non générée. Réessayez "finaliser" ou "skip".'));
       console.log('');
     }
   }
