@@ -147,7 +147,6 @@ pas sur les memoires natives Claude/Codex comme source de verite.
 │   ├── bmm/ bmb/ tea/ cis/   # Modules (config + data)
 │   ├── mcp/                  # Serveur MCP byan
 │   └── config.yaml           # Configuration
-├── _bmad/                    # Legacy Gen1 (gele ; fallback back-compat, migre via _bmad -> _byan)
 ├── _byan-output/             # Artefacts generes
 └── .codex/prompts/           # Stubs Codex
 ```

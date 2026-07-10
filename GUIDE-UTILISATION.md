@@ -268,7 +268,7 @@ Résultat Story:
 **Structure d'un Workflow :**
 
 ```yaml
-# _bmad/workflows/mon-workflow/workflow.yaml
+# _byan/workflows/mon-workflow/workflow.yaml
 name: Mon Workflow
 description: Fait quelque chose d'utile
 context_level: story
@@ -551,7 +551,7 @@ Maintenant, créons un workflow simple :
 **1. Crée le fichier de workflow :**
 
 ```yaml
-# _bmad/workflows/hello-workflow/workflow.yaml
+# _byan/workflows/hello-workflow/workflow.yaml
 name: Hello Workflow
 description: Un workflow d'exemple simple
 context_level: platform
@@ -577,7 +577,7 @@ async function main() {
 
   // Exécute le workflow
   const result = await byan.executeWorkflow(
-    '_bmad/workflows/hello-workflow/workflow.yaml'
+    '_byan/workflows/hello-workflow/workflow.yaml'
   );
 
   console.log('Workflow:', result.workflowName);
@@ -612,7 +612,7 @@ Voyons des exemples concrets d'utilisation de BYAN v2.0.
 **Étape 1 - Définir l'Agent :**
 
 ```yaml
-# _bmad/agents/code-analyzer/agent.yaml
+# _byan/agents/code-analyzer/agent.yaml
 name: Code Analyzer
 description: Analyse du code source
 model: claude-sonnet
@@ -669,7 +669,7 @@ Complexité calculée: 75/100
 **Étape 1 - Créer les fichiers de contexte :**
 
 ```yaml
-# _bmad/_context/platform.yaml
+# _byan/_context/platform.yaml
 organization: ACME Corp
 language: fr
 timezone: Europe/Paris
@@ -677,7 +677,7 @@ default_model: claude-sonnet
 ```
 
 ```yaml
-# _bmad/_context/my-project/project.yaml
+# _byan/_context/my-project/project.yaml
 project_name: E-Commerce Platform
 language: en  # Override: anglais pour ce projet
 stack: Node.js
@@ -685,7 +685,7 @@ team_size: 5
 ```
 
 ```yaml
-# _bmad/_context/my-project/STORY-001/story.yaml
+# _byan/_context/my-project/STORY-001/story.yaml
 story_id: STORY-001
 title: Implement cart functionality
 assignee: Yan
@@ -775,7 +775,7 @@ demonstrateContext().catch(console.error);
 **Étape 1 - Définir le Workflow :**
 
 ```yaml
-# _bmad/workflows/project-analysis/workflow.yaml
+# _byan/workflows/project-analysis/workflow.yaml
 name: Analyse Complète de Projet
 description: Analyse le code et génère des recommandations
 context_level: project
@@ -824,7 +824,7 @@ async function runProjectAnalysis() {
   console.log('🚀 Lancement de l\'analyse...\n');
 
   const result = await byan.executeWorkflow(
-    '_bmad/workflows/project-analysis/workflow.yaml',
+    '_byan/workflows/project-analysis/workflow.yaml',
     { projectId: 'my-project' }  // Contexte du projet
   );
 
@@ -1053,7 +1053,7 @@ Le dispatcher fera le bon choix dans 70%+ des cas, et le fallback automatique co
 **Organisation recommandée :**
 
 ```
-_bmad/_context/
+_byan/_context/
 ├── platform.yaml           # Config globale (une fois)
 ├── project-A/
 │   ├── project.yaml       # Config projet A
@@ -1233,7 +1233,7 @@ const context = await byan.loadContext('story', {
 await runWorkflowScript('./workflows/my-workflow.js');
 
 // v2.0 ✅
-await byan.executeWorkflow('_bmad/workflows/my-workflow/workflow.yaml');
+await byan.executeWorkflow('_byan/workflows/my-workflow/workflow.yaml');
 ```
 
 ### Guide de Migration
@@ -1261,13 +1261,13 @@ Avant (v1.0) :
 Après (v2.0) :
 
 ```yaml
-# _bmad/_context/platform.yaml
+# _byan/_context/platform.yaml
 organization: ACME
 language: fr
 ```
 
 ```yaml
-# _bmad/_context/ecommerce/project.yaml
+# _byan/_context/ecommerce/project.yaml
 project_name: E-Commerce
 ```
 
@@ -1287,7 +1287,7 @@ async function analyzeProject() {
 Après (v2.0) :
 
 ```yaml
-# _bmad/workflows/analyze/workflow.yaml
+# _byan/workflows/analyze/workflow.yaml
 name: Analyze Project
 steps:
   - id: scan
@@ -1317,7 +1317,7 @@ await instance.runWorkflow('./workflows/analyze.js');
 // Nouveau code v2.0 ✅
 const { createByanInstance } = require('byan-v2');
 const byan = createByanInstance();
-await byan.executeWorkflow('_bmad/workflows/analyze/workflow.yaml');
+await byan.executeWorkflow('_byan/workflows/analyze/workflow.yaml');
 await byan.shutdown();
 ```
 
@@ -1333,7 +1333,7 @@ npm test
 
 - Les agents BMAD (PM, Architect, Dev, etc.) fonctionnent toujours
 - Les fichiers `.github/agents/` restent les mêmes
-- La structure `_bmad/` est compatible
+- La structure `_byan/` est compatible
 
 **Ce qui nécessite adaptation :**
 
@@ -1374,7 +1374,7 @@ const { createByanInstance } = require('byan-v2');  // ✅ NPM (quand publié)
 **Symptôme :**
 
 ```
-Error: ENOENT: no such file or directory '_bmad/_context/platform.yaml'
+Error: ENOENT: no such file or directory '_byan/_context/platform.yaml'
 ```
 
 **Cause :** Les fichiers de contexte n'existent pas.
@@ -1384,11 +1384,11 @@ Error: ENOENT: no such file or directory '_bmad/_context/platform.yaml'
 Crée la structure de base :
 
 ```bash
-mkdir -p _bmad/_context
+mkdir -p _byan/_context
 ```
 
 ```yaml
-# _bmad/_context/platform.yaml
+# _byan/_context/platform.yaml
 organization: Mon Organisation
 language: fr
 timezone: Europe/Paris

@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.43.0] - 2026-07-10
+
+### Removed - Purged the Gen1 `_bmad/` legacy layer
+
+- Removed the Gen1 `_bmad/` fallback from the layout resolver
+  (`src/byan-v2/lib/layout-resolver.js`): `resolveAgent` / `agentDirs` now resolve
+  Gen3 (`_byan/agent/<name>/`) and Gen2 (`_byan/agents/`, `_byan/<module>/agents/`)
+  only. A pre-Gen3 project on the raw `_bmad/` layout is migrated with
+  `scripts/migrate-bmad-to-byan.js` (agents land under `_byan/`, resolved by the
+  Gen2 branches). Added a regression test locking Gen1 resolution to null.
+- Deleted the frozen Gen1 content: `_bmad/` (677 files) and the dead shipped
+  template `install/templates/_bmad/` (17 files) that the installer does not copy
+  (it scaffolds `templates/_byan/`). Neither carried a live code path.
+- Removed the dead `marc` agent residues (a GitHub Copilot CLI specialist for the
+  already-removed Copilot platform, present only under `_bmad/`): the
+  `subagent-generator` model-map key, an `agent-launcher` jsdoc example, and the
+  `marc.md` entry in the migrator's agent list.
+- Migrated `_bmad` doc references to `_byan` (CLAUDE.md, QUICK-START,
+  GUIDE-UTILISATION, soul-activation, workers) and cleaned stale Gen1
+  comments / dead branches (agent-packager, bridge, cli-detector, index example).
+- Kept the migration back-compat intact: the webui legacy-install detection, the
+  `migrate-bmad-to-byan` script, `stub-sync`, and the `_bmad-output` user-data scan.
+
+### Note - Known follow-up
+
+- `install/install.sh` (a dormant legacy shell installer) still scaffolds a Gen1
+  `_bmad/` tree and promotes GitHub Copilot CLI. It ships but is not run by the
+  npx flow. It needs a dedicated rework to align with the Gen3-only, Copilot-free
+  product; deliberately left out of this purge to avoid touching an untested
+  installer path.
+
 ## [2.42.1] - 2026-07-06
 
 ### Changed - Excised the dead stub half of the yanstaller module

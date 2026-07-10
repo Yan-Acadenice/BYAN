@@ -12,7 +12,7 @@ const logger = require('../utils/logger');
 
 /**
  * @typedef {Object} LaunchOptions
- * @property {string} agent - Agent name (e.g., 'claude', 'marc')
+ * @property {string} agent - Agent name (e.g., 'byan', 'dev')
  * @property {string} platform - Platform ID (e.g., 'claude', 'codex')
  * @property {string} [prompt] - Initial prompt/action
  * @property {string} [model] - Model to use

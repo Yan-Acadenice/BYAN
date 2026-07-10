@@ -156,7 +156,7 @@ class AgentPackager {
   async _findAgentFile(name) {
     // Layout resolver: Gen3 _byan/agent/<name>/ first, then Gen2 flat
     // _byan/agents/, Gen2 per-module _byan/<module>/agents/ (previously NOT
-    // searched — agents like dev/analyst live there), then Gen1 _bmad/.
+    // searched — agents like dev/analyst live there).
     const hit = layoutResolver.resolveAgent(name, { projectRoot: this.projectRoot });
     if (hit) return hit.path;
 

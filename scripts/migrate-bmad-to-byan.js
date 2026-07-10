@@ -10,7 +10,7 @@ class BmadToByanMigrator {
     this.dryRun = process.argv.includes('--dry-run');
     
     this.migrationMap = {
-      agents: ['byan.md', 'byan-test.md', 'rachid.md', 'marc.md']
+      agents: ['byan.md', 'byan-test.md', 'rachid.md']
     };
   }
 

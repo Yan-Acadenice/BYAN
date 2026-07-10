@@ -10,7 +10,7 @@
 //
 // This module is the single READ-side authority: "where does logical thing X
 // physically live?". It answers Gen3-first, then falls back through the real
-// on-disk Gen2 variants (flat AND per-module) and finally Gen1 (_bmad/). Every
+// on-disk Gen2 variants (flat AND per-module). Every
 // lookup is a pure existence check — no writes, no side effects — so it is
 // idempotent and additive: before migration it finds Gen2, after migration it
 // finds Gen3, during migration either works. That is what lets the FS migrator
@@ -68,8 +68,7 @@ function locate(root, gen3rel, gen2rel) {
 
 // Resolve an agent source file by name. Gen3 _byan/agent/<name>/<name>.md (or
 // agent.md) first, then Gen2 flat _byan/agents/<name>.md, then Gen2 per-module
-// _byan/<module>/agents/<name>.md, then Gen1 _bmad/<module>/agents/<name>.md.
-// Returns {path, rel, layout} or null.
+// _byan/<module>/agents/<name>.md. Returns {path, rel, layout} or null.
 function resolveAgent(name, opts = {}) {
   const root = resolveProjectRoot(opts.projectRoot);
   const candidates = [
@@ -78,7 +77,6 @@ function resolveAgent(name, opts = {}) {
     { rel: `_byan/agents/${name}.md`, layout: 'gen2-flat' },
   ];
   for (const m of MODULES) candidates.push({ rel: `_byan/${m}/agents/${name}.md`, layout: 'gen2-module' });
-  for (const m of MODULES) candidates.push({ rel: `_bmad/${m}/agents/${name}.md`, layout: 'gen1' });
   return firstExisting(root, candidates);
 }
 
@@ -95,7 +93,6 @@ function agentDirs(opts = {}) {
   push('_byan/agent', 'gen3', true);
   push('_byan/agents', 'gen2-flat', false);
   for (const m of MODULES) push(`_byan/${m}/agents`, 'gen2-module', false);
-  for (const m of MODULES) push(`_bmad/${m}/agents`, 'gen1', false);
   return out;
 }
 
@@ -105,7 +102,7 @@ function isSoulSibling(fileName) {
 
 // Discover all agents across layouts. Returns [{name, path, rel, layout}],
 // deduped by name with the highest-priority directory winning (Gen3 > flat >
-// module > gen1). Soul/tao siblings are not agents and are skipped.
+// module). Soul/tao siblings are not agents and are skipped.
 function listAgents(opts = {}) {
   const root = resolveProjectRoot(opts.projectRoot);
   const seen = new Map();

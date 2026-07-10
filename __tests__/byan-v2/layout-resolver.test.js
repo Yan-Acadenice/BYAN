@@ -102,6 +102,18 @@ describe('resolveAgent', () => {
     expect(resolver.resolveAgent('does-not-exist', { projectRoot: gen3 })).toBeNull();
   });
 
+  test('Gen1 (_bmad/) is no longer a resolution fallback -> null', () => {
+    // A project on the legacy Gen1 _bmad/ layout with no _byan/. Before the Gen1
+    // purge this resolved to layout:'gen1'; now it resolves to null. Such a
+    // pre-Gen3 relic is migrated manually via scripts/migrate-bmad-to-byan.js,
+    // which lands agents under _byan/ (resolved by the Gen2 branches).
+    const gen1 = mkRoot('gen1only');
+    write(gen1, '_bmad/bmb/agents/legacyonly.md');
+    expect(resolver.resolveAgent('legacyonly', { projectRoot: gen1 })).toBeNull();
+    expect(resolver.agentDirs({ projectRoot: gen1 })).toEqual([]);
+    fs.rmSync(gen1, { recursive: true, force: true });
+  });
+
   test('is idempotent and side-effect free (no file created)', () => {
     const before = fs.readdirSync(path.join(gen3, '_byan', 'agent'));
     const a = resolver.resolveAgent('dev', { projectRoot: gen3 });

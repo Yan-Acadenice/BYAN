@@ -496,7 +496,7 @@ src/
 - **Worker Pool Implementation:** `src/core/worker-pool/worker-pool.js`
 - **Dispatcher Logic:** `src/byan-v2/dispatcher/`
 - **Launcher Workers:** `_byan/worker/launchers/README.md`
-- **Architecture:** `_bmad-output/conception/01-vision-et-principes.md`
+- **Architecture:** `_byan-output/conception/01-vision-et-principes.md`
 
 ---
 

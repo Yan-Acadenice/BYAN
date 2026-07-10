@@ -299,7 +299,7 @@ BYAN v2 applies **71 mantras** from Merise Agile + TDD:
 - **IA-23 No Emoji Pollution** - Zero emojis in code/specs
 - **IA-24 Clean Code** - Self-documenting code
 
-Full list: `_bmad/bmb/workflows/byan/data/mantras.yaml`
+Full list: `_byan/bmb/workflows/byan/data/mantras.yaml`
 
 ---
 

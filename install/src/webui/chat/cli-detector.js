@@ -96,7 +96,7 @@ function parseFrontmatter(content) {
 // Map a resolver layout (+ rel) to the legacy source label, so API responses
 // stay stable: Gen2 flat / Gen3 -> 'byan', Gen2 per-module -> 'bmad-<mod>'.
 function sourceForLayout(layout, rel) {
-  if (layout === 'gen2-module' || layout === 'gen1') {
+  if (layout === 'gen2-module') {
     const mod = String(rel).split('/')[1];
     return `bmad-${mod}`;
   }

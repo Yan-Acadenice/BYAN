@@ -31,7 +31,6 @@ const ROLE_MODEL_MAP = {
   // Narrow mechanical -> haiku
   carmack: 'haiku',
   rachid: 'haiku',
-  marc: 'haiku',
   patnote: 'haiku',
   drawio: 'haiku',
 };

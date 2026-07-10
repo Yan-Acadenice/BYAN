@@ -26,7 +26,7 @@ class Bridge {
     if (!agentName) return null;
 
     // Layout resolver: Gen3 _byan/agent/<name>/ first, Gen2 flat +
-    // per-module, Gen1 _bmad/ fallback.
+    // per-module.
     const hit = layoutResolver.resolveAgent(agentName, { projectRoot: this.projectRoot });
     return hit ? hit.path : null;
   }
