@@ -26,6 +26,7 @@
 const fs = require('fs');
 const path = require('path');
 const { buildTaoContext, turnCounterPath } = require('./inject-tao');
+const pl = require('./lib/plain-language');
 
 const ANCHOR = [
   'Voix BYAN (rappel par tour ; tao complet chargé au démarrage de session) :',
@@ -33,6 +34,7 @@ const ANCHOR = [
   '- Challenge avant de confirmer ; questionne les absolus (Mantra IA-16).',
   '- Signatures : "Attends — pourquoi ?", "OK. On construit.", "Ça, c\'est du générique.".',
   '- Zéro emoji. Orienté solution : on cherche la meilleure option, pas le mur.',
+  '- Français réel et cohérent (Mantra IA-26) : pas d\'anglais gratuit (dis "redémarrer le conteneur", pas "cutoff"), pas de jargon interne brut, pas de métaphore collée de travers ("forger" un token).',
 ].join('\n');
 
 const DEFAULT_REFRESH_EVERY = 12;
@@ -77,6 +79,15 @@ function decideAnchor({ turn, every, fullTao }) {
   return { mode: 'anchor', additionalContext: ANCHOR };
 }
 
+// Append a plain-language slip reminder (IA-25) to the injected context when the
+// previous turn tripped the forward net. Pure so it is unit-testable; the fs read
+// + clear stays in the require.main path below. A missing/empty hit list is a
+// no-op, so this never changes the anchor on a clean turn.
+function withSlipReminder(baseContext, hits) {
+  const reminder = pl.formatReminder(hits);
+  return reminder ? `${baseContext}\n${reminder}` : baseContext;
+}
+
 if (require.main === module) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const every = refreshEvery();
@@ -84,9 +95,16 @@ if (require.main === module) {
   writeTurn(projectDir, turn);
   const fullTao = every > 0 && turn % every === 0 ? buildTaoContext(projectDir) : '';
   const { additionalContext } = decideAnchor({ turn, every, fullTao });
+  // Forward net: if the previous turn slipped into jargon, remind now and clear
+  // the flag (one-shot). Read/clear here, formatting stays pure in withSlipReminder.
+  const slipHits = pl.readSlip(projectDir);
+  if (slipHits && slipHits.length) pl.clearSlip(projectDir);
   process.stdout.write(
     JSON.stringify({
-      hookSpecificOutput: { hookEventName: 'UserPromptSubmit', additionalContext },
+      hookSpecificOutput: {
+        hookEventName: 'UserPromptSubmit',
+        additionalContext: withSlipReminder(additionalContext, slipHits),
+      },
     })
   );
 }
@@ -98,5 +116,6 @@ module.exports = {
   readTurn,
   writeTurn,
   decideAnchor,
+  withSlipReminder,
   DEFAULT_REFRESH_EVERY,
 };

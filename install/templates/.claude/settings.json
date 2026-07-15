@@ -84,6 +84,10 @@
           },
           {
             "type": "command",
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/plain-language-check.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
+          },
+          {
+            "type": "command",
             "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/drain-advisory.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]

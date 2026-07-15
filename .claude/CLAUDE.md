@@ -33,6 +33,7 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 
 - Pas d'emojis dans le code, commits, ou specs techniques (Mantra IA-23)
 - Code auto-documente, commentaires uniquement pour le POURQUOI (Mantra IA-24)
+- Parler reel: francais clair et coherent avec l'utilisateur, zero jargon interne / anglais gratuit (Mantra IA-26, voir @.claude/rules/plain-language.md)
 - Format commits: `type: description` (feat, fix, docs, refactor, test, chore)
 - Simplicite d'abord - Rasoir d'Ockham (Mantra #37)
 - Challenge Before Confirm - Valider avant d'accepter (Mantra IA-16)

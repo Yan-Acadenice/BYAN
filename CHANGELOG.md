@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.45.0] - 2026-07-15
+
+### Added - Plain-language guard for every agent (Mantra IA-26 "Parler Reel")
+
+- New team-wide rule: agents speak clear, coherent French to the user — no gratuitous
+  English when a French word exists ("redemarrer le conteneur", not "cutoff"), no raw
+  internal jargon (leaf/tier/downgrade/gate/inline/advisory), no misapplied metaphor
+  (you do not "forge" a token). A technical term with no French equivalent (commit,
+  cache, token) is kept but explained once. Test: the reader understands with no
+  dictionary. This is the sibling of IA-23 (no emoji) and applies to ALL agents.
+- Mechanism, in three layers, none of which re-generates an already-shown reply:
+  1. The rule reaches every agent: mantra `IA-26` (`mantras.yaml` + `mantras-sources.md`),
+     `.claude/rules/plain-language.md`, and a pointer in `CLAUDE.md`.
+  2. BYAN's own voice stays fresh: a line in the per-turn reminder
+     (`inject-voice-anchor.js`) + entries in `tao.md` Section 4 (Vocabulaire Interdit).
+  3. A forward net (non-blocking): the Stop hook `plain-language-check.js` spots the
+     known repeat-offenders in the finished reply and writes a one-turn flag under
+     `_byan-output/`; the next-turn reminder reads it, signals it in plain French, and
+     clears it. No blocking, no re-answer — the correction is carried to the next turn
+     (a blocking guard would force a costly regen and the user has already read the slip).
+- Core logic isolated in `.claude/hooks/lib/plain-language.js` (French-aware word
+  boundary so "metier"/"chantier" stay clear of the "tier" match; code spans stripped
+  before scanning). Tests: `.claude/__tests__/plain-language.test.js`. Full suite green
+  (2629 jest). Shipped via `install/templates/`.
+
 ## [2.44.0] - 2026-07-15
 
 ### Changed - Revived the Sonnet middle tier for native-workflow model routing

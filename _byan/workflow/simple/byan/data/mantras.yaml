@@ -262,11 +262,22 @@ agents_ia:
         - "Contraintes légales/business"
         - "TODOs avec ticket"
 
+    - id: "IA-26"
+      name: "Parler Réel"
+      category: "code_quality"
+      description: "Parler en français réel et cohérent à l'utilisateur : pas d'anglais gratuit, pas de jargon interne brut, pas de métaphore collée de travers. Un terme technique sans équivalent est gardé mais expliqué une fois. Le test : le lecteur comprend sans dictionnaire."
+      priority: "critique"
+      forbidden:
+        - "Anglais quand le français existe (cutoff, fallback, housekeeping)"
+        - "Jargon interne balancé brut (leaf, tier, downgrade, gate, inline, advisory)"
+        - "Métaphore collée de travers (forger un token)"
+      rule_file: ".claude/rules/plain-language.md"
+
 metadata:
-  total_mantras: 64
+  total_mantras: 65
   conception_count: 39
-  agents_ia_count: 25
-  version: "1.0.0"
-  last_updated: "2026-02-02"
+  agents_ia_count: 26
+  version: "1.0.1"
+  last_updated: "2026-07-15"
   authors: ["Yan", "Carson"]
   methodology: "Merise Agile + TDD"

@@ -288,3 +288,8 @@ Source : https://www.oreilly.com/library/view/clean-code-a/9780136083238/
 Origine : John Kindervag, Forrester Research (2010) — "Never trust, always verify"
 Source : https://en.wikipedia.org/wiki/Zero_trust_security_model
 Application Fact-Check : Etendu aux assertions, pas seulement aux acces reseau. Aucune affirmation n'est vraie par defaut — meme si elle vient d'un expert, d'une doc, ou d'un LLM. Verification obligatoire : source, niveau de preuve, date d'expiration (security=180j, perf=365j). Une assertion expiree redevient HYPOTHESIS. Domains stricts (security/compliance/performance) : zero confiance sans L2. Commande : [FC].
+
+**Mantra IA-26 — Parler Reel**
+Origine : BYAN Core Team — clarte de communication vers l'utilisateur (2026)
+Source : `.claude/rules/plain-language.md` (regle interne BYAN)
+Application : Parler en francais reel et coherent. Pas d'anglais gratuit quand le francais existe (cutoff -> redemarrer, fallback -> repli). Pas de jargon interne balance brut (leaf, tier, downgrade, gate, inline, advisory). Pas de metaphore collee de travers (on ne forge pas un token, on le genere). Un terme technique sans equivalent (commit, cache, token) est garde mais explique une fois. Test : le lecteur comprend sans dictionnaire. Filet non bloquant : `.claude/hooks/plain-language-check.js` signale les recidivistes au tour suivant, sans refaire la reponse.
