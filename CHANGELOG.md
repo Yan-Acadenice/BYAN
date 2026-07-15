@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.46.0] - 2026-07-15
+
+### Added - Intelligent dispatch: Codex/Claude routing + architect-dev loop (option B)
+
+- Route each task to the runtime that is genuinely better for it, on the right
+  model and effort for its complexity, and let an architect (Claude) and a dev
+  (Codex or Claude) exchange turn by turn until the work converges. Layered,
+  ports-and-adapters design so the durable core stays independent of the transport.
+- F1 `lib/dispatch-router.js` — pure routing brain: {nature, complexity} ->
+  {runtime, model, effort}. Runtime table is the cross-checked result (Codex for
+  execution/shell/deploy/devops/browser ; Claude for architecture/refactor/quality/
+  planning ; unknown -> Claude). Complexity picks the Claude model tier via
+  native-tiers (haiku/sonnet/inherit) or the Codex reasoning-effort (low/med/high).
+  Two red lines enforced in code, not left to the caller: Fable is refused
+  (assertNoFable throws) and verification is forced to Claude (a runtime does not
+  grade its own work).
+- F2 `lib/codex-bridge.js` — Codex transport behind a swappable adapter. The
+  shipped codex-exec adapter runs `codex exec` read-only for a unified diff that
+  Claude applies with git apply (Codex writes nothing -> works under a locked-down
+  sandbox e.g. Landlock). Failure is a value (ok:false + reason) so the loop falls
+  back to Claude. codex-mcp is a declared V2 slot (available:false) for the tighter
+  `codex mcp-server` coupling later, with no change to F1/F4.
+- F3 `lib/dispatch-blackboard.js` — the turn-by-turn shared board the agents use to
+  exchange (build/render pure ; JSONL sidecar I/O isolated). The honest substitute
+  for a live peer chat: an orchestrated loop, like a chat server holding the turns.
+- F4 `lib/dispatch-orchestrator.js` — the loop core: routes via F1, runs
+  architect<->dev through the board until convergence, executors injected (Codex vs
+  Claude) so it is fully unit-tested. `.claude/workflows/intelligent-dispatch.js` is
+  the native launch facade for one routed task (design -> implement -> verify ;
+  the verify leaf is a Claude reviewer, not the dev).
+- Enforcement: the Codex auto-delegate config ships DISARMED (absent = off) ;
+  arming stays a per-machine opt-in (`_byan/_config/autodelegate.json`, gitignored).
+  Unit tests: `test/dispatch-router|codex-bridge|dispatch-blackboard|dispatch-orchestrator.test.js`.
+  Also corrected a pre-existing api-tools test drift (byan_api_knowledge_retrieve
+  was registered in server.js but absent from the test's tool list). Full MCP suite
+  green (833 node:test) + jest suite green. Doc: `docs/intelligent-dispatch.md`.
+  Shipped via install/templates (10 files added to the sync manifest).
+
 ## [2.45.0] - 2026-07-15
 
 ### Added - Plain-language guard for every agent (Mantra IA-26 "Parler Reel")

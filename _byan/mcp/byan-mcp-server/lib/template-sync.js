@@ -208,6 +208,24 @@ export const TARGET_ADDITIONS = [
   // package files[] (install/bin + install/lib); the workflow must also ship in
   // the project template so assistants can invoke the operational procedure.
   '_byan/workflow/simple/byan/project-handoff-workflow.md',
+  // Intelligent dispatch (Codex/Claude routing + architect<->dev loop, option B).
+  // Four cooperating ESM libs: the pure router (F1) is imported by the Codex bridge
+  // (F2) and the orchestrator (F4); the orchestrator also imports the blackboard
+  // (F3). None is required by server.js at boot (standalone libs a main-thread skill
+  // drives), but the feature only WORKS on a fresh install if all four ship
+  // together. Tests ship with the server (same convention as above). The native
+  // workflow script is the launch facade for one routed task ; the usage guide
+  // ships like the other docs/.
+  '_byan/mcp/byan-mcp-server/lib/dispatch-router.js',
+  '_byan/mcp/byan-mcp-server/lib/codex-bridge.js',
+  '_byan/mcp/byan-mcp-server/lib/dispatch-blackboard.js',
+  '_byan/mcp/byan-mcp-server/lib/dispatch-orchestrator.js',
+  '_byan/mcp/byan-mcp-server/test/dispatch-router.test.js',
+  '_byan/mcp/byan-mcp-server/test/codex-bridge.test.js',
+  '_byan/mcp/byan-mcp-server/test/dispatch-blackboard.test.js',
+  '_byan/mcp/byan-mcp-server/test/dispatch-orchestrator.test.js',
+  '.claude/workflows/intelligent-dispatch.js',
+  'docs/intelligent-dispatch.md',
 ];
 
 // The template lives under this root-relative directory.

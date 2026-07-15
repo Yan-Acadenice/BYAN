@@ -17,6 +17,7 @@ const API_TOOLS = [
   'byan_api_workflow_runs_get',
   'byan_api_knowledge_list',
   'byan_api_knowledge_get',
+  'byan_api_knowledge_retrieve',
   'byan_api_memory_list',
   'byan_api_memory_search',
   'byan_api_custom_agents_list',
@@ -32,7 +33,7 @@ const API_TOOLS = [
   'byan_api_import_dry_run',
 ];
 
-test('all 22 byan_api_* tools declare a schema entry', () => {
+test('all 23 byan_api_* tools declare a schema entry', () => {
   for (const name of API_TOOLS) {
     assert.ok(
       serverSrc.includes(`name: '${name}'`),
@@ -41,7 +42,7 @@ test('all 22 byan_api_* tools declare a schema entry', () => {
   }
 });
 
-test('all 22 byan_api_* tools have a handler branch', () => {
+test('all 23 byan_api_* tools have a handler branch', () => {
   for (const name of API_TOOLS) {
     assert.ok(
       serverSrc.includes(`if (name === '${name}')`),
@@ -50,7 +51,7 @@ test('all 22 byan_api_* tools have a handler branch', () => {
   }
 });
 
-test('exactly 22 byan_api_* schema entries registered', () => {
+test('exactly 23 byan_api_* schema entries registered', () => {
   const matches = serverSrc.match(/name: 'byan_api_[a-z_]+'/g) || [];
-  assert.equal(matches.length, 22);
+  assert.equal(matches.length, 23);
 });
