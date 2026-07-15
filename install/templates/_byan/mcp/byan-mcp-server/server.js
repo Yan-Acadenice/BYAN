@@ -1004,6 +1004,27 @@ const tools = [
       additionalProperties: false,
     },
   },
+  // Selective RAG retrieval — returns the top-k most relevant knowledge bodies
+  // VERBATIM (never truncated; negations/prohibitions are returned intact).
+  // GET /api/projects/:projectId/knowledge/retrieve?q=...&k=10&tokenBudget=0
+  // Backed by PG FTS (ts_rank) in prod, LIKE-degraded on SQLite (dev/tests).
+  // Use this instead of knowledge_list when you only need a focused subset.
+  {
+    name: 'byan_api_knowledge_retrieve',
+    description:
+      'Retrieve the top-k most relevant knowledge entries for a query using full-text search (PG) or LIKE fallback (SQLite). Returns bodies VERBATIM — negations and prohibitions are never truncated. GET /api/projects/:projectId/knowledge/retrieve?q=...&k=10&tokenBudget=0. RBAC viewer required. projectId and q are required. Requires BYAN_API_TOKEN.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectId: { type: 'string', description: 'Project id (required — RBAC guard).' },
+        q: { type: 'string', description: 'Search query (required).' },
+        k: { type: 'number', description: 'Max number of results (default 10).' },
+        tokenBudget: { type: 'number', description: 'Total token budget (0 = unlimited).' },
+      },
+      required: ['projectId', 'q'],
+      additionalProperties: false,
+    },
+  },
 
   // ─── Memory ───────────────────────────────────────────────────────────
   // Route: GET /api/projects/:projectId/memory (RBAC viewer)
@@ -1437,6 +1458,7 @@ const REMOTE_SAFE_TOOLS = new Set([
   'byan_api_workflow_runs_get',
   'byan_api_knowledge_list',
   'byan_api_knowledge_get',
+  'byan_api_knowledge_retrieve',
   'byan_api_memory_list',
   'byan_api_memory_search',
   'byan_api_custom_agents_list',
@@ -1978,6 +2000,21 @@ export function createByanServer({ token, remoteOnly = false } = {}) {
       if (!args.projectId) throw new Error('projectId is required (RBAC: knowledge is project-scoped).');
       const body = await apiRequest(
         `/api/projects/${encodeURIComponent(args.projectId)}/knowledge/${encodeURIComponent(args.id)}`
+      );
+      return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
+    }
+
+    if (name === 'byan_api_knowledge_retrieve') {
+      requireToken();
+      if (!args.projectId) throw new Error('projectId is required (RBAC: knowledge is project-scoped).');
+      if (!args.q || String(args.q).trim() === '') throw new Error('q (query) is required.');
+      const qs = buildQuery({
+        q: args.q,
+        k: args.k,
+        tokenBudget: args.tokenBudget,
+      });
+      const body = await apiRequest(
+        `/api/projects/${encodeURIComponent(args.projectId)}/knowledge/retrieve${qs}`
       );
       return { content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] };
     }
