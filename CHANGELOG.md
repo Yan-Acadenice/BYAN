@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.44.0] - 2026-07-15
+
+### Changed - Revived the Sonnet middle tier for native-workflow model routing
+
+- Native-workflow ANALYSIS leaves (score/rank/assess/design/nfr/coverage/
+  recommend/synthesize) now auto-route to the balanced tier (`model: 'sonnet'`)
+  instead of `deep` (inherit the session model). Before this, the Sonnet rung was
+  reachable only through the explicit `mech-` opt-in, so on an Opus (or high-effort)
+  session every analysis/verification/implementation leaf ran on Opus — the Sonnet
+  tier was effectively dead (ledger: recent workflows logged all-`inherit`).
+- This deliberately overrides the session model for analysis leaves; a genuinely
+  frontier analysis opts back to the session model with the `deep-` label prefix
+  (`deep-assess-architecture`), the mirror of the `mech-` opt-in. VERIFICATION and
+  IMPLEMENTATION are untouched — a wrong check or a code-write still inherits the
+  session model (no silent downgrade of the dangerous classes).
+- Propagated through the enforcement stack: `modelRoutingViolations` accepts sonnet
+  on an analysis leaf (its tier) and still blocks haiku (`analysis-below-tier`) and
+  any downgrade on a protected leaf; added a non-blocking `untiered-analysis`
+  advisory (surfaces an analysis leaf running deep, suggests `model: 'sonnet'`).
+  Files: `native-tiers.js` (tierFor + `DEEP_PREFIX` + `synthes` keyword),
+  `workflows-lint.js`, `bin/byan-lint-workflows.js`, native-workflows.md.
+- The 21 committed workflows still pass the contract; MCP 792 + jest 2606 green.
+
 ## [2.43.0] - 2026-07-10
 
 ### Removed - Purged the Gen1 `_bmad/` legacy layer

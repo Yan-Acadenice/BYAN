@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { validateContract, untieredExplorationViolations } from '../lib/workflows-lint.js';
+import { validateContract, untieredExplorationViolations, untieredAnalysisViolations } from '../lib/workflows-lint.js';
 
 // Validate native workflow scripts under .claude/workflows/ against the full
 // contract (state-coupling + clock/RNG + meta-literal) AND node --check syntax.
@@ -57,8 +57,11 @@ for (const file of files) {
     }
   }
 
-  // Non-blocking tiering advisory: exploration leaves that run deep.
+  // Non-blocking tiering advisory: exploration + analysis leaves that run deep.
   for (const a of untieredExplorationViolations(src)) {
+    advisories.push({ file, ...a });
+  }
+  for (const a of untieredAnalysisViolations(src)) {
     advisories.push({ file, ...a });
   }
 }
@@ -71,7 +74,7 @@ if (advisories.length) {
     }
   } else {
     process.stdout.write(
-      `[byan-lint-workflows] advisory: ${advisories.length} exploration leaf(s) run deep (rerun with --advise to list; keep deep if they bear a gate/judgment, else add model: 'haiku')\n`
+      `[byan-lint-workflows] advisory: ${advisories.length} downgrade-eligible leaf(s) run deep (rerun with --advise to list; exploration -> model: 'haiku', analysis -> model: 'sonnet', or keep deep if genuinely hard)\n`
     );
   }
 }

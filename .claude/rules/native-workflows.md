@@ -29,14 +29,20 @@ The tiering decision lives in one place — `_byan/mcp/byan-mcp-server/lib/nativ
 (tier vocabulary, leaf classifier, model map). Three tiers:
 
 - **cheap (`model: 'haiku'`)** — a pure EXPLORATION leaf (read/load/parse/detect).
-- **balanced (`model: 'sonnet'`)** — MECHANICAL verification, opt-in ONLY through
-  the `mech-` label prefix (`mech-validate-json`): a binary, judgment-free check
-  (JSON parses, schema matches, lint passes). Semantic/adversarial verification
-  is NOT mechanical and stays deep. The prefix is an authoring declaration the
-  linter holds the script to: a `mech-` leaf without `model: 'sonnet'` is a hard
-  violation (`mechanical-without-model` / `mechanical-below-tier`).
-- **deep (OMIT `opts.model`)** — implementation / verification / analysis leaves
-  inherit the session model (no pin-up to opus).
+- **balanced (`model: 'sonnet'`)** — two classes land here. (1) MECHANICAL
+  verification, opt-in ONLY through the `mech-` label prefix (`mech-validate-json`):
+  a binary, judgment-free check (JSON parses, schema matches, lint passes). (2)
+  ANALYSIS leaves (score/rank/assess/design/nfr/coverage/recommend/synthesize),
+  auto-routed by keyword: judgment-bearing but rarely frontier, so sonnet by
+  default. This deliberately OVERRIDES the session model for analysis even on an
+  Opus / high-effort session (that is the cost lever) — escape a frontier analysis
+  leaf with the `deep-` prefix. A `mech-` leaf without `model: 'sonnet'` is a hard violation; an analysis
+  leaf may carry `model: 'sonnet'` (its tier) but not `haiku` (`analysis-below-tier`).
+  Semantic/adversarial VERIFICATION is NOT analysis and stays deep.
+- **deep (OMIT `opts.model`)** — implementation + verification leaves inherit the
+  session model (no pin-up to opus). A genuinely frontier ANALYSIS leaf opts back to
+  deep with the `deep-` label prefix (`deep-assess-architecture`), the mirror of the
+  `mech-` opt-in.
 
 The linter splits the two directions:
 
@@ -44,12 +50,14 @@ The linter splits the two directions:
   pin-up, or a half-applied `mech-` opt-in is a contract violation
   (`modelRoutingViolations` + `mechanicalLabelViolations`). This is the STRICT-2
   No Downgrade net.
-- **Ceiling (ADVISORY, non-blocking)** — an exploration-labelled leaf that runs
-  deep is *reported* (`byan-lint-workflows.js --advise`), not forced. `classifyLeaf`
-  is permissive: many exploration-labelled leaves legitimately stay deep because
-  they bear a HALT/prerequisite gate, a classification, or an exact conversion
-  consumed verbatim downstream. The human owns that per-leaf call. Forcing haiku
-  on them would be the very downgrade the floor forbids.
+- **Ceiling (ADVISORY, non-blocking)** — an exploration- OR analysis-labelled leaf
+  that runs deep is *reported* (`byan-lint-workflows.js --advise`:
+  `untiered-exploration` -> `model: 'haiku'`, `untiered-analysis` -> `model: 'sonnet'`),
+  not forced. `classifyLeaf` is permissive: many such leaves legitimately stay deep
+  because they bear a HALT/prerequisite gate, a classification, an exact conversion
+  consumed verbatim downstream, or genuinely frontier reasoning (`deep-` prefix). The
+  human owns that per-leaf call. Forcing a downgrade would be the very regression the
+  floor forbids.
 
 ## Ad-hoc scripts — the tier gate hook
 

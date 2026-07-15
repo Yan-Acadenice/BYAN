@@ -69,11 +69,12 @@ test('classifyLeaf: does NOT key off the prompt (prompt noise must not flip the 
 
 // --- tierFor: only exploration is downgraded ------------------------------
 
-test('tierFor: exploration -> cheap, everything else -> deep', () => {
+test('tierFor: exploration -> cheap, analysis + mechanical -> balanced, verif/impl -> deep', () => {
   assert.equal(tierFor(LEAF_TYPES.EXPLORATION), TIERS.CHEAP);
+  assert.equal(tierFor(LEAF_TYPES.MECHANICAL), TIERS.BALANCED);
+  assert.equal(tierFor(LEAF_TYPES.ANALYSIS), TIERS.BALANCED); // revived Sonnet tier
   assert.equal(tierFor(LEAF_TYPES.IMPLEMENTATION), TIERS.DEEP);
   assert.equal(tierFor(LEAF_TYPES.VERIFICATION), TIERS.DEEP);
-  assert.equal(tierFor(LEAF_TYPES.ANALYSIS), TIERS.DEEP);
   assert.equal(tierFor('something-unknown'), TIERS.DEEP);
 });
 
@@ -85,6 +86,20 @@ test('modelForLeaf: exploration leaf -> haiku, protected leaf -> null (omit)', (
   assert.equal(modelForLeaf({ label: 'verify-cycle-1' }), null);
   assert.equal(modelForLeaf({ label: 'rgr-cycle-1' }), null);
   assert.equal(modelForLeaf({ label: 'preflight' }), null);
+});
+
+test('modelForLeaf: analysis leaf -> sonnet (revived balanced tier)', () => {
+  assert.equal(modelForLeaf({ label: 'assess-risk' }), 'sonnet');
+  assert.equal(modelForLeaf({ label: 'recommend-backlog' }), 'sonnet');
+  assert.equal(modelForLeaf({ label: 'nfr-security' }), 'sonnet');
+  assert.equal(modelForLeaf({ label: 'synthesize-verdict' }), 'sonnet'); // synthes keyword
+});
+
+test('modelForLeaf: the deep- prefix opts an analysis leaf back to deep (inherit)', () => {
+  assert.equal(classifyLeaf({ label: 'deep-assess-architecture' }), LEAF_TYPES.IMPLEMENTATION);
+  assert.equal(modelForLeaf({ label: 'deep-assess-architecture' }), null);
+  // the un-prefixed twin still rides sonnet
+  assert.equal(modelForLeaf({ label: 'assess-architecture' }), 'sonnet');
 });
 
 // --- linter helpers -------------------------------------------------------
@@ -110,9 +125,11 @@ test('isDowngradeModel: cheap/balanced are downgrades, deep/omit is not', () => 
 test('INVARIANT: no protected leaf ever resolves to a downgrade model', () => {
   const protectedLabels = [
     'verify-cycle-1', 'validate-content', 'validate-docs', 'rgr-cycle-2',
-    'build-elements', 'write-story', 'risk-and-testability', 'quality-gates',
+    'build-elements', 'write-story', 'quality-gates',
     'self-check', 'generate-report', 'optimize-save', 'preflight', 'plan-structure',
   ];
+  // NOTE: analysis labels (assess/risk/nfr/recommend/synthes) are NO LONGER in this
+  // list — they are the revived downgrade class (balanced/sonnet), covered above.
   for (const label of protectedLabels) {
     const model = modelForLeaf({ label });
     assert.equal(isDowngradeModel(model), false, `${label} must NOT be downgraded (got ${model})`);
@@ -161,7 +178,7 @@ test('modelForLeaf: mech- leaf -> sonnet', () => {
 });
 
 test('INVARIANT holds with MECHANICAL in the vocabulary: protected labels still never downgrade', () => {
-  for (const label of ['verify-cycle-1', 'validate-content', 'build-elements', 'risk-and-testability']) {
+  for (const label of ['verify-cycle-1', 'validate-content', 'build-elements']) {
     assert.equal(isDowngradeModel(modelForLeaf({ label })), false, `${label} must stay deep`);
   }
 });

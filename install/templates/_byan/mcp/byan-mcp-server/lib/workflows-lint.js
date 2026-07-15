@@ -181,6 +181,18 @@ export function modelRoutingViolations(src) {
       }
       continue;
     }
+    // ANALYSIS floors at balanced (sonnet), like MECHANICAL: sonnet is its tier,
+    // haiku sits below it. Analysis auto-routes to sonnet (tierFor); a 'deep-'
+    // labelled analysis classifies as IMPLEMENTATION and never reaches here.
+    if (cls === LEAF_TYPES.ANALYSIS) {
+      if (model !== TIER_MODEL.balanced) {
+        out.push({
+          id: 'analysis-below-tier',
+          msg: `analysis leaf '${label}' carries '${model}' but the analysis tier is '${TIER_MODEL.balanced}' (sonnet); haiku sits below it — prefix the label 'deep-' to keep a hard analysis on the session model instead`,
+        });
+      }
+      continue;
+    }
     out.push({
       id: 'protected-leaf-downgraded',
       msg: `leaf '${label}' is protected (${cls}) but carries downgrade model '${model}'; only exploration (read/load/parse/detect) and explicit mech- leaves may downgrade (STRICT-2 No Downgrade)`,
@@ -268,6 +280,32 @@ export function untieredExplorationViolations(src) {
       out.push({
         id: 'untiered-exploration',
         msg: `exploration leaf '${label}' does not pin a downgrade model; add model: 'haiku' so cheap I/O does not run on the session model (token waste)`,
+      });
+    }
+  }
+  return out;
+}
+
+// The ANALYSIS half of the same non-blocking advisory. An analysis-labelled leaf
+// that pins no downgrade model runs on the session model (Opus, esp. under a
+// high-effort session) for judgment-but-not-frontier work — the single biggest
+// source of the all-Opus workflow pattern. Surfaces 'add model: sonnet' (or the
+// 'deep-' prefix to keep it deep on purpose). Same permissive-classifier caveat
+// as exploration, so it ships as ADVISORY, not a hard contract rule: the human
+// owns whether a given analysis leaf is truly frontier-hard.
+export function untieredAnalysisViolations(src) {
+  const code = stripComments(src);
+  const out = [];
+  let m;
+  LABEL_RE.lastIndex = 0;
+  while ((m = LABEL_RE.exec(code))) {
+    const label = m[2];
+    if (classifyLeaf({ label }) !== LEAF_TYPES.ANALYSIS) continue;
+    const objText = sameOptsObjectText(code, m.index, m.index + m[0].length);
+    if (!objectHasDowngradeModel(objText)) {
+      out.push({
+        id: 'untiered-analysis',
+        msg: `analysis leaf '${label}' pins no downgrade model; add model: 'sonnet' so judgment-but-not-frontier analysis does not run on the session model (token waste), or prefix the label 'deep-' to keep it on the session model deliberately`,
       });
     }
   }

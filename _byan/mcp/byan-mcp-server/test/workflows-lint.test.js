@@ -11,6 +11,7 @@ import {
   metaLiteralViolations,
   modelRoutingViolations,
   untieredExplorationViolations,
+  untieredAnalysisViolations,
   mechanicalLabelViolations,
   validateContract,
 } from '../lib/workflows-lint.js';
@@ -209,6 +210,38 @@ test('untieredExplorationViolations: an exploration leaf pinned to haiku is clea
 test('untieredExplorationViolations: a PROTECTED leaf with no model is clean (deep = inherit)', () => {
   const src = "const r = await agent('do', { label: 'rgr-cycle-1', phase: 'RGR' })";
   assert.deepEqual(untieredExplorationViolations(src), []);
+});
+
+// --- analysis routing: the revived Sonnet middle tier ----------------------
+
+test('modelRoutingViolations: an analysis leaf pinned to sonnet is allowed (its tier)', () => {
+  const src = "const r = await agent('assess', { label: 'assess-risk', model: 'sonnet' })";
+  assert.deepEqual(modelRoutingViolations(src), []);
+});
+
+test('modelRoutingViolations: an analysis leaf dropped to haiku is below its tier', () => {
+  const src = "const r = await agent('assess', { label: 'assess-risk', model: 'haiku' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'analysis-below-tier'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations: a deep- analysis leaf pinned to a downgrade is a violation (opted out)', () => {
+  const src = "const r = await agent('assess', { label: 'deep-assess-architecture', model: 'sonnet' })";
+  const v = modelRoutingViolations(src);
+  assert.ok(v.some((x) => x.id === 'protected-leaf-downgraded'), JSON.stringify(v));
+});
+
+test('untieredAnalysisViolations: an analysis leaf with no model is flagged (should be sonnet)', () => {
+  const src = "const r = await agent('assess', { label: 'assess-risk', phase: 'A' })";
+  const v = untieredAnalysisViolations(src);
+  assert.ok(v.some((x) => x.id === 'untiered-analysis'), JSON.stringify(v));
+});
+
+test('untieredAnalysisViolations: sonnet-pinned or deep- analysis is clean', () => {
+  const pinned = "const r = await agent('assess', { label: 'assess-risk', model: 'sonnet' })";
+  assert.deepEqual(untieredAnalysisViolations(pinned), []);
+  const escaped = "const r = await agent('assess', { label: 'deep-assess-architecture', phase: 'A' })";
+  assert.deepEqual(untieredAnalysisViolations(escaped), []);
 });
 
 test('untieredExplorationViolations: order-independent (model before label)', () => {

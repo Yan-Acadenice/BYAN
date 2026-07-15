@@ -75,9 +75,10 @@ test('nature implementation -> model null (never haiku)', () => {
   assert.equal(r.model, null, `model must be null for implementation, got: ${r.model}`);
 });
 
-test('nature analysis -> model null (never haiku)', () => {
+test('nature analysis -> model sonnet (revived balanced tier)', () => {
   const r = dispatch({ task: 'some task', complexity: 25, nature: 'analysis' });
-  assert.equal(r.model, null, `model must be null for analysis, got: ${r.model}`);
+  assert.equal(r.model, 'sonnet', `model must be sonnet for analysis, got: ${r.model}`);
+  assert.equal(r.tier, 'balanced');
 });
 
 // --- CASE 9: exploration downgrade -> tier 'cheap', model 'haiku' ---

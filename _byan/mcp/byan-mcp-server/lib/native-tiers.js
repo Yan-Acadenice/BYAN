@@ -26,10 +26,13 @@ export const TIERS = Object.freeze({ CHEAP: 'cheap', BALANCED: 'balanced', DEEP:
 //
 // deep MUST be null. Omitting opts.model lets the leaf inherit whatever model the
 // session runs (Opus by default, but Sonnet if the user chose Sonnet). We never
-// PIN UP — pinning a leaf to a fixed high tier would override the user's session
-// choice and could silently DOWNGRADE a Sonnet/Opus session's heavy leaf. Only
-// cheap/balanced carry a value: exploration leaves get cheap, explicit mech-
-// leaves get balanced, nothing else ever gets one.
+// PIN UP (nothing is ever forced to opus). cheap/balanced carry a value:
+// exploration leaves get cheap (haiku); explicit mech- leaves AND analysis leaves
+// get balanced (sonnet). Analysis routing to balanced is a deliberate downgrade of
+// the session model for judgment-but-not-frontier work (score/rank/assess/nfr/
+// coverage/recommend) — the heaviest workflow prompts, which rarely need the top
+// model; the 'deep-' label prefix opts a hard analysis leaf back to the session
+// model. VERIFICATION and IMPLEMENTATION still inherit (deep).
 //
 // Values are the harness model-selection aliases (same set as the Agent tool:
 // 'haiku' | 'sonnet' | 'opus'). They are version-independent. If a future
@@ -37,11 +40,14 @@ export const TIERS = Object.freeze({ CHEAP: 'cheap', BALANCED: 'balanced', DEEP:
 // flags every script literal that drifts from it, so the fan-out stays bounded.
 export const TIER_MODEL = Object.freeze({ cheap: 'haiku', balanced: 'sonnet', deep: null });
 
-// Leaf task-type taxonomy. EXPLORATION and MECHANICAL are the two
-// downgrade-safe classes; the other three are protected (never downgraded).
-// MECHANICAL is verification whose outcome is binary and judgment-free (JSON
-// parses, schema matches, lint passes, a test suite exits 0) — it earns the
-// balanced tier. Semantic/adversarial verification stays VERIFICATION (deep).
+// Leaf task-type taxonomy. EXPLORATION (cheap) and MECHANICAL + ANALYSIS
+// (balanced) are the downgrade classes; VERIFICATION and IMPLEMENTATION stay
+// protected (deep, inherit the session model). MECHANICAL is verification whose
+// outcome is binary and judgment-free (JSON parses, schema matches, lint passes,
+// a test suite exits 0). ANALYSIS bears judgment (score/rank/assess/design/nfr/
+// coverage) but rarely the frontier reasoning that needs the top model, so it
+// auto-routes to balanced (sonnet) — escapable per-leaf via the 'deep-' prefix.
+// Semantic/adversarial VERIFICATION stays deep (a wrong check corrupts silently).
 export const LEAF_TYPES = Object.freeze({
   EXPLORATION: 'exploration',
   MECHANICAL: 'mechanical',
@@ -57,6 +63,14 @@ export const LEAF_TYPES = Object.freeze({
 // script to it (a mech- leaf must carry model: 'sonnet', nothing else).
 export const MECHANICAL_PREFIX = 'mech-';
 
+// DEEP_PREFIX is the ANALYSIS escape hatch. Analysis auto-routes to balanced
+// (sonnet); a 'deep-' label prefix opts a specific analysis leaf back OUT of that
+// downgrade and onto the protected deep default (inherit the session model), for
+// genuinely frontier reasoning. Parallel to MECHANICAL_PREFIX: an explicit
+// authoring act the linter honours. 'deep-assess-architecture' rides the session
+// model; 'assess-architecture' rides sonnet. The prefix wins over keyword class.
+export const DEEP_PREFIX = 'deep-';
+
 // Label keyword sets, matched as substrings on the leaf LABEL (not the prompt —
 // see classifyLeaf). Protected sets are checked first so any protected signal
 // beats an exploration signal (conservative: when in doubt, do not downgrade).
@@ -66,7 +80,7 @@ export const MECHANICAL_PREFIX = 'mech-';
 // check/review/gate/audit/assert/lint; a leaf that runs tests is labelled
 // 'verify-*' in practice.
 const VERIFICATION_KEYWORDS = ['verify', 'validate', 'check', 'assert', 'gate', 'lint', 'audit', 'review'];
-const ANALYSIS_KEYWORDS = ['analy', 'design', 'architect', 'assess', 'evaluate', 'strategy', 'risk', 'nfr', 'recommend', 'judge', 'score', 'coverage'];
+const ANALYSIS_KEYWORDS = ['analy', 'design', 'architect', 'assess', 'evaluate', 'strategy', 'risk', 'nfr', 'recommend', 'judge', 'score', 'coverage', 'synthes'];
 const IMPLEMENTATION_KEYWORDS = ['implement', 'build', 'write', 'generate', 'create', 'dev', 'rgr', 'refactor', 'fix', 'scaffold', 'save', 'optimize', 'aggregate', 'report', 'present', 'plan', 'map', 'select', 'subprocess', 'sub-'];
 const EXPLORATION_KEYWORDS = ['load', 'read', 'scan', 'list', 'parse', 'detect', 'discover', 'fetch', 'lookup', 'source-tree', 'mode-detection'];
 
@@ -85,9 +99,11 @@ function matchesAny(text, keywords) {
 export function classifyLeaf(leaf) {
   const label = String((leaf && leaf.label) || '').toLowerCase();
   if (!label) return LEAF_TYPES.IMPLEMENTATION;
-  // Explicit opt-in beats every keyword class: 'mech-validate-json' contains a
-  // verification keyword, but the author's declared intent is the signal.
+  // Explicit opt-in prefixes beat every keyword class (the author's declared
+  // intent is the signal): mech- -> balanced; deep- -> the protected deep default
+  // (the analysis escape hatch, classified as the deep IMPLEMENTATION bucket).
   if (label.startsWith(MECHANICAL_PREFIX)) return LEAF_TYPES.MECHANICAL;
+  if (label.startsWith(DEEP_PREFIX)) return LEAF_TYPES.IMPLEMENTATION;
   if (matchesAny(label, VERIFICATION_KEYWORDS)) return LEAF_TYPES.VERIFICATION;
   if (matchesAny(label, ANALYSIS_KEYWORDS)) return LEAF_TYPES.ANALYSIS;
   if (matchesAny(label, IMPLEMENTATION_KEYWORDS)) return LEAF_TYPES.IMPLEMENTATION;
@@ -95,14 +111,16 @@ export function classifyLeaf(leaf) {
   return LEAF_TYPES.IMPLEMENTATION;
 }
 
-// tierFor(taskType) -> a TIERS value. Conservative auto-routing: EXPLORATION
-// downgrades to cheap, MECHANICAL to balanced, every other type stays deep.
-// BALANCED is reachable ONLY through the explicit mech- label opt-in (see
-// MECHANICAL_PREFIX) — never through keyword classification — so automation
-// still cannot land it on judgment-bearing work.
+// tierFor(taskType) -> a TIERS value. Auto-routing: EXPLORATION -> cheap (haiku);
+// MECHANICAL and ANALYSIS -> balanced (sonnet); VERIFICATION and IMPLEMENTATION
+// stay deep (inherit the session model). MECHANICAL reaches balanced only through
+// the explicit mech- opt-in; ANALYSIS reaches it by keyword classification (it is
+// the judgment-but-not-frontier class), with the deep- prefix as the per-leaf
+// escape back to deep. No path ever lands opus (no pin-up).
 export function tierFor(taskType) {
   if (taskType === LEAF_TYPES.EXPLORATION) return TIERS.CHEAP;
   if (taskType === LEAF_TYPES.MECHANICAL) return TIERS.BALANCED;
+  if (taskType === LEAF_TYPES.ANALYSIS) return TIERS.BALANCED;
   return TIERS.DEEP;
 }
 
