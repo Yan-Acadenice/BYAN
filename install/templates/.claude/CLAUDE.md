@@ -15,6 +15,16 @@ Pour invoquer Hermes, tape: `@hermes` ou demande simplement "quel agent pour [ta
 
 Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 
+## Porte d'entree — dispatch d'agent obligatoire (match-or-create)
+
+La base de BYAN : toute tache non-conversationnelle passe d'abord par le dispatch
+d'agent. BYAN + Hermes evaluent quel agent specialiste colle au besoin et le
+PROPOSENT ; l'utilisateur valide (double validation IA + humain), PUIS on lance le
+workflow. Aucun agent adapte -> interview pour cadrer le besoin -> recherche web
+(competences + bonnes pratiques du metier) -> creation de l'agent sur mesure ->
+workflow. Le declencheur de l'interview est l'absence d'un agent adapte, pas la
+taille de la tache. Detail + enforcement : voir @.claude/rules/agent-entry-gate.md
+
 ## Architecture BYAN
 
 ```

@@ -27,6 +27,7 @@ const fs = require('fs');
 const path = require('path');
 const { buildTaoContext, turnCounterPath } = require('./inject-tao');
 const pl = require('./lib/plain-language');
+const gate = require('./lib/agent-gate');
 
 const ANCHOR = [
   'Voix BYAN (rappel par tour ; tao complet chargé au démarrage de session) :',
@@ -88,6 +89,13 @@ function withSlipReminder(baseContext, hits) {
   return reminder ? `${baseContext}\n${reminder}` : baseContext;
 }
 
+// Append the agent-gate reminder (F4) when the previous turn did a task directly
+// without proposing an agent. Pure; the fs read + clear stays in require.main.
+function withGateReminder(baseContext, slip) {
+  const reminder = gate.formatReminder(slip);
+  return reminder ? `${baseContext}\n${reminder}` : baseContext;
+}
+
 if (require.main === module) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const every = refreshEvery();
@@ -99,11 +107,16 @@ if (require.main === module) {
   // the flag (one-shot). Read/clear here, formatting stays pure in withSlipReminder.
   const slipHits = pl.readSlip(projectDir);
   if (slipHits && slipHits.length) pl.clearSlip(projectDir);
+  // Forward net #2 (F4): agent entry-gate slip. Read + clear one-shot.
+  const gateSlip = gate.readSlip(projectDir);
+  if (gateSlip) gate.clearSlip(projectDir);
+  let ctx = withSlipReminder(additionalContext, slipHits);
+  ctx = withGateReminder(ctx, gateSlip);
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: 'UserPromptSubmit',
-        additionalContext: withSlipReminder(additionalContext, slipHits),
+        additionalContext: ctx,
       },
     })
   );
@@ -117,5 +130,6 @@ module.exports = {
   writeTurn,
   decideAnchor,
   withSlipReminder,
+  withGateReminder,
   DEFAULT_REFRESH_EVERY,
 };

@@ -226,6 +226,18 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/dispatch-orchestrator.test.js',
   '.claude/workflows/intelligent-dispatch.js',
   'docs/intelligent-dispatch.md',
+  // Agent entry gate (match-or-create) : the mandatory agent-dispatch front step.
+  // The matcher lib is the pre-filter Hermes+BYAN present ; the doctrine rule is
+  // pointed at from CLAUDE.md (already mirrored) so it must ship ; the reactive
+  // net is a Stop hook registered in .claude/settings.json (already mirrored) +
+  // its pure core, so both MUST ship or a fresh install points at a missing
+  // script. The matcher test ships with the server (same convention as above) ;
+  // the .claude/__tests__ agent-gate test does NOT ship (per the note above).
+  '_byan/mcp/byan-mcp-server/lib/agent-matcher.js',
+  '_byan/mcp/byan-mcp-server/test/agent-matcher.test.js',
+  '.claude/hooks/lib/agent-gate.js',
+  '.claude/hooks/agent-gate-check.js',
+  '.claude/rules/agent-entry-gate.md',
 ];
 
 // The template lives under this root-relative directory.

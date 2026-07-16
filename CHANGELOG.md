@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.47.0] - 2026-07-16
+
+### Added - Mandatory agent entry gate (match-or-create), the base of BYAN
+
+- Makes the agent dispatch the front door of every non-conversational task: BYAN +
+  Hermes evaluate which specialist agent fits the need and PROPOSE it ; the user
+  validates (double validation IA + human) ; THEN the workflow runs. No suited
+  agent -> propose an interview to frame the need -> web research on the trade's
+  competencies + best practices -> create the tailored agent -> workflow. The
+  interview is triggered by the ABSENCE of a suited agent, not by task size (a fit
+  routes directly, no ceremony). This closes the gap where a plain task got done
+  inline without any dispatch.
+- F1 `lib/agent-matcher.js` — pure suitability pre-filter: (task text + roster)
+  -> ranked candidates + a {fit | no-fit} verdict. Curated Hermes trigger words
+  (weighted) over a title/role text overlap ; accent-insensitive ; a no-fit is the
+  interview signal. Loader reads the roster from agent-manifest.csv (robust CSV
+  parse). It PROPOSES, it does not decide alone.
+- F2/F3 doctrine `.claude/rules/agent-entry-gate.md` (+ pointer in CLAUDE.md + a
+  section 0 in the byan-byan skill): the rail, the two dispatch layers (agent vs
+  runtime), the proportionality (verify every task, interview only on no-fit), the
+  double validation, and the web-research step in agent creation.
+- F4 reactive net `.claude/hooks/agent-gate-check.js` (+ pure core
+  `lib/agent-gate.js`): a Stop hook that flags a task done directly (files written)
+  with no agent proposal and outside an active FD cycle ; the next-turn voice
+  reminder surfaces it in plain French. Non-blocking (the correction lands next
+  turn) ; exits 0 in every path. Honest ceiling: no pre-display interception, so
+  the rail is doctrine + this net, not a first-turn wall.
+- F5: tests (`test/agent-matcher.test.js` node:test, `.claude/__tests__/agent-gate.test.js`
+  jest). Full MCP suite + jest suite green ; workflow linter OK ; skill bundles
+  re-checked ; zero emoji. Shipped via install/templates (5 files added to the sync
+  manifest). Doc: `.claude/rules/agent-entry-gate.md`.
+
 ## [2.46.0] - 2026-07-15
 
 ### Added - Intelligent dispatch: Codex/Claude routing + architect-dev loop (option B)
