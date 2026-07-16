@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.48.0] - 2026-07-16
+
+### Added - The whole dispatch chain now runs automatically at the entry
+
+- On every non-conversational task, BYAN runs the full chain of its own accord —
+  the user no longer has to ask for it: (1) match the agent (agent-matcher),
+  (2) route the runtime with dispatch-router (Codex for execution/shell/deploy/
+  devops/browser ; Claude for architecture/refactor/quality/planning ; verification
+  stays Claude ; no Fable ; model+effort by complexity), (3) execute — Codex-lane
+  delegates to Codex via codex-bridge (`codex exec` -> diff -> Claude applies, with
+  a Claude fallback when Codex is unavailable) ; Claude-lane runs on Claude at the
+  chosen model.
+- Reconciled with the double-validation rule: the human stays required only for
+  (a) creating a NEW agent when none fits and (b) confirming a destructive action.
+  Agent match, runtime routing and execution are automatic. Proportionate — a
+  trivial task with an existing agent routes directly, no ceremony.
+- Wiring only: the code (agent-matcher 2.47, dispatch-router + codex-bridge 2.46)
+  already existed ; this connects it into the entry flow. Updated the byan-byan
+  skill (section 0), `.claude/rules/agent-entry-gate.md`, and `CLAUDE.md`. Honest
+  ceiling: the auto-chain is driven by the loaded skill (via `/byan-byan`) plus the
+  reactive nets — not a guarantee outside a loaded skill.
+- Skill bundles rebuilt ; jest 2640 + MCP 846 green ; zero emoji ; mirrored to
+  install/templates.
+
 ## [2.47.1] - 2026-07-16
 
 ### Fixed - Doctrine told users to invoke with `@byan`, which does not load the skill

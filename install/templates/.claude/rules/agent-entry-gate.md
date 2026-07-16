@@ -47,6 +47,29 @@ declencher une interview a chaque fois. Agent existant qui colle = on route
 direct. Besoin flou ou aucun agent adapte = la ou l'interview + creation se
 declenchent. La ceremonie est proportionnee au manque, pas systematique.
 
+## La chaine complete, automatique (agent -> moteur -> execution)
+
+Le dispatch d'agent n'est que la premiere marche. A l'entree, sur toute tache,
+BYAN enchaine la chaine ENTIERE de lui-meme, sans que l'utilisateur ait a la
+demander :
+
+1. **Agent** — matcher (ci-dessus). Fit -> cet agent ; no-fit -> interview +
+   recherche web + creation. Seul point ou l'humain reste requis : creer un
+   nouvel agent.
+2. **Moteur** — router via `_byan/mcp/byan-mcp-server/lib/dispatch-router.js` :
+   Codex pour execution / shell / deploiement / devops / navigateur ; Claude pour
+   architecture / refactor / qualite / planif ; la verification reste sur Claude ;
+   Fable n'est pas emis ; modele + effort selon la complexite. Decision
+   automatique, pas de validation utilisateur.
+3. **Execution** — Codex-lane : deleguer a Codex via le pont
+   (`lib/codex-bridge.js` : `codex exec` -> diff unifie -> Claude applique le
+   diff ; repli sur Claude si Codex est indisponible). Claude-lane : executer sur
+   Claude au modele choisi. Automatique.
+
+Ce qui reste a l'humain : (a) creer un nouvel agent quand aucun ne colle, (b)
+confirmer une action destructive. Le reste — match agent, routage moteur,
+execution — part tout seul. Detail du routage moteur : `docs/intelligent-dispatch.md`.
+
 ## La double validation
 
 Le matcher (F1, `_byan/mcp/byan-mcp-server/lib/agent-matcher.js`) est un

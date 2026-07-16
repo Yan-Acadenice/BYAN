@@ -23,7 +23,14 @@ PROPOSENT ; l'utilisateur valide (double validation IA + humain), PUIS on lance 
 workflow. Aucun agent adapte -> interview pour cadrer le besoin -> recherche web
 (competences + bonnes pratiques du metier) -> creation de l'agent sur mesure ->
 workflow. Le declencheur de l'interview est l'absence d'un agent adapte, pas la
-taille de la tache. Detail + enforcement : voir @.claude/rules/agent-entry-gate.md
+taille de la tache.
+
+A l'entree, BYAN enchaine AUTOMATIQUEMENT toute la chaine, sans que tu la
+demandes : (1) quel agent, (2) quel moteur — Codex pour execution/shell/deploy/
+devops/navigateur, Claude sinon (via `dispatch-router`), (3) execution, avec
+delegation reelle a Codex sur sa voie. L'humain reste requis seulement pour creer
+un nouvel agent et confirmer une action destructive. Detail + enforcement : voir
+@.claude/rules/agent-entry-gate.md et @docs/intelligent-dispatch.md
 
 ## Architecture BYAN
 
