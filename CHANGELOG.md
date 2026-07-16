@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.47.1] - 2026-07-16
+
+### Fixed - Doctrine told users to invoke with `@byan`, which does not load the skill
+
+- The docs said "tape `@byan` / `@hermes`" to invoke BYAN. In Claude Code, `@` is a
+  file mention, not a skill loader — so the byan-byan skill (which holds the agent
+  entry gate) was not loaded, and BYAN ran a task inline with no dispatch. Root
+  cause of the entry gate appearing "not to work" on a real machine.
+- Corrected the entry guidance in `CLAUDE.md`: invoke BYAN with the **command**
+  `/byan-byan` (it loads the skill, the entry gate, and the rail) ; noted explicitly
+  that `@byan`/`@hermes` do not load the skill. Mirrored to install/templates.
+- Note: the entry-gate code (2.47.0) is unchanged and correct ; it simply was not
+  reached because the skill was not loaded. Open question (does the loaded doctrine
+  reliably make BYAN propose an agent, or is a hard pre-write block needed) is to be
+  decided by testing `/byan-byan` with the rail actually loaded.
+
 ## [2.47.0] - 2026-07-16
 
 ### Added - Mandatory agent entry gate (match-or-create), the base of BYAN

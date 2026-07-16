@@ -11,7 +11,7 @@
 Avant de chercher un agent specifique, demande a Hermes. Il connait tous les agents,
 workflows et contextes, et te route vers le bon specialiste.
 
-Pour invoquer Hermes, tape: `@hermes` ou demande simplement "quel agent pour [ta tache]?"
+Pour lancer BYAN sur une tache, utilise la **commande** `/byan-byan` : c'est elle qui charge le skill (donc la porte d'entree et le rail de dispatch). Attention — `@byan` / `@hermes` NE chargent PAS le skill : cote Claude Code, `@` est une mention de fichier, pas un lanceur. Une fois dans `/byan-byan`, decris ta tache ou demande "quel agent pour [ta tache] ?".
 
 Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 
@@ -68,7 +68,7 @@ Doctrine d'equipe complete (template role-in-team, analogie orchestre, principes
 
 ## Commandes Utiles
 
-- `@hermes` → Dispatcher universel (recommandations, routage, pipelines)
+- `/byan-byan` → Entree BYAN + dispatcher universel (recommandations, routage, pipelines). Le `@` ne charge pas le skill.
 - Agent disponibles: voir @.claude/rules/byan-agents.md
 - Doctrine d'equipe: voir @.claude/rules/team-doctrine.md
 - Methodologie: voir @.claude/rules/merise-agile.md
