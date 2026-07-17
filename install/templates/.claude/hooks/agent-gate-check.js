@@ -20,12 +20,24 @@ const gate = require('./lib/agent-gate');
 function detect(payload, projectDir) {
   const text = extractLastAssistantText(payload);
   const messages = extractRecentMessages(payload, 8) || [];
+  const wroteFiles = gate.hasWriteActivity(messages);
+  const fdActive = gate.fdIsActive(projectDir);
   const assessment = gate.assessTurn({
-    wroteFiles: gate.hasWriteActivity(messages),
+    wroteFiles,
     proposedAgent: gate.hasProposalMarker(text),
-    fdActive: gate.fdIsActive(projectDir),
+    taskVisualSeen: gate.hasTaskActivity(messages), // WI-4: a live task list holds the entry posture
+    fdActive,
   });
   if (assessment.slip) gate.writeSlip(projectDir, assessment.reason);
+  // WI-3: dispatch net, its own slip. Same signals, different question (was the
+  // runtime routeur consulted?).
+  const dispatch = gate.assessDispatch({
+    wroteFiles,
+    dispatchConsulted: gate.hasDispatchActivity(messages),
+    fdActive,
+  });
+  if (dispatch.slip) gate.writeDispatchSlip(projectDir, dispatch.reason);
+  assessment.dispatch = dispatch; // backward-compatible: .slip stays primary
   return assessment;
 }
 

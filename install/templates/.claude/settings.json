@@ -92,6 +92,10 @@
           },
           {
             "type": "command",
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/voice-conformance-check.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
+          },
+          {
+            "type": "command",
             "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/drain-advisory.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
@@ -112,6 +116,10 @@
           {
             "type": "command",
             "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/strict-scope-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
+          },
+          {
+            "type": "command",
+            "command": "p=\"$CLAUDE_PROJECT_DIR/.claude/hooks/codex-delegate-guard.js\"; [ -f \"$p\" ] || exit 0; exec node \"$p\""
           }
         ]
       },

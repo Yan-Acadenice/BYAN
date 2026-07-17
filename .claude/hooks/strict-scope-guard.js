@@ -57,9 +57,48 @@ function matchesPrefix(rel, prefix) {
   return rel === p || rel.startsWith(p + '/');
 }
 
-// Pure decision : returns { deny, reason }.
-function decideScope({ state, config, toolName, filePath }) {
-  if (!['Write', 'Edit'].includes(toolName)) return { deny: false };
+// WI-6 — the Bash write-redirection leak.
+//
+// The Write/Edit deny is bypassable : `cat > src/x.js`, `echo >> a`, `tee f`,
+// `cmd <<EOF > f` write files through Bash, which the tool-name check missed.
+// bashWriteTargets extracts the file targets of write-redirections from a Bash
+// command so the SAME allowed-paths rule applies. Deliberately conservative to
+// avoid denying legit Bash : it skips fd-dups (`2>&1`, `>&2`), process
+// substitution (`>(...)`), and the /dev/* sinks. It is not a hermetic sandbox
+// (pipes, `python -c open()`, variables escape) — it closes the COMMON reflex
+// leak, honestly bounded (see docs).
+function bashWriteTargets(command) {
+  const cmd = String(command || '');
+  const out = [];
+  // A redirection target only counts when it LOOKS like a file path : it contains
+  // a "/" or a file extension. This is the false-positive kill switch : it drops
+  // comparison / arithmetic / here-string operands (`[ 5 > 3 ]`, `(( a > 2 ))`,
+  // `<<< "a > b"` -> "3", "2", "b") which are numbers or bare words, and drops an
+  // unexpanded variable target (`> $F`) which we cannot resolve — denying it would
+  // be a false positive on a possibly in-scope path. Honest ceiling : a bare
+  // filename with no extension (`> outfile`) or a variable target is NOT caught.
+  const consider = (t) => {
+    if (!t) return;
+    if (t.startsWith('$') || t.startsWith('&') || t.startsWith('-')) return; // variable / fd-dup / flag
+    if (/^\/dev\//.test(t)) return; // /dev sinks
+    const pathShaped = t.includes('/') || /\.[A-Za-z0-9]+$/.test(t);
+    if (pathShaped) out.push(t);
+  };
+  // > , >> , &> , &>> , and fd-prefixed (2>) redirections. The lookahead (?![&(])
+  // drops `>&1` (fd dup) and `>(` (process substitution).
+  const redir = /(?:^|[\s;|&(])\d*(?:>>?|&>>?)\s*(?![&(])("?)([^\s"'`|;&<>()]+)\1/g;
+  let m;
+  while ((m = redir.exec(cmd)) !== null) consider(m[2]);
+  // tee [flags] file...
+  const tee = /\btee\b((?:\s+-\S+)*)\s+("?)([^\s"'`|;&<>()]+)\2/g;
+  while ((m = tee.exec(cmd)) !== null) consider(m[3]);
+  return out;
+}
+
+// Pure decision : returns { deny, reason }. Handles Write/Edit (file_path) and,
+// since WI-6, Bash (write-redirection targets that land INSIDE the repo).
+function decideScope({ state, config, toolName, filePath, command }) {
+  if (!['Write', 'Edit', 'Bash'].includes(toolName)) return { deny: false };
   if (!isEngaged(state)) return { deny: false };
 
   const guard = (config && config.scope_guard) || {};
@@ -69,25 +108,42 @@ function decideScope({ state, config, toolName, filePath }) {
   if (!Array.isArray(allowed) || allowed.length === 0) return { deny: false };
 
   const root = projectRoot();
-  const rel = toRelative(filePath, root);
-  if (!rel) return { deny: false };
-
   const exempt = guard.exempt_globs || [];
-  if (exempt.some((g) => matchesPrefix(rel, g))) return { deny: false };
-
-  if (allowed.some((a) => matchesPrefix(rel, a))) return { deny: false };
-
   const base =
     (config && config.banners && config.banners.scope_deny) ||
     'Strict mode: this write targets a path outside the locked scope.';
-  const reason =
+
+  // Returns the offending rel path, or null when the target is allowed/exempt.
+  const offending = (rawTarget, { repoOnly = false } = {}) => {
+    const rel = toRelative(rawTarget, root);
+    if (!rel) return null;
+    // repoOnly (Bash): a target outside the repo (../, /tmp, absolute elsewhere)
+    // is transient, not a repo change under cover of the locked task -> ignore.
+    if (repoOnly && rel.startsWith('..')) return null;
+    if (exempt.some((g) => matchesPrefix(rel, g))) return null;
+    if (allowed.some((a) => matchesPrefix(rel, a))) return null;
+    return rel;
+  };
+
+  const buildReason = (rel) =>
     `${base}\n` +
     `Target: ${rel}\n` +
     `Locked paths: ${allowed.join(', ')}\n` +
     `Either this file belongs to the scope (re-lock with byan_strict_lock_scope ` +
     `including the corrected paths) or it does not (do not write it).`;
 
-  return { deny: true, reason };
+  if (toolName === 'Write' || toolName === 'Edit') {
+    const bad = offending(filePath);
+    return bad ? { deny: true, reason: buildReason(bad) } : { deny: false };
+  }
+
+  // Bash : deny if any in-repo write-redirection target is out of scope.
+  const targets = bashWriteTargets(command);
+  for (const t of targets) {
+    const bad = offending(t, { repoOnly: true });
+    if (bad) return { deny: true, reason: buildReason(bad) };
+  }
+  return { deny: false };
 }
 
 function allow() {
@@ -106,8 +162,9 @@ if (require.main === module) {
     const toolName = payload.tool_name || payload.toolName || '';
     const input = payload.tool_input || payload.toolInput || {};
     const filePath = input.file_path || '';
+    const command = input.command || '';
 
-    const decision = decideScope({ state, config, toolName, filePath });
+    const decision = decideScope({ state, config, toolName, filePath, command });
     if (!decision.deny) {
       process.stdout.write(JSON.stringify(allow()));
       process.exit(0);
@@ -125,4 +182,4 @@ if (require.main === module) {
   })();
 }
 
-module.exports = { decideScope, toRelative, matchesPrefix };
+module.exports = { decideScope, toRelative, matchesPrefix, bashWriteTargets };

@@ -121,6 +121,10 @@ _bmad-output/
 # BYAN tier gate sidecar (deny-once memory + off switch, never committed)
 .byan-tier/
 
+# BYAN Codex delegation sidecars (armed-lane off switch + deny-once memory)
+.byan-codex-autodelegate/
+.byan-codex-delegate/
+
 # BYAN runtime memoire state — mutated at runtime by EloStore / KnowledgeGraph,
 # so it generated constant git noise. Root-only paths (the separators anchor them
 # to repo root); the template keeps its own seed copies under install/templates/.

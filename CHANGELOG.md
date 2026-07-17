@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.50.0] - 2026-07-17
+
+### Added — BYAN souverainete (les concepts BYAN pilotent Claude, ne se font plus doubler)
+- **WI-1 dent delegation Codex** : hook PreToolUse `codex-delegate-guard.js` (+ coeur pur `lib/codex-delegate-gate.js`) qui refuse-une-fois le premier Write/Edit de code delegable quand la voie Codex est armee (option + Codex linke) et qu'aucune delegation n'a eu lieu ce tour. Speed-bump, pas un mur : escape `.byan-codex-autodelegate/off`, marque `// BYAN-DELEGATE: reviewed`, fenetre de grace. Corrige la racine de l'incident (Claude codait lui-meme malgre la directive).
+- **WI-2 filet de conformite de voix** : hook Stop `voice-conformance-check.js` (+ `lib/voice-conformance.js`) qui repere les signaux objectifs de derive (emoji, vouvoiement en grappe) et pose un drapeau relaye au tour suivant. Non bloquant (le registre reste semantique).
+- **WI-3 filet dispatch runtime** : drapeau quand un tour ecrit du code sans avoir consulte `byan_dispatch`, hors FD.
+- **WI-4 garde de porte d'entree renforce** : le signal visuel party-mode (`TaskCreate`/`TaskUpdate`) tient desormais la posture d'entree — plus de faux drapeau sur un tour party-mode.
+- **WI-7 rapport d'armement** : `bin/byan-armament-report.js` (+ `lib/armament-report.js`) lit les registres autobench/punt/completeness et reporte le taux de declenchement (indicateur de risque de faux positif) avant toute decision d'armement. Verdict mesure : les 3 gardes restent DESARMEES (punt 42%, autobench 1%, completeness echantillon trop petit).
+
+### Changed
+- **WI-6 fuite Bash du strict-scope-guard** : `decideScope` couvre desormais les redirections d'ecriture Bash (`>`, `>>`, `tee`, heredoc) hors `allowedPaths`. Parseur resserre (cible en forme de chemin uniquement) pour eviter les faux positifs sur les operateurs de comparaison/arithmetique et les variables non resolues.
+- **WI-5 fact-check-absolutes elargi** : plus d'absolus/superlatifs/best-practice/certitudes couverts (alignes sur `.claude/rules/fact-check.md`) ; `optimal` ecarte (trop courant) et strip d'exemples resserre a une puce (une phrase de prose commencant par un absolu reste policee). Le plafond des mantras semantiques (IA-16, #37...) est assume : doctrine + `byan-mantra-audit`, pas de fausse dent regex.
+
+### Docs
+- `docs/byan-sovereignty-chantier.md` : le chantier complet (constat, patron des 4 dents, plafond honnete, work items, risques) adosse a l'audit `byan-sovereignty-audit`.
+
+### Tests
+- +9 tests MCP (armament report + parite shipping anti-derive) ; +47 tests jest (dents + filets + fact-check + strict-scope Bash). jest 2699/0, MCP 855/0.
+
 ## [2.49.0] - 2026-07-16
 
 ### Added

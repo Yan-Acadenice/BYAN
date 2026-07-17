@@ -238,6 +238,27 @@ export const TARGET_ADDITIONS = [
   '.claude/hooks/lib/agent-gate.js',
   '.claude/hooks/agent-gate-check.js',
   '.claude/rules/agent-entry-gate.md',
+  // BYAN sovereignty teeth (byan-sovereignty FD). Each new hook is registered in
+  // .claude/settings.json (already mirrored) so it MUST ship or a fresh install
+  // points at a missing script (the `[ -f ] || exit 0` guard would degrade it to a
+  // silent no-op — the feature absent with no signal). WI-1 : the armed-Codex
+  // delegation PreToolUse tooth + its pure core. WI-2 : the voice-conformance Stop
+  // net + its pure core (also required by inject-voice-anchor.js, already mirrored,
+  // so it MUST ship or that hook's require breaks). WI-7 : the armament report
+  // lib + bin + test (reads the ledgers' would-fire before any arming decision).
+  // WI-3/WI-4 modified agent-gate.js / agent-gate-check.js / inject-voice-anchor.js
+  // which are already mirrored, so they re-sync automatically.
+  '.claude/hooks/codex-delegate-guard.js',
+  '.claude/hooks/lib/codex-delegate-gate.js',
+  '.claude/hooks/voice-conformance-check.js',
+  '.claude/hooks/lib/voice-conformance.js',
+  '_byan/mcp/byan-mcp-server/lib/armament-report.js',
+  '_byan/mcp/byan-mcp-server/bin/byan-armament-report.js',
+  '_byan/mcp/byan-mcp-server/test/armament-report.test.js',
+  // The shipping parity guard : makes "a new sovereignty hook is not shipped /
+  // not wired" CI-visible (the drift the review caught). Ships like the other
+  // server tests.
+  '_byan/mcp/byan-mcp-server/test/sovereignty-shipping.test.js',
 ];
 
 // The template lives under this root-relative directory.

@@ -28,6 +28,7 @@ const path = require('path');
 const { buildTaoContext, turnCounterPath } = require('./inject-tao');
 const pl = require('./lib/plain-language');
 const gate = require('./lib/agent-gate');
+const voice = require('./lib/voice-conformance');
 
 const ANCHOR = [
   'Voix BYAN (rappel par tour ; tao complet chargé au démarrage de session) :',
@@ -96,6 +97,20 @@ function withGateReminder(baseContext, slip) {
   return reminder ? `${baseContext}\n${reminder}` : baseContext;
 }
 
+// Append the dispatch reminder (WI-3) when the previous turn wrote code without
+// consulting byan_dispatch. Pure; fs read + clear stays in require.main.
+function withDispatchReminder(baseContext, slip) {
+  const reminder = gate.formatDispatchReminder(slip);
+  return reminder ? `${baseContext}\n${reminder}` : baseContext;
+}
+
+// Append the voice-conformance reminder (WI-2) when the previous turn drifted from
+// the BYAN voice (emoji / vouvoiement). Pure; fs read + clear stays in require.main.
+function withVoiceReminder(baseContext, hits) {
+  const reminder = voice.formatReminder(hits);
+  return reminder ? `${baseContext}\n${reminder}` : baseContext;
+}
+
 if (require.main === module) {
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const every = refreshEvery();
@@ -110,8 +125,16 @@ if (require.main === module) {
   // Forward net #2 (F4): agent entry-gate slip. Read + clear one-shot.
   const gateSlip = gate.readSlip(projectDir);
   if (gateSlip) gate.clearSlip(projectDir);
+  // Forward net #3 (WI-3): dispatch-runtime slip. Read + clear one-shot.
+  const dispatchSlip = gate.readDispatchSlip(projectDir);
+  if (dispatchSlip) gate.clearDispatchSlip(projectDir);
+  // Forward net #4 (WI-2): voice-conformance slip. Read + clear one-shot.
+  const voiceHits = voice.readSlip(projectDir);
+  if (voiceHits && voiceHits.length) voice.clearSlip(projectDir);
   let ctx = withSlipReminder(additionalContext, slipHits);
   ctx = withGateReminder(ctx, gateSlip);
+  ctx = withDispatchReminder(ctx, dispatchSlip);
+  ctx = withVoiceReminder(ctx, voiceHits);
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
@@ -131,5 +154,7 @@ module.exports = {
   decideAnchor,
   withSlipReminder,
   withGateReminder,
+  withDispatchReminder,
+  withVoiceReminder,
   DEFAULT_REFRESH_EVERY,
 };
