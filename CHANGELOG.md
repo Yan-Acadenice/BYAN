@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.49.0] - 2026-07-16
+
+### Added
+- Chaine d'entree BYAN v2 dans le skill `byan-byan` (section 0) : comprendre la
+  demande -> point de controle de plan uniquement sur doute -> dispatch Hermes
+  automatique (agent + modele + effort) -> execution party-mode avec visuel live
+  -> point de controle utilisateur en fin. L'humain reste requis seulement pour
+  creer un nouvel agent, confirmer un destructif, ou trancher un plan en cas de
+  doute.
+- Visuel party-mode cable sur la liste de taches native (une entree par
+  agent/etape, `TaskCreate` / `TaskUpdate` en direct) plus la table de dispatch
+  affichee en tete de la phase BUILD.
+- Garde "les deux moteurs" (`codexLinked()`) dans `codex-autodelegate.js` : la
+  voie Codex ne s'arme que si l'option yanstaller est activee ET Codex est linke
+  (`~/.codex/auth.json` ou `CODEX_API_KEY`) ; option seule = pas de delegation.
+
+### Changed
+- La delegation Codex sur voie armee passe de "conseil advisory" a "directive" :
+  quand la voie est armee (option + les deux moteurs), le rendu injecte demande
+  de deleguer le delegable via `codex-bridge` (repli Claude si Codex
+  indisponible), au lieu de laisser BYAN executer sur Claude par defaut.
+- Doctrine synchronisee (`.claude/rules/agent-entry-gate.md`, `.claude/CLAUDE.md`)
+  a la chaine d'entree v2 ; la double validation est calibree (doute / nouvel
+  agent / destructif) au lieu d'un reflexe a chaque tache.
+
+### Docs
+- `docs/codex-auto-delegation.md` : garde "les deux moteurs", directive-quand-arme,
+  plafond honnete.
+- `docs/per-platform-projection-opti.md` : chantier suivant planifie (coeur unique
+  + deux projections optimisees par plateforme Claude/Codex, sans source rivale).
+
 ## [2.48.0] - 2026-07-16
 
 ### Added - The whole dispatch chain now runs automatically at the entry

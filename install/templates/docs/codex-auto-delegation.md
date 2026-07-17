@@ -12,9 +12,24 @@ work crosses the line.
 Every turn, a `UserPromptSubmit` hook estimates how much of the Claude 5h window
 you have burned and looks at the task you just asked for. If the task is
 delegable (code / mechanical) — or if you are over the pressure threshold — BYAN
-injects a one-line advisory nudge proposing you hand it to Codex via
-`codex:codex-rescue --model gpt-5.4`. You still decide, and you still verify
-Codex's output before commit.
+injects a one-line note directing you to hand it to Codex via
+`codex:codex-rescue --model gpt-5.4`. You still verify Codex's output before commit.
+
+**Both engines must be present.** The lane only arms — and the note only fires —
+when TWO conditions hold together: the yanstaller option wrote
+`_byan/_config/autodelegate.json` with `enabled:true`, AND Codex is actually
+linked on this machine (`~/.codex/auth.json` from `codex login`, or
+`CODEX_API_KEY`). Option on but no linked Codex = one engine only = no delegation.
+This is the runtime `codexLinked()` gate in `codex-autodelegate.js`, the mirror of
+the installer's arm-time `codexAuthState` check.
+
+**Armed = directive, not advice.** Because the note only appears when the lane is
+armed (both engines present), it reads as a directive: delegate the delegable
+part, fall back to Claude only if Codex is unavailable. When the lane is not
+armed, no note is injected and everything runs on Claude — there is nothing to
+decide. Honest ceiling: Claude Code has no control point before a response is
+shown, so this stays model-driven doctrine (BYAN delegates because the skill's
+entry chain and this note say so), not a mechanism enforced before display.
 
 Three triggers, in priority order:
 

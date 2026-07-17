@@ -17,19 +17,27 @@ Voir @.claude/rules/hermes-dispatcher.md pour les commandes Hermes.
 
 ## Porte d'entree — dispatch d'agent obligatoire (match-or-create)
 
-La base de BYAN : toute tache non-conversationnelle passe d'abord par le dispatch
-d'agent. BYAN + Hermes evaluent quel agent specialiste colle au besoin et le
-PROPOSENT ; l'utilisateur valide (double validation IA + humain), PUIS on lance le
-workflow. Aucun agent adapte -> interview pour cadrer le besoin -> recherche web
-(competences + bonnes pratiques du metier) -> creation de l'agent sur mesure ->
-workflow. Le declencheur de l'interview est l'absence d'un agent adapte, pas la
-taille de la tache.
+La base de BYAN : toute tache non-conversationnelle passe d'abord par la chaine
+d'entree. A l'entree, BYAN enchaine AUTOMATIQUEMENT toute la chaine, sans que tu
+la demandes — quatre moments :
 
-A l'entree, BYAN enchaine AUTOMATIQUEMENT toute la chaine, sans que tu la
-demandes : (1) quel agent, (2) quel moteur — Codex pour execution/shell/deploy/
-devops/navigateur, Claude sinon (via `dispatch-router`), (3) execution, avec
-delegation reelle a Codex sur sa voie. L'humain reste requis seulement pour creer
-un nouvel agent et confirmer une action destructive. Detail + enforcement : voir
+1. **Comprendre.** Demande claire -> on avance directement, zero question. Doute
+   ou demande mal exprimee -> BYAN expose UN plan clair (quels agents, quels
+   modeles, quel effort) et tu tranches. Ce point de controle en amont ne se
+   declenche que sur un vrai doute.
+2. **Dispatch (Hermes, automatique).** Le bon agent, le bon modele, le bon effort,
+   le bon moteur — Codex pour execution/shell/deploy/devops/navigateur, Claude
+   sinon (via `dispatch-router`). Aucun agent adapte -> interview + recherche web
+   (competences + bonnes pratiques du metier) -> creation de l'agent sur mesure.
+3. **Execution en party-mode avec visuel live.** Tu vois ce qui se passe en
+   direct (liste de taches native + table de dispatch). Voie Codex armee (option
+   yanstaller + Codex linke) + tache delegable -> delegation reelle a Codex ;
+   sinon execution sur Claude.
+4. **Gate en fin.** La validation utilisateur arrive a la fin, sur le livrable —
+   pas en amont.
+
+L'humain reste requis seulement pour : creer un nouvel agent, confirmer une action
+destructive, trancher le plan quand il y a doute. Detail + enforcement : voir
 @.claude/rules/agent-entry-gate.md et @docs/intelligent-dispatch.md
 
 ## Architecture BYAN

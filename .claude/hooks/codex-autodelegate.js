@@ -20,6 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { readStdin, parseJson } = require('./lib/strict-runtime');
 const { decideAutodelegation, renderNudge } = require('./lib/autodelegate-decision');
 const { estimateClaudeUsage } = require('./lib/usage-estimator');
@@ -44,13 +45,29 @@ function toggledOff(projectRoot) {
   }
 }
 
+// The "both engines present" gate. The lane arms only when the yanstaller option
+// wrote enabled:true (checked via loadConfig) AND Codex is actually linked on this
+// machine — a ChatGPT subscription via `codex login` (~/.codex/auth.json) or
+// CODEX_API_KEY. Option on but no linked Codex = one engine only = no delegation
+// (the user's rule: option AND both engines, else nothing). Mirrors codexAuthState
+// in install/lib/codex-autodelegate-setup.js.
+function codexLinked({ home = os.homedir() } = {}) {
+  if (process.env.CODEX_API_KEY) return true;
+  try {
+    return fs.existsSync(path.join(home, '.codex', 'auth.json'));
+  } catch {
+    return false;
+  }
+}
+
 if (require.main === module) {
   (async () => {
     let additionalContext = '';
     try {
       const projectRoot = process.env.CLAUDE_PROJECT_DIR || process.cwd();
       const config = loadConfig(projectRoot);
-      if (config.enabled === true && !toggledOff(projectRoot)) {
+      // Both engines must be present : option armed (enabled) AND Codex linked.
+      if (config.enabled === true && !toggledOff(projectRoot) && codexLinked()) {
         const payload = parseJson(await readStdin());
         const prompt = payload.prompt || payload.user_prompt || payload.userPrompt || '';
         // Estimate usage only when a budget is configured; else pct stays null and
@@ -71,4 +88,4 @@ if (require.main === module) {
   })();
 }
 
-module.exports = { loadConfig, toggledOff };
+module.exports = { loadConfig, toggledOff, codexLinked };

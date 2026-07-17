@@ -123,22 +123,26 @@ function sanitizeForContext(value, max = 120) {
 }
 
 // Render a decision into the one-paragraph nudge injected into BYAN's context.
-// Empty string when there is nothing to propose (so the hook injects nothing).
-// The nudge is ADVISORY: it proposes, it never forces — BYAN still owns the call
-// and the red line is spelled out every time.
+// Empty string when there is nothing to render (so the hook injects nothing).
+// The hook injects this ONLY when the lane is armed (option on AND Codex linked),
+// so the text is a DIRECTIVE, not advice: delegate the delegable part, fall back
+// to Claude only if Codex is unavailable. The red line (delegable work only —
+// judgment/soul/verify stay on Claude) is spelled out every time.
 function renderNudge(decision) {
   if (!decision || !decision.delegate) return '';
   const gauge = decision.pct != null ? ` (estimated Claude 5h usage ~${decision.pct}%)` : '';
   const invocation = sanitizeForContext(decision.invocation) || DEFAULT_INVOCATION;
   const scope = decision.mode === 'all'
-    ? 'Consider offloading ALL delegable work this session to Codex'
+    ? 'Delegate ALL delegable work this session to Codex'
     : decision.mode === 'perf-routed'
-      ? 'Codex is heuristically favored for this kind of task (not a measured benchmark) — consider handing it over'
-      : 'This looks like delegable coding work — consider handing it to Codex';
+      ? 'Codex is heuristically favored for this kind of task (not a measured benchmark) — delegate it'
+      : 'This is delegable coding work — delegate it to Codex';
   return [
     `[BYAN auto-delegate]${gauge}: ${scope} via \`${invocation}\` `
       + '(runs on the ChatGPT subscription, no API credit).',
-    `Red line: ${decision.redLine}. This is advisory — you decide, and you still verify Codex's output before commit.`,
+    `Red line: ${decision.redLine}. The lane is ARMED (option on AND Codex linked), so this is a `
+      + 'DIRECTIVE, not a mere suggestion: delegate the delegable part unless you have a specific reason '
+      + "not to, fall back to Claude only if Codex is unavailable, and verify Codex's output before commit.",
   ].join(' ');
 }
 

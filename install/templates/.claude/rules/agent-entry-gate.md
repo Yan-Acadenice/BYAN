@@ -47,35 +47,55 @@ declencher une interview a chaque fois. Agent existant qui colle = on route
 direct. Besoin flou ou aucun agent adapte = la ou l'interview + creation se
 declenchent. La ceremonie est proportionnee au manque, pas systematique.
 
-## La chaine complete, automatique (agent -> moteur -> execution)
+## La chaine complete, automatique (comprendre -> dispatch -> execution party-mode -> gate en fin)
 
 Le dispatch d'agent n'est que la premiere marche. A l'entree, sur toute tache,
 BYAN enchaine la chaine ENTIERE de lui-meme, sans que l'utilisateur ait a la
-demander :
+demander. Quatre moments :
 
-1. **Agent** — matcher (ci-dessus). Fit -> cet agent ; no-fit -> interview +
-   recherche web + creation. Seul point ou l'humain reste requis : creer un
-   nouvel agent.
-2. **Moteur** — router via `_byan/mcp/byan-mcp-server/lib/dispatch-router.js` :
-   Codex pour execution / shell / deploiement / devops / navigateur ; Claude pour
-   architecture / refactor / qualite / planif ; la verification reste sur Claude ;
-   Fable n'est pas emis ; modele + effort selon la complexite. Decision
-   automatique, pas de validation utilisateur.
-3. **Execution** — Codex-lane : deleguer a Codex via le pont
-   (`lib/codex-bridge.js` : `codex exec` -> diff unifie -> Claude applique le
-   diff ; repli sur Claude si Codex est indisponible). Claude-lane : executer sur
-   Claude au modele choisi. Automatique.
+1. **Comprendre la demande.** Demande claire -> on avance directement, sans
+   question. Doute ou demande mal exprimee -> BYAN expose UN plan clair (quels
+   agents, quels modeles, quel effort) et l'utilisateur tranche. Ce point de
+   controle en amont ne se declenche que sur un vrai doute — pas en reflexe a
+   chaque tache.
+2. **Dispatch (Hermes, automatique).** Le bon agent (matcher
+   `_byan/mcp/byan-mcp-server/lib/agent-matcher.js`), le bon modele + effort
+   (`dispatch-router.js` / native-tiers) et le bon moteur : Codex pour execution /
+   shell / deploiement / devops / navigateur ; Claude pour architecture / refactor
+   / qualite / planif ; la verification reste sur Claude ; Fable n'est pas emis.
+   Decision automatique, pas de validation utilisateur. Fit -> cet agent ;
+   no-fit -> interview + recherche web + creation (seul point ou l'humain reste
+   requis en amont).
+3. **Execution en party-mode avec un visuel live.** L'utilisateur VOIT ce qui se
+   passe, en direct : la liste de taches native (une entree par agent/etape,
+   mise a jour en temps reel) plus la table de dispatch en tete. Codex-lane : quand
+   la voie est ARMEE (option yanstaller + Codex linke) et la tache delegable,
+   deleguer REELLEMENT via le pont (`lib/codex-bridge.js` : `codex exec` -> diff
+   unifie -> Claude applique ; repli sur Claude si Codex indisponible) — le conseil
+   injecte est alors une directive, pas une simple suggestion. Non armee : pas de
+   delegation, on execute sur Claude. Claude-lane : executer sur Claude au modele
+   choisi.
+4. **Gate utilisateur en fin.** Le point de controle utilisateur arrive a la fin,
+   une fois la feature/tache faite et s'il y a un livrable a valider — pas en
+   amont. Dans un FD multi-feature complet, les gates par phase s'appliquent en
+   plus (c'est la gouvernance plus lourde du FD ; le chemin direct ci-dessus est
+   le cas courant).
 
 Ce qui reste a l'humain : (a) creer un nouvel agent quand aucun ne colle, (b)
-confirmer une action destructive. Le reste — match agent, routage moteur,
-execution — part tout seul. Detail du routage moteur : `docs/intelligent-dispatch.md`.
+confirmer une action destructive, (c) trancher le plan en amont quand il y a
+doute. Le reste — comprehension, match agent, routage moteur, execution — part
+tout seul. Detail du routage moteur : `docs/intelligent-dispatch.md`.
 
-## La double validation
+## La double validation (calibree : sur doute, nouvel agent, destructif)
 
 Le matcher (F1, `_byan/mcp/byan-mcp-server/lib/agent-matcher.js`) est un
 pre-tri deterministe : il classe les candidats du roster et rend un verdict
-{fit | no-fit}. Il PROPOSE, il ne tranche pas seul. BYAN presente la proposition
-en clair ; l'utilisateur valide. IA propose, humain confirme.
+{fit | no-fit}. Il PROPOSE, il ne tranche pas seul. Mais la confirmation humaine
+n'est PAS un reflexe a chaque tache : sur une demande claire avec un agent adapte,
+BYAN route et execute, et le gate est en fin. La confirmation humaine se declenche
+sur les trois cas qui la meritent : un vrai doute (le plan en amont), la creation
+d'un nouvel agent, une action destructive. IA propose, humain confirme — la ou ca
+compte, pas partout.
 
 ## La creation d'agent enrichie (chemin no-fit)
 
