@@ -26,7 +26,8 @@ A native workflow script mutates FD/strict state only through the `byan_fd_*` /
 
 Each `agent()` leaf runs on the session model unless the call sets `opts.model`.
 The tiering decision lives in one place — `_byan/mcp/byan-mcp-server/lib/native-tiers.js`
-(tier vocabulary, leaf classifier, model map). Three tiers:
+(tier vocabulary, leaf classifier, model map). Three AUTO-routed tiers, plus an
+explicit UP-TIER an author may pin by complexity (v3):
 
 - **cheap (`model: 'haiku'`)** — a pure EXPLORATION leaf (read/load/parse/detect).
 - **balanced (`model: 'sonnet'`)** — two classes land here. (1) MECHANICAL
@@ -40,16 +41,25 @@ The tiering decision lives in one place — `_byan/mcp/byan-mcp-server/lib/nativ
   leaf may carry `model: 'sonnet'` (its tier) but not `haiku` (`analysis-below-tier`).
   Semantic/adversarial VERIFICATION is NOT analysis and stays deep.
 - **deep (OMIT `opts.model`)** — implementation + verification leaves inherit the
-  session model (no pin-up to opus). A genuinely frontier ANALYSIS leaf opts back to
-  deep with the `deep-` label prefix (`deep-assess-architecture`), the mirror of the
-  `mech-` opt-in.
+  session model (the cost-safe default: no AUTO pin-up). A genuinely frontier
+  ANALYSIS leaf opts back to deep with the `deep-` label prefix
+  (`deep-assess-architecture`), the mirror of the `mech-` opt-in.
+- **up-tier (`model: 'opus'` / `model: 'fable'`)** — an EXPLICIT authoring choice
+  to raise a genuinely complex leaf ABOVE the inherited tier (v3). `opus` for a
+  hard leaf, `fable` as the last-resort top-reasoning model for extreme complexity
+  (~2x Opus price). This is the workflow-leaf mirror of the dispatch-router
+  complexity ladder (haiku -> sonnet -> opus -> fable). Auto-routing does not pick
+  it — the author writes it deliberately. The anti-downgrade floor does not apply
+  upward, so the linter allows an up-tier pin on any leaf (it costs more, it does
+  not regress quality). The old blanket "no pin-up / no Fable" ban is lifted.
 
 The linter splits the two directions:
 
-- **Floor (HARD, blocks the commit)** — a downgrade model on a PROTECTED leaf, a
-  pin-up, or a half-applied `mech-` opt-in is a contract violation
+- **Floor (HARD, blocks the commit)** — a DOWNGRADE model (haiku/sonnet) on a
+  PROTECTED leaf, or a half-applied `mech-` opt-in, is a contract violation
   (`modelRoutingViolations` + `mechanicalLabelViolations`). This is the STRICT-2
-  No Downgrade net.
+  No Downgrade net. An UP-TIER pin (opus/fable) is not a violation — the floor
+  guards downward only.
 - **Ceiling (ADVISORY, non-blocking)** — an exploration- OR analysis-labelled leaf
   that runs deep is *reported* (`byan-lint-workflows.js --advise`:
   `untiered-exploration` -> `model: 'haiku'`, `untiered-analysis` -> `model: 'sonnet'`),

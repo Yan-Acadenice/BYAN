@@ -9,6 +9,8 @@ import {
   modelForLeaf,
   isKnownTierModel,
   isDowngradeModel,
+  isUpTierModel,
+  UP_TIER_MODELS,
 } from '../lib/native-tiers.js';
 
 // --- Vocabulary -----------------------------------------------------------
@@ -104,20 +106,32 @@ test('modelForLeaf: the deep- prefix opts an analysis leaf back to deep (inherit
 
 // --- linter helpers -------------------------------------------------------
 
-test('isKnownTierModel: only the concrete tier models are known', () => {
+test('isKnownTierModel: downgrade AND up-tier models are known (v3)', () => {
   assert.equal(isKnownTierModel('haiku'), true);
   assert.equal(isKnownTierModel('sonnet'), true);
-  assert.equal(isKnownTierModel('opus'), false); // never pin up
-  assert.equal(isKnownTierModel('claude-opus-4-8'), false);
+  assert.equal(isKnownTierModel('opus'), true);   // up-tier now known (v3)
+  assert.equal(isKnownTierModel('fable'), true);  // up-tier last resort
+  assert.equal(isKnownTierModel('claude-opus-4-8'), false); // not an alias in the vocab
+  assert.equal(isKnownTierModel('gpt-5.4'), false);
   assert.equal(isKnownTierModel(null), false);
   assert.equal(isKnownTierModel(''), false);
 });
 
-test('isDowngradeModel: cheap/balanced are downgrades, deep/omit is not', () => {
+test('isUpTierModel: opus/fable are up-tiers, everything else is not', () => {
+  assert.deepEqual([...UP_TIER_MODELS], ['opus', 'fable']);
+  assert.equal(isUpTierModel('opus'), true);
+  assert.equal(isUpTierModel('fable'), true);
+  assert.equal(isUpTierModel('haiku'), false);
+  assert.equal(isUpTierModel('sonnet'), false);
+  assert.equal(isUpTierModel(null), false);
+});
+
+test('isDowngradeModel: cheap/balanced are downgrades, deep/omit and up-tiers are not', () => {
   assert.equal(isDowngradeModel('haiku'), true);
   assert.equal(isDowngradeModel('sonnet'), true);
   assert.equal(isDowngradeModel(null), false);
   assert.equal(isDowngradeModel('opus'), false);
+  assert.equal(isDowngradeModel('fable'), false);
 });
 
 // --- invariants (the anti-downgrade contract) -----------------------------

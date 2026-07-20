@@ -40,6 +40,17 @@ export const TIERS = Object.freeze({ CHEAP: 'cheap', BALANCED: 'balanced', DEEP:
 // flags every script literal that drifts from it, so the fan-out stays bounded.
 export const TIER_MODEL = Object.freeze({ cheap: 'haiku', balanced: 'sonnet', deep: null });
 
+// UP-TIER models (v3). The auto-routing above never pins UP (the default stays
+// cost-safe: deep = inherit the session model). But an author MAY deliberately
+// raise a genuinely complex leaf ABOVE the inherited tier — 'opus' for a hard
+// leaf, 'fable' as the last-resort top-reasoning model for extreme complexity
+// (~2x Opus price). This is the workflow-leaf mirror of the dispatch-router
+// complexity ladder (haiku -> sonnet -> opus -> fable). Up-tier pins are an
+// explicit authoring choice: the anti-DOWNGRADE floor does not apply upward, so
+// the linter ALLOWS them (they cost more, they never regress quality). The old
+// blanket "never pin up / never Fable" ban on leaves is lifted here.
+export const UP_TIER_MODELS = Object.freeze(['opus', 'fable']);
+
 // Leaf task-type taxonomy. EXPLORATION (cheap) and MECHANICAL + ANALYSIS
 // (balanced) are the downgrade classes; VERIFICATION and IMPLEMENTATION stay
 // protected (deep, inherit the session model). MECHANICAL is verification whose
@@ -130,18 +141,26 @@ export function modelForLeaf(leaf) {
   return TIER_MODEL[tierFor(classifyLeaf(leaf))];
 }
 
-// isKnownTierModel(modelId) -> true if modelId is one of the concrete downgrade
-// models (cheap/balanced). Used by the linter to reject an opts.model literal
-// that is not a recognised tier. null/'' are not "known" (deep = omission, not a
-// literal). 'opus' is intentionally NOT known — we never pin up.
+// isUpTierModel(modelId) -> true if modelId pins a leaf ABOVE the inherited tier
+// (opus or fable). An explicit, allowed authoring choice for a genuinely complex
+// leaf (v3): the anti-downgrade floor does not apply upward.
+export function isUpTierModel(modelId) {
+  return !!modelId && UP_TIER_MODELS.includes(modelId);
+}
+
+// isKnownTierModel(modelId) -> true if modelId is a recognised tier literal:
+// a downgrade model (cheap/balanced = haiku/sonnet) OR an up-tier model
+// (opus/fable). Used by the linter to reject an opts.model literal that is not in
+// the vocabulary at all. null/'' are not "known" (deep = omission, not a literal).
 export function isKnownTierModel(modelId) {
   if (!modelId) return false;
-  return Object.values(TIER_MODEL).filter(Boolean).includes(modelId);
+  return Object.values(TIER_MODEL).filter(Boolean).includes(modelId) || isUpTierModel(modelId);
 }
 
 // isDowngradeModel(modelId) -> true if modelId pins a leaf BELOW the inherited
 // tier (cheap or balanced). The linter's anti-downgrade rule uses this: a
-// protected leaf must never carry a downgrade model.
+// protected leaf must never carry a downgrade model. Up-tier models return false
+// (they are not downgrades — see isUpTierModel).
 export function isDowngradeModel(modelId) {
   return modelId === TIER_MODEL.cheap || modelId === TIER_MODEL.balanced;
 }

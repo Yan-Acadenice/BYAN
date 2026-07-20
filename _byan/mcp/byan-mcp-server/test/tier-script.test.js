@@ -57,6 +57,18 @@ test('analyzeScript: a downgrade on a protected leaf is a violation', () => {
   assert.equal(r.violations[0].verdict, 'violation');
 });
 
+test('analyzeScript (v3): an up-tier pin (opus/fable) is ok on any leaf, gate stays clean', () => {
+  const src = [
+    "const a = await agent('hard architecture', { label: 'design-core', model: 'opus' })",
+    "const b = await agent('extreme reasoning', { label: 'verify-adversarial', model: 'fable' })",
+  ].join('\n');
+  const r = analyzeScript(src);
+  assert.equal(r.violations.length, 0, JSON.stringify(r.violations));
+  assert.equal(r.gaps.length, 0);
+  assert.ok(r.leaves.every((l) => l.verdict === 'ok'));
+  assert.equal(decideTierGate({ analysis: r }).decision, 'allow');
+});
+
 test('analyzeScript: haiku on a mech- leaf is a violation (below its tier)', () => {
   const src = "const a = await agent('check', { label: 'mech-schema-check', model: 'haiku' })";
   const r = analyzeScript(src);

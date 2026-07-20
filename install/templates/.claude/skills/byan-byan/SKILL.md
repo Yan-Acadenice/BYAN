@@ -21,8 +21,10 @@ the user should not have to ask for it. Four moments:
    (`_byan/mcp/byan-mcp-server/lib/agent-matcher.js`), the right model + effort
    (`dispatch-router.js` / native-tiers), and the right runtime — Codex for
    execution / shell / deploy / devops / browser ; Claude for architecture /
-   refactor / quality / planning ; verification stays on Claude ; Fable is not
-   emitted. No user ask. A suited agent -> use it. NO suited agent -> interview to
+   refactor / quality / planning ; verification stays on Claude. The Claude model
+   scales on a four-rung complexity ladder (haiku -> sonnet -> opus -> fable, fable
+   the extreme last resort) ; Fable is refused on the Codex path only. No user ask.
+   A suited agent -> use it. NO suited agent -> interview to
    frame the need, web-research the trade's competencies + best practices, create
    the tailored agent (the one place the human is required upstream).
 3. **Execute in party-mode with a live visual.** The user SEES what happens, live:
@@ -133,9 +135,9 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
     - nature `exploration` (load/read/scan/list/parse/fetch...) → `haiku`
     - nature `mechanical` (binary judgment-free checks : JSON parses, schema matches, lint passes — label prefix `mech-`, explicit opt-in only) → `sonnet`
     - nature `implementation` / `verification` / `analysis` / unknown → deep = **inherit the session model**
-    - Keep protected work (verify/analysis/implement) off haiku/sonnet regardless of size ; no pin-up to opus. Pass an explicit `nature` to `byan_dispatch` when you know it.
+    - Keep protected work (verify/analysis/implement) off haiku/sonnet regardless of size. Auto-routing does not pin up ; but an author MAY deliberately UP-TIER a genuinely complex leaf to `opus` (hard) or `fable` (extreme, last resort) — the linter allows it (the floor guards downward only). Pass an explicit `nature` to `byan_dispatch` when you know it.
   - **Inside native workflow scripts** (`.claude/workflows/*.js` OR ad-hoc) the SAME tiering applies per `agent()` leaf via `opts.model`, enforced as a FLOOR not a ceiling on TWO nets :
-    - **Repo linter** (committed scripts, pre-commit) : `modelRoutingViolations` HARD-blocks a downgrade on a protected leaf, a pin-up, or a half-applied `mech-` opt-in (`mechanical-without-model` / `mechanical-below-tier`) ; an exploration-labelled leaf left deep is a NON-blocking ADVISORY (`byan-lint-workflows.js --advise`), since many such leaves bear a gate/classification/exact-conversion and must stay deep — the human owns that call.
+    - **Repo linter** (committed scripts, pre-commit) : `modelRoutingViolations` HARD-blocks a downgrade (haiku/sonnet) on a protected leaf, or a half-applied `mech-` opt-in (`mechanical-without-model` / `mechanical-below-tier`) ; an UP-TIER pin (opus/fable) is allowed, not blocked (the floor guards downward only) ; an exploration-labelled leaf left deep is a NON-blocking ADVISORY (`byan-lint-workflows.js --advise`), since many such leaves bear a gate/classification/exact-conversion and must stay deep — the human owns that call.
     - **Tier gate hook** (EVERY Workflow invocation, inline or scriptPath) : `tier-script-guard.js` (PreToolUse) runs the same analysis (`lib/tier-script.js`) and DENIES ONCE when exploration/`mech-` leaves have no tier, with the exact leaf list to fix. Acknowledge deliberate deep choices with the `// BYAN-TIER: reviewed` comment marker ; an identical resubmission passes (deny-once by design, no trap). Every decision lands in `_byan-output/tier-ledger.jsonl` (the measurement basis for token gains). Escape hatch : `.byan-tier/off`.
     - **Authoring aid** : BEFORE writing a script, call `byan_dispatch` with `{ leaves: [{ label, nature? }] }` (batch mode) to get the `opts.model` per leaf ; write `model:` only where non-null. Report with `node _byan/mcp/byan-mcp-server/bin/byan-tier-script.js <file> [--json]`.
     - No per-leaf effort knob exists (the API exposes only `model`), so effort-by-complexity reduces to model-by-complexity.

@@ -9,6 +9,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.52.0] - 2026-07-20
+
+### Changed — Delegation Codex v3 : pression-only + obeissance au routeur (F1, F2)
+- **F1 — la delegation ne se declenche plus que sous PRESSION budget.** La nature
+  d'une tache (code / mecanique) n'est plus un declencheur d'auto-delegation a elle
+  seule. Deleguer au Codex de l'abonnement (qui reste en dessous de Claude en
+  qualite) vaut le coup pour epargner le budget Claude, pas par tache de code. Hors
+  pression, le code tourne sur Claude sans rappel. Le seuil par defaut passe a 75 %
+  (`autodelegate-decision.js` + `codex-delegate-guard.js` alignes sur un seul
+  nombre). Sans jauge `budget`, la pression n'est pas calculee et rien n'est
+  propose (documente, non bloquant).
+- **F2 — le garde `codex-delegate-guard` obeit au routeur.** Le blocage ne mord
+  que pour une tache que le `dispatch-router` route lui-meme vers Codex (nature
+  execution / shell / deploiement / devops / navigateur). Une tache
+  architecture / refactor / qualite / planif — et toute verification — route vers
+  Claude, donc le garde reste silencieux. Le garde recalcule router + pression
+  uniquement dans la branche ou un blocage est encore possible (les chemins
+  d'autorisation courants ne paient rien) ; les deux signaux echouent en mode
+  ouvert (signal irresolu -> on autorise, sans blocage a tort).
+
+### Changed — Echelle de modele par complexite + Fable dernier recours (F3)
+- **Cote routeur (`dispatch-router.claudeModelForComplexity`)** : echelle a quatre
+  rungs — `haiku` (bas) -> `sonnet` (moyen) -> `opus` (haut) -> `fable` (extreme,
+  dernier recours, ~2x le prix d'Opus). C'est une RECOMMANDATION par tache, pas un
+  changement du modele de session en cours (Claude Code n'expose pas ce levier).
+- **Cote leaves de workflow (`native-tiers` + linter)** : un up-tier explicite
+  (`opus` / `fable`) devient un choix d'auteur AUTORISE sur n'importe quel leaf,
+  miroir de l'echelle du routeur. Le plancher anti-downgrade est conserve (haiku /
+  sonnet interdits sur un leaf protege) ; seul le plafond est ouvert (le pin-up
+  n'est plus une violation). Nouveaux : `UP_TIER_MODELS`, `isUpTierModel`.
+- **Revirement d'invariant assume** : l'ancienne ligne rouge "pas de Fable /
+  pas de pin-up" est levee cote Claude. Cote Codex elle tient (Codex ne peut pas
+  lancer un modele Claude) : `assertNoFable` garde le chemin Codex + `codex-bridge`.
+- Doctrine alignee : `native-workflows.md`, `native-workflows-contract.md`,
+  `intelligent-dispatch.md`, `codex-auto-delegation.md`, skill `byan-byan`.
+
 ## [2.51.0] - 2026-07-20
 
 ### Changed — Delegation Codex : fermeture de l'auto-esquive (option B)

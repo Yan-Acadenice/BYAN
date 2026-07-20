@@ -22,7 +22,7 @@
 
 const { perfFavors } = require('./perf-routing');
 
-const DEFAULT_THRESHOLD = 80;
+const DEFAULT_THRESHOLD = 75;
 const DEFAULT_INVOCATION = 'codex:codex-rescue --model gpt-5.4';
 const RED_LINE = 'delegable work only (code / mechanical) — judgment, analysis, soul and verification stay on Claude';
 
@@ -71,16 +71,12 @@ function decideAutodelegation({ requestText = '', usage = null, config = {} } = 
     };
   }
 
-  if (delegable) {
-    return {
-      delegate: true,
-      mode: 'delegable-only',
-      pct,
-      reason: 'request looks like delegable coding work — propose handing it to Codex to spare the Claude 5h budget',
-      redLine: RED_LINE,
-      invocation,
-    };
-  }
+  // v3 : NATURE alone is no longer an auto-delegate trigger. The user's decision
+  // is PRESSURE-only — delegating to the subscription Codex (which trails Claude
+  // on quality) is worth it to spare the Claude budget, not per coding task. So a
+  // delegable task off-pressure does NOT propose Codex. `delegable` is kept only as
+  // a signal the perf-routing opt-in below can still use.
+  void delegable;
 
   // PERF (opt-in): the forces table (user-populated) may favor Codex for this
   // kind of task even at low pressure. Off by default; always heuristic.

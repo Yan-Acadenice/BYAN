@@ -15,7 +15,7 @@
 // passes — the gate forces a decision, it does not trap the turn.
 
 import crypto from 'node:crypto';
-import { classifyLeaf, tierFor, TIER_MODEL, TIERS, LEAF_TYPES } from './native-tiers.js';
+import { classifyLeaf, tierFor, TIER_MODEL, TIERS, LEAF_TYPES, isUpTierModel } from './native-tiers.js';
 import { stripComments, extractLabelledLeaves } from './workflows-lint.js';
 
 // Acknowledgment marker, raw-text (comment form survives comment-stripping
@@ -26,15 +26,19 @@ export const ACK_RE = /BYAN-TIER:\s*reviewed\b/;
 
 function verdictFor(cls, model) {
   const expected = TIER_MODEL[tierFor(cls)]; // 'haiku' | 'sonnet' | null (inherit)
+  // Up-tier pins (opus/fable) are always allowed (v3): the author deliberately
+  // raises a complex leaf ABOVE the inherited tier. The anti-DOWNGRADE floor does
+  // not apply upward — it costs more but never regresses quality.
+  if (isUpTierModel(model)) return 'ok';
   if (expected === null) {
-    // Protected class: any pinned model is a downgrade or a pin-up — both wrong.
+    // Protected class: a downgrade pin is still wrong (up-tier handled above).
     return model === null ? 'ok' : 'violation';
   }
   if (model === null) return 'missing-tier';
   if (model === expected) return 'ok';
   // Exploration may ride ABOVE its floor (sonnet on a cheap leaf wastes a
-  // little, breaks nothing). Anything else — haiku on mech-, opus anywhere —
-  // is below a declared tier or an unknown pin.
+  // little, breaks nothing). Anything else — haiku on mech- — is below a
+  // declared tier.
   if (cls === LEAF_TYPES.EXPLORATION && model === TIER_MODEL[TIERS.BALANCED]) return 'ok';
   return 'violation';
 }

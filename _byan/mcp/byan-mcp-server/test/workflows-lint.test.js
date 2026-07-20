@@ -148,11 +148,20 @@ test('modelRoutingViolations: a PROTECTED leaf carrying a downgrade is a violati
   assert.ok(v.some((x) => x.id === 'protected-leaf-downgraded'), JSON.stringify(v));
 });
 
-test('modelRoutingViolations: an unknown / pin-up model is a violation', () => {
-  // 'opus' is not a known downgrade tier — we never pin up.
-  const src = "const r = await agent('x', { label: 'load-story', model: 'opus' })";
+test('modelRoutingViolations: a genuinely unknown model is a violation', () => {
+  // an alias outside the vocabulary (haiku/sonnet/opus/fable) is unknown.
+  const src = "const r = await agent('x', { label: 'load-story', model: 'gpt-5.4' })";
   const v = modelRoutingViolations(src);
   assert.ok(v.some((x) => x.id === 'unknown-tier-model'), JSON.stringify(v));
+});
+
+test('modelRoutingViolations (v3): an up-tier pin (opus/fable) is ALLOWED, even on a protected leaf and without a label', () => {
+  // opus on an exploration leaf: allowed up-tier.
+  assert.deepEqual(modelRoutingViolations("const r = await agent('x', { label: 'load-story', model: 'opus' })"), []);
+  // fable on a protected implementation leaf: allowed up-tier (last resort).
+  assert.deepEqual(modelRoutingViolations("const r = await agent('x', { label: 'rgr-cycle-1', model: 'fable' })"), []);
+  // opus with no identifiable label: still allowed (the label rule gates downgrades only).
+  assert.deepEqual(modelRoutingViolations("const r = await agent('x', { model: 'opus' })"), []);
 });
 
 test('modelRoutingViolations: a downgrade without an identifiable label is a violation', () => {

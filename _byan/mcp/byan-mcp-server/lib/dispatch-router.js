@@ -2,25 +2,26 @@
 // given a task's NATURE and COMPLEXITY, decide which RUNTIME runs it (Codex or
 // Claude), which MODEL, and (Codex only) which reasoning EFFORT.
 //
-// It composes with, does not duplicate, native-tiers.js: the Claude-side model
-// tier is delegated to that module's TIER_MODEL vocabulary (which, by design,
-// only ever yields haiku / sonnet / null — so Fable can never leak in from the
-// Claude side either). This module adds the two NEW axes the intelligent dispatch
-// needs — runtime selection and Codex reasoning effort — on top of it.
+// The Claude-side model is a FOUR-rung complexity ladder (v3):
+// haiku -> sonnet -> opus -> fable, fable being the last-resort top-reasoning
+// model reserved for EXTREME complexity (~2x Opus price). See
+// claudeModelForComplexity. This module adds the two NEW axes the intelligent
+// dispatch needs — runtime selection and Codex reasoning effort — on top of it.
 //
 // Routing table is the cross-checked result (5 independent sources, see
 // docs / CHANGELOG): Codex wins autonomous execution, shell/CI/DevOps, deploy,
 // browser/computer use ; Claude wins architecture, refactor-at-repo-scale,
 // quality, planning, and ALL verification. Two hard red lines are enforced here,
 // not left to the caller:
-//   1. Fable is NEVER emitted (long-term product decision).
+//   1. Fable is NEVER routed to CODEX (Codex runs the ChatGPT-subscription model,
+//      it cannot run a Claude model at all). On the CLAUDE side Fable IS allowed,
+//      but only at the extreme rung (v3 product reversal — the old blanket ban is
+//      lifted). assertNoFable therefore guards the Codex path only.
 //   2. Verification is NEVER routed to Codex (a runtime must not grade its own
 //      work ; the reviewer stays on Claude).
 //
 // Pure: no I/O, no clock, deterministic. The Codex transport (F2) and the
 // orchestrating loop (F4) consume this; they never re-decide routing.
-
-import { TIER_MODEL } from './native-tiers.js';
 
 export const RUNTIMES = Object.freeze({ CODEX: 'codex', CLAUDE: 'claude' });
 
@@ -30,8 +31,10 @@ export const CODEX_MODEL = 'gpt-5.4';
 
 export const EFFORTS = Object.freeze({ LOW: 'low', MEDIUM: 'medium', HIGH: 'high' });
 
-// Models we refuse to emit, ever. Fable is excluded by explicit long-term
-// decision; the guard makes that refusal mechanical rather than a convention.
+// Models we refuse to emit on the CODEX path. Codex runs the ChatGPT-subscription
+// model and cannot run a Claude model — Fable on Codex is a category error, so the
+// guard makes that refusal mechanical. (On the CLAUDE path Fable is allowed at the
+// extreme rung — see claudeModelForComplexity ; this list does not gate it.)
 export const FORBIDDEN_MODELS = Object.freeze(['fable', 'claude-fable-5']);
 
 // Task natures that route to Codex. Everything NOT here (and not a verification
@@ -58,12 +61,14 @@ function matchesAny(text, list) {
   return list.some((kw) => text.includes(kw));
 }
 
-// assertNoFable(model) — mechanical enforcement of red line #1. Throws rather
-// than silently substituting, so a Fable request is a loud failure at the source.
+// assertNoFable(model) — mechanical enforcement of red line #1 on the CODEX path.
+// Throws rather than silently substituting, so a Fable-on-Codex request is a loud
+// failure at the source (Codex cannot run a Claude model). It does NOT gate the
+// Claude path, which may legitimately emit Fable at the extreme rung.
 export function assertNoFable(model) {
   const m = normalize(model);
   if (FORBIDDEN_MODELS.some((f) => m.includes(f))) {
-    throw new Error(`dispatch-router: forbidden model "${model}" (Fable is excluded by long-term policy)`);
+    throw new Error(`dispatch-router: forbidden model "${model}" on the Codex path (Codex cannot run a Claude model)`);
   }
   return model;
 }
@@ -106,28 +111,41 @@ export function effortForComplexity(complexity) {
   return complexityBucket(complexity);
 }
 
-// claudeModelForComplexity(complexity) -> 'haiku' | 'sonnet' | null(omit=inherit).
-// Delegates to native-tiers' TIER_MODEL so the Claude vocabulary stays in one
-// place: low -> cheap(haiku), medium -> balanced(sonnet), high -> deep(null =
-// inherit the session model, i.e. Opus on an Opus session). Fable is structurally
-// impossible here (TIER_MODEL has no Fable entry), but we still assert to make the
-// guarantee explicit and catch a future TIER_MODEL drift.
+// claudeModelForComplexity(complexity) -> the Claude-side model RECOMMENDATION on
+// a FOUR-rung complexity ladder (v3): haiku -> sonnet -> opus -> fable.
+//   - < 34  : haiku   (trivial / low)
+//   - < 67  : sonnet  (medium)
+//   - < 90  : opus    (high — the default frontier)
+//   - >= 90 : fable   (extreme complexity, LAST RESORT)
+// Fable is the top-reasoning model : strongest on the intelligence index but
+// ~2x the price of Opus, so it is reserved for the extreme rung only. This is a
+// per-task RECOMMENDATION consumed by the dispatch orchestrator / skill — NOT a
+// live switch of the running session model (Claude Code exposes no such switch).
+// Labels map too (trivial/low/medium/high/extreme). The old blanket "never Fable"
+// red line is lifted on the CLAUDE side (deliberate v3 product reversal); it still
+// holds on the CODEX side (see dispatch() + assertNoFable + codex-bridge).
 export function claudeModelForComplexity(complexity) {
-  const bucket = complexityBucket(complexity);
-  const model = bucket === EFFORTS.LOW
-    ? TIER_MODEL.cheap
-    : bucket === EFFORTS.MEDIUM
-      ? TIER_MODEL.balanced
-      : TIER_MODEL.deep; // null = inherit (never pinned to Fable)
-  return model == null ? null : assertNoFable(model);
+  if (typeof complexity === 'number' && Number.isFinite(complexity)) {
+    if (complexity < 34) return 'haiku';
+    if (complexity < 67) return 'sonnet';
+    if (complexity < 90) return 'opus';
+    return 'fable';
+  }
+  const c = normalize(complexity);
+  if (['trivial', 'low', 'simple', 'easy'].includes(c)) return 'haiku';
+  if (['medium', 'moderate'].includes(c)) return 'sonnet';
+  if (['extreme', 'frontier', 'max'].includes(c)) return 'fable';
+  if (['high', 'hard', 'complex'].includes(c)) return 'opus';
+  return 'sonnet'; // unknown -> a safe middle
 }
 
 // dispatch({ nature, complexity }) -> the full routing decision:
 //   { runtime, model, effort, reasoning }
 // - Codex: model = CODEX_MODEL, effort = complexity bucket (the real knob).
-// - Claude: model = haiku/sonnet/null(inherit), effort = null (Claude has no
-//   effort knob — its "effort" IS the model tier).
-// Both red lines are enforced here regardless of caller input.
+// - Claude: model = haiku/sonnet/opus/fable on the complexity ladder, effort =
+//   null (Claude has no effort knob — its "effort" IS the model tier).
+// The red lines are enforced here regardless of caller input: Codex keeps its
+// no-Fable guard ; verification stays on Claude.
 export function dispatch({ nature, complexity } = {}) {
   const runtime = routeRuntime(nature);
   if (runtime === RUNTIMES.CODEX) {
@@ -140,7 +158,7 @@ export function dispatch({ nature, complexity } = {}) {
   }
   return {
     runtime,
-    model: claudeModelForComplexity(complexity), // null = inherit session model
+    model: claudeModelForComplexity(complexity), // haiku/sonnet/opus/fable by complexity
     effort: null, // Claude effort = model tier, no separate knob
     reasoning: isVerification(nature)
       ? 'verification stays on Claude (red line: a runtime never grades its own work)'

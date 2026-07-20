@@ -1,9 +1,7 @@
 'use strict';
 
-// WI-1 (option B, tightened) — the DENT for the armed Codex-delegation lane.
-// Pure decision core + the hook runGuard. Option B removed the self-grant holes
-// (content marker + resubmit/grace) ; the passes are now genuine and mostly
-// human-controlled.
+// Armed Codex-delegation guard v3 : router-obedient + pressure-gated.
+// Pure decision core + async runGuard (probes injected).
 
 const fs = require('fs');
 const os = require('os');
@@ -12,130 +10,112 @@ const path = require('path');
 const gate = require('../hooks/lib/codex-delegate-gate');
 const { runGuard } = require('../hooks/codex-delegate-guard');
 
-function tmpRoot() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'byan-cdg-'));
-}
-function armRoot(root, { enabled = true } = {}) {
+function tmpRoot() { return fs.mkdtempSync(path.join(os.tmpdir(), 'byan-cdg-')); }
+function armRoot(root, { enabled = true, budget = 100000 } = {}) {
   const dir = path.join(root, '_byan', '_config');
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'autodelegate.json'), JSON.stringify({ enabled, threshold: 80 }));
+  fs.writeFileSync(path.join(dir, 'autodelegate.json'), JSON.stringify({ enabled, threshold: 75, budget }));
 }
-const userTurn = (text) => ({ role: 'user', content: text });
+const userTurn = (t) => ({ role: 'user', content: t });
 const asgTurn = (blocks) => ({ role: 'assistant', content: blocks });
 
-describe('codex-delegate-gate (WI-1 pure core, option B)', () => {
-  describe('targetIsCode', () => {
-    test('code files -> true, docs/config -> false', () => {
-      expect(gate.targetIsCode('archive.sh')).toBe(true);
-      expect(gate.targetIsCode('.github/workflows/ci.yml')).toBe(true);
-      expect(gate.targetIsCode('README.md')).toBe(false);
-      expect(gate.targetIsCode('package.json')).toBe(false);
-    });
+describe('codex-delegate-gate v3 (pure core)', () => {
+  test('targetIsCode : code vs doc', () => {
+    expect(gate.targetIsCode('x.sh')).toBe(true);
+    expect(gate.targetIsCode('README.md')).toBe(false);
   });
-
-  describe('humanOptOutFromText (the ONLY per-turn human bypass)', () => {
-    test('recognises the human staying on Claude', () => {
-      expect(gate.humanOptOutFromText('code-moi ca mais reste sur Claude')).toBe(true);
-      expect(gate.humanOptOutFromText('fais-le sans codex')).toBe(true);
-      expect(gate.humanOptOutFromText('no codex please')).toBe(true);
-    });
-    test('a normal coding request is NOT an opt-out', () => {
-      expect(gate.humanOptOutFromText('code-moi un script bash')).toBe(false);
-      expect(gate.humanOptOutFromText('')).toBe(false);
-    });
-  });
-
-  describe('delegationSeenThisTurn', () => {
-    test('a codex exec / codex agent this turn counts', () => {
-      expect(gate.delegationSeenThisTurn([asgTurn([{ type: 'tool_use', name: 'Bash', input: { command: 'codex exec "x"' } }])])).toBe(true);
-      expect(gate.delegationSeenThisTurn([asgTurn([{ type: 'tool_use', name: 'Task', input: { subagent_type: 'codex:codex-rescue' } }])])).toBe(true);
-      expect(gate.delegationSeenThisTurn([asgTurn([{ type: 'tool_use', name: 'Bash', input: { command: 'ls' } }])])).toBe(false);
-    });
+  test('humanOptOutFromText', () => {
+    expect(gate.humanOptOutFromText('code-moi ca, reste sur claude')).toBe(true);
+    expect(gate.humanOptOutFromText('code-moi un script')).toBe(false);
   });
 
   describe('decideDelegateGate', () => {
-    const base = { armed: true, delegable: true, delegationSeen: false, escaped: false, humanOptOut: false, codexAvailable: true };
+    const base = { armed: true, routerSaysCodex: true, targetIsCode: true, underPressure: true, delegationSeen: false, escaped: false, humanOptOut: false, codexAvailable: true };
     test('lane off -> allow', () => { expect(gate.decideDelegateGate({ ...base, armed: false }).code).toBe('lane-not-armed'); });
-    test('human escape switch -> allow', () => { expect(gate.decideDelegateGate({ ...base, escaped: true }).code).toBe('escape-hatch'); });
+    test('escape switch -> allow', () => { expect(gate.decideDelegateGate({ ...base, escaped: true }).code).toBe('escape-hatch'); });
     test('human opt-out -> allow', () => { expect(gate.decideDelegateGate({ ...base, humanOptOut: true }).code).toBe('human-opt-out'); });
-    test('not delegable -> allow', () => { expect(gate.decideDelegateGate({ ...base, delegable: false }).code).toBe('not-delegable'); });
-    test('Codex unavailable -> allow (legit fallback)', () => { expect(gate.decideDelegateGate({ ...base, codexAvailable: false }).code).toBe('codex-unavailable'); });
-    test('delegation already attempted -> allow', () => { expect(gate.decideDelegateGate({ ...base, delegationSeen: true }).code).toBe('delegation-seen'); });
-    test('armed + delegable + codex available + no human signal + no delegation -> DENY', () => {
-      const d = gate.decideDelegateGate(base);
-      expect(d.decision).toBe('deny');
-      expect(d.code).toBe('delegate-first');
-    });
-    test('the deny reason forbids the excuse and points to the human escape', () => {
-      const r = gate.decideDelegateGate(base).reason;
-      expect(r).toMatch(/codex/i);
-      expect(r).toMatch(/n'est PAS une raison/i);         // the small/latency excuse is invalid
-      expect(r).toMatch(/reste sur Claude|byan-codex-autodelegate\/off/i); // human escape named
-    });
-    test('NO self-grant hole : the same denied input stays denied (no resubmit/marker pass)', () => {
+    test('F2 : router routes to Claude -> allow (router-claude)', () => { expect(gate.decideDelegateGate({ ...base, routerSaysCodex: false }).code).toBe('router-claude'); });
+    test('doc target -> allow (not-code)', () => { expect(gate.decideDelegateGate({ ...base, targetIsCode: false }).code).toBe('not-code'); });
+    test('F1 : not under pressure -> allow (no-pressure)', () => { expect(gate.decideDelegateGate({ ...base, underPressure: false }).code).toBe('no-pressure'); });
+    test('Codex unavailable -> allow', () => { expect(gate.decideDelegateGate({ ...base, codexAvailable: false }).code).toBe('codex-unavailable'); });
+    test('delegation already done -> allow', () => { expect(gate.decideDelegateGate({ ...base, delegationSeen: true }).code).toBe('delegation-seen'); });
+    test('all conditions hold -> DENY (idempotent)', () => {
       expect(gate.decideDelegateGate(base).decision).toBe('deny');
-      expect(gate.decideDelegateGate(base).decision).toBe('deny'); // idempotent deny, no memory to flip
+      expect(gate.decideDelegateGate(base).decision).toBe('deny');
+    });
+    test('deny reason names router + pressure + human escape, forbids the excuse', () => {
+      const r = gate.decideDelegateGate(base).reason;
+      expect(r).toMatch(/routeur/i);
+      expect(r).toMatch(/pression/i);
+      expect(r).toMatch(/reste sur claude|byan-codex-autodelegate\/off/i);
+      expect(r).toMatch(/n'est PAS valide/i);
     });
   });
 });
 
-describe('codex-delegate-guard runGuard (option B, tmp root)', () => {
+describe('runGuard v3 (async, injected probes)', () => {
   const savedKey = process.env.CODEX_API_KEY;
-  beforeEach(() => { process.env.CODEX_API_KEY = 'test-key'; }); // forces codexLinked()
-  afterEach(() => {
-    if (savedKey === undefined) delete process.env.CODEX_API_KEY;
-    else process.env.CODEX_API_KEY = savedKey;
-  });
-  const codexUp = () => true;   // injected probe: Codex available
-  const codexDown = () => false; // injected probe: Codex unavailable
+  beforeEach(() => { process.env.CODEX_API_KEY = 'test-key'; }); // codexLinked() true
+  afterEach(() => { if (savedKey === undefined) delete process.env.CODEX_API_KEY; else process.env.CODEX_API_KEY = savedKey; });
 
-  test('non Write/Edit -> allow', () => {
+  const codexUp = () => true;
+  const routerCodex = async () => true;
+  const routerClaude = async () => false;
+  const pressureHigh = () => true;
+  const pressureLow = () => false;
+
+  test('non Write/Edit -> allow', async () => {
     const root = tmpRoot(); armRoot(root);
-    expect(runGuard({ tool_name: 'Bash', tool_input: { command: 'ls' } }, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('allow');
+    const out = await runGuard({ tool_name: 'Bash', tool_input: { command: 'ls' } }, { root });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
   });
 
-  test('armed + delegable code + Codex available + no delegation -> DENY, and resubmit STAYS deny', () => {
+  test('armed + router=Codex + code + under pressure + Codex up + no delegation -> DENY', async () => {
     const root = tmpRoot(); armRoot(root);
-    const payload = { transcript: [userTurn('code-moi un script'), asgTurn([])], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo hi' } };
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('deny');
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('deny'); // no self-dodge via resubmit
+    const payload = { transcript: [userTurn('code-moi un script bash'), asgTurn([])], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
+    const out = await runGuard(payload, { root, codexProbe: codexUp, routeProbe: routerCodex, pressureProbe: pressureHigh });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('deny');
   });
 
-  test('human opt-out in the request -> allow', () => {
+  test('F2 : router routes to Claude (refactor) -> allow', async () => {
     const root = tmpRoot(); armRoot(root);
-    const payload = { transcript: [userTurn('code-moi un script mais reste sur Claude')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('allow');
+    const payload = { transcript: [userTurn('refactor le module de securite')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.js'), content: 'y' } };
+    const out = await runGuard(payload, { root, codexProbe: codexUp, routeProbe: routerClaude, pressureProbe: pressureHigh });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
   });
 
-  test('Codex unavailable -> allow (legit fallback to Claude)', () => {
+  test('F1 : router=Codex but NOT under pressure -> allow', async () => {
     const root = tmpRoot(); armRoot(root);
-    const payload = { transcript: [userTurn('code-moi un script')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
-    expect(runGuard(payload, { root, codexProbe: codexDown }).hookSpecificOutput.permissionDecision).toBe('allow');
+    const payload = { transcript: [userTurn('code-moi un script bash')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
+    const out = await runGuard(payload, { root, codexProbe: codexUp, routeProbe: routerCodex, pressureProbe: pressureLow });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
   });
 
-  test('escape-hatch file silences the tooth', () => {
+  test('human opt-out -> allow (probes never consulted)', async () => {
     const root = tmpRoot(); armRoot(root);
-    fs.mkdirSync(path.join(root, '.byan-codex-autodelegate'), { recursive: true });
-    fs.writeFileSync(path.join(root, '.byan-codex-autodelegate', 'off'), '');
-    const payload = { transcript: [userTurn('code-moi un script')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('allow');
+    const payload = { transcript: [userTurn('code-moi un script mais reste sur claude')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
+    const out = await runGuard(payload, { root, codexProbe: codexUp, routeProbe: routerCodex, pressureProbe: pressureHigh });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
   });
 
-  test('a real codex exec this turn -> allow (Claude applies the result)', () => {
+  test('Codex unavailable -> allow (fallback)', async () => {
     const root = tmpRoot(); armRoot(root);
-    const payload = { transcript: [userTurn('code-moi un script'), asgTurn([{ type: 'tool_use', name: 'Bash', input: { command: 'codex exec "write it"' } }])], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('allow');
+    const payload = { transcript: [userTurn('code-moi un script bash')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
+    const out = await runGuard(payload, { root, codexProbe: () => false, routeProbe: routerCodex, pressureProbe: pressureHigh });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
   });
 
-  test('doc write (.md) is never delegable -> allow', () => {
-    const root = tmpRoot(); armRoot(root);
-    const payload = { transcript: [userTurn('ecris la doc')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'README.md'), content: '# hi' } };
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('allow');
-  });
-
-  test('lane not armed (config disabled) -> allow', () => {
+  test('lane not armed (config disabled) -> allow', async () => {
     const root = tmpRoot(); armRoot(root, { enabled: false });
-    const payload = { transcript: [userTurn('code-moi un script')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
-    expect(runGuard(payload, { root, codexProbe: codexUp }).hookSpecificOutput.permissionDecision).toBe('allow');
+    const payload = { transcript: [userTurn('code-moi un script bash')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'x.sh'), content: 'echo' } };
+    const out = await runGuard(payload, { root, codexProbe: codexUp, routeProbe: routerCodex, pressureProbe: pressureHigh });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
+  });
+
+  test('doc write -> allow (not code)', async () => {
+    const root = tmpRoot(); armRoot(root);
+    const payload = { transcript: [userTurn('ecris la doc')], tool_name: 'Write', tool_input: { file_path: path.join(root, 'README.md'), content: '# h' } };
+    const out = await runGuard(payload, { root, codexProbe: codexUp, routeProbe: routerCodex, pressureProbe: pressureHigh });
+    expect(out.hookSpecificOutput.permissionDecision).toBe('allow');
   });
 });

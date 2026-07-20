@@ -1,29 +1,27 @@
 'use strict';
 
-// WI-1 core — the DENT (tooth) for the armed Codex-delegation lane.
+// Core of the armed Codex-delegation guard (v3 : router-obedient + pressure-gated).
 //
-// The problem it fixes (proven on the client): when the Codex lane is ARMED
-// (yanstaller option on AND Codex linked) and the task is delegable coding work,
-// the doctrine says "delegate to Codex". But doctrine is prose : Claude's default
-// reflex writes the code itself with a polite excuse ("small script, latency, I
-// verify anyway"). The nudge hook only injects text.
+// History : v1 blocked every code Write when the lane was armed (blunt). v2
+// (option B) closed BYAN's self-dodge (no content marker, no resubmit auto-pass).
+// v3 makes the block match the actual delegation policy the user chose :
+//   - it OBEYS the router : it only bites when dispatch-router routes the task to
+//     Codex (execution / shell / deploy). A refactor / architecture / judgment
+//     task routes to Claude, so the block stays silent.
+//   - it is PRESSURE-gated : delegation to Codex is worth it to spare the Claude
+//     budget, not for quality (the subscription Codex trails Claude). So the block
+//     only bites when the Claude usage is under budget PRESSURE (>= threshold).
+//     Off-pressure, code runs on Claude with no nag.
 //
-// The tooth is a PreToolUse guard that DENIES the first Write/Edit of delegable
-// code when the lane is armed, Codex is available, and no Codex delegation has
-// happened this turn. Option B (tightened) closed the self-grant holes : there is
-// NO content marker BYAN can write to bypass, and NO resubmit/grace auto-pass.
-// The only passes are genuine and mostly HUMAN-controlled : lane off, human escape
-// switch, human opt-out in the request, non-code target, Codex genuinely
-// unavailable, or a real delegation already attempted this turn. It is not a wall
-// for the USER (who always has the escape switch / opt-out phrase) but it is a
-// wall against BYAN's silent self-dodge — that is the point.
+// Still true from v2 : the only per-turn escape is the HUMAN's (escape file or an
+// opt-out phrase in the request) — BYAN cannot self-grant a bypass. Codex genuinely
+// unavailable is a legit fallback. A real delegation already done this turn passes
+// (Claude applies the diff).
 //
-// Pure (no I/O) : the hook shell computes the signals and feeds them here. Same
-// philosophy and shape as tier-script.js / agent-gate.js.
+// Pure (no I/O) : the hook shell computes the signals (armed, routerSaysCodex,
+// targetIsCode, underPressure, delegationSeen, escaped, humanOptOut, codexAvailable)
+// and feeds them here.
 
-// Code file extensions + special filenames that mark a delegable-to-Codex write.
-// Deliberately EXECUTABLE code, not docs/config : a .md or .json write is not
-// "delegable coding work", so it never trips the tooth (low false-positive).
 const CODE_EXT = new Set([
   '.sh', '.bash', '.zsh', '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx',
   '.py', '.rb', '.go', '.rs', '.java', '.kt', '.c', '.h', '.cpp', '.hpp',
@@ -45,8 +43,8 @@ function baseOf(filePath) {
   return slash >= 0 ? s.slice(slash + 1) : s;
 }
 
-// targetIsCode(filePath) — the tool-level signal that the write is delegable code.
-// A CI workflow path (.github/workflows/*.yml) also counts (executable pipeline).
+// targetIsCode(filePath) — the write is delegable EXECUTABLE code (a doc/config is
+// not). A CI workflow path also counts.
 function targetIsCode(filePath) {
   if (!filePath) return false;
   const norm = String(filePath).split('\\').join('/');
@@ -55,11 +53,8 @@ function targetIsCode(filePath) {
   return CODE_EXT.has(extOf(norm));
 }
 
-// HUMAN opt-out (option B) : the ONLY per-turn way to keep a delegable code write
-// on Claude is the HUMAN saying so in the request. BYAN can no longer self-grant a
-// bypass (the retired `// BYAN-DELEGATE: reviewed` content marker was the hole:
-// BYAN wrote it itself to dodge). This matches on the user's OWN text, not on
-// anything BYAN authors.
+// The HUMAN opt-out : the only per-turn way to keep a delegable write on Claude is
+// the human saying so in the request. Matched on the user's OWN text.
 const HUMAN_OPTOUT_RE = /\b(reste sur claude|sans codex|pas de codex|no codex|pas de delegation|don'?t delegate|skip codex)\b/i;
 
 function humanOptOutFromText(text) {
@@ -67,10 +62,8 @@ function humanOptOutFromText(text) {
 }
 
 // delegationSeenThisTurn(messages) — did a real Codex delegation happen this turn?
-// Scans the turn's assistant tool_use blocks for : a Bash `codex exec`, a Task /
-// Agent spawn of a codex:* subagent, or an MCP codex-bridge call. If Codex was
-// already invoked (even if it failed), Claude APPLYING the result (a Write) is
-// legitimate -> allow.
+// (Bash `codex exec`, a codex:* Task/Agent, or an MCP codex-bridge call.) If so,
+// Claude applying the result is legitimate.
 function delegationSeenThisTurn(messages) {
   if (!Array.isArray(messages)) return false;
   for (const m of messages) {
@@ -88,40 +81,38 @@ function delegationSeenThisTurn(messages) {
 }
 
 const DENY_REASON = [
-  'BYAN souverainete (voie Codex armee) : cette tache est du code delegable, la',
-  'voie Codex est armee (option + Codex linke) et Codex est disponible, mais aucune',
-  'delegation Codex n\'a eu lieu ce tour. Delegue le code a Codex plutot que de',
-  'l\'ecrire toi-meme : spawn l\'agent codex:codex-rescue, ou lance `codex exec` via',
-  'le pont codex-bridge, puis applique le diff.',
-  'Les SEULES raisons valides de rester sur Claude : (1) Codex indisponible',
-  '(auto-detecte), ou (2) l\'utilisateur a demande de rester sur Claude. Le motif',
-  '"script court / latence / je le teste de toute facon" n\'est PAS une raison',
-  'valide — c\'est justement l\'esquive que cette dent ferme.',
-  'Pour forcer Claude cote humain : l\'utilisateur touche',
-  '`.byan-codex-autodelegate/off` ou ecrit "reste sur Claude" / "sans codex" dans sa',
-  'demande. BYAN ne peut plus s\'auto-accorder la sortie.',
+  'BYAN souverainete : le routeur (dispatch-router) a route cette tache vers CODEX',
+  '(nature execution / shell / script / deploiement), tu es SOUS PRESSION budget',
+  'Claude (usage proche de la limite), Codex est disponible, mais tu ecris le code',
+  'toi-meme sans avoir delegue ce tour. Delegue a Codex pour epargner le budget',
+  'Claude : agent codex:codex-rescue, ou `codex exec` via codex-bridge, puis applique',
+  'le diff. Les SEULES raisons valides de rester sur Claude : (1) Codex indisponible,',
+  'ou (2) l\'utilisateur a demande de rester sur Claude ("reste sur claude" / "sans',
+  'codex", ou le fichier .byan-codex-autodelegate/off). "Script court / latence / je',
+  'verifie" n\'est PAS valide. BYAN ne peut pas s\'auto-accorder la sortie.',
 ].join(' ');
 
-// decideDelegateGate — the pure decision (option B, tightened). Returns
-// { decision:'allow'|'deny', code, reason? }. The self-grant holes are closed :
-// no content marker BYAN can write, no resubmit/grace auto-pass. The only passes
-// are genuine : lane off, HUMAN escape switch, HUMAN opt-out in the request,
-// non-code target, Codex genuinely unavailable, or a real delegation already done
-// this turn. Anything else, when armed + delegable + Codex available, DENIES — and
-// stays denied on resubmit (BYAN cannot dodge ; the HUMAN always can via escape /
-// opt-out, so it is never a trap for the user).
+// decideDelegateGate — the pure decision (v3). Order : cheap allows short-circuit
+// before the deny. The block bites ONLY when every condition holds : armed, the
+// ROUTER routes to Codex, the target is code, we are under budget PRESSURE, Codex
+// is available, and no delegation happened this turn. Any miss -> allow. The human
+// always keeps the escape switch / opt-out, so it is never a trap for the user.
 function decideDelegateGate({
   armed = false,
-  delegable = false,
+  routerSaysCodex = false,
+  targetIsCode: isCode = false,
+  underPressure = false,
   delegationSeen = false,
   escaped = false,
   humanOptOut = false,
   codexAvailable = true,
 } = {}) {
   if (!armed) return { decision: 'allow', code: 'lane-not-armed' };
-  if (escaped) return { decision: 'allow', code: 'escape-hatch' };       // human switch
-  if (humanOptOut) return { decision: 'allow', code: 'human-opt-out' };  // human asked Claude
-  if (!delegable) return { decision: 'allow', code: 'not-delegable' };
+  if (escaped) return { decision: 'allow', code: 'escape-hatch' };        // human switch
+  if (humanOptOut) return { decision: 'allow', code: 'human-opt-out' };   // human asked Claude
+  if (!routerSaysCodex) return { decision: 'allow', code: 'router-claude' }; // brain routed to Claude (F2)
+  if (!isCode) return { decision: 'allow', code: 'not-code' };            // codex-nature task but a doc/config write
+  if (!underPressure) return { decision: 'allow', code: 'no-pressure' };  // budget not tight (F1) -> Claude is fine
   if (!codexAvailable) return { decision: 'allow', code: 'codex-unavailable' }; // legit fallback
   if (delegationSeen) return { decision: 'allow', code: 'delegation-seen' };    // Codex already run
   return { decision: 'deny', code: 'delegate-first', reason: DENY_REASON };

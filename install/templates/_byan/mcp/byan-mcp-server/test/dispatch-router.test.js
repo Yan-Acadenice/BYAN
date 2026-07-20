@@ -23,9 +23,9 @@ test('RUNTIMES / EFFORTS are the frozen two/three-value vocabularies', () => {
   assert.ok(Object.isFrozen(EFFORTS));
 });
 
-// --- red line #1: never Fable ---------------------------------------------
+// --- red line #1 (v3): Fable on Codex never; on Claude only at the extreme rung -
 
-test('assertNoFable throws on any Fable id, passes anything else through', () => {
+test('assertNoFable throws on any Fable id (Codex guard), passes anything else through', () => {
   for (const f of FORBIDDEN_MODELS) {
     assert.throws(() => assertNoFable(f), /forbidden model/);
   }
@@ -34,16 +34,24 @@ test('assertNoFable throws on any Fable id, passes anything else through', () =>
   assert.equal(assertNoFable('gpt-5.4'), 'gpt-5.4');
 });
 
-test('dispatch never emits a Fable model on any nature/complexity combo', () => {
-  const natures = ['architecture', 'execution', 'deploy', 'verify', 'analysis', 'shell', 'unknown-xyz'];
-  const complexities = [0, 33, 34, 66, 67, 100, 'low', 'high', 'trivial', undefined];
-  for (const nature of natures) {
+test('dispatch never emits Fable on the CODEX side, on any complexity', () => {
+  const codexNatures = ['execution', 'deploy', 'shell', 'scripting', 'devops'];
+  const complexities = [0, 33, 34, 66, 67, 100, 'low', 'high', 'extreme', undefined];
+  for (const nature of codexNatures) {
     for (const complexity of complexities) {
       const d = dispatch({ nature, complexity });
-      if (d.model != null) {
-        assert.doesNotMatch(String(d.model).toLowerCase(), /fable/, `${nature}/${complexity} leaked Fable`);
-      }
+      assert.equal(d.runtime, RUNTIMES.CODEX, `${nature} should route to Codex`);
+      assert.doesNotMatch(String(d.model).toLowerCase(), /fable/, `${nature}/${complexity} leaked Fable on Codex`);
     }
+  }
+});
+
+test('dispatch emits Fable on the CLAUDE side ONLY at extreme complexity (last resort)', () => {
+  assert.equal(dispatch({ nature: 'architecture', complexity: 95 }).model, 'fable');
+  assert.equal(dispatch({ nature: 'analysis', complexity: 'extreme' }).model, 'fable');
+  for (const complexity of [0, 33, 34, 66, 67, 89, 'low', 'high', 'trivial', undefined]) {
+    const d = dispatch({ nature: 'architecture', complexity });
+    assert.notEqual(d.model, 'fable', `complexity ${complexity} should not reach Fable`);
   }
 });
 
@@ -94,13 +102,23 @@ test('complexityBucket maps numbers and labels, unknown -> medium', () => {
   assert.equal(complexityBucket(undefined), EFFORTS.MEDIUM);
 });
 
-test('claudeModelForComplexity: low->haiku, medium->sonnet, high->null(inherit)', () => {
-  assert.equal(claudeModelForComplexity('low'), 'haiku');
+test('claudeModelForComplexity: four-rung ladder haiku->sonnet->opus->fable', () => {
+  // numeric
   assert.equal(claudeModelForComplexity(10), 'haiku');
-  assert.equal(claudeModelForComplexity('medium'), 'sonnet');
+  assert.equal(claudeModelForComplexity(33), 'haiku');
+  assert.equal(claudeModelForComplexity(34), 'sonnet');
   assert.equal(claudeModelForComplexity(50), 'sonnet');
-  assert.equal(claudeModelForComplexity('high'), null);
-  assert.equal(claudeModelForComplexity(90), null);
+  assert.equal(claudeModelForComplexity(66), 'sonnet');
+  assert.equal(claudeModelForComplexity(67), 'opus');
+  assert.equal(claudeModelForComplexity(89), 'opus');
+  assert.equal(claudeModelForComplexity(90), 'fable'); // extreme -> last resort
+  assert.equal(claudeModelForComplexity(100), 'fable');
+  // labels
+  assert.equal(claudeModelForComplexity('low'), 'haiku');
+  assert.equal(claudeModelForComplexity('medium'), 'sonnet');
+  assert.equal(claudeModelForComplexity('high'), 'opus');
+  assert.equal(claudeModelForComplexity('extreme'), 'fable');
+  assert.equal(claudeModelForComplexity('???'), 'sonnet'); // unknown -> safe middle
 });
 
 test('effortForComplexity mirrors the bucket (Codex effort knob)', () => {
@@ -125,10 +143,15 @@ test('dispatch to Claude: model scaled to complexity, effort is null (tier IS th
   assert.equal(simple.model, 'haiku');
   assert.equal(simple.effort, null);
 
-  const hard = dispatch({ nature: 'architecture', complexity: 95 });
-  assert.equal(hard.runtime, RUNTIMES.CLAUDE);
-  assert.equal(hard.model, null); // inherit session model (Opus), never pinned/Fable
-  assert.equal(hard.effort, null);
+  const high = dispatch({ nature: 'architecture', complexity: 75 });
+  assert.equal(high.runtime, RUNTIMES.CLAUDE);
+  assert.equal(high.model, 'opus'); // high -> opus (default frontier)
+  assert.equal(high.effort, null);
+
+  const extreme = dispatch({ nature: 'architecture', complexity: 95 });
+  assert.equal(extreme.runtime, RUNTIMES.CLAUDE);
+  assert.equal(extreme.model, 'fable'); // extreme -> fable, last resort
+  assert.equal(extreme.effort, null);
 });
 
 test('dispatch is deterministic', () => {

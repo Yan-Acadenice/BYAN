@@ -153,10 +153,15 @@ export function modelRoutingViolations(src) {
     if (!isKnownTierModel(model)) {
       out.push({
         id: 'unknown-tier-model',
-        msg: `opts.model '${model}' is not a known downgrade tier (cheap/balanced); never pin up — omit opts.model to inherit the session model on deep leaves`,
+        msg: `opts.model '${model}' is not a recognised tier (downgrade: haiku/sonnet ; up-tier: opus/fable); omit opts.model to inherit the session model on deep leaves`,
       });
       continue;
     }
+    // Up-tier pins (opus/fable) are an allowed explicit authoring choice: they
+    // raise a complex leaf ABOVE the inherited tier. The anti-downgrade floor does
+    // not apply upward, and no label is required (v3). Only DOWNGRADES are gated
+    // below.
+    if (!isDowngradeModel(model)) continue;
     const label = nearestLabelBefore(code, m.index);
     if (!label) {
       out.push({
@@ -165,7 +170,6 @@ export function modelRoutingViolations(src) {
       });
       continue;
     }
-    if (!isDowngradeModel(model)) continue;
     // Per-class floor: exploration accepts any downgrade tier (haiku or sonnet,
     // both at-or-above its cheap floor); a mech- leaf accepts exactly the
     // balanced tier (haiku would sit BELOW the tier its label declares); every

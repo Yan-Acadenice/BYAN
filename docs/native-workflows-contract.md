@@ -95,16 +95,21 @@ tier vocabulary, the leaf classifier, and the model map.
 
 | Tier | `opts.model` | Used for |
 |------|--------------|----------|
+| `up-tier` | `opus` / `fable` | EXPLICIT authoring choice: raise a genuinely complex leaf above the inherited tier (opus for hard, fable for extreme, last resort) |
 | `deep` | **omitted** (inherit the session model) | implement, verify, analysis — the default |
 | `balanced` | `sonnet` | MECHANICAL verification, opt-in only via the `mech-` label prefix |
 | `cheap` | `haiku` | a pure exploration leaf: read / load / parse / detect |
 
 Three hard rules:
 
-- **No pin-up.** `deep` is an omission, not `model: 'opus'`. Omitting lets a
-  leaf inherit whatever the session runs — Opus by default, Sonnet if the user
-  chose Sonnet. Pinning a fixed high tier would override that and could silently
-  downgrade a Sonnet/Opus session's heavy leaf.
+- **No AUTO pin-up, but an explicit up-tier is allowed (v3).** Auto-routing does
+  not raise a leaf above the inherited tier: `deep` is an omission, letting a leaf
+  inherit whatever the session runs (Opus by default, Sonnet if the user chose
+  Sonnet). An author MAY still deliberately pin `opus` or `fable` on a genuinely
+  complex leaf — the workflow-leaf mirror of the dispatch-router complexity ladder
+  (haiku -> sonnet -> opus -> fable). The anti-downgrade floor does not apply
+  upward, so the linter allows an up-tier pin; the old blanket "no pin-up / no
+  Fable" ban is lifted.
 - **Only exploration and mech- downgrade.** A leaf is pinned to `cheap` only
   when it is unambiguous read/extract work. `classifyLeaf` keys off the LABEL
   (the prompt is too noisy — an exploration leaf often says "report what you

@@ -22,17 +22,21 @@ task-type signal is used, which is stable across sources.
 
 ## Model and effort by complexity
 
-- **Claude side**: complexity picks the model tier via `native-tiers` —
-  low -> haiku, medium -> sonnet, high -> inherit the session model (Opus). There
-  is no separate effort knob on Claude: the model tier IS the effort. Fable is
-  excluded (the router does not emit it).
+- **Claude side**: complexity picks the model on a four-rung ladder (v3) —
+  low -> haiku, medium -> sonnet, high -> opus, extreme -> fable (last resort,
+  ~2x Opus price). There is no separate effort knob on Claude: the model tier IS
+  the effort. This is a per-task RECOMMENDATION, not a live switch of the running
+  session model (Claude Code exposes no such switch).
 - **Codex side**: fixed model (`gpt-5.4`, the entitled subscription model) with a
   real reasoning-effort knob — low / medium / high — scaled to complexity via
   `codex exec -c model_reasoning_effort=...`.
 
 ## The three red lines (enforced in code, not left to the caller)
 
-1. **No Fable.** `assertNoFable` throws rather than emit a Fable model.
+1. **No Fable on Codex.** `assertNoFable` throws rather than emit a Fable model on
+   the Codex path (Codex runs the ChatGPT-subscription model and cannot run a
+   Claude model). On the Claude path Fable IS allowed, but only at the extreme
+   complexity rung (v3 product reversal — the old blanket ban is lifted).
 2. **Verification stays on Claude.** The router forces a verification nature to
    Claude ; the orchestrator re-asserts it and throws if it ever regresses.
 3. **Codex does not write.** Codex runs read-only and returns a unified diff ;
