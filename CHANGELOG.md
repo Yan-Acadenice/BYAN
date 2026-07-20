@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.51.0] - 2026-07-20
+
+### Changed — Delegation Codex : fermeture de l'auto-esquive (option B)
+- Le blocage `codex-delegate-guard` ne peut plus etre contourne par BYAN lui-meme.
+  Retire : la marque de contenu auto-ecrite (`// BYAN-DELEGATE: reviewed`) et
+  l'auto-passe par re-soumission/fenetre de grace — les deux permettaient a Claude
+  de s'auto-accorder la sortie. Les seules sorties valides sont desormais : une
+  delegation Codex reelle ce tour, Codex indisponible (detecte via `codex --version`),
+  ou un opt-out HUMAIN ("reste sur claude" / "sans codex" dans la demande, ou le
+  fichier `.byan-codex-autodelegate/off`). Le motif "script court / latence / je
+  verifie" n'est plus une raison valide. Coeur pur `lib/codex-delegate-gate.js`
+  (`humanOptOutFromText`, `decideDelegateGate` durci) + `codex-delegate-guard.js`
+  (probe Codex, opt-out depuis la demande). Le rendu injecte (`autodelegate-decision`
+  renderNudge), le skill `byan-byan` et `docs/codex-auto-delegation.md` sont alignes.
+
+### Notes
+- Constat de session : le CLI Codex de l'abo ChatGPT est plafonne a gpt-5.5 (5.6
+  refuse). Recherche croisee : gpt-5.5 est sous le meilleur Claude sur tous les
+  domaines mesures. Donc la delegation Codex vaut pour economiser le budget Claude,
+  pas pour la qualite. Prochain chantier (FD dedie) : delegation declenchee par la
+  PRESSION budget (~75%) au lieu de par-nature ; le blocage obeit au routeur ;
+  echelle modele Claude par complexite (haiku/sonnet/opus) + Fable en dernier recours.
+
 ## [2.50.0] - 2026-07-17
 
 ### Added — BYAN souverainete (les concepts BYAN pilotent Claude, ne se font plus doubler)

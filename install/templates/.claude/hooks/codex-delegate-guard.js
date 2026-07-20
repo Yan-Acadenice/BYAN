@@ -1,35 +1,32 @@
 #!/usr/bin/env node
 'use strict';
 
-// PreToolUse hook — WI-1, the DENT for the armed Codex-delegation lane.
+// PreToolUse hook — WI-1, the DENT for the armed Codex-delegation lane (option B).
 //
 // When the Codex lane is ARMED (yanstaller option on AND Codex linked) and the
 // current turn is about to WRITE delegable code without having delegated to Codex
-// first, DENY ONCE with the exact instruction to delegate. This is the tooth that
-// makes "delegate to Codex when armed" govern instead of being prose Claude can
-// double with a polite excuse (the session incident).
+// first, DENY with the exact instruction to delegate. Option B closed the
+// self-dodge : BYAN can no longer bypass by writing a marker into the file or by
+// resubmitting. The only passes are genuine and mostly HUMAN-controlled :
+//   - escape-hatch file `.byan-codex-autodelegate/off` (human switch, shared with
+//     the nudge hook — one switch for the whole Codex posture),
+//   - a HUMAN opt-out phrase in the request ("reste sur Claude" / "sans codex"...),
+//   - Codex genuinely unavailable (probed here : `codex --version`),
+//   - a real Codex delegation already attempted this turn.
+// Otherwise it denies, and STAYS denied on resubmit — a wall against BYAN's silent
+// self-dodge, never a trap for the user (who always has the switch / opt-out).
 //
-// Speed-bump, not a wall (the user's red line) :
-//   - escape-hatch : `.byan-codex-autodelegate/off` silences it (shared with the
-//     nudge hook — one switch for the whole Codex-delegation posture).
-//   - `// BYAN-DELEGATE: reviewed` in the file acknowledges a deliberate
-//     Claude-lane choice (Codex unavailable, judgment/verify) and passes.
-//   - deny-once : an identical resubmission passes, and a grace window after a
-//     deny lets a multi-file build proceed without nagging on every file.
-//
-// Never traps a turn, always exits 0. Pure decision in lib/codex-delegate-gate.js;
-// armed/linked detection reused from codex-autodelegate.js; delegability from
-// autodelegate-decision.js; the turn transcript via transcript-read.js.
+// Never traps a turn on an internal error, always exits 0. Pure decision in
+// lib/codex-delegate-gate.js ; armed/linked detection reused from
+// codex-autodelegate.js ; delegability from autodelegate-decision.js ; the turn
+// transcript via transcript-read.js.
 
-const fs = require('fs');
-const path = require('path');
+const { spawnSync } = require('child_process');
 const gate = require('./lib/codex-delegate-gate');
 const { loadConfig, codexLinked, toggledOff } = require('./codex-autodelegate');
-const { looksDelegable } = require('./lib/autodelegate-decision');
-const { extractRecentMessages, extractLastAssistantText, contentToText } = require('./lib/transcript-read');
+const { extractRecentMessages, contentToText } = require('./lib/transcript-read');
 
 const ROOT = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const GRACE_MS = 120000;
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -54,30 +51,20 @@ function deny(reason) {
   };
 }
 
-function sidecarPath(root) {
-  return path.join(root, '.byan-codex-delegate', 'last-deny.json');
-}
-
-function readPriorDeny(root) {
+// Light Codex availability probe : `codex --version`. Codex genuinely absent /
+// broken -> the guard must NOT deny (staying on Claude is the legit fallback). Run
+// ONLY in the would-deny branch (see runGuard) so the common paths pay nothing.
+function probeCodexAvailable(runner = spawnSync) {
   try {
-    const p = JSON.parse(fs.readFileSync(sidecarPath(root), 'utf8'));
-    return p && typeof p === 'object' ? p : null;
+    const res = runner('codex', ['--version'], { timeout: 8000, encoding: 'utf8' });
+    return res && res.status === 0;
   } catch (_e) {
-    return null;
+    return false;
   }
 }
 
-function writePriorDeny(root, entry) {
-  try {
-    fs.mkdirSync(path.dirname(sidecarPath(root)), { recursive: true });
-    fs.writeFileSync(sidecarPath(root), JSON.stringify(entry));
-  } catch (_e) {
-    // best-effort : losing the deny memory only costs one extra deny, never a trap
-  }
-}
-
-// The last user message text this turn, for the delegability signal (a code
-// target already suffices, this only broadens it).
+// The last user message text this turn — the source for the human opt-out signal
+// AND a secondary delegability signal.
 function lastUserText(payload) {
   const msgs = extractRecentMessages(payload, 12);
   if (!Array.isArray(msgs)) return '';
@@ -87,45 +74,40 @@ function lastUserText(payload) {
   return '';
 }
 
-// Pure-ish assembly of the decision from a payload (exported for tests, fs
-// injected via opts.root + opts.now).
-function runGuard(payload, { root = ROOT, now = Date.now() } = {}) {
+// runGuard(payload, opts) — the decision. opts.codexProbe is injectable for tests.
+function runGuard(payload, { root = ROOT, codexProbe = probeCodexAvailable } = {}) {
   const toolName = payload.tool_name || payload.toolName || '';
   if (toolName !== 'Write' && toolName !== 'Edit') return allow();
 
   const config = loadConfig(root);
   const armed = config.enabled === true && codexLinked();
-  const escaped = toggledOff(root);
+  if (!armed) return allow(); // fast path, no transcript work when the lane is off
 
+  const escaped = toggledOff(root);
   const input = payload.tool_input || payload.toolInput || {};
   const filePath = input.file_path || input.filePath || '';
-  const content = toolName === 'Edit'
-    ? String(input.new_string || input.newString || '')
-    : String(input.content || '');
-
-  const userText = lastUserText(payload);
-  const delegable = gate.targetIsCode(filePath) || looksDelegable(userText);
-  const reviewedMarker = gate.hasReviewedMarker(content) || gate.hasReviewedMarker(extractLastAssistantText(payload));
+  const humanOptOut = gate.humanOptOutFromText(lastUserText(payload));
+  // The delegable signal at a Write is the TARGET type only : writing a code file
+  // is delegable, writing a doc/config is not. The request VERB ("ecris la doc")
+  // is NOT used here — it false-fires on doc writes (a .md is never delegated).
+  const delegable = gate.targetIsCode(filePath);
   const delegationSeen = gate.delegationSeenThisTurn(extractRecentMessages(payload, 12) || []);
-  const turnHash = gate.hashTurn(filePath, content);
+
+  // Probe Codex ONLY when every cheaper signal points to a deny — so an unavailable
+  // Codex still yields the legit Claude fallback, without probing on every write.
+  const wouldDeny = !escaped && !humanOptOut && delegable && !delegationSeen;
+  const codexAvailable = wouldDeny ? codexProbe() : true;
 
   const decision = gate.decideDelegateGate({
     armed,
     delegable,
     delegationSeen,
     escaped,
-    reviewedMarker,
-    priorDeny: readPriorDeny(root),
-    turnHash,
-    now,
-    graceMs: GRACE_MS,
+    humanOptOut,
+    codexAvailable,
   });
 
-  if (decision.decision === 'deny') {
-    writePriorDeny(root, { hash: turnHash, ts: now });
-    return deny(decision.reason);
-  }
-  return allow();
+  return decision.decision === 'deny' ? deny(decision.reason) : allow();
 }
 
 if (require.main === module) {
@@ -142,4 +124,4 @@ if (require.main === module) {
   })();
 }
 
-module.exports = { runGuard, sidecarPath, readPriorDeny, writePriorDeny, lastUserText };
+module.exports = { runGuard, probeCodexAvailable, lastUserText };

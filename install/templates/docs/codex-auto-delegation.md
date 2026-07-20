@@ -23,13 +23,22 @@ linked on this machine (`~/.codex/auth.json` from `codex login`, or
 This is the runtime `codexLinked()` gate in `codex-autodelegate.js`, the mirror of
 the installer's arm-time `codexAuthState` check.
 
-**Armed = directive, not advice.** Because the note only appears when the lane is
-armed (both engines present), it reads as a directive: delegate the delegable
-part, fall back to Claude only if Codex is unavailable. When the lane is not
-armed, no note is injected and everything runs on Claude — there is nothing to
-decide. Honest ceiling: Claude Code has no control point before a response is
-shown, so this stays model-driven doctrine (BYAN delegates because the skill's
-entry chain and this note say so), not a mechanism enforced before display.
+**Armed = directive, enforced by a tooth (option B).** Because the note only
+appears when the lane is armed (both engines present), it reads as a directive:
+delegate the delegable part. And it is not just prose — the `codex-delegate-guard`
+PreToolUse hook DENIES a delegable **code** Write/Edit that skipped Codex. The
+two valid reasons to stay on Claude are (1) Codex unavailable (auto-detected via
+`codex --version`), or (2) the USER opted out — the `.byan-codex-autodelegate/off`
+switch, or a phrase like "reste sur Claude" / "sans codex" in the request. The
+"small script / latency / I verify anyway" excuse is explicitly NOT valid: that
+was the self-dodge (a `// BYAN-DELEGATE: reviewed` marker BYAN wrote itself) that
+option B removed. BYAN can no longer self-grant a bypass; only the human can.
+
+The deny is a wall against BYAN's silent self-dodge, not a trap for the user: the
+human keeps the escape switch and the opt-out phrase, and a doc/config write (not
+code) does not trip it. Honest ceiling: Claude Code has no control point before a
+response is shown, so the *choice* to delegate stays model-driven; the tooth acts
+one step later, at the Write, denying the skip.
 
 Three triggers, in priority order:
 

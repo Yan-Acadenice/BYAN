@@ -141,8 +141,10 @@ function renderNudge(decision) {
     `[BYAN auto-delegate]${gauge}: ${scope} via \`${invocation}\` `
       + '(runs on the ChatGPT subscription, no API credit).',
     `Red line: ${decision.redLine}. The lane is ARMED (option on AND Codex linked), so this is a `
-      + 'DIRECTIVE, not a mere suggestion: delegate the delegable part unless you have a specific reason '
-      + "not to, fall back to Claude only if Codex is unavailable, and verify Codex's output before commit.",
+      + 'DIRECTIVE, not a suggestion: delegate the delegable part. The ONLY valid reasons to stay on '
+      + 'Claude are (1) Codex unavailable, or (2) the user asked to stay on Claude. "Small script / '
+      + 'latency / I verify anyway" is NOT a valid reason — the codex-delegate-guard denies a delegable '
+      + "code write that skips Codex. Verify Codex's output before commit.",
   ].join(' ');
 }
 

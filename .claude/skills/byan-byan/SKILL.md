@@ -30,13 +30,17 @@ the user should not have to ask for it. Four moments:
    `TaskCreate` / `TaskUpdate`) plus the dispatch table shown at the top of BUILD.
    - **Codex-lane** — when the lane is ARMED (yanstaller option on AND Codex
      linked, i.e. `_byan/_config/autodelegate.json` present with `enabled:true`
-     AND `~/.codex/auth.json` or `CODEX_API_KEY`) and the task is delegable,
+     AND `~/.codex/auth.json` or `CODEX_API_KEY`) and the task is delegable code,
      ACTUALLY delegate via `codex-bridge.js` (`codex exec` -> unified diff -> YOU
-     apply it). Fall back to Claude if Codex is unavailable. When armed, the
-     injected `[BYAN auto-delegate]` note is a DIRECTIVE, not a mere suggestion:
-     you delegate the delegable work rather than doing it on Claude by default.
-     When NOT armed (option off or Codex not linked), there is no delegation —
-     you run it on Claude.
+     apply it) or the `codex:codex-rescue` agent. This is a DIRECTIVE, enforced by
+     the `codex-delegate-guard` PreToolUse tooth : it DENIES a delegable code
+     Write/Edit that skipped Codex. The ONLY valid reasons to stay on Claude are
+     (1) Codex unavailable (auto-detected), or (2) the USER asked to stay on Claude
+     ("reste sur Claude" / "sans codex", or the `.byan-codex-autodelegate/off`
+     switch). "Small script / latency / I verify anyway" is NOT valid — that is
+     exactly the self-dodge the tooth closes (option B). You cannot self-grant a
+     bypass. When NOT armed (option off or Codex not linked), there is no
+     delegation — you run it on Claude.
    - **Claude-lane** — run it on Claude at the chosen model.
 4. **User gate at the END.** The user-validation gate lands at the end, once the
    feature/task is done and there is a deliverable to review — not upstream. (In a
