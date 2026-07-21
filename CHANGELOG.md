@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.54.1] - 2026-07-21
+
+### Fixed — la commande update ne deployait pas .claude/
+- Cause racine constatee sur le terrain et verifiee dans le code (updater.js
+  lignes 30-31, manifest.js : seule la racine `_byan/` etait comparee et
+  copiee). Tout ce qui vit sous `.claude/` — les skills (dont le rail
+  auto-dispatch 2.53.0), les workflows natifs, les hooks (dont la garde de
+  fraicheur 2.54.0), settings.json et le `.mcp.json` regenere par le setup
+  natif — restait hors du perimetre de `update`. Un projet pouvait donc etre
+  "a jour" avec un `.claude/` vieux de plusieurs mois : rail absent, MCP
+  absent, garde absente.
+- Correctif : `update()` rafraichit aussi `.claude/` comme le fait
+  l'installation complete — sauvegarde dediee `.claude.backup-<ts>` (prefixe
+  distinct de `_byan.backup-` pour ne pas polluer la purge/rollback), copie
+  `templates/.claude` -> projet avec ecrasement, puis `setupClaudeNative`
+  (regenere `.mcp.json`, installe les dependances du serveur MCP, cable les
+  githooks). En cas d'echec, le `.claude/` d'origine est restaure.
+- Testabilite : `options.templateDir` et `options.nativeSetup` injectables ;
+  nouveau test fonctionnel `install/__tests__/yanstaller/updater.test.js`
+  (4 cas : deploiement du rail, projet sans `.claude`, rollback, deja a jour).
+- La sortie de la commande affiche desormais le rafraichissement `.claude` et
+  le chemin de sa sauvegarde.
+
 ## [2.54.0] - 2026-07-21
 
 ### Added — Garde de fraicheur des skills (SessionStart)

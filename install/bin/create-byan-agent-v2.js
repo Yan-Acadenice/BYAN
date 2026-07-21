@@ -1957,6 +1957,12 @@ program
       if (result.filesSkipped > 0) {
         console.log(chalk.yellow(`  Files skipped: ${result.filesSkipped} (user-modified)`));
       }
+      if (result.claudeRefreshed) {
+        console.log(chalk.green('  Claude Code:   .claude/ refreshed (skills, workflows, hooks) + native setup (.mcp.json, MCP deps)'));
+        if (result.claudeBackupPath) {
+          console.log(chalk.gray(`  .claude backup: ${path.basename(result.claudeBackupPath)}`));
+        }
+      }
       if (result.backupPath) {
         console.log(chalk.gray(`  Backup: ${path.basename(result.backupPath)}`));
       }
