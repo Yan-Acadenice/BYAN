@@ -62,6 +62,25 @@ test('classifyLeaf: unknown / missing label defaults to implementation (deep, no
   assert.equal(classifyLeaf(), LEAF_TYPES.IMPLEMENTATION);
 });
 
+test('classifyLeaf: map: (colon) is a system-cartography scan -> exploration; map- stays deep', () => {
+  // Field case (2026-07-21, byan_web): a DISCOVERY workflow labeled its scan
+  // leaves map:mcp-server, map:connector... — classified implementation (deep)
+  // they inherited a Fable 5 session at ~95k tokens EACH. map: with a colon is
+  // the cartography-of-the-existing convention (read + summarize) ->
+  // exploration; map- with a dash (map-criteria, a transformation) stays deep.
+  assert.equal(classifyLeaf({ label: 'map:mcp-server' }), LEAF_TYPES.EXPLORATION);
+  assert.equal(classifyLeaf({ label: 'map:connector' }), LEAF_TYPES.EXPLORATION);
+  assert.equal(classifyLeaf({ label: 'map-criteria' }), LEAF_TYPES.IMPLEMENTATION);
+});
+
+test('classifyLeaf: french + census cartography vocabulary is exploration', () => {
+  assert.equal(classifyLeaf({ label: 'cartographie-serveur' }), LEAF_TYPES.EXPLORATION);
+  assert.equal(classifyLeaf({ label: 'inventaire-agents' }), LEAF_TYPES.EXPLORATION);
+  assert.equal(classifyLeaf({ label: 'recensement-outils' }), LEAF_TYPES.EXPLORATION);
+  assert.equal(classifyLeaf({ label: 'census-endpoints' }), LEAF_TYPES.EXPLORATION);
+  assert.equal(classifyLeaf({ label: 'inventory-mcp-tools' }), LEAF_TYPES.EXPLORATION);
+});
+
 test('classifyLeaf: does NOT key off the prompt (prompt noise must not flip the type)', () => {
   // load-story's real prompt contains "Report the story key" — 'report' must
   // NOT pull it to implementation; the label decides.

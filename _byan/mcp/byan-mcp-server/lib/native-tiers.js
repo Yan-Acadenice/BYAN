@@ -93,7 +93,10 @@ export const DEEP_PREFIX = 'deep-';
 const VERIFICATION_KEYWORDS = ['verify', 'validate', 'check', 'assert', 'gate', 'lint', 'audit', 'review'];
 const ANALYSIS_KEYWORDS = ['analy', 'design', 'architect', 'assess', 'evaluate', 'strategy', 'risk', 'nfr', 'recommend', 'judge', 'score', 'coverage', 'synthes'];
 const IMPLEMENTATION_KEYWORDS = ['implement', 'build', 'write', 'generate', 'create', 'dev', 'rgr', 'refactor', 'fix', 'scaffold', 'save', 'optimize', 'aggregate', 'report', 'present', 'plan', 'map', 'select', 'subprocess', 'sub-'];
-const EXPLORATION_KEYWORDS = ['load', 'read', 'scan', 'list', 'parse', 'detect', 'discover', 'fetch', 'lookup', 'source-tree', 'mode-detection'];
+// cartograph/inventaire/recensement... : vocabulaire de cartographie de
+// l'existant (lecture + synthese), francais inclus — cas terrain byan_web ou
+// des feuilles de scan DISCOVERY non reconnues heritaient d'une session Fable 5.
+const EXPLORATION_KEYWORDS = ['load', 'read', 'scan', 'list', 'parse', 'detect', 'discover', 'fetch', 'lookup', 'source-tree', 'mode-detection', 'cartograph', 'inventaire', 'inventory', 'recensement', 'census', 'enumerate', 'survey', 'crawl'];
 
 function matchesAny(text, keywords) {
   return keywords.some((kw) => text.includes(kw));
@@ -115,6 +118,10 @@ export function classifyLeaf(leaf) {
   // (the analysis escape hatch, classified as the deep IMPLEMENTATION bucket).
   if (label.startsWith(MECHANICAL_PREFIX)) return LEAF_TYPES.MECHANICAL;
   if (label.startsWith(DEEP_PREFIX)) return LEAF_TYPES.IMPLEMENTATION;
+  // 'map:' (deux-points) = convention de cartographie de l'existant (scan) ->
+  // exploration, AVANT le mot-cle 'map' d'implementation qui sinon l'avale.
+  // 'map-' (tiret, ex. map-criteria) reste une transformation profonde.
+  if (label.startsWith('map:')) return LEAF_TYPES.EXPLORATION;
   if (matchesAny(label, VERIFICATION_KEYWORDS)) return LEAF_TYPES.VERIFICATION;
   if (matchesAny(label, ANALYSIS_KEYWORDS)) return LEAF_TYPES.ANALYSIS;
   if (matchesAny(label, IMPLEMENTATION_KEYWORDS)) return LEAF_TYPES.IMPLEMENTATION;
