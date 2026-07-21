@@ -50,7 +50,12 @@ class ByanWebUI {
     });
 
     return new Promise((resolve) => {
-      this.server.listen(this.port, () => {
+      // Bind to loopback ONLY. Without a host argument Node binds to :: (every
+      // interface), which made the installer LAN-reachable — and since it runs
+      // the real install engine (file writes + child processes), that exposed
+      // an arbitrary-write surface to the local network. A local installer has
+      // no business listening off-host.
+      this.server.listen(this.port, '127.0.0.1', () => {
         const addr = this.server.address();
         const assignedPort = (addr && typeof addr === 'object') ? addr.port : this.port;
         const url = `http://localhost:${assignedPort}`;

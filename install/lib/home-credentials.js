@@ -53,10 +53,20 @@ function writeCredentials(patch, { homeDir = os.homedir() } = {}) {
   const current = readCredentials({ homeDir });
   const merged = { ...current };
   for (const [key, value] of Object.entries(patch || {})) {
+    // Only known keys are written from a patch. The patch can reach here from
+    // an HTTP body (the web wizard) ; an unknown key would be junk in the
+    // secret store. Keys already present in the file are preserved (the spread
+    // above), unknown ones just cannot be ADDED by a patch.
+    if (!KNOWN_KEYS.includes(key)) continue;
     if (typeof value === 'string' && value.trim() !== '') merged[key] = value;
   }
   const file = credentialsPath(homeDir);
   fs.ensureDirSync(path.dirname(file));
+  try {
+    fs.chmodSync(path.dirname(file), 0o700); // the dir holds only secrets
+  } catch {
+    // best-effort (Windows ACLs) — the 0600 file mode below is the real guard
+  }
   fs.writeJSONSync(file, merged, { spaces: 2, mode: 0o600 });
   try {
     fs.chmodSync(file, 0o600); // writeJSON mode applies on create only; enforce on rewrite

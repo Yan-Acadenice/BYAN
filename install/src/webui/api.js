@@ -53,6 +53,18 @@ function json(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
+// Confine an HTTP-supplied install/update directory to the server's launch
+// directory. A relative value resolves inside base; base itself, or any path
+// that escapes it (../, absolute elsewhere), collapses back to base. The
+// installer targets the project the wizard was launched in — nothing else.
+function confineToBase(candidate, base) {
+  if (!candidate || typeof candidate !== 'string') return base;
+  const resolved = path.resolve(base, candidate);
+  const rel = path.relative(base, resolved);
+  const escapes = rel === '' ? false : (rel.startsWith('..') || path.isAbsolute(rel));
+  return escapes ? base : resolved;
+}
+
 function readPackageVersion() {
   try {
     const pkg = JSON.parse(
@@ -150,7 +162,11 @@ const routes = {
     json(res, 200, { status: 'started' });
 
     const config = req.body || {};
-    const projectRoot = config.projectDir || server.projectRoot;
+    // projectDir comes from the HTTP body — it must NOT be an arbitrary path
+    // sink (the engine writes files and spawns processes). Confine it to the
+    // directory the server was launched in: the wizard installs "here", the
+    // exact intent of `create-byan-agent web` run in a project.
+    const projectRoot = confineToBase(config.projectDir, server.projectRoot);
 
     try {
       const installEngine = server.installEngine || require('../../lib/install-engine');
@@ -198,7 +214,7 @@ const routes = {
   // success regardless — the result is now the truth, including failures.
   'POST update': async (req, res, server) => {
     json(res, 200, { status: 'started' });
-    const projectRoot = (req.body && req.body.projectDir) || server.projectRoot;
+    const projectRoot = confineToBase(req.body && req.body.projectDir, server.projectRoot);
 
     try {
       if (!yanstaller || !yanstaller.update) {

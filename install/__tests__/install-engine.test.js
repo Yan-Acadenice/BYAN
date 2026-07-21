@@ -151,4 +151,12 @@ describe('home-credentials', () => {
     expect(stored.CUSTOM_KEY).toBe('garde-moi');
     expect(stored.BYAN_API_URL).toBe('http://localhost:3737');
   });
+
+  test('une cle inconnue dans le patch n\'est PAS ajoutee (patch = corps HTTP possible)', async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'byan-creds-'));
+    homeCreds.writeCredentials({ BYAN_API_URL: 'http://x', INJECTE: 'malveillant' }, { homeDir: home });
+    const stored = homeCreds.readCredentials({ homeDir: home });
+    expect(stored.BYAN_API_URL).toBe('http://x');
+    expect(stored.INJECTE).toBeUndefined();
+  });
 });

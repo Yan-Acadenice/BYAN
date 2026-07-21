@@ -34,11 +34,12 @@ test('POST install execute le moteur reel injecte et relaie sa progression', asy
   };
 
   const handler = api.resolve ? api.resolve('POST', 'install') : api['POST install'];
-  await handler({ body: { projectName: 'demo', projectDir: '/tmp/projet-cible', platforms: ['claude'] } }, fakeRes(), server);
+  // projectDir is a subdir INSIDE the server base (confineToBase honors it).
+  await handler({ body: { projectName: 'demo', projectDir: 'sous-projet', platforms: ['claude'] } }, fakeRes(), server);
 
   // The engine received the translated options.
   const opts = server.installEngine.runInstall.mock.calls[0][0];
-  expect(opts.projectRoot).toBe('/tmp/projet-cible');
+  expect(opts.projectRoot).toBe('/tmp/projet-defaut/sous-projet');
   expect(opts.projectName).toBe('demo');
   expect(opts.platforms).toEqual({ claude: true, codex: false });
 
@@ -58,6 +59,24 @@ test('POST install : un echec du moteur est diffuse comme echec (pas de faux suc
 
   expect(server.events.complete[0].ok).toBe(false);
   expect(server.events.complete[0].summary.message).toMatch(/templates introuvables/);
+});
+
+test('POST install confine projectDir a la base du serveur (pas de chemin arbitraire)', async () => {
+  const server = fakeServer(); // projectRoot = /tmp/projet-defaut
+  server.installEngine = { runInstall: jest.fn(async () => ({ ok: true, steps: [], verify: { passed: 1, total: 1, failed: [] }, launch: null })) };
+  const handler = api.resolve ? api.resolve('POST', 'install') : api['POST install'];
+
+  // An attempt to escape the base collapses back to the base.
+  await handler({ body: { projectDir: '../../etc' } }, fakeRes(), server);
+  expect(server.installEngine.runInstall.mock.calls[0][0].projectRoot).toBe('/tmp/projet-defaut');
+
+  // An absolute path elsewhere is refused too.
+  await handler({ body: { projectDir: '/root/cible' } }, fakeRes(), server);
+  expect(server.installEngine.runInstall.mock.calls[1][0].projectRoot).toBe('/tmp/projet-defaut');
+
+  // A relative subdir inside the base is honored.
+  await handler({ body: { projectDir: 'sous/projet' } }, fakeRes(), server);
+  expect(server.installEngine.runInstall.mock.calls[2][0].projectRoot).toBe('/tmp/projet-defaut/sous/projet');
 });
 
 test('POST update relaie le resultat reel de l updater injecte', async () => {
