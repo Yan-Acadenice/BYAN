@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.55.0] - 2026-07-21
+
+### Added — l'installation propose la synchro des copies globales divergentes
+- Constate sur le terrain : l'installation pose des skills projet a jour, mais
+  une copie manuelle homonyme sous `~/.claude/skills/` (plus ancienne) peut
+  rester celle que la commande `/<skill>` charge — les nouveautes fraichement
+  installees restent invisibles. La garde de fraicheur (2.54.0) le signale a la
+  session suivante ; l'installeur, lui, voit la divergence au moment ou il la
+  cree et a un terminal pour poser la question.
+- Nouveau module `install/lib/global-skills-sync.js` : en fin d'installation
+  Claude, compare les skills fraichement poses avec les copies globales
+  homonymes (reutilise `compareSkills` du payload `.claude` livre par le meme
+  paquet — zero duplication de la comparaison) et, en terminal interactif,
+  propose la synchronisation projet -> global avec consentement explicite.
+  Refus ou terminal non interactif : signalement clair + la commande exacte a
+  copier ; rien n'est ecrit dans le home sans accord recueilli pendant ce run.
+- Le chemin `update` (corrige en 2.54.1) recoit le meme controle en mode
+  signalement : le resultat porte la liste des skills globaux divergents et la
+  commande de synchro est affichee.
+- Tests jest : 6 cas (divergence detectee via le comparateur livre, oui ->
+  copie effective, non -> rien ecrit, non-interactif -> rien ecrit + commande,
+  pas de dossier global -> silencieux, copies identiques -> silencieux).
+
 ## [2.54.1] - 2026-07-21
 
 ### Fixed — la commande update ne deployait pas .claude/

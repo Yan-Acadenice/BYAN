@@ -177,6 +177,7 @@ async function update(projectRoot, options = {}) {
   let filesSkipped = 0;
   let claudeRefreshed = false;
   let claudeBackupPath = null;
+  let globalSkillsDiverged = [];
   const installedClaude = path.join(projectRoot, '.claude');
 
   try {
@@ -223,6 +224,16 @@ async function update(projectRoot, options = {}) {
       await nativeSetup(projectRoot);
       claudeRefreshed = true;
       logger.debug(`.claude refreshed from templates (backup: ${claudeBackupPath})`);
+
+      // Stale global copies check (notice-only on the update path : no TTY
+      // conversation here, and the home is never written without consent).
+      // The CLI surfaces the diverged names + the exact sync command.
+      try {
+        const { checkGlobalSkills } = require('../global-skills-sync');
+        globalSkillsDiverged = (await checkGlobalSkills(projectRoot, templateDir)).diverged;
+      } catch {
+        // the check must never fail an update
+      }
     }
 
     // Regenerate manifest with new state
@@ -253,7 +264,8 @@ async function update(projectRoot, options = {}) {
     filesAdded,
     filesSkipped,
     claudeRefreshed,
-    claudeBackupPath
+    claudeBackupPath,
+    globalSkillsDiverged
   };
 }
 

@@ -1320,6 +1320,20 @@ async function install(options = {}) {
         )
       );
     }
+
+    // Stale global copies check : a same-named ~/.claude/skills/<n> that
+    // diverges from what was JUST installed can be the copy the slash command
+    // loads — the fresh features would stay invisible. Ask (TTY) or notice
+    // (non-TTY) ; no silent write into the user's home, ever.
+    try {
+      const { offerGlobalSkillsSync } = require('../lib/global-skills-sync');
+      const ask = process.stdout.isTTY
+        ? async (message) => (await inquirer.prompt([{ type: 'confirm', name: 'ok', message, default: true }])).ok
+        : null;
+      await offerGlobalSkillsSync(projectRoot, templateDir, { ask, log: (l) => console.log(chalk.yellow(l)) });
+    } catch (error) {
+      console.log(chalk.gray(`  [INFO] Global skills check skipped: ${error.message}`));
+    }
   }
 
   if (needsCodex) {
@@ -1961,6 +1975,14 @@ program
         console.log(chalk.green('  Claude Code:   .claude/ refreshed (skills, workflows, hooks) + native setup (.mcp.json, MCP deps)'));
         if (result.claudeBackupPath) {
           console.log(chalk.gray(`  .claude backup: ${path.basename(result.claudeBackupPath)}`));
+        }
+      }
+      if (result.globalSkillsDiverged && result.globalSkillsDiverged.length > 0) {
+        const { syncCommand } = require('../lib/global-skills-sync');
+        console.log(chalk.yellow(`  [!] Copies globales ~/.claude/skills divergentes : ${result.globalSkillsDiverged.join(', ')}`));
+        console.log(chalk.yellow('      Elles peuvent masquer les skills fraichement mis a jour. Pour les synchroniser :'));
+        for (const line of syncCommand(result.globalSkillsDiverged).split('\n')) {
+          console.log(chalk.gray(`        ${line}`));
         }
       }
       if (result.backupPath) {
