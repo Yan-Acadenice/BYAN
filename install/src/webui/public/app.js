@@ -4,12 +4,14 @@ class ByanApp {
     this.stepHistory = [];
     this.ws = null;
     this.wsRetryDelay = 1000;
+    // Defauts valides : francais, tous les modules (l'installation AUTO pose
+    // tous les agents), plateformes remplies par la detection machine.
     this.config = {
       mode: 'auto',
       userName: '',
-      language: 'English',
+      language: 'Francais',
       platforms: [],
-      modules: ['core', 'bmm']
+      modules: ['core', 'bmm', 'bmb', 'tea', 'cis']
     };
     this.status = null;
     this.logCount = 0;
@@ -122,30 +124,30 @@ class ByanApp {
 
       let html = '';
 
-      html += this.detectionRow(true, 'Node.js', this.status.detection?.nodeVersion || process.version || 'detected');
+      html += this.detectionRow(true, 'Node.js', this.status.detection?.nodeVersion || 'detecte');
       html += this.detectionRow(
         this.status.detection?.hasGit !== false,
         'Git',
-        this.status.detection?.gitVersion || (this.status.detection?.hasGit !== false ? 'detected' : 'not found')
+        this.status.detection?.gitVersion || (this.status.detection?.hasGit !== false ? 'detecte' : 'introuvable')
       );
-      html += this.detectionRow(true, 'Operating System', this.status.detection?.os || navigator.platform);
+      html += this.detectionRow(true, 'Systeme d\'exploitation', this.status.detection?.os || navigator.platform);
 
       const platformNames = { 'claude': 'Claude Code', 'codex': 'Codex' };
       const detectedPlatforms = this.status.detection?.platforms || [];
       if (detectedPlatforms.length > 0) {
         for (const p of detectedPlatforms) {
-          html += this.detectionRow(p.detected, platformNames[p.name] || p.name, p.detected ? 'found' : 'not detected');
+          html += this.detectionRow(p.detected, platformNames[p.name] || p.name, p.detected ? 'detecte' : 'non detecte');
         }
       } else {
         for (const name of this.status.platforms || []) {
-          html += this.detectionRow(true, platformNames[name] || name, 'found');
+          html += this.detectionRow(true, platformNames[name] || name, 'detecte');
         }
       }
 
       html += this.detectionRow(
         this.status.installed,
-        'Existing BYAN installation',
-        this.status.installed ? 'found (will upgrade)' : 'clean install'
+        'Installation BYAN existante',
+        this.status.installed ? 'trouvee (sera mise a jour)' : 'installation neuve'
       );
 
       container.innerHTML = html;
@@ -153,7 +155,7 @@ class ByanApp {
 
       this.config.platforms = this.status.platforms || [];
     } catch (err) {
-      container.innerHTML = `<div class="detection-item"><div class="detection-status fail"></div><div class="detection-label">Detection failed</div><div class="detection-value">${this.escapeHtml(err.message)}</div></div>`;
+      container.innerHTML = `<div class="detection-item"><div class="detection-status fail"></div><div class="detection-label">Echec de la detection</div><div class="detection-value">${this.escapeHtml(err.message)}</div></div>`;
       nextBtn.disabled = false;
     }
   }
@@ -169,25 +171,25 @@ class ByanApp {
     document.querySelectorAll('.mode-cards .card').forEach(card => card.classList.remove('selected'));
     event.currentTarget.classList.add('selected');
 
+    // Le mode AUTO installe TOUS les agents (les 5 modules) sur les plateformes
+    // detectees, en francais — mais il demande quand meme le prenom : on ne
+    // baptise personne "User" d'office.
     if (mode === 'auto') {
-      this.config.userName = this.status?.detection?.userName || 'User';
-      this.config.language = 'English';
       this.config.modules = ['core', 'bmm', 'bmb', 'tea', 'cis'];
-      this.showPreview();
-    } else {
-      this.showConfigForm(mode);
-      this.showStep('config');
+      this.config.language = this.config.language || 'Francais';
     }
+    this.showConfigForm(mode);
+    this.showStep('config');
   }
 
   showConfigForm(mode) {
     const form = document.getElementById('config-form');
     const allModules = [
-      { id: 'core', label: 'Core (foundation)', required: true },
-      { id: 'bmm', label: 'BMM (software development)', required: false },
-      { id: 'bmb', label: 'BMB (agent builder)', required: false },
-      { id: 'tea', label: 'TEA (test architecture)', required: false },
-      { id: 'cis', label: 'CIS (creative innovation)', required: false }
+      { id: 'core', label: 'Core (fondation)', required: true },
+      { id: 'bmm', label: 'BMM (developpement logiciel)', required: false },
+      { id: 'bmb', label: 'BMB (createur d\'agents)', required: false },
+      { id: 'tea', label: 'TEA (architecture de tests)', required: false },
+      { id: 'cis', label: 'CIS (innovation creative)', required: false }
     ];
 
     const platformOptions = [
@@ -197,42 +199,54 @@ class ByanApp {
 
     let html = `
       <div class="form-group">
-        <label for="cfg-name">Your Name</label>
+        <label for="cfg-name">Comment veux-tu etre appele ?</label>
         <input id="cfg-name" type="text" value="${this.escapeHtml(this.config.userName)}" placeholder="Yan">
       </div>
       <div class="form-group">
-        <label for="cfg-project-name">Project Name</label>
+        <label for="cfg-project-name">Nom du projet</label>
         <input id="cfg-project-name" type="text" value="${this.escapeHtml(this.config.projectName || '')}" placeholder="mon-projet">
       </div>
       <div class="form-group">
-        <label for="cfg-project-dir">Project Directory</label>
+        <label for="cfg-project-dir">Repertoire du projet</label>
         <input id="cfg-project-dir" type="text" value="${this.escapeHtml(this.config.projectDir || this.status?.projectRoot || '')}" placeholder="/chemin/vers/le/projet">
-        <div class="form-hint">Defaults to the directory the wizard was launched from.</div>
+        <div class="form-hint">Par defaut : le repertoire depuis lequel l'assistant a ete lance.</div>
       </div>
       <div class="form-group">
-        <label for="cfg-lang">Communication Language</label>
+        <label for="cfg-lang">Langue de communication</label>
         <select id="cfg-lang">
-          <option value="English" ${this.config.language === 'English' ? 'selected' : ''}>English</option>
           <option value="Francais" ${this.config.language === 'Francais' ? 'selected' : ''}>Francais</option>
+          <option value="English" ${this.config.language === 'English' ? 'selected' : ''}>English</option>
         </select>
-      </div>
+      </div>`;
+
+    // En AUTO, plateformes et modules sont regles par la detection et le
+    // roster complet — pas de cases a cocher, juste l'essentiel.
+    if (mode === 'auto') {
+      const detected = (this.config.platforms || []).map(p => p === 'claude' ? 'Claude Code' : 'Codex').join(' + ') || 'aucune detectee';
+      html += `
       <div class="form-group">
-        <label>Target Platforms</label>
-        <div class="form-hint">Select the platforms you use.</div>
+        <div class="form-hint">Plateformes detectees : ${this.escapeHtml(detected)} &mdash; tous les agents seront installes.</div>
+      </div>`;
+    } else {
+      html += `
+      <div class="form-group">
+        <label>Plateformes cibles</label>
+        <div class="form-hint">Choisis les plateformes que tu utilises.</div>
         <div class="checkbox-group">`;
 
-    for (const p of platformOptions) {
-      const checked = this.config.platforms.includes(p.id) ? 'checked' : '';
-      html += `<label><input type="checkbox" name="platform" value="${p.id}" ${checked}> ${this.escapeHtml(p.label)}</label>`;
-    }
+      for (const p of platformOptions) {
+        const checked = this.config.platforms.includes(p.id) ? 'checked' : '';
+        html += `<label><input type="checkbox" name="platform" value="${p.id}" ${checked}> ${this.escapeHtml(p.label)}</label>`;
+      }
 
-    html += `</div></div>`;
+      html += `</div></div>`;
+    }
 
     if (mode === 'manual') {
       html += `
         <div class="form-group">
           <label>Modules</label>
-          <div class="form-hint">Core is always included.</div>
+          <div class="form-hint">Core est toujours inclus.</div>
           <div class="checkbox-group">`;
       for (const m of allModules) {
         const checked = m.required || this.config.modules.includes(m.id) ? 'checked' : '';
@@ -251,7 +265,7 @@ class ByanApp {
     const projNameEl = document.getElementById('cfg-project-name');
     const projDirEl = document.getElementById('cfg-project-dir');
 
-    if (nameEl) this.config.userName = nameEl.value.trim() || 'User';
+    if (nameEl) this.config.userName = nameEl.value.trim() || 'Developpeur';
     if (langEl) this.config.language = langEl.value;
     if (projNameEl) this.config.projectName = projNameEl.value.trim();
     if (projDirEl) this.config.projectDir = projDirEl.value.trim();
@@ -271,14 +285,16 @@ class ByanApp {
     this.readConfigForm();
 
     const container = document.getElementById('preview-content');
+    const allModules = this.config.modules.length >= 5;
     const rows = [
       ['Mode', this.config.mode.toUpperCase()],
-      ['User Name', this.config.userName || 'User'],
-      ['Language', this.config.language],
-      ['Platforms', this.config.platforms.join(', ') || 'auto-detect'],
+      ['Prenom', this.config.userName || 'Developpeur'],
+      ['Langue', this.config.language],
+      ['Plateformes', this.config.platforms.join(', ') || 'detection automatique'],
+      ['Agents', allModules ? 'tous (roster complet)' : `modules ${this.config.modules.join(', ')}`],
       ['Modules', this.config.modules.join(', ')],
-      ['Project Name', this.config.projectName || '(nom du dossier)'],
-      ['Project Root', this.config.projectDir || this.status?.projectRoot || '(auto)']
+      ['Nom du projet', this.config.projectName || '(nom du dossier)'],
+      ['Repertoire', this.config.projectDir || this.status?.projectRoot || '(auto)']
     ];
 
     container.innerHTML = rows.map(([k, v]) =>
@@ -290,7 +306,7 @@ class ByanApp {
 
   async confirmInstall() {
     this.showStep('progress');
-    document.getElementById('progress-title').textContent = 'Installing...';
+    document.getElementById('progress-title').textContent = 'Installation en cours...';
     this.resetProgress();
 
     try {
@@ -301,7 +317,7 @@ class ByanApp {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        const err = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
         this.showComplete({ success: false, summary: { message: err.error } });
       }
     } catch (err) {
@@ -326,7 +342,7 @@ class ByanApp {
         container.innerHTML = `
           <div class="detection-item">
             <div class="detection-status ok"></div>
-            <div class="detection-label">Update available</div>
+            <div class="detection-label">Mise a jour disponible</div>
             <div class="detection-value">${this.escapeHtml(data.installed)} &#8594; ${this.escapeHtml(data.latest)}</div>
           </div>
           ${data.changes.length > 0 ? '<div class="code-block">' + data.changes.map(c => this.escapeHtml(c)).join('\n') + '</div>' : ''}`;
@@ -335,23 +351,23 @@ class ByanApp {
         container.innerHTML = `
           <div class="detection-item">
             <div class="detection-status ok"></div>
-            <div class="detection-label">Up to date</div>
+            <div class="detection-label">A jour</div>
             <div class="detection-value">v${this.escapeHtml(data.installed)}</div>
           </div>
-          <p style="color:var(--text-muted);margin-top:1rem;">Your installation is already on the latest version.</p>`;
+          <p style="color:var(--text-muted);margin-top:1rem;">Ton installation est deja sur la derniere version.</p>`;
         confirmBtn.disabled = true;
       }
 
       actionsEl.style.display = 'flex';
     } catch (err) {
-      container.innerHTML = `<div class="detection-item"><div class="detection-status fail"></div><div class="detection-label">Check failed</div><div class="detection-value">${this.escapeHtml(err.message)}</div></div>`;
+      container.innerHTML = `<div class="detection-item"><div class="detection-status fail"></div><div class="detection-label">Echec de la verification</div><div class="detection-value">${this.escapeHtml(err.message)}</div></div>`;
       actionsEl.style.display = 'flex';
     }
   }
 
   async confirmUpdate() {
     this.showStep('progress');
-    document.getElementById('progress-title').textContent = 'Updating...';
+    document.getElementById('progress-title').textContent = 'Mise a jour en cours...';
     this.resetProgress();
 
     try {
@@ -362,7 +378,7 @@ class ByanApp {
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        const err = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
         this.showComplete({ success: false, summary: { message: err.error } });
       }
     } catch (err) {
@@ -414,7 +430,7 @@ class ByanApp {
 
   resetProgress() {
     document.getElementById('progress-fill').style.width = '0%';
-    document.getElementById('progress-label').textContent = 'Preparing...';
+    document.getElementById('progress-label').textContent = 'Preparation...';
     document.getElementById('progress-pct').textContent = '0%';
   }
 
@@ -426,22 +442,22 @@ class ByanApp {
     if (data.success) {
       icon.innerHTML = '&#10003;';
       icon.classList.remove('error');
-      title.textContent = 'Installation Complete';
+      title.textContent = 'Installation terminee';
 
       const s = data.summary || {};
-      let html = `<p>${this.escapeHtml(s.message || 'Done')}</p>`;
-      if (s.projectRoot) html += `<p><strong>Project:</strong> <code>${this.escapeHtml(s.projectRoot)}</code></p>`;
-      if (s.mode) html += `<p><strong>Mode:</strong> ${this.escapeHtml(s.mode)}</p>`;
-      if (s.platforms && s.platforms.length) html += `<p><strong>Platforms:</strong> ${s.platforms.map(p => this.escapeHtml(p)).join(', ')}</p>`;
-      html += '<p style="margin-top:1rem;color:var(--text-muted);">You can close this window.</p>';
+      let html = `<p>${this.escapeHtml(s.message || 'Termine')}</p>`;
+      if (s.projectRoot) html += `<p><strong>Projet :</strong> <code>${this.escapeHtml(s.projectRoot)}</code></p>`;
+      if (s.mode) html += `<p><strong>Mode :</strong> ${this.escapeHtml(s.mode)}</p>`;
+      if (s.platforms && s.platforms.length) html += `<p><strong>Plateformes :</strong> ${s.platforms.map(p => this.escapeHtml(p)).join(', ')}</p>`;
+      html += '<p style="margin-top:1rem;color:var(--text-muted);">Tu peux fermer cette fenetre.</p>';
       summary.innerHTML = html;
     } else {
       icon.innerHTML = '&#10007;';
       icon.classList.add('error');
-      title.textContent = 'Installation Failed';
+      title.textContent = 'Echec de l\'installation';
 
-      const msg = data.summary?.message || 'Unknown error';
-      summary.innerHTML = `<p style="color:var(--error)">${this.escapeHtml(msg)}</p><p style="margin-top:1rem;color:var(--text-muted);">Check the logs below for details. You can try again.</p>`;
+      const msg = data.summary?.message || 'Erreur inconnue';
+      summary.innerHTML = `<p style="color:var(--error)">${this.escapeHtml(msg)}</p><p style="margin-top:1rem;color:var(--text-muted);">Consulte le journal ci-dessous pour le detail. Tu peux reessayer.</p>`;
     }
 
     this.showStep('done');

@@ -10,6 +10,27 @@ macOS is deferred to v1.1 (F21).
 **Who is it for:** developers and teams already using BYAN who want a standalone
 desktop experience without keeping a browser tab open or managing a terminal process.
 
+## Decision record — Electron over Tauri (2026-07-21)
+
+Tauri was considered for the desktop shell. Electron stays, for three reasons:
+
+1. **The local server is Node.** The app's core job is to fork
+   `install/src/webui/server.js` (Node, http+ws). Electron ships a Node runtime,
+   so the fork is free. Tauri has no Node: it would need a bundled Node sidecar
+   (which erases Tauri's small-binary advantage, its main selling point) or a
+   Rust rewrite of the server that the CLI also uses.
+2. **The shell already exists in Electron.** main + preload + renderer
+   (TypeScript/React), keytar secure storage, auto-updater, Playwright E2E
+   suite, electron-builder config for Linux/Windows. Switching means rewriting
+   the main process in Rust and re-validating everything, for no user-visible
+   feature.
+3. **One toolchain.** The whole repo is Node/JS. Tauri adds a Rust toolchain to
+   every contributor machine and to CI.
+
+Tauri's real advantages (10-20 MB binaries vs ~100 MB, lower RAM via system
+webview) are outweighed here by the Node-server coupling. Revisit only if the
+local server is ever rewritten out of Node.
+
 ---
 
 ## Architecture

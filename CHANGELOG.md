@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.59.0] - 2026-07-21
+
+### Fixed — assistant web : detection Claude/Codex reparee, interface en francais
+- **Detection reparee.** L'ecran Detection affichait "not detected" pour Claude
+  Code et Codex sur une machine ou les deux sont installes (constat terrain,
+  Arch Linux). Cause : la route de statut interrogeait un detecteur qui cherchait
+  le fichier de config de Claude DESKTOP (l'app de chat,
+  `~/.config/Claude/claude_desktop_config.json`) et un dossier `.codex/prompts`
+  relatif au projet. La detection plateforme passe desormais par le moteur
+  d'installation (`detectEnvironment`) : `~/.claude` ou binaire `claude`,
+  `~/.codex` ou binaire `codex` — les faits machine, pas les artefacts d'une
+  autre application.
+- **Interface en francais.** Les 7 etapes du wizard (accueil, detection, mode,
+  configuration, recapitulatif, installation, termine), la mise a jour et le
+  journal parlent francais (`lang="fr"`).
+
+### Changed — mode AUTO conforme au contrat
+- Le mode AUTO ne baptise plus l'utilisateur "User" en anglais : il affiche une
+  configuration minimale qui demande **comment tu veux etre appele** (plus nom
+  et repertoire du projet, pre-remplis), puis va au recapitulatif.
+- Defauts corriges : langue **Francais**, **tous les agents** (les 5 modules
+  core/bmm/bmb/tea/cis), plateformes = celles detectees sur la machine. Le
+  recapitulatif affiche "Agents : tous (roster complet)".
+- Tests : `install/__tests__/webui-detection.test.js` (7 cas — cablage moteur de
+  la detection + garde-fous sur les defauts du front).
+
+### Docs — decision Electron vs Tauri
+- Decision gravee dans `app/README.md` : Electron est conserve pour l'app
+  Desktop. Raison dominante : le serveur local est en Node ; Electron l'embarque
+  gratuitement, Tauri exigerait un Node annexe (qui annule son avantage de
+  taille) ou une reecriture du serveur. La coquille Electron existe deja
+  (main/preload/renderer, tests bout-en-bout, config de construction
+  Linux/Windows). A reevaluer seulement si le serveur quitte Node.
+
 ## [2.58.2] - 2026-07-21
 
 ### Fixed — l'assistant web plantait a l'ouverture (Cannot find module 'ws')

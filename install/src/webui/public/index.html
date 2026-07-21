@@ -1,176 +1,176 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BYAN - Agent Installer</title>
+  <title>BYAN - Assistant d'installation</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header>
     <div class="header-inner">
       <h1 class="logo">BYAN</h1>
-      <p class="subtitle">Builder of YAN &mdash; Agent Installer</p>
+      <p class="subtitle">Builder of YAN &mdash; Assistant d'installation</p>
     </div>
   </header>
 
-  <nav class="wizard-steps" id="wizard-nav" aria-label="Installation steps">
+  <nav class="wizard-steps" id="wizard-nav" aria-label="Etapes d'installation">
     <ol>
-      <li class="wizard-step active" data-step="welcome"><span class="step-num">1</span><span class="step-label">Welcome</span></li>
+      <li class="wizard-step active" data-step="welcome"><span class="step-num">1</span><span class="step-label">Accueil</span></li>
       <li class="wizard-step" data-step="detection"><span class="step-num">2</span><span class="step-label">Detection</span></li>
       <li class="wizard-step" data-step="mode"><span class="step-num">3</span><span class="step-label">Mode</span></li>
-      <li class="wizard-step" data-step="config"><span class="step-num">4</span><span class="step-label">Config</span></li>
-      <li class="wizard-step" data-step="preview"><span class="step-num">5</span><span class="step-label">Preview</span></li>
-      <li class="wizard-step" data-step="progress"><span class="step-num">6</span><span class="step-label">Install</span></li>
-      <li class="wizard-step" data-step="done"><span class="step-num">7</span><span class="step-label">Done</span></li>
+      <li class="wizard-step" data-step="config"><span class="step-num">4</span><span class="step-label">Configuration</span></li>
+      <li class="wizard-step" data-step="preview"><span class="step-num">5</span><span class="step-label">Recapitulatif</span></li>
+      <li class="wizard-step" data-step="progress"><span class="step-num">6</span><span class="step-label">Installation</span></li>
+      <li class="wizard-step" data-step="done"><span class="step-num">7</span><span class="step-label">Termine</span></li>
     </ol>
   </nav>
 
   <main>
-    <!-- Step 1: Welcome -->
-    <section class="step" id="step-welcome" role="region" aria-label="Welcome">
+    <!-- Etape 1 : Accueil -->
+    <section class="step" id="step-welcome" role="region" aria-label="Accueil">
       <div class="step-content">
-        <h2>Welcome to BYAN</h2>
-        <p class="lead">Intelligent AI agent platform with multi-platform support.<br>
-          Claude Code and Codex.</p>
+        <h2>Bienvenue dans BYAN</h2>
+        <p class="lead">Plateforme d'agents IA intelligente, multi-plateforme.<br>
+          Claude Code et Codex.</p>
         <div class="feature-grid">
           <div class="feature-card">
             <div class="feature-icon" aria-hidden="true">&#9670;</div>
-            <h3>64 Quality Mantras</h3>
-            <p>Built on Merise Agile + TDD methodology with rigorous quality standards.</p>
+            <h3>71 mantras qualite</h3>
+            <p>Construit sur la methodologie Merise Agile + TDD avec des standards de qualite exigeants.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon" aria-hidden="true">&#9672;</div>
-            <h3>Multi-Platform</h3>
-            <p>Install agents across Claude Code and Codex simultaneously.</p>
+            <h3>Multi-plateforme</h3>
+            <p>Installe les agents sur Claude Code et Codex en meme temps.</p>
           </div>
           <div class="feature-card">
             <div class="feature-icon" aria-hidden="true">&#9656;</div>
-            <h3>Smart Detection</h3>
-            <p>Automatically detects your environment and recommends optimal configuration.</p>
+            <h3>Detection intelligente</h3>
+            <p>Detecte automatiquement ton environnement et propose la configuration adaptee.</p>
           </div>
         </div>
         <div class="actions">
-          <button class="btn btn-primary" onclick="app.startInstall()" aria-label="Start new installation">Install BYAN</button>
-          <button class="btn btn-secondary" onclick="app.startUpdate()" aria-label="Update existing installation">Update Existing</button>
+          <button class="btn btn-primary" onclick="app.startInstall()" aria-label="Demarrer une nouvelle installation">Installer BYAN</button>
+          <button class="btn btn-secondary" onclick="app.startUpdate()" aria-label="Mettre a jour une installation existante">Mettre a jour</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 2: Detection -->
-    <section class="step hidden" id="step-detection" role="region" aria-label="Environment detection">
+    <!-- Etape 2 : Detection -->
+    <section class="step hidden" id="step-detection" role="region" aria-label="Detection de l'environnement">
       <div class="step-content">
-        <h2>Environment Detection</h2>
-        <p class="lead">Scanning your system for installed platforms and tools.</p>
+        <h2>Detection de l'environnement</h2>
+        <p class="lead">Analyse de ta machine : plateformes et outils installes.</p>
         <div id="detection-results" class="detection-grid" aria-live="polite">
-          <div class="spinner-container"><div class="spinner"></div><p>Detecting...</p></div>
+          <div class="spinner-container"><div class="spinner"></div><p>Detection en cours...</p></div>
         </div>
         <div class="actions">
-          <button class="btn btn-secondary" onclick="app.goBack()">Back</button>
-          <button class="btn btn-primary" onclick="app.showStep('mode')" id="btn-detection-next" disabled>Continue</button>
+          <button class="btn btn-secondary" onclick="app.goBack()">Retour</button>
+          <button class="btn btn-primary" onclick="app.showStep('mode')" id="btn-detection-next" disabled>Continuer</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 3: Mode Selection -->
-    <section class="step hidden" id="step-mode" role="region" aria-label="Installation mode">
+    <!-- Etape 3 : Choix du mode -->
+    <section class="step hidden" id="step-mode" role="region" aria-label="Mode d'installation">
       <div class="step-content">
-        <h2>Installation Mode</h2>
-        <p class="lead">Choose how you want to install BYAN.</p>
+        <h2>Mode d'installation</h2>
+        <p class="lead">Choisis comment installer BYAN.</p>
         <div class="mode-cards">
-          <button class="card" onclick="app.selectMode('auto')" aria-label="Auto mode: quick install with smart defaults">
-            <div class="card-badge">Recommended</div>
+          <button class="card" onclick="app.selectMode('auto')" aria-label="Mode auto : installation rapide, tous les agents">
+            <div class="card-badge">Recommande</div>
             <h3>AUTO</h3>
-            <p>Quick install with smart defaults based on detected environment.</p>
+            <p>Installation rapide : tous les agents, Claude + Codex detectes, defauts intelligents. On te demande juste ton prenom.</p>
           </button>
-          <button class="card" onclick="app.selectMode('custom')" aria-label="Custom mode: guided interview">
-            <h3>CUSTOM</h3>
-            <p>Guided interview with recommendations for each option.</p>
+          <button class="card" onclick="app.selectMode('custom')" aria-label="Mode personnalise : entretien guide">
+            <h3>PERSONNALISE</h3>
+            <p>Entretien guide avec des recommandations pour chaque option.</p>
           </button>
-          <button class="card" onclick="app.selectMode('manual')" aria-label="Manual mode: choose agents individually">
-            <h3>MANUAL</h3>
-            <p>Full control. Choose every agent and platform individually.</p>
+          <button class="card" onclick="app.selectMode('manual')" aria-label="Mode manuel : choisir chaque agent individuellement">
+            <h3>MANUEL</h3>
+            <p>Controle total. Choisis chaque agent et chaque plateforme.</p>
           </button>
         </div>
         <div class="actions">
-          <button class="btn btn-secondary" onclick="app.goBack()">Back</button>
+          <button class="btn btn-secondary" onclick="app.goBack()">Retour</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 4: Configuration -->
+    <!-- Etape 4 : Configuration -->
     <section class="step hidden" id="step-config" role="region" aria-label="Configuration">
       <div class="step-content">
         <h2>Configuration</h2>
         <div id="config-form" class="config-form"></div>
         <div class="actions">
-          <button class="btn btn-secondary" onclick="app.goBack()">Back</button>
-          <button class="btn btn-primary" onclick="app.showPreview()">Preview</button>
+          <button class="btn btn-secondary" onclick="app.goBack()">Retour</button>
+          <button class="btn btn-primary" onclick="app.showPreview()">Recapitulatif</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 5: Preview -->
-    <section class="step hidden" id="step-preview" role="region" aria-label="Installation preview">
+    <!-- Etape 5 : Recapitulatif -->
+    <section class="step hidden" id="step-preview" role="region" aria-label="Recapitulatif de l'installation">
       <div class="step-content">
-        <h2>Installation Preview</h2>
-        <p class="lead">Review your configuration before installing.</p>
+        <h2>Recapitulatif</h2>
+        <p class="lead">Verifie ta configuration avant d'installer.</p>
         <div id="preview-content" class="preview-block"></div>
         <div class="actions">
-          <button class="btn btn-secondary" onclick="app.goBack()">Back</button>
-          <button class="btn btn-primary" onclick="app.confirmInstall()">Confirm &amp; Install</button>
+          <button class="btn btn-secondary" onclick="app.goBack()">Retour</button>
+          <button class="btn btn-primary" onclick="app.confirmInstall()">Confirmer et installer</button>
         </div>
       </div>
     </section>
 
-    <!-- Step 6: Progress -->
-    <section class="step hidden" id="step-progress" role="region" aria-label="Installation progress">
+    <!-- Etape 6 : Progression -->
+    <section class="step hidden" id="step-progress" role="region" aria-label="Progression de l'installation">
       <div class="step-content">
-        <h2 id="progress-title">Installing...</h2>
+        <h2 id="progress-title">Installation en cours...</h2>
         <div class="progress-container">
           <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-fill" id="progress-fill"></div>
           </div>
-          <p class="progress-label" id="progress-label">Preparing...</p>
+          <p class="progress-label" id="progress-label">Preparation...</p>
           <p class="progress-pct" id="progress-pct">0%</p>
         </div>
       </div>
     </section>
 
-    <!-- Step 7: Done -->
-    <section class="step hidden" id="step-done" role="region" aria-label="Installation complete">
+    <!-- Etape 7 : Termine -->
+    <section class="step hidden" id="step-done" role="region" aria-label="Installation terminee">
       <div class="step-content">
         <div id="done-icon" class="done-icon" aria-hidden="true">&#10003;</div>
-        <h2 id="done-title">Installation Complete</h2>
+        <h2 id="done-title">Installation terminee</h2>
         <div id="done-summary" class="done-summary"></div>
         <div class="actions">
-          <button class="btn btn-primary" onclick="window.location.reload()">Start Over</button>
+          <button class="btn btn-primary" onclick="window.location.reload()">Recommencer</button>
         </div>
       </div>
     </section>
 
-    <!-- Update: Check -->
-    <section class="step hidden" id="step-update-check" role="region" aria-label="Update check">
+    <!-- Mise a jour : verification -->
+    <section class="step hidden" id="step-update-check" role="region" aria-label="Verification des mises a jour">
       <div class="step-content">
-        <h2>Checking for Updates</h2>
+        <h2>Verification des mises a jour</h2>
         <div id="update-info" aria-live="polite">
-          <div class="spinner-container"><div class="spinner"></div><p>Checking...</p></div>
+          <div class="spinner-container"><div class="spinner"></div><p>Verification...</p></div>
         </div>
         <div class="actions" id="update-check-actions" style="display:none">
-          <button class="btn btn-secondary" onclick="app.showStep('welcome')">Back</button>
-          <button class="btn btn-primary" onclick="app.confirmUpdate()" id="btn-update-confirm" disabled>Update Now</button>
+          <button class="btn btn-secondary" onclick="app.showStep('welcome')">Retour</button>
+          <button class="btn btn-primary" onclick="app.confirmUpdate()" id="btn-update-confirm" disabled>Mettre a jour</button>
         </div>
       </div>
     </section>
 
-    <!-- Update: Diff -->
-    <section class="step hidden" id="step-update-diff" role="region" aria-label="Changes preview">
+    <!-- Mise a jour : apercu des changements -->
+    <section class="step hidden" id="step-update-diff" role="region" aria-label="Apercu des changements">
       <div class="step-content">
-        <h2>Changes Preview</h2>
+        <h2>Apercu des changements</h2>
         <div id="update-diff" class="code-block"></div>
         <div class="actions">
-          <button class="btn btn-secondary" onclick="app.showStep('update-check')">Cancel</button>
-          <button class="btn btn-primary" onclick="app.confirmUpdate()">Update Now</button>
+          <button class="btn btn-secondary" onclick="app.showStep('update-check')">Annuler</button>
+          <button class="btn btn-primary" onclick="app.confirmUpdate()">Mettre a jour</button>
         </div>
       </div>
     </section>
@@ -179,7 +179,7 @@
   <footer>
     <div id="log-panel" class="log-panel">
       <button class="log-header" onclick="app.toggleLogs()" aria-expanded="false" aria-controls="log-content">
-        <span>Logs</span>
+        <span>Journal</span>
         <span class="log-badge hidden" id="log-badge">0</span>
         <span class="log-chevron" id="log-chevron" aria-hidden="true">&#9650;</span>
       </button>

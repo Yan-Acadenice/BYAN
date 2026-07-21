@@ -123,12 +123,33 @@ const routes = {
     if (detector) {
       try {
         detectionResult = await detector.detect();
-        platforms = detectionResult.platforms
-          .filter(p => p.detected)
-          .map(p => p.name);
       } catch {
-        // Fallback to fs-based detection
+        detectionResult = null;
       }
+    }
+
+    // Platform detection (Claude Code / Codex) comes from the INSTALL ENGINE —
+    // the single source of truth. The yanstaller detector looked for Claude
+    // DESKTOP's config file (~/.config/Claude/claude_desktop_config.json) and
+    // for a project-local .codex/prompts dir, so a machine with the Claude Code
+    // CLI and Codex properly installed showed "not detected" (field bug,
+    // 2026-07-21, Arch Linux). The engine checks the real machine-level facts:
+    // ~/.claude or `command -v claude`, ~/.codex or `command -v codex`.
+    try {
+      const engineDetect = (server.installEngine || require('../../lib/install-engine')).detectEnvironment();
+      platforms = [
+        ...(engineDetect.claude ? ['claude'] : []),
+        ...(engineDetect.codex ? ['codex'] : []),
+      ];
+      const enginePlatforms = [
+        { name: 'claude', detected: engineDetect.claude },
+        { name: 'codex', detected: engineDetect.codex },
+      ];
+      detectionResult = detectionResult
+        ? { ...detectionResult, platforms: enginePlatforms }
+        : { platforms: enginePlatforms };
+    } catch {
+      // engine unavailable -> keep the project-local fs fallback computed above
     }
 
     json(res, 200, {
