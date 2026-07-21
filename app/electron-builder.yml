@@ -19,23 +19,31 @@ files:
   - "!test-results/**"
 
 asar: true
+# node_modules entier en fichiers reels : le serveur webui est forke en Node
+# pur (aucun acces a l'asar) et resout ses dependances (ws, fs-extra, js-yaml,
+# chalk, inquirer, byan-platform-config + leur fermeture transitive) via
+# NODE_PATH -> app.asar.unpacked/node_modules. Un depaquetage cible casserait
+# a la premiere dependance transitive oubliee.
 asarUnpack:
-  - node_modules/keytar/**/*
-  # ws en fichiers reels : le serveur webui est forke en Node pur (pas d'acces
-  # a l'asar), il resout ws via NODE_PATH -> app.asar.unpacked/node_modules.
-  - node_modules/ws/**/*
+  - node_modules/**/*
 
 extraResources:
   # Le serveur webui est expedie EN CONSERVANT la structure du depot
-  # (install/src/webui + src/byan-v2/lib) : ses require() relatifs
-  # (../../../src/byan-v2/lib/layout-resolver depuis api.js, ../../../../
-  # depuis chat/*) resolvent alors a l'identique une fois empaquete.
-  # L'ancien aplatissement "webui-server/" cassait ces chemins au lancement.
+  # (install/src/webui + install/lib + src/byan-v2/lib) : ses require()
+  # relatifs (../../lib/install-engine, ../../../src/byan-v2/lib/... depuis
+  # api.js, ../../../../ depuis chat/*) resolvent alors a l'identique une fois
+  # empaquete. L'ancien aplatissement "webui-server/" cassait ces chemins ;
+  # l'absence d'install/lib tuait le moteur d'install (verdict compliance).
   - from: ../install/src/webui
     to: install/src/webui
     filter:
       - "**/*"
       - "!node_modules"
+  - from: ../install/lib
+    to: install/lib
+    filter:
+      - "**/*"
+      - "!**/node_modules/**"
   - from: ../src/byan-v2/lib
     to: src/byan-v2/lib
     filter:
