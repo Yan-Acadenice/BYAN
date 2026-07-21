@@ -21,13 +21,25 @@ files:
 asar: true
 asarUnpack:
   - node_modules/keytar/**/*
+  # ws en fichiers reels : le serveur webui est forke en Node pur (pas d'acces
+  # a l'asar), il resout ws via NODE_PATH -> app.asar.unpacked/node_modules.
+  - node_modules/ws/**/*
 
 extraResources:
+  # Le serveur webui est expedie EN CONSERVANT la structure du depot
+  # (install/src/webui + src/byan-v2/lib) : ses require() relatifs
+  # (../../../src/byan-v2/lib/layout-resolver depuis api.js, ../../../../
+  # depuis chat/*) resolvent alors a l'identique une fois empaquete.
+  # L'ancien aplatissement "webui-server/" cassait ces chemins au lancement.
   - from: ../install/src/webui
-    to: webui-server
+    to: install/src/webui
     filter:
       - "**/*"
       - "!node_modules"
+  - from: ../src/byan-v2/lib
+    to: src/byan-v2/lib
+    filter:
+      - "**/*"
   # Onboarding installers (claude, copilot, codex) walk these templates to
   # build FileWritePlan[]; without them the wizard returns 0 plans and auto-
   # jumps to Done. resolveTemplateRoot() reads process.resourcesPath/templates.
@@ -57,6 +69,11 @@ linux:
       arch: x64
     - target: deb
       arch: x64
+  # Executable en minuscules, explicite : le deb installe /opt/BYAN/byan et lie
+  # /usr/bin/byan — les chemins exacts que la detection du CLI (desktop-app.js)
+  # sonde. Cle posee cote linux uniquement : Windows garde BYAN.exe, macOS
+  # garde BYAN.app.
+  executableName: byan
   category: Development
   icon: build/icons/
   desktop:
@@ -115,7 +132,9 @@ mac:
         - x64
         - arm64
   category: public.app-category.developer-tools
-  icon: build/icons/icon.icns
+  # PNG source : electron-builder convertit png -> icns au build (icon.icns
+  # n'existe pas dans le depot ; referencer un fichier absent casse la chaine mac).
+  icon: build/icons/icon.png
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist

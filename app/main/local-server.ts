@@ -20,6 +20,7 @@
 // after 3 seconds on Linux/macOS. On Windows the process is already gone.
 
 import { fork, ChildProcess } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 import { EventEmitter } from 'events';
 
@@ -69,11 +70,31 @@ const RESTART_DELAY_MS = 1_000;
 // Grace period for SIGTERM before SIGKILL.
 const SIGTERM_GRACE_MS = 3_000;
 
-// Resolve the server.js path relative to the compiled output location.
-// At runtime: dist/main/local-server.js -> ../../install/src/webui/server.js
+// Resolve the server.js path.
+// Packaged app: the webui ships as extraResources preserving the repo layout —
+// process.resourcesPath/install/src/webui/server.js (its relative requires to
+// ../../../src/byan-v2/lib then resolve identically to the dev checkout).
+// Dev checkout: dist/main/local-server.js -> ../../install/src/webui/server.js.
 // In tests: overridden via LocalServerOptions.serverScriptPath.
 function defaultServerScriptPath(): string {
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (resourcesPath) {
+    const packaged = path.join(resourcesPath, 'install', 'src', 'webui', 'server.js');
+    if (fs.existsSync(packaged)) return packaged;
+  }
   return path.resolve(__dirname, '..', '..', 'install', 'src', 'webui', 'server.js');
+}
+
+// NODE_PATH for the forked child. A plain Node child cannot require() modules
+// packed inside app.asar; ws is therefore asar-unpacked and resolved through
+// NODE_PATH -> resources/app.asar.unpacked/node_modules. Existing NODE_PATH
+// entries are preserved (path delimiter of the host OS).
+function childNodePath(): string | undefined {
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (!resourcesPath) return process.env.NODE_PATH;
+  const unpacked = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules');
+  if (!fs.existsSync(unpacked)) return process.env.NODE_PATH;
+  return process.env.NODE_PATH ? `${unpacked}${path.delimiter}${process.env.NODE_PATH}` : unpacked;
 }
 
 class LocalServerImpl extends EventEmitter implements LocalServer {
@@ -165,13 +186,15 @@ class LocalServerImpl extends EventEmitter implements LocalServer {
 
   private _doSpawn(): Promise<{ port: number; pid: number }> {
     return new Promise((resolve, reject) => {
+      const nodePath = childNodePath();
       const child = fork(this.serverScriptPath, [], {
         env: {
           ...process.env,
           // PORT=0 lets the OS assign a free port; the child reports the actual
           // assigned port back via process.send({ type: 'ready', port }).
           PORT: '0',
-          BYAN_PROJECT_ROOT: process.env.BYAN_PROJECT_ROOT ?? process.cwd()
+          BYAN_PROJECT_ROOT: process.env.BYAN_PROJECT_ROOT ?? process.cwd(),
+          ...(nodePath ? { NODE_PATH: nodePath } : {})
         },
         // silent: true captures stdout/stderr so we can pipe them to our logger.
         silent: true

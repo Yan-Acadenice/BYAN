@@ -25,7 +25,10 @@ const MIME_TYPES = {
 
 class ByanWebUI {
   constructor(options = {}) {
-    this.port = options.port || 3000;
+    // ?? and not || : port 0 is a VALID value (the OS assigns a free port and
+    // the fork parent reads it back from the ready message). `0 || 3000` would
+    // silently force 3000 and crash on EADDRINUSE when 3000 is busy.
+    this.port = options.port ?? 3000;
     this.projectRoot = options.projectRoot || process.cwd();
     this.publicDir = path.join(__dirname, 'public');
     this.server = null;
@@ -330,8 +333,13 @@ class ByanWebUI {
 }
 
 if (require.main === module) {
-  const port = parseInt(process.argv[2], 10) || 3000;
-  const projectRoot = process.argv[3] || path.resolve(__dirname, '..', '..', '..');
+  // Port order: argv[2] (explicit CLI), then env PORT (the Electron fork
+  // passes PORT=0 for an OS-assigned port), then 3000. Number.isFinite and
+  // not || : 0 is a valid requested port here.
+  const argPort = parseInt(process.argv[2], 10);
+  const envPort = parseInt(process.env.PORT ?? '', 10);
+  const port = Number.isFinite(argPort) ? argPort : (Number.isFinite(envPort) ? envPort : 3000);
+  const projectRoot = process.argv[3] || process.env.BYAN_PROJECT_ROOT || path.resolve(__dirname, '..', '..', '..');
   const ui = new ByanWebUI({ port, projectRoot });
   ui.start().then(() => {
     console.log(`Project root: ${ui.projectRoot}`);
