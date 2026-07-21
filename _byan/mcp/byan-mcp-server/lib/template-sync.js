@@ -229,6 +229,12 @@ export const TARGET_ADDITIONS = [
   // modele, ecrit plan.md, execute et verifie. Sans lui, une installation neuve
   // aurait un skill byan-byan qui pointe sur un script absent.
   '.claude/workflows/byan-auto-dispatch.js',
+  // Garde de fraicheur des skills (SessionStart) : signale une copie
+  // ~/.claude/skills divergente du skill projet (le piege qui a masque le rail
+  // 2.53.0). Enregistre dans settings.json (deja mirrore) -> les deux fichiers
+  // doivent shipper ou l'entree pointerait un script absent.
+  '.claude/hooks/skill-freshness-check.js',
+  '.claude/hooks/lib/skill-freshness.js',
   'docs/intelligent-dispatch.md',
   // Agent entry gate (match-or-create) : the mandatory agent-dispatch front step.
   // The matcher lib is the pre-filter Hermes+BYAN present ; the doctrine rule is

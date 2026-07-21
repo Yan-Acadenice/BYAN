@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.54.0] - 2026-07-21
+
+### Added — Garde de fraicheur des skills (SessionStart)
+- Nouveau hook `skill-freshness-check.js` (coeur pur `lib/skill-freshness.js`) :
+  au demarrage de session, compare chaque `.claude/skills/<n>/SKILL.md` du
+  projet avec la copie globale homonyme `~/.claude/skills/<n>/SKILL.md`, par
+  CONTENU (l'egalite d'octets dit "fidele" ; une date recente ne dit rien).
+  En cas de divergence, injecte un signalement borne (6 noms max) avec la
+  commande de synchro exacte. Silencieux quand tout est fidele, quand la copie
+  globale n'existe pas, ou quand le projet n'a pas de skills ; sort en 0 dans
+  tous les chemins (ne bloque pas une session).
+- Ferme le piege constate le 2026-07-21 : une copie globale du 30 juin masquait
+  le skill projet — le rail auto-dispatch livre en 2.53.0 ne se declenchait pas
+  car `/byan-byan` chargeait la copie perimee. Point verifie aupres de la doc
+  officielle Claude Code : la regle de priorite skills user vs projet en cas de
+  collision de nom n'y est pas clairement documentee (le hook signale donc le
+  FAIT de la divergence, sans affirmer une regle de chargement).
+- Aucune ecriture automatique dans `~/.claude/skills` : une variante user-level
+  peut etre deliberee — le hook signale, l'humain tranche.
+- Cablage : enregistre sous SessionStart dans `.claude/settings.json` (repo +
+  template) ; les deux fichiers shippent via le miroir `template-sync.js`.
+
 ## [2.53.0] - 2026-07-21
 
 ### Added — Rail automatique : workflow natif byan-auto-dispatch (F2)
