@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.58.2] - 2026-07-21
+
+### Fixed — l'assistant web plantait a l'ouverture (Cannot find module 'ws')
+- Symptome : `create-byan-agent` (assistant web par defaut) plantait aussitot
+  avec `Error: Cannot find module 'ws'` depuis `install/src/webui/server.js`,
+  sur une installation globale `npm i -g`.
+- Cause : `ws` (le serveur WebSocket de l'assistant) etait declare uniquement
+  dans `install/package.json` (interne, non publie). `npm` installe les
+  dependances du `package.json` RACINE ; `ws` en etait absent, donc introuvable
+  une fois le paquet installe.
+- Correctif : `ws` (`^8.20.0`) ajoute aux dependances racine, la ou npm
+  l'installe reellement.
+- Filet anti-regression : nouveau test `install/__tests__/shipped-deps.test.js`
+  qui scanne le code expedie (`install/bin`, `install/lib`, `install/src`) et
+  exige que chaque module externe require() soit declare dans les dependances
+  racine (ou soit un module natif Node). La derive "declare dans
+  install/package.json mais pas racine" echoue desormais au test.
+
 ## [2.58.1] - 2026-07-21
 
 ### Fixed — l'install auto en terminal gelait au controle des copies globales de skills
