@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.53.0] - 2026-07-21
+
+### Added — Rail automatique : workflow natif byan-auto-dispatch (F2)
+- Nouveau workflow Claude natif `.claude/workflows/byan-auto-dispatch.js` : il
+  decoupe une tache en etapes typees (nature + complexite 0-100) via un agent
+  d'analyse (sonnet, schema JSON force), route chaque etape sur le bon modele
+  par l'echelle v3 (haiku < 34, sonnet < 67, opus < 90, fable >= 90), route les
+  etapes shell/deploiement/navigation vers Codex (repli Claude annonce si Codex
+  n'est pas disponible ; la verification reste sur le modele de session, non
+  deleguee), ecrit `_byan-output/plan.md` (table etape x nature x complexite x
+  moteur x modele + consignes), execute chaque etape en sequence sur le modele
+  route, et verifie le livrable en fin.
+- Cablage skill `byan-byan` (section 0.5) : a CHAQUE tache non-conversationnelle
+  recue par `/byan-byan`, ce workflow est invoque AUTOMATIQUEMENT (scriptPath +
+  args {task, stamp}), sans demande a l'utilisateur. Exceptions nommees :
+  question simple, action destructive (confirmation d'abord), FD multi-feature
+  deja engage (sa phase DISPATCH peut invoquer le meme workflow par feature),
+  demande explicite d'execution directe. Le gate utilisateur reste en fin, sur
+  le livrable.
+- Livraison npm : le script est ajoute au miroir `template-sync.js`.
+
+### Changed — Langage precis, zero dialecte interne (F1, Mantra IA-26)
+- Le filet plain-language s'etend : `nudge`, `up-tier`, `ladder`, `rung`,
+  `runtime` rejoignent les mots a remplacer en prose ; nouvelle detection de
+  l'anthropomorphisme d'outil (un MCP/serveur/hook dit "vivant" ou "mort") avec
+  le remplacement exige : le fait observe, outil nomme ("byan_ping a repondu en
+  0.3s", "le serveur ne repond pas, timeout 8s").
+- Nouvelle clause de precision factuelle dans `.claude/rules/plain-language.md` :
+  tout etat d'outil = l'outil nomme + l'appel + le resultat exact ; pas de
+  resume flou ("ca marche") ; "non verifie" quand l'appel n'a pas ete fait.
+- L'ancre de voix par tour et le tao (Section 4, Vocabulaire Interdit) portent
+  les deux nouveaux interdits. Tests jest etendus (26 verts sur la suite
+  plain-language).
+
 ## [2.52.0] - 2026-07-20
 
 ### Changed — Delegation Codex v3 : pression-only + obeissance au routeur (F1, F2)

@@ -32,6 +32,11 @@ const OFFENDERS = Object.freeze([
   { term: 'gate', good: 'point de controle / porte' },
   { term: 'leaf', good: 'etape / tache' },
   { term: 'tier', good: 'niveau / gamme' },
+  { term: 'nudge', good: 'rappel / conseil injecte' },
+  { term: 'up-tier', good: 'monter en gamme' },
+  { term: 'ladder', good: 'echelle' },
+  { term: 'rung', good: 'palier' },
+  { term: 'runtime', good: "moteur d'execution" },
 ]);
 
 // A metaphor misuse, not a single word: "forger" applied to a token/jeton.
@@ -42,6 +47,19 @@ const METAPHOR_OFFENDERS = Object.freeze([
     re: /forg\w*\s+(?:un |une |des |le |les |la )?(?:token|jeton)/i,
     label: 'forger un token',
     good: 'generer / creer un token',
+  },
+  {
+    // Anthropomorphism applied to a tool: an MCP/serveur/hook is not "vivant" or
+    // "mort" — the precise statement is the observed fact ("byan_ping a repondu",
+    // "le serveur ne repond pas, timeout 8s"). The predicate must be COPULA-bound
+    // to the tool word ("le serveur est mort", "l'API semble morte") : bare
+    // proximity would misfire on fixed French idioms near a tool word ("point
+    // mort", "angle mort", "temps mort", "nature morte", "communaute vivante"),
+    // which carry no anthropomorphism at all.
+    id: 'outil-vivant-mort',
+    re: /\b(?:mcp|serveur|outil|hook|api|tool)s?\b[^.!?\n]{0,40}\b(?:est|sont|etait|était|etaient|étaient|semble|semblent|parait|paraît|paraissent|reste|restent)\s+(?:bien\s+|encore\s+|toujours\s+|deja\s+|déjà\s+)?(?:vivante?s?|morte?s?)\b/i,
+    label: 'outil "vivant/mort"',
+    good: 'le fait observe : "repond" / "ne repond pas" + le resultat exact',
   },
 ]);
 

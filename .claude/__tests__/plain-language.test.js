@@ -34,6 +34,35 @@ describe('scanText detects known repeat-offenders with plain replacements', () =
     expect(hits.map((h) => h.bad)).toContain('forger un token');
   });
 
+  test('flags the Claude-internal vocabulary (nudge, up-tier, ladder, rung, runtime)', () => {
+    const hits = pl.scanText('Le nudge declenche un up-tier sur le ladder, un rung plus haut cote runtime.');
+    const bad = hits.map((h) => h.bad);
+    for (const w of ['nudge', 'up-tier', 'ladder', 'rung', 'runtime']) expect(bad).toContain(w);
+  });
+
+  test('flags tool anthropomorphism ("le MCP est vivant", "le serveur est mort")', () => {
+    expect(pl.scanText('Le MCP est vivant cette session.').map((h) => h.bad)).toContain('outil "vivant/mort"');
+    expect(pl.scanText('Bref, le serveur est mort.').map((h) => h.bad)).toContain('outil "vivant/mort"');
+    expect(pl.scanText("L'API semble morte depuis ce matin.").map((h) => h.bad)).toContain('outil "vivant/mort"');
+    expect(pl.scanText('Le serveur est toujours vivant.').map((h) => h.bad)).toContain('outil "vivant/mort"');
+  });
+
+  test('does NOT flag "vivant" without a tool word nearby (a person, a place)', () => {
+    expect(pl.scanText('Ce quartier est vivant le soir.')).toEqual([]);
+    expect(pl.scanText('Un souvenir vivant de son pere.')).toEqual([]);
+  });
+
+  test('does NOT flag fixed French idioms near a tool word (no copula binding)', () => {
+    // Reproduced by the adversarial review: these misfired with bare proximity.
+    expect(pl.scanText('Le hook leantime-fd-sync fire au point mort du cycle FD.')).toEqual([]);
+    expect(pl.scanText("C'est l'angle mort de l'API actuelle.")).toEqual([]);
+    expect(pl.scanText('Un temps mort avant que le serveur reponde.')).toEqual([]);
+    expect(pl.scanText('Une nature morte accrochee au-dessus de cet outil.')).toEqual([]);
+    expect(pl.scanText('Ce serveur heberge une communaute vivante.')).toEqual([]);
+    // A copula followed by an idiom is not a predicate on the tool either.
+    expect(pl.scanText('Le serveur est au point mort.')).toEqual([]);
+  });
+
   test('clean French prose yields no hit', () => {
     const hits = pl.scanText('Je redémarre le conteneur puis je relance les tests.');
     expect(hits).toEqual([]);

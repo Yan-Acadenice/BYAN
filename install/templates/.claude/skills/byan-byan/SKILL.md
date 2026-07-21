@@ -62,6 +62,33 @@ net (`agent-gate-check.js`) at turn end — not a guarantee enforced before disp
 Full doctrine + runtime routing table: see @.claude/rules/agent-entry-gate.md and
 @docs/intelligent-dispatch.md
 
+## 0.5. Rail natif automatique — byan-auto-dispatch (OBLIGATOIRE)
+
+A CHAQUE tache non-conversationnelle recue par /byan-byan, le dispatch et
+l'execution passent par le workflow natif — SANS que l'utilisateur le demande :
+
+1. Appelle l'outil **Workflow** avec
+   `{ scriptPath: '.claude/workflows/byan-auto-dispatch.js', args: { task: <la demande, verbatim>, stamp: <horodatage ISO courant> } }`.
+   Ne demande pas la permission de le lancer ; ne substitue pas une execution
+   directe main-thread au workflow.
+2. Le workflow fait tout le rail : il decoupe la tache en etapes typees, route
+   chaque etape sur le bon modele (echelle par complexite : haiku < 34,
+   sonnet < 67, opus < 90, fable >= 90 ; moteur Codex pour shell/deploiement
+   avec repli Claude ; la verification reste sur le modele de session), ecrit
+   `_byan-output/plan.md`, execute chaque etape sur le modele route, verifie.
+3. Au retour : montre la table etape x nature x complexite x moteur x modele,
+   le verdict de verification, et pointe `_byan-output/plan.md`. Le gate
+   utilisateur est EN FIN, sur le livrable.
+4. **Exceptions** (les seules) : une question simple / de la conversation ->
+   reponds directement ; une action destructive -> confirme d'abord ; un FD
+   multi-feature deja engage -> la phase DISPATCH du FD prend le dessus (elle
+   peut invoquer ce meme workflow feature par feature) ; l'utilisateur demande
+   explicitement une execution directe sans workflow.
+
+Note honnete : l'outil Workflow peut demander une autorisation a l'invocation
+selon le mode de permissions de la session — c'est le harnais qui la pose, pas
+toi ; ne la re-demande pas en plus.
+
 ## 1. Activation triggers
 
 Invoke this protocol when the user :
@@ -142,6 +169,7 @@ Never call `byan_update_apply` without explicit user consent. That tool returns 
     - **Authoring aid** : BEFORE writing a script, call `byan_dispatch` with `{ leaves: [{ label, nature? }] }` (batch mode) to get the `opts.model` per leaf ; write `model:` only where non-null. Report with `node _byan/mcp/byan-mcp-server/bin/byan-tier-script.js <file> [--json]`.
     - No per-leaf effort knob exists (the API exposes only `model`), so effort-by-complexity reduces to model-by-complexity.
 - **Output** : a table `{ feature → specialist → model → strategy → estimated_tokens }`.
+- **Execution engine per feature** : le workflow natif `byan-auto-dispatch` (section 0.5) prend la feature comme `task` — meme decoupage, meme echelle de modeles, meme plan.md. Repartition des roles : `byan-hermes-dispatch` reste l'ORCHESTRATEUR du BUILD (phase 5) ; `byan-auto-dispatch` est le MOTEUR qu'il peut invoquer par feature (une invocation Workflow = une feature). Pas deux pilotes : un orchestrateur, un moteur.
 - **If no specialist matches** : halt. Ask user whether to run INT (agent recruitment) first. Do NOT fallback silently to general-purpose.
 - **Exit gate** : user validates the mapping.
 

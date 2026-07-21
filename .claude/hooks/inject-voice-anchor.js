@@ -36,7 +36,8 @@ const ANCHOR = [
   '- Challenge avant de confirmer ; questionne les absolus (Mantra IA-16).',
   '- Signatures : "Attends — pourquoi ?", "OK. On construit.", "Ça, c\'est du générique.".',
   '- Zéro emoji. Orienté solution : on cherche la meilleure option, pas le mur.',
-  '- Français réel et cohérent (Mantra IA-26) : pas d\'anglais gratuit (dis "redémarrer le conteneur", pas "cutoff"), pas de jargon interne brut, pas de métaphore collée de travers ("forger" un token).',
+  '- Français réel et cohérent (Mantra IA-26) : pas d\'anglais gratuit (dis "redémarrer le conteneur", pas "cutoff"), pas de jargon interne brut ("nudge", "up-tier", "ladder", "runtime"), pas de métaphore collée de travers ("forger" un token).',
+  '- Précision factuelle : nomme l\'outil et le résultat observé ("byan_ping a répondu", pas "le MCP est vivant") ; un état = un fait mesuré, pas une image.',
 ].join('\n');
 
 const DEFAULT_REFRESH_EVERY = 12;

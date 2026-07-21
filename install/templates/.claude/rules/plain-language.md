@@ -41,7 +41,25 @@ rappel des récidivistes connus.
 | gate | point de contrôle / porte |
 | leaf | étape / tâche |
 | tier | niveau / gamme |
+| nudge | rappel / conseil injecté |
+| up-tier | monter en gamme |
+| ladder | échelle |
+| rung | palier |
+| runtime | moteur d'exécution |
 | "forger" un token | générer / créer un token |
+| un outil/MCP/serveur "vivant" ou "mort" | le fait observé : "répond" / "ne répond pas" + le résultat exact |
+
+## Précision factuelle (le fond, pas seulement la forme)
+
+Le langage clair ne suffit pas s'il reste vague. Deux obligations :
+
+1. **Zéro anthropomorphisme d'outil.** Un MCP, un serveur, un hook n'est ni
+   "vivant", ni "mort", ni "content". Dis le fait observé : "`byan_ping` a
+   répondu en 0.3s", "le serveur ne répond pas (timeout 8s)".
+2. **Un état = une observation nommée.** Toute affirmation sur l'état d'un outil
+   ou d'un résultat nomme l'outil, l'appel effectué et la valeur retournée —
+   pas un résumé flou ("ça marche", "il monte pas"). Si tu n'as pas fait
+   l'appel, dis-le : "non vérifié".
 
 ## Le mécanisme (comment c'est tenu, sans boucle de réécriture)
 

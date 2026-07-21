@@ -58,16 +58,18 @@ test('every model: downgrade in a shipped script sits on its matching leaf class
       assert.ok(lbl && !before.slice(lbl.end).includes('}'), `${path.basename(file)}: downgrade without an in-object label`);
       const cls = classifyLeaf({ label: lbl.value });
       // Shipped-set discipline is TIGHTER than the linter floor: haiku sits on
-      // exploration only, sonnet on explicit mech- leaves only (the linter also
-      // tolerates sonnet-on-exploration; no shipped script uses it).
+      // exploration only, sonnet on explicit mech- leaves or ANALYSIS leaves
+      // (sonnet is the analysis tier — byan-auto-dispatch:analyse-decoupage is
+      // the first shipped use; the linter also tolerates sonnet-on-exploration,
+      // no shipped script uses it).
       if (m[2] === 'haiku') {
         haikuDowngrades += 1;
         assert.equal(cls, LEAF_TYPES.EXPLORATION,
           `${path.basename(file)}: leaf '${lbl.value}' carries haiku but is not exploration`);
       } else {
         sonnetDowngrades += 1;
-        assert.equal(cls, LEAF_TYPES.MECHANICAL,
-          `${path.basename(file)}: leaf '${lbl.value}' carries sonnet but is not a mech- leaf`);
+        assert.ok(cls === LEAF_TYPES.MECHANICAL || cls === LEAF_TYPES.ANALYSIS,
+          `${path.basename(file)}: leaf '${lbl.value}' carries sonnet but is neither mech- nor analysis`);
       }
     }
   }

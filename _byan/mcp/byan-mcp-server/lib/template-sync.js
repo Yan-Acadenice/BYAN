@@ -225,6 +225,10 @@ export const TARGET_ADDITIONS = [
   '_byan/mcp/byan-mcp-server/test/dispatch-blackboard.test.js',
   '_byan/mcp/byan-mcp-server/test/dispatch-orchestrator.test.js',
   '.claude/workflows/intelligent-dispatch.js',
+  // Rail automatique de /byan-byan : le workflow natif qui decoupe, route par
+  // modele, ecrit plan.md, execute et verifie. Sans lui, une installation neuve
+  // aurait un skill byan-byan qui pointe sur un script absent.
+  '.claude/workflows/byan-auto-dispatch.js',
   'docs/intelligent-dispatch.md',
   // Agent entry gate (match-or-create) : the mandatory agent-dispatch front step.
   // The matcher lib is the pre-filter Hermes+BYAN present ; the doctrine rule is
