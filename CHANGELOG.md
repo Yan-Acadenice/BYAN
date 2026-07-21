@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — les binaires apparaissent sur la page Packages du depot GitHub
+- La page GitHub Packages n'heberge pas d'installateurs bruts ; deux paquets
+  reels y sont publies a la place, en plus des Releases (qui restent le canal
+  principal : telechargement navigateur + auto-mise-a-jour de l'app) :
+  - `ghcr.io/yan-acadenice/byan-desktop:<version>` — les installateurs desktop
+    (AppImage, deb, NSIS, dmg, zip) pousses comme artefact OCI par le job
+    `packages-ghcr` sur tag `desktop-v*` ; recuperation : `oras pull`.
+  - `@yan-acadenice/create-byan-agent` — miroir du paquet npm sur le registre
+    npm de GitHub, publie par `npm-ghp-mirror.yml` sur tag `v*` ou lancement
+    manuel. npmjs.org reste le canal d'installation (`npx create-byan-agent`).
+- Contrat CI verrouille : le job packages-ghcr exige `packages: write` +
+  `contents: read`, gate sur `desktop-v*` (tests ci-workflow 21/21).
+
 ## [2.59.1] - 2026-07-21
 
 ### Added — app Desktop BYAN 1.0.0 : construite, empaquetee, prouvee

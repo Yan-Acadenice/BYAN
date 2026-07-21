@@ -247,4 +247,18 @@ describe('electron-build.yml', () => {
       expect(ghRelease?.env?.GITHUB_TOKEN).toBe('${{ secrets.GITHUB_TOKEN }}');
     });
   });
+
+  describe('packages-ghcr job (installers mirrored on the repo Packages page)', () => {
+    const job = wf.jobs['packages-ghcr'];
+
+    it('exists, needs build, and is gated on desktop-v* tags', () => {
+      expect(job).toBeDefined();
+      expect(job.needs).toBe('build');
+      expect(job.if).toBe("startsWith(github.ref, 'refs/tags/desktop-v')");
+    });
+
+    it('has packages:write and read-only contents', () => {
+      expect(job.permissions).toEqual({ packages: 'write', contents: 'read' });
+    });
+  });
 });
