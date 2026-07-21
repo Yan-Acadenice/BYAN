@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.57.0] - 2026-07-21
+
+### Changed — l'assistant web devient l'installation par defaut
+- `create-byan-agent` (sans argument) lance desormais l'assistant graphique dans
+  le navigateur : il demarre le serveur local (lie a `127.0.0.1`) et ouvre la
+  page d'installation. C'est l'inversion demandee — le graphique par defaut, le
+  terminal en option.
+- Les deux chemins terminal restent accessibles par drapeau :
+  - `--cli` : installation automatique en terminal, zero question (le comportement
+    qui etait le defaut en 2.56.0).
+  - `--legacy` : interview complet d'origine, question par question.
+- `create-byan-agent web` conserve son role d'alias explicite de l'action par
+  defaut ; il accepte `--port` et `--dir`.
+- Nouveau module pur `install/lib/install-mode.js` (`chooseInstallMode`) : la
+  decision de routage (web / cli / legacy) est isolee et testee
+  (`install/__tests__/install-mode.test.js`, 5 cas). `--legacy` prime sur `--cli`
+  si les deux sont passes.
+
 ## [2.56.0] - 2026-07-21
 
 ### Changed — installation refondue : un moteur, deux visages

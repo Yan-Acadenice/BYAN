@@ -76,7 +76,7 @@ Diversifier les personas elargit la surface de competence collective.
 Aucune installation préalable n'est nécessaire. Lancez simplement :
 
 ```bash
-# Crée un nouveau projet BYAN (via npx, sans installation préalable)
+# Assistant d'installation graphique dans le navigateur (par défaut)
 npx create-byan-agent
 
 # Ou installation globale
@@ -84,16 +84,20 @@ npm install -g create-byan-agent
 create-byan-agent
 ```
 
-L'installeur (Yanstaller) vous guide interactivement à travers le processus :
+Par défaut, `create-byan-agent` ouvre l'assistant graphique dans le navigateur :
+il démarre un petit serveur local (lié à `127.0.0.1`) et ouvre la page
+d'installation. Vous y choisissez le nom du projet, le répertoire et les options.
 
-```
-? Nom du projet : mon-projet
-? Langue de communication : Francais
-? Plateforme cible : Claude Code
-? Activer le fact-check scientifique ? [Y/n]
-? Activer le système ELO de confiance ? [Y/n]
-? Optimiser les coûts LLM automatiquement (~54% d'économies) ? [Y/n]
-```
+Trois modes selon vos besoins :
+
+| Commande | Mode |
+|----------|------|
+| `create-byan-agent` | Assistant graphique dans le navigateur (par défaut) |
+| `create-byan-agent --cli` | Installation automatique en terminal, zéro question (Claude+Codex, tous les agents, rtk) |
+| `create-byan-agent --legacy` | Interview complet d'origine, question par question en terminal |
+
+`create-byan-agent web` reste disponible comme alias explicite de l'action par
+défaut.
 
 ### Structure du projet après installation
 

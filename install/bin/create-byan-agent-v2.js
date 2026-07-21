@@ -24,6 +24,7 @@ const { setupCodexAutodelegate, DEVICE_FLOW_INSTRUCTION } = require('../lib/code
 const { setupMcpExtensions } = require('../lib/mcp-extensions');
 const { setupStagingConsent } = require('../lib/staging-consent');
 const { getLatestVersion, compareVersions } = require('../lib/utils/version-compare');
+const { chooseInstallMode } = require('../lib/install-mode');
 
 // Version source-of-truth is the root package.json (the one npm publishes).
 // install/package.json used to be read here, but it carries an unrelated
@@ -1910,9 +1911,9 @@ async function installAuto(options) {
   const engine = require('../lib/install-engine');
   const projectRoot = path.resolve(options.dir || process.cwd());
 
-  console.log(chalk.cyan.bold(`\n  BYAN ${BYAN_VERSION} — installation automatique`));
+  console.log(chalk.cyan.bold(`\n  BYAN ${BYAN_VERSION} — installation automatique (terminal)`));
   console.log(chalk.gray(`  Projet : ${options.name || path.basename(projectRoot)}  |  Repertoire : ${projectRoot}`));
-  console.log(chalk.gray('  (interview complete : --legacy ; assistant web : create-byan-agent web)\n'));
+  console.log(chalk.gray('  (assistant web par defaut : create-byan-agent ; interview complet : --legacy)\n'));
 
   let spinner = null;
   const isTTY = Boolean(process.stdout.isTTY);
@@ -1960,18 +1961,42 @@ async function installAuto(options) {
   }
 }
 
+// Default path since 2.57.0: the graphical web wizard. Starts the local HTTP +
+// WebSocket server (bound to loopback) and opens the browser — the server owns
+// the browser launch. The terminal installs stay reachable by flag (--cli, the
+// automatic terminal install ; --legacy, the original interview).
+function launchWeb(options = {}) {
+  const ByanWebUI = require('../src/webui/server');
+  const port = parseInt(options.port, 10) || 3000;
+  const projectRoot = path.resolve(options.dir || process.cwd());
+
+  console.log(chalk.cyan.bold(`\n  BYAN ${BYAN_VERSION} — assistant d installation (navigateur)\n`));
+  const server = new ByanWebUI({ port, projectRoot });
+  server.start();
+  console.log(chalk.green(`  Interface ouverte sur http://localhost:${port}`));
+  console.log(chalk.gray(`  Repertoire projet : ${projectRoot}`));
+  console.log(chalk.gray('  Installation en terminal : create-byan-agent --cli   |   Ctrl+C pour arreter\n'));
+}
+
 // CLI Program
 program
   .name('create-byan-agent')
-  .description('Install BYAN v2.2.0 - Builder of YAN with Model Selector and multi-platform support')
+  .description('Install BYAN - Builder of YAN. Default: graphical web wizard. --cli for the terminal install.')
   .version(BYAN_VERSION)
   .option('--skip-version-check', 'Bypass the npm freshness guard (not recommended)')
+  .option('--cli', 'Installation automatique en terminal (au lieu de l assistant web par defaut)')
+  .option('-p, --port <port>', 'Port de l assistant web (defaut : 3000)', '3000')
   .option('--name <name>', 'Nom du projet (defaut : nom du dossier)')
   .option('--dir <dir>', 'Repertoire d installation (defaut : dossier courant)')
-  .option('--no-launch', 'Ne pas lancer Claude Code en fin d installation')
-  .option('--no-rtk', 'Ne pas installer rtk automatiquement')
+  .option('--no-launch', 'Ne pas lancer Claude Code en fin d installation (mode --cli)')
+  .option('--no-rtk', 'Ne pas installer rtk automatiquement (mode --cli)')
   .option('--legacy', 'Interview complete d origine (l ancien parcours a questions)')
-  .action(async (options) => (options.legacy ? install(options) : installAuto(options)));
+  .action(async (options) => {
+    const mode = chooseInstallMode(options);
+    if (mode === 'legacy') return install(options);
+    if (mode === 'cli') return installAuto(options);
+    return launchWeb(options);
+  });
 
 // Update Command (Yanstaller v3)
 program
@@ -2148,20 +2173,13 @@ program
     }
   });
 
+// Explicit alias for the default action — same graphical wizard, kept for
+// discoverability and backward compatibility with `create-byan-agent web`.
 program
   .command('web')
-  .description('Launch BYAN WebUI installer in the browser')
+  .description('Launch BYAN WebUI installer in the browser (same as the default action)')
   .option('-p, --port <port>', 'Port number', '3000')
-  .action(async (options) => {
-    const ByanWebUI = require('../src/webui/server');
-    const port = parseInt(options.port, 10);
-    const projectRoot = process.cwd();
-
-    console.log(chalk.cyan.bold('\n  BYAN WebUI\n'));
-    const server = new ByanWebUI({ port, projectRoot });
-    server.start();
-    console.log(chalk.green(`  Server running at http://localhost:${port}`));
-    console.log(chalk.gray('  Press Ctrl+C to stop\n'));
-  });
+  .option('--dir <dir>', 'Repertoire d installation (defaut : dossier courant)')
+  .action(async (options) => launchWeb(options));
 
 program.parse(process.argv);
