@@ -10,7 +10,7 @@
 //   - signing secrets (CSC_LINK / CSC_KEY_PASSWORD) appear ONLY on the
 //     Windows package step (no leak to Linux, no hardcoding)
 //   - GITHUB_TOKEN is wired to the release job
-//   - tag-driven release is gated on refs/tags/v*
+//   - tag-driven release is gated on refs/tags/desktop-v* (v* = npm versions)
 //
 // js-yaml is available transitively (vitest -> @vitest/* depends on it).
 
@@ -62,7 +62,7 @@ describe('electron-build.yml', () => {
     expect(Object.keys(wf.jobs)).toContain('release');
   });
 
-  it('runs on push to main, tags v*, PRs, and workflow_dispatch', () => {
+  it('runs on push to main, tags desktop-v*, PRs, and workflow_dispatch', () => {
     // js-yaml interprets the YAML key `on` as boolean `true` (YAML 1.1 spec)
     // unless quoted, so we accept either key.
     const triggers = (wf.on ?? (wf as unknown as { true: unknown }).true) as Record<string, unknown>;
@@ -73,7 +73,10 @@ describe('electron-build.yml', () => {
 
     const push = triggers.push as { branches: string[]; tags: string[] };
     expect(push.branches).toContain('main');
-    expect(push.tags).toContain('v*');
+    // desktop-v*, NOT v*: the repo's v* tags carry the npm package versions
+    // (2.x) — reusing them would cut a Desktop release on every npm publish.
+    expect(push.tags).toContain('desktop-v*');
+    expect(push.tags).not.toContain('v*');
   });
 
   describe('build job', () => {
@@ -220,8 +223,8 @@ describe('electron-build.yml', () => {
       expect(job.needs).toBe('build');
     });
 
-    it('runs only on tag v*', () => {
-      expect(job.if).toBe("startsWith(github.ref, 'refs/tags/v')");
+    it('runs only on tag desktop-v*', () => {
+      expect(job.if).toBe("startsWith(github.ref, 'refs/tags/desktop-v')");
     });
 
     it('grants contents:write to publish releases', () => {
