@@ -61,6 +61,25 @@ const METAPHOR_OFFENDERS = Object.freeze([
     label: 'outil "vivant/mort"',
     good: 'le fait observe : "repond" / "ne repond pas" + le resultat exact',
   },
+  {
+    // BYAN in-house doctrine shorthand dropped raw in prose (field complaint,
+    // 2026-07-21). "le rail" means the byan-auto-dispatch workflow; a reader
+    // without the internal doctrine cannot decode it — same offence as raw
+    // English jargon (IA-26). The article-bound match spares ordinary French
+    // ("un rail de guidage", "rail ferroviaire").
+    id: 'jargon-doctrine-rail',
+    re: /\b(?:le|ce|du)\s+rail\b(?!\s+(?:de|d'|ferroviaire))/i,
+    label: '"le rail" (jargon doctrine)',
+    good: 'dis-le en clair : le workflow automatique de dispatch (byan-auto-dispatch)',
+  },
+  {
+    // "voie/option armee" means: option enabled AND Codex linked. Say the fact.
+    // The noun-bound match spares the ordinary word ("l'armee").
+    id: 'jargon-doctrine-armee',
+    re: /\b(?:voie|option|lane)\s+(?:est\s+|n'est\s+pas\s+)?arm[ée]e?s?\b/i,
+    label: 'voie/option "armee" (jargon doctrine)',
+    good: 'dis le fait : option activee ET Codex connecte (ou pas)',
+  },
 ]);
 
 // A word boundary that treats accented letters as part of a word, so \btier\b

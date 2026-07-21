@@ -52,6 +52,17 @@ describe('scanText detects known repeat-offenders with plain replacements', () =
     expect(pl.scanText('Un souvenir vivant de son pere.')).toEqual([]);
   });
 
+  test('flags the in-house doctrine shorthand ("le rail", "voie armee")', () => {
+    expect(pl.scanText('Le rail part tout seul sur cette tache.').map((h) => h.bad)).toContain('"le rail" (jargon doctrine)');
+    expect(pl.scanText("Quand la voie est armee, on delegue.").map((h) => h.bad)).toContain('voie/option "armee" (jargon doctrine)');
+  });
+
+  test('does NOT flag ordinary French uses of rail/armee', () => {
+    expect(pl.scanText('Un rail de guidage en acier.')).toEqual([]);
+    expect(pl.scanText("Le rail de chemin de fer est pose.")).toEqual([]);
+    expect(pl.scanText("Il a servi dans l'armee de terre.")).toEqual([]);
+  });
+
   test('does NOT flag fixed French idioms near a tool word (no copula binding)', () => {
     // Reproduced by the adversarial review: these misfired with bare proximity.
     expect(pl.scanText('Le hook leantime-fd-sync fire au point mort du cycle FD.')).toEqual([]);
