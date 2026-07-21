@@ -24,7 +24,7 @@ const { setupCodexAutodelegate, DEVICE_FLOW_INSTRUCTION } = require('../lib/code
 const { setupMcpExtensions } = require('../lib/mcp-extensions');
 const { setupStagingConsent } = require('../lib/staging-consent');
 const { getLatestVersion, compareVersions } = require('../lib/utils/version-compare');
-const { chooseInstallMode } = require('../lib/install-mode');
+const { chooseInstallMode, skillsSyncConsent } = require('../lib/install-mode');
 
 // Version source-of-truth is the root package.json (the one npm publishes).
 // install/package.json used to be read here, but it carries an unrelated
@@ -1917,9 +1917,10 @@ async function installAuto(options) {
 
   let spinner = null;
   const isTTY = Boolean(process.stdout.isTTY);
-  const ask = isTTY
-    ? async (message) => (await inquirer.prompt([{ type: 'confirm', name: 'ok', message, default: true }])).ok
-    : null;
+  // The automatic install never opens an interactive prompt: a question drawn
+  // under the live progress spinner froze the terminal at the skills-sync step.
+  // Default is notice-only ; --sync-skills opts in to an unattended sync.
+  const ask = skillsSyncConsent(options);
 
   try {
     const result = await engine.runInstall({
@@ -2019,6 +2020,7 @@ program
   .option('--dir <dir>', 'Repertoire d installation (defaut : dossier courant)')
   .option('--no-launch', 'Ne pas lancer Claude Code en fin d installation (mode --cli)')
   .option('--no-rtk', 'Ne pas installer rtk automatiquement (mode --cli)')
+  .option('--sync-skills', 'Mode --cli : synchroniser sans demander les copies globales ~/.claude/skills divergentes')
   .option('--legacy', 'Interview complete d origine (l ancien parcours a questions)')
   .action(async (options) => {
     const mode = chooseInstallMode(options);

@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.58.1] - 2026-07-21
+
+### Fixed — l'install auto en terminal gelait au controle des copies globales de skills
+- Symptome : `create-byan-agent --cli` restait bloque en chargement infini sur
+  `[6/8] Controle des copies globales de skills` quand des copies globales
+  `~/.claude/skills` divergeaient.
+- Cause : l'etape passait une question interactive (`inquirer`) au moteur, mais
+  l'install auto garde un indicateur de progression (`ora`) qui tourne pendant
+  chaque etape. La question s'affichait SOUS l'indicateur : invisible, en attente
+  d'une saisie que l'utilisateur ne voyait pas -> gel apparent.
+- Correctif : l'install automatique n'ouvre plus de question interactive. Par
+  defaut, elle SIGNALE les copies divergentes et affiche la commande de
+  synchronisation exacte, sans rien ecrire dans `~/.claude` et sans bloquer
+  (ligne rouge conservee : pas d'ecriture silencieuse dans le home). Nouveau
+  drapeau `--sync-skills` pour synchroniser sans demander (le drapeau EST le
+  consentement explicite), en approbation automatique sans prompt.
+- Nouvelle fonction pure `skillsSyncConsent` dans `install/lib/install-mode.js`,
+  testee (`install/__tests__/install-mode.test.js`) ; preuve de non-blocage des
+  deux branches (signalement seul / synchro opt-in) sur une maquette de
+  divergence.
+
 ## [2.58.0] - 2026-07-21
 
 ### Added — l'assistant par defaut ouvre l'app Desktop si elle est installee

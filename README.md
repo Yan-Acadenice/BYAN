@@ -97,7 +97,13 @@ Modes selon vos besoins :
 | `create-byan-agent` | Assistant graphique : app Desktop si installée, sinon navigateur (par défaut) |
 | `create-byan-agent web` | Force l'assistant dans le navigateur (ignore l'app Desktop) |
 | `create-byan-agent --cli` | Installation automatique en terminal, zéro question (Claude+Codex, tous les agents, rtk) |
+| `create-byan-agent --cli --sync-skills` | Idem, en synchronisant sans demander les copies globales `~/.claude/skills` divergentes |
 | `create-byan-agent --legacy` | Interview complet d'origine, question par question en terminal |
+
+En mode `--cli`, si des copies globales de skills sous `~/.claude/skills`
+divergent de l'installation, l'assistant le signale et affiche la commande de
+synchronisation — sans bloquer et sans rien écrire dans votre home. Ajoutez
+`--sync-skills` pour qu'il les synchronise directement.
 
 Détection de l'app Desktop : emplacements d'installation standards par système
 (`/opt/BYAN/byan` et `/usr/bin/byan` sous Linux, `BYAN.app` sous macOS,
