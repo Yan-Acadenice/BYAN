@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.56.0] - 2026-07-21
+
+### Changed — installation refondue : un moteur, deux visages
+- Nouveau moteur d'installation `install/lib/install-engine.js` : options ->
+  actions reelles (detection, copie `_byan` + `.claude`, configurations natives
+  Claude/Codex, dependances MCP, controle des copies globales de skills,
+  verification finale). La progression est honnete par construction : un
+  evenement d'etape = une action reellement executee. Defauts sans question :
+  Claude + Codex quand detectes, tous les agents, soul createur, rtk installe
+  s'il manque, configuration memorisee reutilisee. Nom du projet et repertoire
+  cible en options. Teste sur fixtures disque (7 cas).
+- `npx create-byan-agent` = installation automatique directe (plus d'interview).
+  Options : `--name`, `--dir`, `--no-launch`, `--no-rtk` ; l'ancienne interview
+  reste accessible via `--legacy`. En fin d'installation, Claude Code est lance
+  (canal byan-channel quand la version du CLI le supporte, sinon `claude`
+  normal ; commande affichee en terminal non interactif).
+- WebUI d'installation branchee sur le MEME moteur : les boutons installer et
+  mettre a jour executaient une simulation (etapes diffusees autour de pauses,
+  echec de l'updater avale puis succes affiche) — ils executent desormais le
+  moteur et l'updater reels, la progression WebSocket relaie chaque etape
+  executee, et l'ecran d'options porte nom du projet + repertoire. 3 tests par
+  injection d'un moteur factice.
+- Memoire d'installation dans le home : `install/lib/home-credentials.js`
+  (`~/.byan/credentials.json`, memes cles que le resolveur du serveur MCP,
+  fichier en mode 600, fusion sans effacement de secret). L'installation
+  reutilise ce qui est memorise et n'exige plus de re-saisie machine par
+  machine.
+- Le client Leantime du serveur MCP resout sa config via `resolve-config`
+  (env -> `~/.byan/credentials.json`) au lieu de lire seulement
+  l'environnement de lancement — le fichier memorise l'atteint enfin. Cadrage
+  Google documente (cle de service account memorisee ; OAuth interactif hors
+  perimetre serveur).
+
+
 ## [2.55.0] - 2026-07-21
 
 ### Added — l'installation propose la synchro des copies globales divergentes

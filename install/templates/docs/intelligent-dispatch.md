@@ -86,3 +86,14 @@ dev leaf holds the Bash tool and is what actually invokes `codex exec`.
 `codex mcp-server` is wired, Codex becomes a tool Claude can call mid-reasoning
 (and Codex can call BYAN tools back) — the closest thing to live. It drops in as a
 new transport behind the same F2 seam, with no change to F1 or the loop.
+
+## Config des integrations (Leantime, Google) — une seule memoire
+
+Depuis 2.56.0, le client Leantime du serveur MCP resout sa config par la meme
+chaine que le reste du serveur : variables d'environnement d'abord, puis
+`~/.byan/credentials.json`, ecrit par l'installeur a la premiere saisie. Google
+suit le meme fichier (`GOOGLE_APPLICATION_CREDENTIALS`, `GDOC_TEMPLATE_ID`,
+`GDOC_LOGO_PNG_URL`, deja compris par `resolve-config.js`) : l'acces Google
+passe par une cle de service account dont le CHEMIN est memorise — le portage
+d'un OAuth interactif complet dans le serveur MCP reste hors perimetre (le
+serveur tourne sans navigateur), c'est le cadrage assume.

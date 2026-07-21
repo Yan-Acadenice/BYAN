@@ -141,39 +141,50 @@ const routes = {
     });
   },
 
+  // Runs the REAL install engine (install/lib/install-engine.js) — the same
+  // one the CLI uses. Every progress broadcast maps 1:1 to a real action; the
+  // previous handler here simulated 9 steps around sleep() calls and only
+  // created directories, which is exactly the dishonest-progress trap the
+  // engine forbids. `server.installEngine` is injectable for tests.
   'POST install': async (req, res, server) => {
     json(res, 200, { status: 'started' });
 
     const config = req.body || {};
-    const projectRoot = server.projectRoot;
-    const steps = [
-      'Detecting environment',
-      'Validating prerequisites',
-      'Creating directory structure',
-      'Installing core module',
-      'Installing selected modules',
-      'Configuring platforms',
-      'Generating agent stubs',
-      'Writing configuration',
-      'Validating installation'
-    ];
+    const projectRoot = config.projectDir || server.projectRoot;
 
     try {
-      for (let i = 0; i < steps.length; i++) {
-        server.broadcastProgress(i + 1, steps.length, steps[i]);
-        server.broadcastLog('info', steps[i] + '...');
-        await sleep(300);
-      }
-
-      ensureDirectoryStructure(projectRoot);
-      writeBaseConfig(projectRoot, config);
-
-      server.broadcastProgress(steps.length, steps.length, 'Complete');
-      server.broadcastComplete(true, {
-        message: 'BYAN installed successfully',
+      const installEngine = server.installEngine || require('../../lib/install-engine');
+      // The wizard form sends platforms as an array (['claude','codex']); the
+      // engine takes an object. An empty selection means "let the engine detect".
+      const platformList = Array.isArray(config.platforms) ? config.platforms : null;
+      const platforms = platformList && platformList.length
+        ? { claude: platformList.includes('claude'), codex: platformList.includes('codex') }
+        : (config.platforms && !Array.isArray(config.platforms) ? config.platforms : undefined);
+      const result = await installEngine.runInstall({
         projectRoot,
-        mode: config.mode || 'auto',
-        platforms: config.platforms || detectPlatforms(projectRoot)
+        projectName: config.projectName || undefined,
+        platforms,
+        userName: config.userName || undefined,
+        language: config.language || undefined,
+        rtk: config.rtk !== false,
+        credentials: config.credentials || null,
+      }, {
+        onStep: ({ index, total, label }) => {
+          server.broadcastProgress(index, total, label);
+          server.broadcastLog('info', label);
+        },
+        log: (line) => server.broadcastLog('info', line),
+        // No consent prompt over HTTP: the global-skills offer degrades to a
+        // notice with the exact command (same non-interactive contract as CI).
+        ask: null,
+      });
+
+      server.broadcastComplete(result.ok, {
+        message: result.ok ? 'Installation BYAN terminee' : 'Installation terminee avec des etapes en echec',
+        projectRoot,
+        verify: result.verify,
+        steps: result.steps,
+        launch: result.launch,
       });
     } catch (err) {
       server.broadcastLog('error', err.message);
@@ -181,34 +192,29 @@ const routes = {
     }
   },
 
+  // Runs the REAL updater (yanstaller.update, which since 2.54.1 refreshes
+  // _byan AND .claude + native setup). The previous handler simulated 6 steps,
+  // called update with a wrong argument, swallowed its failure and broadcast
+  // success regardless — the result is now the truth, including failures.
   'POST update': async (req, res, server) => {
     json(res, 200, { status: 'started' });
-
-    const steps = [
-      'Checking current version',
-      'Creating backup',
-      'Downloading update',
-      'Applying changes',
-      'Merging configuration',
-      'Validating update'
-    ];
+    const projectRoot = (req.body && req.body.projectDir) || server.projectRoot;
 
     try {
-      for (let i = 0; i < steps.length; i++) {
-        server.broadcastProgress(i + 1, steps.length, steps[i]);
-        server.broadcastLog('info', steps[i] + '...');
-        await sleep(400);
+      if (!yanstaller || !yanstaller.update) {
+        throw new Error('Module de mise a jour indisponible dans ce paquet');
       }
-
-      if (yanstaller && yanstaller.update) {
-        try {
-          await yanstaller.update('latest');
-        } catch (err) {
-          server.broadcastLog('warn', `Update module: ${err.message}`);
-        }
-      }
-
-      server.broadcastComplete(true, { message: 'BYAN updated successfully' });
+      server.broadcastProgress(1, 2, 'Mise a jour en cours (_byan + .claude + configuration native)');
+      const result = await (server.updater || yanstaller.update)(projectRoot, {});
+      server.broadcastProgress(2, 2, 'Terminee');
+      server.broadcastComplete(true, {
+        message: `Mise a jour ${result.previousVersion} -> ${result.newVersion}`,
+        filesUpdated: result.filesUpdated,
+        filesAdded: result.filesAdded,
+        filesSkipped: result.filesSkipped,
+        claudeRefreshed: result.claudeRefreshed === true,
+        globalSkillsDiverged: result.globalSkillsDiverged || [],
+      });
     } catch (err) {
       server.broadcastLog('error', err.message);
       server.broadcastComplete(false, { message: err.message });

@@ -21,6 +21,12 @@
 // format against projets.acadenice.com. Items tagged VERIFY@F0 are the ones the
 // recon could not confirm without a live call.
 
+// Config resolution goes through resolve-config (env -> ~/.byan/credentials.json
+// -> empty), the same chain the rest of the server uses. Reading process.env
+// directly here was the gap that made the per-user credentials file invisible
+// to the Leantime client.
+import { resolveConfig } from './resolve-config.js';
+
 const DEFAULT_TIMEOUT_MS = 5000;
 const RPC_PATH = '/api/jsonrpc';
 
@@ -62,11 +68,11 @@ const DEFAULT_STATUS_MAP = {
 };
 
 function apiBase() {
-  return (process.env.LEANTIME_API_URL || '').replace(/\/+$/, '');
+  return (resolveConfig().LEANTIME_API_URL || '').replace(/\/+$/, '');
 }
 
 function apiToken() {
-  return process.env.LEANTIME_API_TOKEN || '';
+  return resolveConfig().LEANTIME_API_TOKEN || '';
 }
 
 // Leantime authenticates the JSON-RPC API with its own header, NOT an

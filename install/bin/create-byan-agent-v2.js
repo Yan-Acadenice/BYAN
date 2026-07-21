@@ -1901,13 +1901,77 @@ async function install(options = {}) {
   console.log(chalk.blue('Happy agent building! '));
 }
 
+// Default path since 2.56.0: the zero-question automatic install running the
+// shared engine (install/lib/install-engine.js) — the same engine the web
+// wizard calls. Claude+Codex by default (when detected), every agent, creator
+// soul, rtk installed when missing, stored home credentials reused. The legacy
+// ~20-question interview stays reachable behind --legacy only.
+async function installAuto(options) {
+  const engine = require('../lib/install-engine');
+  const projectRoot = path.resolve(options.dir || process.cwd());
+
+  console.log(chalk.cyan.bold(`\n  BYAN ${BYAN_VERSION} — installation automatique`));
+  console.log(chalk.gray(`  Projet : ${options.name || path.basename(projectRoot)}  |  Repertoire : ${projectRoot}`));
+  console.log(chalk.gray('  (interview complete : --legacy ; assistant web : create-byan-agent web)\n'));
+
+  let spinner = null;
+  const isTTY = Boolean(process.stdout.isTTY);
+  const ask = isTTY
+    ? async (message) => (await inquirer.prompt([{ type: 'confirm', name: 'ok', message, default: true }])).ok
+    : null;
+
+  try {
+    const result = await engine.runInstall({
+      projectRoot,
+      projectName: options.name || undefined,
+      rtk: options.rtk !== false,
+    }, {
+      onStep: ({ index, total, label }) => {
+        if (spinner) spinner.succeed();
+        spinner = ora(`[${index}/${total}] ${label}`).start();
+      },
+      log: (line) => { if (spinner) spinner.info(chalk.gray(line)).start(); else console.log(chalk.gray(line)); },
+      ask,
+    });
+    if (spinner) spinner.succeed();
+
+    console.log('');
+    console.log(chalk.green.bold(`  Installation terminee — verification ${result.verify.passed}/${result.verify.total}`));
+
+    // End-of-install launch (F5): start Claude Code, with the byan-channel
+    // when this CLI version supports it. --no-launch or a non-interactive
+    // terminal prints the command instead of running it.
+    if (result.launch) {
+      if (options.launch !== false && isTTY) {
+        console.log(chalk.cyan(`  Lancement de Claude Code : ${result.launch.command}\n`));
+        const { spawnSync } = require('child_process');
+        spawnSync(result.launch.command, { stdio: 'inherit', shell: true });
+      } else {
+        console.log(chalk.gray(`  Pour lancer Claude Code : ${result.launch.command}`));
+      }
+    } else {
+      console.log(chalk.gray('  Claude Code introuvable sur cette machine — installe-le puis lance `claude` dans le projet.'));
+    }
+  } catch (error) {
+    if (spinner) spinner.fail();
+    console.error(chalk.red.bold('\nInstallation en echec :'));
+    console.error(chalk.red(`  ${error.message}`));
+    process.exit(1);
+  }
+}
+
 // CLI Program
 program
   .name('create-byan-agent')
   .description('Install BYAN v2.2.0 - Builder of YAN with Model Selector and multi-platform support')
   .version(BYAN_VERSION)
   .option('--skip-version-check', 'Bypass the npm freshness guard (not recommended)')
-  .action(install);
+  .option('--name <name>', 'Nom du projet (defaut : nom du dossier)')
+  .option('--dir <dir>', 'Repertoire d installation (defaut : dossier courant)')
+  .option('--no-launch', 'Ne pas lancer Claude Code en fin d installation')
+  .option('--no-rtk', 'Ne pas installer rtk automatiquement')
+  .option('--legacy', 'Interview complete d origine (l ancien parcours a questions)')
+  .action(async (options) => (options.legacy ? install(options) : installAuto(options)));
 
 // Update Command (Yanstaller v3)
 program

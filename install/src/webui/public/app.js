@@ -201,6 +201,15 @@ class ByanApp {
         <input id="cfg-name" type="text" value="${this.escapeHtml(this.config.userName)}" placeholder="Yan">
       </div>
       <div class="form-group">
+        <label for="cfg-project-name">Project Name</label>
+        <input id="cfg-project-name" type="text" value="${this.escapeHtml(this.config.projectName || '')}" placeholder="mon-projet">
+      </div>
+      <div class="form-group">
+        <label for="cfg-project-dir">Project Directory</label>
+        <input id="cfg-project-dir" type="text" value="${this.escapeHtml(this.config.projectDir || this.status?.projectRoot || '')}" placeholder="/chemin/vers/le/projet">
+        <div class="form-hint">Defaults to the directory the wizard was launched from.</div>
+      </div>
+      <div class="form-group">
         <label for="cfg-lang">Communication Language</label>
         <select id="cfg-lang">
           <option value="English" ${this.config.language === 'English' ? 'selected' : ''}>English</option>
@@ -239,9 +248,13 @@ class ByanApp {
   readConfigForm() {
     const nameEl = document.getElementById('cfg-name');
     const langEl = document.getElementById('cfg-lang');
+    const projNameEl = document.getElementById('cfg-project-name');
+    const projDirEl = document.getElementById('cfg-project-dir');
 
     if (nameEl) this.config.userName = nameEl.value.trim() || 'User';
     if (langEl) this.config.language = langEl.value;
+    if (projNameEl) this.config.projectName = projNameEl.value.trim();
+    if (projDirEl) this.config.projectDir = projDirEl.value.trim();
 
     const platforms = [];
     document.querySelectorAll('input[name="platform"]:checked').forEach(el => platforms.push(el.value));
@@ -264,7 +277,8 @@ class ByanApp {
       ['Language', this.config.language],
       ['Platforms', this.config.platforms.join(', ') || 'auto-detect'],
       ['Modules', this.config.modules.join(', ')],
-      ['Project Root', this.status?.projectRoot || '(auto)']
+      ['Project Name', this.config.projectName || '(nom du dossier)'],
+      ['Project Root', this.config.projectDir || this.status?.projectRoot || '(auto)']
     ];
 
     container.innerHTML = rows.map(([k, v]) =>
