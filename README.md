@@ -84,20 +84,26 @@ npm install -g create-byan-agent
 create-byan-agent
 ```
 
-Par défaut, `create-byan-agent` ouvre l'assistant graphique dans le navigateur :
-il démarre un petit serveur local (lié à `127.0.0.1`) et ouvre la page
-d'installation. Vous y choisissez le nom du projet, le répertoire et les options.
+Par défaut, `create-byan-agent` ouvre l'assistant graphique. S'il détecte l'app
+Desktop BYAN installée, il l'ouvre dans une fenêtre native ; sinon il démarre un
+petit serveur local (lié à `127.0.0.1`) et ouvre la page d'installation dans le
+navigateur. Dans les deux cas c'est le même assistant : vous y choisissez le nom
+du projet, le répertoire et les options.
 
-Trois modes selon vos besoins :
+Modes selon vos besoins :
 
 | Commande | Mode |
 |----------|------|
-| `create-byan-agent` | Assistant graphique dans le navigateur (par défaut) |
+| `create-byan-agent` | Assistant graphique : app Desktop si installée, sinon navigateur (par défaut) |
+| `create-byan-agent web` | Force l'assistant dans le navigateur (ignore l'app Desktop) |
 | `create-byan-agent --cli` | Installation automatique en terminal, zéro question (Claude+Codex, tous les agents, rtk) |
 | `create-byan-agent --legacy` | Interview complet d'origine, question par question en terminal |
 
-`create-byan-agent web` reste disponible comme alias explicite de l'action par
-défaut.
+Détection de l'app Desktop : emplacements d'installation standards par système
+(`/opt/BYAN/byan` et `/usr/bin/byan` sous Linux, `BYAN.app` sous macOS,
+`BYAN.exe` sous Windows). Pour une AppImage ou un chemin personnalisé, pointez la
+variable `BYAN_DESKTOP_BIN` sur l'exécutable. Tant que l'app Desktop n'est pas
+installée, l'assistant s'ouvre dans le navigateur — aucun blocage.
 
 ### Structure du projet après installation
 

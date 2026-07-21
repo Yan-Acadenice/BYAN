@@ -1961,10 +1961,39 @@ async function installAuto(options) {
   }
 }
 
-// Default path since 2.57.0: the graphical web wizard. Starts the local HTTP +
-// WebSocket server (bound to loopback) and opens the browser — the server owns
-// the browser launch. The terminal installs stay reachable by flag (--cli, the
-// automatic terminal install ; --legacy, the original interview).
+// Default path since 2.58.0: prefer the native Desktop app when it is installed
+// (option A), otherwise fall back to the browser wizard. Both wrap the SAME
+// webui server — the only difference is the window (native shell vs browser
+// tab). When no Desktop app is found, print a one-line discovery tip and open
+// the browser without blocking. The `web` subcommand skips this and forces the
+// browser (explicit escape hatch).
+function launchDesktopOrWeb(options = {}) {
+  const { detectDesktopApp } = require('../lib/desktop-app');
+  const desktop = detectDesktopApp();
+
+  if (desktop.found) {
+    console.log(chalk.cyan.bold(`\n  BYAN ${BYAN_VERSION} — ouverture de l app Desktop\n`));
+    console.log(chalk.gray(`  ${desktop.bin}`));
+    try {
+      const { spawn } = require('child_process');
+      const child = spawn(desktop.bin, [], { detached: true, stdio: 'ignore' });
+      child.unref();
+      return;
+    } catch (error) {
+      console.log(chalk.yellow(`  Echec du lancement de l app Desktop (${error.message}) — repli navigateur.`));
+      // fall through to the browser wizard
+    }
+  } else {
+    console.log(chalk.gray('\n  Astuce : l app Desktop BYAN offre une vraie fenetre native. Une fois installee,'));
+    console.log(chalk.gray('  cette commande l ouvrira automatiquement. Pour l instant, j ouvre le navigateur.'));
+  }
+
+  launchWeb(options);
+}
+
+// The browser wizard. Starts the local HTTP + WebSocket server (bound to
+// loopback) and opens the browser — the server owns the browser launch. Used
+// as the fallback of launchDesktopOrWeb and as the explicit `web` subcommand.
 function launchWeb(options = {}) {
   const ByanWebUI = require('../src/webui/server');
   const port = parseInt(options.port, 10) || 3000;
@@ -1995,7 +2024,7 @@ program
     const mode = chooseInstallMode(options);
     if (mode === 'legacy') return install(options);
     if (mode === 'cli') return installAuto(options);
-    return launchWeb(options);
+    return launchDesktopOrWeb(options);
   });
 
 // Update Command (Yanstaller v3)

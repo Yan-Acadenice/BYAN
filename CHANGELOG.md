@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.58.0] - 2026-07-21
+
+### Added — l'assistant par defaut ouvre l'app Desktop si elle est installee
+- `create-byan-agent` (sans argument) tente d'abord d'ouvrir l'app Desktop BYAN
+  dans une fenetre native ; si aucune app n'est detectee, il ouvre le meme
+  assistant dans le navigateur. Les deux visages partagent le meme serveur webui
+  — seule la fenetre change. Aucun blocage quand l'app n'est pas la.
+- Detection par emplacements d'installation concrets (electron-builder,
+  productName BYAN) : `/opt/BYAN/byan`, `/usr/bin/byan`, `/usr/local/bin/byan`
+  (Linux) ; `BYAN.app` (macOS, systeme et `~/Applications`) ; `BYAN.exe` sous
+  `Programs`/`PROGRAMFILES` (Windows). La variable `BYAN_DESKTOP_BIN` surcharge
+  pour une AppImage ou un chemin personnalise. Pas de recherche d'un `byan` nu
+  sur le PATH (trop de faux positifs).
+- `create-byan-agent web` force desormais le navigateur (echappatoire explicite,
+  ignore l'app Desktop).
+- Nouveau module pur `install/lib/desktop-app.js` (`detectDesktopApp`,
+  `candidatePaths`), injectable (platform/env/homedir/existsSync) et teste
+  (`install/__tests__/desktop-app.test.js`, 7 cas couvrant Linux/macOS/Windows,
+  l'override et le repli).
+- Note : les binaires de l'app Desktop ne sont pas encore distribues ; la
+  detection tombe donc sur le navigateur aujourd'hui, par conception. Le vrai
+  installateur (distribution des binaires) est un chantier separe a venir.
+
 ## [2.57.0] - 2026-07-21
 
 ### Changed — l'assistant web devient l'installation par defaut
