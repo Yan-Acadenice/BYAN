@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.59.1] - 2026-07-21
+
+### Added — app Desktop BYAN 1.0.0 : construite, empaquetee, prouvee
+- L'app Electron (`app/`, produit "BYAN") est desormais construite et empaquetee
+  reellement. Preuve sur ce depot : `BYAN-1.0.0.AppImage` (108 Mo) et
+  `byan-app_1.0.0_amd64.deb` (74,6 Mo) produits par electron-builder ; le deb
+  installe `/opt/BYAN/byan` — le chemin exact que la detection du CLI
+  (`install/lib/desktop-app.js`) sonde pour ouvrir la fenetre native.
+- Preuve d'execution du paquet (rejouable) : le serveur webui embarque, forke
+  exactement comme l'app le fait (NODE_PATH, PORT=0), repond ready + `/health`
+  200 + `/api/status` 200 avec la detection rendue par le moteur d'install.
+- Correctifs de lancement du paquet (revue adversariale : 1 block puis approve) :
+  - les ressources embarquees conservent la structure du depot
+    (`install/src/webui` + `install/lib` + `src/byan-v2/lib`) pour que les
+    require() relatifs resolvent a l'identique ;
+  - dependances du serveur declarees dans l'app et depaquetees en fichiers
+    reels (le fils forke n'a pas acces a l'archive asar) ;
+  - `.npmrc install-links=true` : la dependance locale byan-platform-config est
+    copiee, pas liee (electron-builder refuse un lien sortant de `app/`) ;
+  - `executableName: byan` cote Linux ; icone Windows regeneree en 256px ;
+    icone macOS convertie depuis le png au build (l'icns n'existe pas en depot).
+- Release 3 OS : la chaine GitHub Actions existante construit
+  ubuntu/windows/macos et attache les artefacts a une release brouillon sur tag
+  `desktop-v*` (tag dedie — les tags `v*` portent les versions npm et ne
+  declenchent plus de release Desktop). Mode d'emploi dans `app/README.md`.
+
+### Fixed — serveur webui : le contrat PORT=0 est honore
+- `install/src/webui/server.js` (expedie par npm) : `options.port ?? 3000` (0
+  est une valeur valide : le systeme assigne un port libre) et l'entree fork
+  lit desormais `PORT` et `BYAN_PROJECT_ROOT` d'environnement. L'usage CLI
+  (port explicite en argument) est inchange.
+
 ## [2.59.0] - 2026-07-21
 
 ### Fixed — assistant web : detection Claude/Codex reparee, interface en francais

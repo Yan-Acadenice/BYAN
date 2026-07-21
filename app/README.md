@@ -4,8 +4,16 @@ Electron desktop application for BYAN. Wraps the existing local server and web U
 in a native shell with OS-level secure storage, a 5-step onboarding flow, and a
 native application menu.
 
-**Supported platforms (v1.0):** Linux x64 (AppImage, deb), Windows x64 (NSIS installer).
-macOS is deferred to v1.1 (F21).
+**Supported platforms (v1.0):** Linux x64 (AppImage, deb), Windows x64 (NSIS
+installer), macOS x64 + arm64 (dmg + zip, built unsigned by CI — right-click →
+Open on first launch until a Developer ID certificate is plugged in, see
+CI-SIGNING.md).
+
+**Cutting a release:** push a `desktop-v*` tag (e.g. `desktop-v1.0.0`). The
+`electron-build.yml` workflow builds the three OSes, runs typecheck/lint/tests/
+E2E, and attaches AppImage/deb/exe/dmg/zip + update manifests to a DRAFT GitHub
+Release — publishing the draft is the human gate. The `v*` tags are reserved for
+npm versions of create-byan-agent and do not trigger a Desktop release.
 
 **Who is it for:** developers and teams already using BYAN who want a standalone
 desktop experience without keeping a browser tab open or managing a terminal process.
