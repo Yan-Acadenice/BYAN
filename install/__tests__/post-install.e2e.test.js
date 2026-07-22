@@ -46,10 +46,12 @@ describe('post-install state (FD 20260428)', () => {
     expect(sl.enabledMcpjsonServers).toContain('byan');
   });
 
-  test('invariant 3: when user accepts gdrive, it is whitelisted alongside byan', async () => {
+  test('invariant 3 (G4): gdrive is no longer offered — even "accepted", nothing is written or whitelisted', async () => {
     await claudeNative.setupClaudeNative(tmpRoot, { quiet: true, installDeps: false });
 
-    jest.spyOn(gdrive, 'setup').mockResolvedValue({ configured: true, message: 'mocked' });
+    // G4: gdrive is deregistered from the extensions flow (Google runs
+    // server-side, per-user identity). Even a preset acceptance must be inert.
+    const setupSpy = jest.spyOn(gdrive, 'setup').mockResolvedValue({ configured: true, message: 'mocked' });
     jest.spyOn(gdrive, 'buildMcpEntry').mockResolvedValue({
       command: 'npx',
       args: ['-y', 'google-workspace-mcp', 'serve'],
@@ -61,11 +63,14 @@ describe('post-install state (FD 20260428)', () => {
       quiet: true,
     });
 
+    expect(setupSpy).not.toHaveBeenCalled();
+
     const cfg = await fs.readJson(path.join(tmpRoot, '.mcp.json'));
-    expect(cfg.mcpServers.gdrive).toBeDefined();
+    expect(cfg.mcpServers.gdrive).toBeUndefined();
 
     const sl = await fs.readJson(path.join(tmpRoot, '.claude', 'settings.local.json'));
-    expect(sl.enabledMcpjsonServers).toEqual(expect.arrayContaining(['byan', 'gdrive']));
+    expect(sl.enabledMcpjsonServers).toContain('byan');
+    expect(sl.enabledMcpjsonServers).not.toContain('gdrive');
   });
 
   test('invariant 4: when user skips gdrive, it is NOT whitelisted', async () => {

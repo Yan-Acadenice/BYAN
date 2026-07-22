@@ -14,6 +14,7 @@ const {
   credentials: { writeCredentials: sharedWriteCredentials },
   urlUtils: { stripApiSuffix },
 } = require('byan-platform-config');
+const { purgeGoogleKeys } = require('./home-credentials');
 
 // Shared primitives return { path: string } — unwrap to plain string for
 // backwards compatibility with callers that expect a string path.
@@ -41,6 +42,16 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
     ? options.presetInputs || { configured: false }
     : await promptForToken();
 
+  // Soft-purge Google keys from ~/.byan/credentials.json — ALWAYS, meme si
+  // l'utilisateur decline byan_web : les cles Google ne sont plus utilisees
+  // par BYAN quel que soit le choix (proxy server-side).
+  const purgeResult = purgeGoogleKeys();
+  if (purgeResult.purged.length > 0) {
+    const backupMsg = purgeResult.backupPath ? ` (backup : ${purgeResult.backupPath})` : '';
+    console.log(chalk.gray(`  Cles Google retirees de ~/.byan/credentials.json${backupMsg}`));
+    console.log(chalk.gray(`    La cle de service locale ~/.byan/google-sa.json n'est plus utilisee par BYAN, tu peux la supprimer.`));
+  }
+
   if (!inputs.configured) {
     if (!options.quiet) {
       console.log(
@@ -61,6 +72,7 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
   // MCP portable across shells/OSes and Claude Code AND Codex, instead of
   // relying on .mcp.json ${} expansion or settings.local.json env injection.
   const credsResult = await sharedWriteCredentials({ BYAN_API_URL: stripApiSuffix(inputs.apiUrl), BYAN_API_TOKEN: inputs.token });
+
 
   if (!options.quiet) {
     console.log(chalk.green(`  [OK] byan_web integration configured`));

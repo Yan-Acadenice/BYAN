@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — installation reduite au token d'abonnement (proxy Google cote serveur, 2026-07-22)
+
+L'API byan_web proxifie desormais Google Workspace cote serveur (documents crees au nom de chaque utilisateur, credentials detenus par le serveur). L'installation ne configure donc plus aucun credential Google en local : le seul geste est de coller le `BYAN_API_URL` + `BYAN_API_TOKEN` de l'abonnement.
+
+- Prompt de la cle service-account Google Docs (`gdoc-setup`) et de l'extension Google Workspace (gdrive OAuth) RETIRES du flux interactif ET du moteur non-interactif.
+- Apres le prompt du token byan_web : appel best-effort `GET /api/integrations/status` (lib `subscription-status`, timeout court, non bloquant pour l'install) qui affiche ce que l'abonnement inclut (ex : "Google Workspace : inclus").
+- `KNOWN_KEYS` (home-credentials) et `KEYS` (template resolve-config du serveur MCP) reduits cote Google (les cles `LEANTIME_*` restent — Leantime n'est pas encore proxifie).
+- Purge douce des postes existants : les cles Google d'un `~/.byan/credentials.json` deja present sont retirees (backup date `credentials.json.bak-YYYY-MM-DD`, mode 0600) ; le fichier `~/.byan/google-sa.json` n'est pas supprime (message informatif : il n'est plus utilise par BYAN, l'utilisateur peut le retirer). Purge active sur les deux chemins (interactif + moteur non-interactif).
+
+DEFER : mise a jour des templates du serveur MCP shippe (`install/templates`, tools `byan_gws_*` + gates remote) = geste de release separe (pipeline rachid/patnote).
+
 ### Changed — les installateurs Desktop se telechargent depuis les Releases
 - Correction de cap : la page GitHub Packages heberge des registres (npm,
   conteneurs), pas un fichier `.AppImage` cliquable. Le canal de telechargement

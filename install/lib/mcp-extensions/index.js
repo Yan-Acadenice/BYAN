@@ -41,9 +41,7 @@ const {
 } = require('byan-platform-config');
 const { whitelistMcpServer } = require('../settings-local');
 
-const gdrive = require('./gdrive');
-
-const EXTENSIONS = [gdrive];
+const EXTENSIONS = [];
 
 function listExtensions() {
   return EXTENSIONS.map((ext) => ({

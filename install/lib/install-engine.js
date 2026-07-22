@@ -138,6 +138,7 @@ async function runInstall(options = {}, hooks = {}) {
   if (platforms.claude) plan.push({ id: 'claude', label: 'Installation Claude Code (.claude + serveur MCP + .mcp.json)' });
   if (platforms.codex) plan.push({ id: 'codex', label: 'Installation Codex (~/.codex)' });
   if (credentials && Object.keys(credentials).length) plan.push({ id: 'credentials', label: 'Memorisation de la configuration (~/.byan/credentials.json)' });
+  plan.push({ id: 'google-purge', label: 'Retrait des cles Google obsoletes' });
   if (platforms.claude) plan.push({ id: 'skills-sync', label: 'Controle des copies globales de skills' });
   if (rtk) plan.push({ id: 'rtk', label: 'Verification / installation de rtk' });
   plan.push({ id: 'verify', label: 'Verification finale' });
@@ -225,6 +226,13 @@ async function runInstall(options = {}, hooks = {}) {
       return `${Object.keys(merged).length} cle(s) en memoire dans ${homeCreds.credentialsPath(homeDir)}`;
     }, { critical: false });
   }
+
+  // Chemin non-interactif : la purge des cles Google obsoletes tourne aussi
+  // sans passage par byan-web-integration (parite avec le flux interactif).
+  await step('google-purge', 'Retrait des cles Google obsoletes', async () => {
+    const r = homeCreds.purgeGoogleKeys({ homeDir });
+    return r.purged.length ? `${r.purged.length} cle(s) Google retiree(s)` : 'aucune cle Google presente';
+  }, { critical: false });
 
   if (platforms.claude) {
     await step('skills-sync', 'Controle des copies globales de skills', async () => {

@@ -159,4 +159,58 @@ describe('home-credentials', () => {
     expect(stored.BYAN_API_URL).toBe('http://x');
     expect(stored.INJECTE).toBeUndefined();
   });
+
+  test('KNOWN_KEYS ne contient plus les cles Google', () => {
+    const { KNOWN_KEYS } = homeCreds;
+    const googleKeys = ['GOOGLE_APPLICATION_CREDENTIALS', 'GDOC_TEMPLATE_ID', 'GDOC_LOGO_PNG_URL'];
+    expect(googleKeys.every((k) => !KNOWN_KEYS.includes(k))).toBe(true);
+    // Core BYAN and Leantime keys must remain.
+    expect(KNOWN_KEYS).toContain('BYAN_API_URL');
+    expect(KNOWN_KEYS).toContain('BYAN_API_TOKEN');
+    expect(KNOWN_KEYS).toContain('LEANTIME_API_URL');
+    expect(KNOWN_KEYS).toContain('LEANTIME_API_TOKEN');
+  });
+
+  test('purgeGoogleKeys retire les cles Google et preserve BYAN_* et LEANTIME_*', async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'byan-creds-'));
+    await fs.outputJSON(homeCreds.credentialsPath(home), {
+      BYAN_API_URL: 'https://api.exemple.fr',
+      BYAN_API_TOKEN: 'byan_' + '0'.repeat(64),
+      LEANTIME_API_URL: 'https://pm.exemple.fr',
+      GOOGLE_APPLICATION_CREDENTIALS: '/path/to/sa.json',
+      GDOC_TEMPLATE_ID: 'tpl-123',
+    });
+
+    const result = homeCreds.purgeGoogleKeys({ homeDir: home });
+
+    const stored = homeCreds.readCredentials({ homeDir: home });
+    // Google keys must be gone.
+    expect(stored.GOOGLE_APPLICATION_CREDENTIALS).toBeUndefined();
+    expect(stored.GDOC_TEMPLATE_ID).toBeUndefined();
+    // BYAN and Leantime keys must survive.
+    expect(stored.BYAN_API_URL).toBe('https://api.exemple.fr');
+    expect(stored.BYAN_API_TOKEN).toBe('byan_' + '0'.repeat(64));
+    expect(stored.LEANTIME_API_URL).toBe('https://pm.exemple.fr');
+    // result.purged must list exactly the keys that were present.
+    expect(result.purged.sort()).toEqual(['GDOC_TEMPLATE_ID', 'GOOGLE_APPLICATION_CREDENTIALS'].sort());
+    // backupPath must point to a file that exists.
+    expect(result.backupPath).not.toBeNull();
+    expect(await fs.pathExists(result.backupPath)).toBe(true);
+  });
+
+  test('purgeGoogleKeys sur credentials sans cles Google : no-op, pas de backup', async () => {
+    const home = await fs.mkdtemp(path.join(os.tmpdir(), 'byan-creds-'));
+    await fs.outputJSON(homeCreds.credentialsPath(home), {
+      BYAN_API_URL: 'https://api.exemple.fr',
+      BYAN_API_TOKEN: 'byan_' + '0'.repeat(64),
+    });
+
+    const result = homeCreds.purgeGoogleKeys({ homeDir: home });
+
+    expect(result.purged).toEqual([]);
+    expect(result.backupPath).toBeNull();
+    // File untouched — BYAN keys still present.
+    const stored = homeCreds.readCredentials({ homeDir: home });
+    expect(stored.BYAN_API_URL).toBe('https://api.exemple.fr');
+  });
 });

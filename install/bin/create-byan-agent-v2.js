@@ -17,7 +17,6 @@ const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat'
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
 const { setupLeantimeIntegration, validateLeantimeReachability } = require('../lib/byan-leantime-integration');
 const { setupRtkIntegration, shouldOfferRtk } = require('../lib/rtk-integration');
-const { setupGdocPublish, shouldOfferGdoc } = require('../lib/gdoc-setup');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
 const { setupCodexNative } = require('../lib/codex-native-setup');
 const { setupCodexAutodelegate, DEVICE_FLOW_INSTRUCTION } = require('../lib/codex-autodelegate-setup');
@@ -1418,6 +1417,25 @@ async function install(options = {}) {
       } catch (_) {
         // reachability check must never block install
       }
+
+      // Best-effort: check which integrations are included in this subscription.
+      // Never blocks install — a network error or missing endpoint is silenced.
+      try {
+        const { checkSubscriptionStatus } = require('../lib/subscription-status');
+        const status = await checkSubscriptionStatus({
+          apiUrl: byanWebResult.apiUrl,
+          token: byanWebResult.token,
+        });
+        if (status.error) {
+          console.log(chalk.gray('  abonnement vérifié plus tard'));
+        } else if (status.google && status.google.entitled === true) {
+          console.log(chalk.green('  [OK] Google Workspace: inclus — documents crées au nom de chaque utilisateur, rien à configurer localement'));
+        } else if (status.google) {
+          console.log(chalk.gray('  Google Workspace: non inclus dans cet abonnement'));
+        }
+      } catch (_) {
+        // best-effort: never block
+      }
     }
 
     if (byanWebResult && byanWebResult.configured) {
@@ -1492,32 +1510,6 @@ async function install(options = {}) {
     }
   }
 
-  if (needsClaude && shouldOfferGdoc()) {
-    console.log();
-    console.log(chalk.cyan('byan_publish — clé service account Google Docs (optionnel, headless)'));
-    try {
-      const { proceed } = await inquirer.prompt([
-        {
-          type: 'confirm',
-          name: 'proceed',
-          message: 'Configurer ta clé service account maintenant (chacun la sienne ; rien de secret ne ship) ?',
-          default: false,
-        },
-      ]);
-      if (proceed) {
-        const r = await setupGdocPublish({ log: (...a) => console.log(...a) });
-        if (r.configured) {
-          console.log(chalk.green(`  [OK] byan_publish prêt (clé : ${r.path})`));
-        } else {
-          console.log(chalk.yellow(`  [WARN] byan_publish non configuré (${r.skipReason}) — \`npm run setup-gdoc\` à tout moment`));
-        }
-      } else {
-        console.log(chalk.gray('  byan_publish ignoré — `npm run setup-gdoc` à tout moment pour activer.'));
-      }
-    } catch (error) {
-      console.log(chalk.yellow(`  [WARN] byan_publish setup skipped: ${error.message}`));
-    }
-  }
 
   if (needsClaude) {
     console.log();

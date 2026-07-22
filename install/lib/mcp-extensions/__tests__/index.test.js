@@ -7,18 +7,22 @@ const os = require('os');
 const { listExtensions, getExtension, setupMcpExtensions } = require('..');
 
 describe('mcp-extensions registry', () => {
-  test('listExtensions returns gdrive at minimum', () => {
+  // G4: gdrive is out of the install flow (Google runs server-side, per-user
+  // identity). The module file stays on disk; only its registration is gone.
+  test('listExtensions no longer registers gdrive (removed from the flow)', () => {
     const list = listExtensions();
-    expect(list.length).toBeGreaterThanOrEqual(1);
-    expect(list.find((e) => e.id === 'gdrive')).toBeDefined();
+    expect(Array.isArray(list)).toBe(true);
+    expect(list.find((e) => e.id === 'gdrive')).toBeUndefined();
   });
 
-  test('getExtension returns the gdrive module by id', () => {
-    const ext = getExtension('gdrive');
-    expect(ext).not.toBeNull();
-    expect(ext.id).toBe('gdrive');
-    expect(typeof ext.setup).toBe('function');
-    expect(typeof ext.buildMcpEntry).toBe('function');
+  test('getExtension returns null for gdrive (deregistered), module kept on disk', () => {
+    expect(getExtension('gdrive')).toBeNull();
+
+    // The module itself is NOT deleted — it still honors the contract.
+    const gdrive = require('../gdrive');
+    expect(gdrive.id).toBe('gdrive');
+    expect(typeof gdrive.setup).toBe('function');
+    expect(typeof gdrive.buildMcpEntry).toBe('function');
   });
 
   test('getExtension returns null for unknown id', () => {
@@ -37,10 +41,9 @@ describe('setupMcpExtensions (skipPrompts)', () => {
     await fs.remove(tmpRoot);
   });
 
-  test('with no preset selections, skips every extension and writes nothing', async () => {
+  test('empty registry: returns no results and writes nothing', async () => {
     const results = await setupMcpExtensions(tmpRoot, { skipPrompts: true, quiet: true });
-    expect(results.length).toBeGreaterThanOrEqual(1);
-    results.forEach((r) => expect(r.configured).toBe(false));
+    expect(results).toEqual([]);
 
     const mcpExists = await fs.pathExists(path.join(tmpRoot, '.mcp.json'));
     expect(mcpExists).toBe(false);

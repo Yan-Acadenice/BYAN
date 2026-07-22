@@ -25,9 +25,6 @@ const KNOWN_KEYS = Object.freeze([
   'BYAN_API_TOKEN',
   'LEANTIME_API_URL',
   'LEANTIME_API_TOKEN',
-  'GOOGLE_APPLICATION_CREDENTIALS',
-  'GDOC_TEMPLATE_ID',
-  'GDOC_LOGO_PNG_URL',
 ]);
 
 function credentialsPath(homeDir = os.homedir()) {
@@ -82,10 +79,65 @@ function storedKeys({ homeDir = os.homedir() } = {}) {
   return KNOWN_KEYS.filter((k) => typeof current[k] === 'string' && current[k].trim() !== '');
 }
 
+const GOOGLE_KEYS = Object.freeze([
+  'GOOGLE_APPLICATION_CREDENTIALS',
+  'GDOC_TEMPLATE_ID',
+  'GDOC_LOGO_PNG_URL',
+]);
+
+/**
+ * Soft-purge: remove Google-specific keys from credentials.json.
+ * - If none of the three keys are present, returns { purged: [], backupPath: null }.
+ * - Otherwise, creates a dated .bak copy (best-effort, non-blocking), removes
+ *   the three keys, rewrites the file at mode 0600, and returns { purged, backupPath }.
+ * - Never throws: any error is caught and returned as { purged: [], backupPath: null, error }.
+ */
+function purgeGoogleKeys({ homeDir = os.homedir() } = {}) {
+  try {
+    const current = readCredentials({ homeDir });
+    const presentKeys = GOOGLE_KEYS.filter((k) => Object.prototype.hasOwnProperty.call(current, k));
+    if (presentKeys.length === 0) {
+      return { purged: [], backupPath: null };
+    }
+
+    // Create a dated backup — best-effort, failure is non-blocking.
+    const file = credentialsPath(homeDir);
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const backupPath = `${file}.bak-${today}`;
+    let resolvedBackupPath = backupPath;
+    try {
+      fs.copySync(file, backupPath);
+    } catch {
+      resolvedBackupPath = null; // backup failed, but we continue
+    }
+
+    // Remove Google keys from the object.
+    const cleaned = { ...current };
+    for (const k of GOOGLE_KEYS) {
+      delete cleaned[k];
+    }
+
+    // Rewrite at mode 0600.
+    fs.ensureDirSync(path.dirname(file));
+    fs.writeJSONSync(file, cleaned, { spaces: 2, mode: 0o600 });
+    try {
+      fs.chmodSync(file, 0o600);
+    } catch {
+      // chmod best-effort (Windows ACLs)
+    }
+
+    return { purged: presentKeys, backupPath: resolvedBackupPath };
+  } catch (e) {
+    return { purged: [], backupPath: null, error: e.message };
+  }
+}
+
 module.exports = {
   KNOWN_KEYS,
+  GOOGLE_KEYS,
   credentialsPath,
   readCredentials,
   writeCredentials,
   storedKeys,
+  purgeGoogleKeys,
 };
