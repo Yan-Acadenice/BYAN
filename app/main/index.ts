@@ -5,6 +5,7 @@
 
 import { app, BrowserWindow, session, ipcMain, dialog } from 'electron';
 import * as path from 'path';
+import { installBootGuards } from './boot-guards';
 import { applyCsp } from './csp';
 import { registerAll } from './ipc-handlers';
 import { installMenu } from './menu';
@@ -16,6 +17,11 @@ import { autoUpdater as electronAutoUpdater } from 'electron-updater';
 import { AutoUpdaterManager, type AutoUpdaterLike } from './auto-updater';
 import { _setManagerForTests as setUpdaterManager, getManager as getUpdaterManager } from './ipc-handlers/update';
 import { DEEP_LINK_SCHEME, findDeepLinkInArgv, parseDeepLink } from './deep-links';
+
+// Before anything logs: make a dead/broken stdout pipe (double-click launch,
+// no terminal) unable to crash the main process. Without this, the first
+// console write raises EPIPE and loops as an uncaughtException (froze the PC).
+installBootGuards();
 
 // Singleton local server — started on login (F13), stopped on quit.
 const localServer = createLocalServer({ logger: console });

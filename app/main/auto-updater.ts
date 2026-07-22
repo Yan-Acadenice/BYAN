@@ -85,6 +85,12 @@ export class AutoUpdaterManager {
     this.initialDelayMs = deps.initialCheckDelayMs ?? INITIAL_DELAY_MS;
 
     if (this.updater) {
+      // electron-updater logs verbosely to console on every check. On a
+      // detached GUI launch that console is a broken pipe (EPIPE), and the
+      // periodic check kept writing to it — the direct cause of the freeze
+      // loop. Silence the updater's own logger at the source ; the stdio guard
+      // in boot-guards is the backstop for any other console write.
+      this.updater.logger = null;
       this.wireEvents(this.updater);
     }
   }

@@ -21,6 +21,15 @@ beforeEach(() => {
   manager = new AutoUpdaterManager({ updater, isDev: false });
 });
 
+describe('AutoUpdaterManager — logger', () => {
+  it('nulls the updater logger so it cannot write to a broken pipe (EPIPE fix)', () => {
+    const u = new FakeUpdater();
+    u.logger = console; // electron-updater defaults to a console-backed logger
+    new AutoUpdaterManager({ updater: u, isDev: false }); // nulls the logger on wire
+    expect(u.logger).toBeNull();
+  });
+});
+
 describe('AutoUpdaterManager — state machine', () => {
   it('starts in idle state', () => {
     expect(manager.getState()).toEqual({ state: 'idle' });
