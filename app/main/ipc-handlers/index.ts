@@ -10,6 +10,7 @@ import * as onboarding from './onboarding';
 import * as server from './server';
 import * as localChat from './local-chat';
 import * as terminal from './terminal';
+import * as projectsLocal from './projects-local';
 import * as appHandlers from './app';
 import * as store from './store';
 import * as byanWeb from './byan-web';
@@ -28,6 +29,7 @@ export function registerAll(ipcMain: IpcMain, deps: RegisterAllDeps): void {
   server.register(ipcMain);
   localChat.register(ipcMain);
   terminal.register(ipcMain);
+  projectsLocal.register(ipcMain);
   appHandlers.register(ipcMain, { app: deps.app });
   store.register(ipcMain);
   byanWeb.register(ipcMain);

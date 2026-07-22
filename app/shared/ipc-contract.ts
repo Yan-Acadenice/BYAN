@@ -270,6 +270,20 @@ export type TerminalOpenResult =
   | { ok: true; terminal: string }
   | { ok: false; reason: 'no-terminal' | 'spawn-failed' | 'bad-cwd' | 'bad-command'; message: string };
 
+// ---------- Local projects registry (F6) ----------
+export interface LocalProjectEntry {
+  name: string;
+  path: string;
+  projectId?: string;
+  updatedAt?: string;
+}
+
+// Query to match a byan_web project to a local registry entry.
+export interface ProjectMatchQuery {
+  id?: string;
+  name?: string;
+}
+
 // Normalized messages pushed on byan:chat-local:message. The main bridge maps
 // the WebUI wire protocol (chat-started / chat / chat-tool / chat-complete /
 // chat-error / chat-stopped) onto this shape so the renderer stays protocol-free.
@@ -455,6 +469,16 @@ export interface ByanApi {
     // Open an external terminal running `claude` (or command) in cwd (F5).
     open(opts: TerminalOpenOpts): Promise<TerminalOpenResult>;
   };
+  projectsLocal: {
+    // All local project entries recorded on this machine (F6).
+    list(): Promise<LocalProjectEntry[]>;
+    // Record (insert-or-update) a local project directory.
+    record(entry: LocalProjectEntry): Promise<LocalProjectEntry>;
+    // Best-effort match a byan_web project to its local directory.
+    find(query: ProjectMatchQuery): Promise<LocalProjectEntry | null>;
+    // Open the folder in the OS file manager.
+    reveal(dir: string): Promise<{ ok: boolean; message?: string }>;
+  };
   app: {
     quit(): Promise<void>;
     version(): Promise<string>;
@@ -520,6 +544,12 @@ export const IPC_CHANNELS = {
   },
   terminal: {
     open: 'byan:terminal:open'
+  },
+  projectsLocal: {
+    list: 'byan:projectsLocal:list',
+    record: 'byan:projectsLocal:record',
+    find: 'byan:projectsLocal:find',
+    reveal: 'byan:projectsLocal:reveal'
   },
   app: {
     quit: 'byan:app:quit',

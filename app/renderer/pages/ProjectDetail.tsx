@@ -2,8 +2,8 @@
 // Receives projectId from Projects.tsx; fetches project + memory + knowledge tabs.
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, AlertCircle, BookOpen, Brain } from 'lucide-react';
-import type { ByanProject, ByanMemory, ByanKnowledge } from '../../shared/ipc-contract';
+import { Loader2, AlertCircle, BookOpen, Brain, FolderOpen } from 'lucide-react';
+import type { ByanProject, ByanMemory, ByanKnowledge, LocalProjectEntry } from '../../shared/ipc-contract';
 
 type Tab = 'overview' | 'memory' | 'knowledge';
 const TABS: Tab[] = ['overview', 'memory', 'knowledge'];
@@ -27,6 +27,8 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+  // F6 : the local folder linked to this project (from ~/.byan/projects.json).
+  const [localEntry, setLocalEntry] = useState<LocalProjectEntry | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -41,6 +43,12 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
         setProject(p as ByanProject | null);
         setMemory(m as ByanMemory[]);
         setKnowledge(k as ByanKnowledge[]);
+        // Best-effort local folder match (by id, then name). Never blocks the view.
+        try {
+          const proj = p as ByanProject | null;
+          const entry = await window.byanApi.projectsLocal?.find?.({ id: projectId, name: proj?.name });
+          setLocalEntry(entry ?? null);
+        } catch { setLocalEntry(null); }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load project');
@@ -129,6 +137,28 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
               </div>
             ))}
           </div>
+
+          {/* Local folder (F6) — only shown when this project maps to a dir on this PC. */}
+          {localEntry && (
+            <div className="bg-ink-900 border border-ink-800 rounded-lg p-md" data-testid="project-local-folder">
+              <p className="font-label text-label text-ink-400 uppercase mb-xs">Dossier local</p>
+              <div className="flex items-center justify-between gap-md">
+                <p className="font-mono-code text-mono-code text-ink-300 text-[12px] truncate" title={localEntry.path}>
+                  {localEntry.path}
+                </p>
+                <button
+                  type="button"
+                  data-testid="project-open-folder"
+                  onClick={() => void window.byanApi.projectsLocal.reveal(localEntry.path)}
+                  className="btn-secondary flex items-center gap-xs text-xs shrink-0"
+                  title="Ouvrir le dossier"
+                >
+                  <FolderOpen size={14} />
+                  Ouvrir
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

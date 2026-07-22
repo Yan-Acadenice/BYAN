@@ -238,6 +238,10 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       // Done after apply so a failed apply doesn't mark the project as configured.
       try {
         await window.byanApi.store.set('onboarding.projectRoot', projectRoot);
+        // Record the local folder in ~/.byan/projects.json so Projects /
+        // ProjectDetail can show it (F6). Best-effort ; name = folder basename.
+        const folderName = projectRoot.replace(/[/\\]+$/, '').split(/[/\\]/).pop() || projectRoot;
+        await window.byanApi.projectsLocal?.record?.({ name: folderName, path: projectRoot });
       } catch {
         // Non-critical — worst case: onboarding shows again next launch.
       }

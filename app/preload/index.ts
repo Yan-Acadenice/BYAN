@@ -33,6 +33,8 @@ import {
   LocalChatHistoryMessage,
   TerminalOpenOpts,
   TerminalOpenResult,
+  LocalProjectEntry,
+  ProjectMatchQuery,
   UpdateState,
 } from '../shared/ipc-contract';
 
@@ -100,6 +102,12 @@ const api: ByanApi = {
   },
   terminal: {
     open: (opts: TerminalOpenOpts) => invoke<TerminalOpenResult>(IPC_CHANNELS.terminal.open, opts)
+  },
+  projectsLocal: {
+    list: () => invoke<LocalProjectEntry[]>(IPC_CHANNELS.projectsLocal.list),
+    record: (entry: LocalProjectEntry) => invoke<LocalProjectEntry>(IPC_CHANNELS.projectsLocal.record, entry),
+    find: (query: ProjectMatchQuery) => invoke<LocalProjectEntry | null>(IPC_CHANNELS.projectsLocal.find, query),
+    reveal: (dir: string) => invoke<{ ok: boolean; message?: string }>(IPC_CHANNELS.projectsLocal.reveal, dir)
   },
   app: {
     quit: () => invoke<void>(IPC_CHANNELS.app.quit),
