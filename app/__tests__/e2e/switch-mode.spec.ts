@@ -11,6 +11,11 @@ import { test, expect } from '@playwright/test';
 import { launchApp } from './fixtures';
 
 test('switch mode: cloud → local without relaunch', async () => {
+  // Full launch + login + logout + re-render exceeds the default 30s budget on
+  // the Windows CI runner (slow Electron first boot + Defender scan of a fresh
+  // binary) — 3 straight timeouts on the desktop-v1.0.0 run. slow() triples
+  // the budget; the assertions are unchanged.
+  test.slow();
   const launched = await launchApp({
     preconfigureProject: true,
     env: {

@@ -35,13 +35,18 @@ export function resolveBinaryPath(): string {
     return path.join(APP_ROOT, 'release', 'win-unpacked', 'BYAN.exe');
   }
   if (process.platform === 'darwin') {
-    // Mac packaging is deferred to F21 — this branch is here so the runner
-    // gives a clear error instead of silently launching nothing.
-    return path.join(APP_ROOT, 'release', 'mac', 'BYAN.app', 'Contents', 'MacOS', 'BYAN');
+    // electron-builder emits release/mac (x64), release/mac-arm64 (Apple
+    // Silicon — the modern GitHub macos runner) or release/mac-universal.
+    // Probe the variants so the same fixture works on every mac runner.
+    const macDirs = ['mac-arm64', 'mac', 'mac-universal'];
+    const candidates = macDirs.map((d) =>
+      path.join(APP_ROOT, 'release', d, 'BYAN.app', 'Contents', 'MacOS', 'BYAN')
+    );
+    return candidates.find((c) => fs.existsSync(c)) ?? candidates[0];
   }
-  // Linux default — electron-builder names the binary after productName lowercase
-  // (see electron-builder.yml: productName: BYAN).
-  return path.join(APP_ROOT, 'release', 'linux-unpacked', 'byan-app');
+  // Linux default — electron-builder.yml pins executableName: byan (the exact
+  // name the CLI's desktop-app detection probes: /opt/BYAN/byan).
+  return path.join(APP_ROOT, 'release', 'linux-unpacked', 'byan');
 }
 
 export interface LaunchAppOptions {

@@ -78,6 +78,19 @@ function findItem(section: MenuItemConstructorOptions, label: string) {
 
 // ---------- tests ----------
 
+// The non-mac describes assert the Linux/Windows menu shape (4 sections, Ctrl
+// accelerators). On the macOS CI runner process.platform is 'darwin' natively,
+// which flips isMac at module load and prepends the app menu — first-ever mac
+// run failed 8 tests this way. Pin 'linux' at file level; the macOS describe
+// overrides it in its own beforeEach (child hooks run after parent hooks).
+const hostPlatform = process.platform;
+beforeEach(() => {
+  Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+});
+afterEach(() => {
+  Object.defineProperty(process, 'platform', { value: hostPlatform, configurable: true });
+});
+
 describe('installMenu — production (no dev env)', () => {
   beforeEach(() => {
     delete process.env.NODE_ENV;
