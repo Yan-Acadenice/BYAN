@@ -179,9 +179,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download all artifacts
+      # ONLY the installer artifacts (byan-<os>-<run>), NOT the
+      # playwright-report-* uploads — otherwise the Playwright report and trace
+      # .zip files (hash-named) leak into the release as junk assets.
+      - name: Download installer artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: byan-*
+          merge-multiple: true
           path: release-artifacts/
 
       - name: Publish release with installer assets
@@ -191,13 +196,15 @@ jobs:
           prerelease: true
           generate_release_notes: true
           fail_on_unmatched_files: false
+          # Named globs only — the mac app zip is BYAN-<version>-<arch>.zip, so
+          # BYAN-*.zip stays specific and never re-scoops arbitrary .zip noise.
           files: |
             release-artifacts/**/*.AppImage
             release-artifacts/**/*.deb
-            release-artifacts/**/*.exe
+            release-artifacts/**/BYAN-Setup-*.exe
+            release-artifacts/**/BYAN-Setup-*.exe.blockmap
             release-artifacts/**/*.dmg
-            release-artifacts/**/*.zip
+            release-artifacts/**/BYAN-*.zip
             release-artifacts/**/latest*.yml
-            release-artifacts/**/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
