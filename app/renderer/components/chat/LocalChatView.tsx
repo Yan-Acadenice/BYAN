@@ -7,9 +7,15 @@
 // persistence + resume across restarts is F3.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check } from 'lucide-react';
+import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check, Folder } from 'lucide-react';
 import MessageMarkdown from './MessageMarkdown';
 import { useLocalChat } from '../../hooks/useLocalChat';
+
+// Short display for a directory path (last segment, or the whole thing if short).
+function folderLabel(dir: string): string {
+  const parts = dir.replace(/[/\\]+$/, '').split(/[/\\]/);
+  return parts[parts.length - 1] || dir;
+}
 
 export default function LocalChatView() {
   const {
@@ -18,12 +24,23 @@ export default function LocalChatView() {
   } = useLocalChat();
   const [input, setInput] = useState('');
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  // F4 : the project directory (cwd) a new local session runs in. Defaults to the
+  // folder chosen at onboarding ; the folder button lets the user pick another.
+  const [cwd, setCwd] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionsRef = useRef<HTMLDivElement>(null);
 
-  // Load the resumable session list once on mount.
+  // Load the resumable session list + the default project dir once on mount.
   useEffect(() => { void refreshSessions(); }, [refreshSessions]);
+  useEffect(() => {
+    void (async () => {
+      try {
+        const root = await window.byanApi.store?.get?.<string>('onboarding.projectRoot');
+        if (root) setCwd(root);
+      } catch { /* no stored root — cwd stays null (server default) */ }
+    })();
+  }, []);
 
   // Close the sessions menu on an outside click.
   useEffect(() => {
@@ -43,12 +60,21 @@ export default function LocalChatView() {
 
   const submit = () => {
     if (!input.trim() || streaming) return;
-    void send(input).then(() => void refreshSessions());
+    // Bind an on-the-fly session to the selected project dir (F4).
+    void send(input, cwd ? { cwd } : undefined).then(() => void refreshSessions());
     setInput('');
   };
 
   const onNewSession = () => {
-    void newSession().then(() => void refreshSessions());
+    void newSession(cwd ? { cwd } : undefined).then(() => void refreshSessions());
+  };
+
+  // Pick a project directory for the next new session (F4).
+  const onPickFolder = async () => {
+    try {
+      const picked = await window.byanApi.fs?.openProjectDialog?.();
+      if (picked) setCwd(picked);
+    } catch { /* dialog unavailable — keep current cwd */ }
   };
 
   const onResume = (id: string) => {
@@ -72,6 +98,17 @@ export default function LocalChatView() {
             <Cpu size={12} />
             claude local
           </span>
+          {/* Project directory the next session runs in (F4) — click to change. */}
+          <button
+            type="button"
+            data-testid="local-cwd"
+            onClick={() => void onPickFolder()}
+            title={cwd || 'Choisir un dossier de projet'}
+            className="flex items-center gap-xs text-[11px] text-ink-400 hover:text-ink-200 transition-colors"
+          >
+            <Folder size={12} />
+            {cwd ? folderLabel(cwd) : 'Choisir un dossier'}
+          </button>
           {sessionId && (
             <span className="font-mono-code text-[10px] text-ink-500">session {sessionId.slice(0, 8)}</span>
           )}

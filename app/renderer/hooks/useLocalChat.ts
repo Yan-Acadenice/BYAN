@@ -33,8 +33,8 @@ export interface UseLocalChat {
   resume: (recordId: string) => Promise<void>;
   // Re-read the persisted session list.
   refreshSessions: () => Promise<void>;
-  // Send a user message ; starts a session on the fly if none exists.
-  send: (text: string) => Promise<void>;
+  // Send a user message ; starts a session on the fly (with startOpts) if none exists.
+  send: (text: string, startOpts?: LocalChatStartOpts) => Promise<void>;
   // Ask the local CLI to stop the current turn.
   stop: () => Promise<void>;
 }
@@ -133,7 +133,8 @@ export function useLocalChat(): UseLocalChat {
     }
   }, []);
 
-  const send = useCallback(async (text: string) => {
+  // startOpts (F4) : when a session is created on the fly, bind it to a cwd/agent.
+  const send = useCallback(async (text: string, startOpts?: LocalChatStartOpts) => {
     const content = text.trim();
     if (!content || streaming) return;
 
@@ -143,7 +144,7 @@ export function useLocalChat(): UseLocalChat {
       setStarting(true);
       setError(null);
       try {
-        const started = await window.byanApi.localChat.start();
+        const started = await window.byanApi.localChat.start(startOpts);
         id = started.sessionId;
         setSessionId(id);
         setMessages([]);

@@ -12,6 +12,8 @@ const mockSend = vi.fn<() => Promise<void>>();
 const mockStop = vi.fn<() => Promise<void>>();
 const mockList = vi.fn();
 const mockHistory = vi.fn();
+const mockStoreGet = vi.fn();
+const mockOpenDialog = vi.fn();
 
 let listeners: Array<(payload: unknown) => void> = [];
 function emit(msg: LocalChatMessage) {
@@ -21,7 +23,11 @@ function emit(msg: LocalChatMessage) {
 beforeEach(() => {
   listeners = [];
   Object.defineProperty(window, 'byanApi', {
-    value: { localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory } },
+    value: {
+      localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory },
+      store: { get: mockStoreGet, set: vi.fn() },
+      fs: { openProjectDialog: mockOpenDialog },
+    },
     writable: true,
     configurable: true,
   });
@@ -40,6 +46,8 @@ beforeEach(() => {
   mockStop.mockResolvedValue(undefined);
   mockList.mockResolvedValue([]);
   mockHistory.mockResolvedValue([]);
+  mockStoreGet.mockResolvedValue(null);
+  mockOpenDialog.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -93,5 +101,28 @@ describe('LocalChatView', () => {
     await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ resumeSessionId: 'chat-old' }));
     expect(mockHistory).toHaveBeenCalledWith('chat-old');
     await waitFor(() => expect(screen.getByText('reprends-moi')).toBeInTheDocument());
+  });
+
+  it('F4: defaults cwd to the onboarding project root and binds a new session to it', async () => {
+    mockStoreGet.mockResolvedValue('/home/yan/monprojet');
+    render(<LocalChatView />);
+    // The header shows the project folder (last path segment).
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/monprojet' }));
+  });
+
+  it('F4: the folder button lets the user pick another project dir', async () => {
+    mockStoreGet.mockResolvedValue('/home/yan/monprojet');
+    mockOpenDialog.mockResolvedValue('/home/yan/autre');
+    render(<LocalChatView />);
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
+
+    fireEvent.click(screen.getByTestId('local-cwd'));
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('autre'));
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/autre' }));
   });
 });

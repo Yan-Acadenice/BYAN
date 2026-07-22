@@ -140,10 +140,10 @@ describe('useLocalChat', () => {
     expect(result.current.messages.map((m) => m.content)).toEqual(['bonjour', 'salut']);
   });
 
-  it('send forwards resume/cwd opts are NOT set on a plain send (fresh start)', async () => {
+  it('send passes startOpts (cwd) through to the on-the-fly start', async () => {
     const { result } = renderHook(() => useLocalChat());
-    await act(async () => { await result.current.send('hi'); });
-    // Plain send starts with no opts (fresh, default cwd).
-    expect(mockStart).toHaveBeenCalledWith();
+    await act(async () => { await result.current.send('hi', { cwd: '/home/yan/proj' }); });
+    expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/proj' });
+    expect(mockSend).toHaveBeenCalledWith('sess-1', 'hi');
   });
 });
