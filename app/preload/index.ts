@@ -35,6 +35,8 @@ import {
   TerminalOpenResult,
   LocalProjectEntry,
   ProjectMatchQuery,
+  LocalInstallOpts,
+  LocalInstallResult,
   UpdateState,
 } from '../shared/ipc-contract';
 
@@ -107,7 +109,8 @@ const api: ByanApi = {
     list: () => invoke<LocalProjectEntry[]>(IPC_CHANNELS.projectsLocal.list),
     record: (entry: LocalProjectEntry) => invoke<LocalProjectEntry>(IPC_CHANNELS.projectsLocal.record, entry),
     find: (query: ProjectMatchQuery) => invoke<LocalProjectEntry | null>(IPC_CHANNELS.projectsLocal.find, query),
-    reveal: (dir: string) => invoke<{ ok: boolean; message?: string }>(IPC_CHANNELS.projectsLocal.reveal, dir)
+    reveal: (dir: string) => invoke<{ ok: boolean; message?: string }>(IPC_CHANNELS.projectsLocal.reveal, dir),
+    install: (opts: LocalInstallOpts) => invoke<LocalInstallResult>(IPC_CHANNELS.projectsLocal.install, opts)
   },
   app: {
     quit: () => invoke<void>(IPC_CHANNELS.app.quit),

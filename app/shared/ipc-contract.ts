@@ -284,6 +284,26 @@ export interface ProjectMatchQuery {
   name?: string;
 }
 
+// ---------- Local install / update (N2) ----------
+// Drive the local BYAN installer against a chosen folder (create a new project
+// or update an existing one). Progress streams on byan:install:progress.
+export interface LocalInstallOpts {
+  // Target directory (created if absent). Update = re-run on an existing one.
+  projectRoot: string;
+  // Defaults to the folder basename on the engine side.
+  projectName?: string;
+}
+
+export type LocalInstallProgress =
+  | { type: 'step'; index: number; total: number; id: string; label: string }
+  | { type: 'log'; line: string };
+
+export interface LocalInstallResult {
+  ok: boolean;
+  verify: { passed: number; total: number; failed: string[] };
+  launch: { command: string; channel: boolean } | null;
+}
+
 // Normalized messages pushed on byan:chat-local:message. The main bridge maps
 // the WebUI wire protocol (chat-started / chat / chat-tool / chat-complete /
 // chat-error / chat-stopped) onto this shape so the renderer stays protocol-free.
@@ -478,6 +498,8 @@ export interface ByanApi {
     find(query: ProjectMatchQuery): Promise<LocalProjectEntry | null>;
     // Open the folder in the OS file manager.
     reveal(dir: string): Promise<{ ok: boolean; message?: string }>;
+    // Install / update BYAN into a folder (N2). Progress via byan:install:progress.
+    install(opts: LocalInstallOpts): Promise<LocalInstallResult>;
   };
   app: {
     quit(): Promise<void>;
@@ -549,7 +571,8 @@ export const IPC_CHANNELS = {
     list: 'byan:projectsLocal:list',
     record: 'byan:projectsLocal:record',
     find: 'byan:projectsLocal:find',
-    reveal: 'byan:projectsLocal:reveal'
+    reveal: 'byan:projectsLocal:reveal',
+    install: 'byan:projectsLocal:install'
   },
   app: {
     quit: 'byan:app:quit',
@@ -585,6 +608,7 @@ export const IPC_CHANNELS = {
 // Event channels pushed from main -> renderer (used with byanEvents.on):
 //   byan:chat:chunk         — ChatChunkPayload
 //   byan:chat-local:message — LocalChatMessage (F2)
+//   byan:install:progress   — LocalInstallProgress (N2)
 //   byan:mcp:statusChange   — McpStatusChangePayload
 //   byan:update:status      — UpdateState
 //   byan:deepLink           — DeepLink (F17)

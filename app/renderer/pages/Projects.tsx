@@ -1,9 +1,10 @@
 // Projects — project list wired to live byan_web API.
 
 import React, { useEffect, useState } from 'react';
-import { Search, FolderOpen, Plus, ArrowLeft, Loader2, AlertCircle, Globe, Lock } from 'lucide-react';
+import { Search, FolderOpen, Plus, ArrowLeft, Loader2, AlertCircle, Globe, Lock, HardDriveDownload } from 'lucide-react';
 import ProjectDetail from './ProjectDetail';
 import type { ByanProject } from '../../shared/ipc-contract';
+import { useInstallProject } from '../hooks/useInstallProject';
 
 type Filter = 'all' | 'recent';
 
@@ -37,6 +38,9 @@ export default function Projects() {
       setLoading(false);
     }
   };
+
+  // N2 : install / update BYAN into a chosen folder ; reload the list on success.
+  const install = useInstallProject(() => { void load(); });
 
   useEffect(() => { void load(); }, []);
 
@@ -79,11 +83,40 @@ export default function Projects() {
           <p className="section-title">Workspace</p>
           <h1 className="page-title mt-0.5">Projects</h1>
         </div>
-        <button type="button" className="btn-primary flex items-center gap-xs py-2 px-md">
-          <Plus size={14} />
+        <button
+          type="button"
+          data-testid="install-project-btn"
+          onClick={() => void install.run()}
+          disabled={install.installing}
+          className="btn-primary flex items-center gap-xs py-2 px-md disabled:opacity-60"
+          title="Choisir un dossier et installer / mettre a jour BYAN dedans"
+        >
+          {install.installing ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           New project
         </button>
       </div>
+
+      {/* N2 : live install progress + result */}
+      {(install.installing || install.result || install.error) && (
+        <div data-testid="install-panel" className="bg-ink-900 border border-ink-800 rounded-lg p-md space-y-xs">
+          <div className="flex items-center gap-xs text-ink-200 font-body-sm text-body-sm">
+            <HardDriveDownload size={14} />
+            {install.installing
+              ? (install.step ? `Etape ${install.step.index}/${install.step.total} — ${install.step.label}` : 'Installation en cours...')
+              : install.error
+              ? `Echec : ${install.error}`
+              : `Termine : ${install.result?.verify.passed}/${install.result?.verify.total} verifications OK`}
+          </div>
+          {install.logs.length > 0 && (
+            <pre className="font-mono-code text-[11px] text-ink-500 max-h-32 overflow-y-auto whitespace-pre-wrap">
+              {install.logs.slice(-8).join('\n')}
+            </pre>
+          )}
+          {!install.installing && (
+            <button type="button" className="btn-ghost text-xs" onClick={install.reset}>Fermer</button>
+          )}
+        </div>
+      )}
 
       {/* Search + filter bar */}
       <div className="flex items-center gap-md">
