@@ -291,6 +291,30 @@ describe('auth.switchMode (F1)', () => {
     expect(r.ok).toBe(false);
     expect(mockSecureStore.set).not.toHaveBeenCalledWith('auth.mode', expect.anything());
   });
+
+  it('reuses the stored token when switching to cloud with none supplied', async () => {
+    // A stored token means a prior cloud/custom sign-in; the in-app toggle must
+    // not re-prompt. get(auth.token) → the stored token; probe succeeds.
+    mockSecureStore.get.mockImplementation(async (k: string) =>
+      k === 'auth.token' ? 'byan_stored' : null
+    );
+    mockFetch.mockResolvedValue(makeResponse(200));
+    const r = await auth.switchMode({ mode: 'cloud' });
+    expect(r.ok).toBe(true);
+    // The probe used the stored token in the Authorization header.
+    const [, init] = mockFetch.mock.calls[0];
+    expect((init?.headers as Record<string, string>).Authorization).toBe('ApiKey byan_stored');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'cloud');
+  });
+
+  it('fails with invalid_token when switching to cloud and no token is stored', async () => {
+    mockSecureStore.get.mockResolvedValue(null);
+    const r = await auth.switchMode({ mode: 'cloud' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toBe('invalid_token');
+    // No probe fired — login short-circuits on the missing token.
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 });
 
 describe('auth.getToken', () => {

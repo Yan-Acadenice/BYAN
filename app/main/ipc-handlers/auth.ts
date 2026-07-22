@@ -227,8 +227,19 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
 // caches), then tell the renderer to re-read its session so the whole app
 // re-routes live. Returns the same AuthResult as login so the caller can show
 // an error if the target mode is unreachable.
+//
+// Token fallback : the in-app switcher toggles modes without re-prompting for a
+// token. cloud/custom REQUIRE one, so when the caller passes none we reuse the
+// token already in the keychain. This makes a local<->cloud toggle one-click
+// after the user has signed in once ; when no usable token exists, login returns
+// invalid_token and the UI routes the user to sign in for that mode.
 export async function switchMode(opts: AuthLoginOptions): Promise<AuthResult> {
-  const result = await login(opts);
+  let effective = opts;
+  if ((opts.mode === 'cloud' || opts.mode === 'custom') && !opts.token) {
+    const stored = await secureStore.get(AUTH_TOKEN_KEY);
+    if (stored) effective = { ...opts, token: stored };
+  }
+  const result = await login(effective);
   if (result.ok) broadcastAuthChanged('login');
   return result;
 }
