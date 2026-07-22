@@ -1,9 +1,11 @@
 // Dashboard — post-login home screen.
 // Wired to live byan_web API via IPC: projects count + recent sessions.
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FolderOpen, History, Terminal, Zap, Upload, ArrowUpRight, Brain, Loader2, AlertCircle } from 'lucide-react';
 import type { ByanProject, ByanSession } from '../../shared/ipc-contract';
+import { useOnlineStatus, type OnlineStatus } from '../hooks/useOnlineStatus';
+import { useAuthSession } from '../context/AuthSessionContext';
 
 interface DashboardProps {
   onNavigate: (page: string) => void;
@@ -11,11 +13,37 @@ interface DashboardProps {
 
 type LoadState = 'loading' | 'error' | 'ok';
 
+// F7 : the hero connectivity line is mode-aware and live, not a frozen "Connected".
+// In LOCAL mode, being offline from byan_web is expected — the local chat does not
+// depend on it — so we show a Local badge, never a scary "offline". In cloud/custom
+// mode the live online status (online / unstable / offline) drives the label+dot.
+export function connectivity(mode: string | undefined, status: OnlineStatus): { dot: string; label: string } {
+  if (mode === 'local') {
+    return { dot: 'bg-acadenice-teal', label: 'Local — ce PC (le chat local ne dépend pas de byan_web)' };
+  }
+  if (status === 'online') return { dot: 'bg-emerald', label: 'Connecté à byan_web' };
+  if (status === 'unstable') return { dot: 'bg-amber-500', label: 'Connexion instable à byan_web' };
+  return { dot: 'bg-red-600', label: 'Hors ligne — byan_web injoignable' };
+}
+
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const [projects, setProjects] = useState<ByanProject[]>([]);
   const [sessions, setSessions] = useState<ByanSession[]>([]);
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState<string>('');
+  // Live, mode-aware connectivity for the hero line (F7). Hooks before any return.
+  const { session } = useAuthSession();
+  // In LOCAL mode the probe must NOT hit byan_web (F1) — it resolves locally ;
+  // in cloud/custom it pings byan_web.me. Memoized per mode so the interval only
+  // re-inits on a mode switch, not every render.
+  const ping = useCallback(
+    () => (session?.mode === 'local'
+      ? Promise.resolve()
+      : (window.byanApi?.byanWeb?.me?.() ?? Promise.reject(new Error('no api')))),
+    [session?.mode]
+  );
+  const online = useOnlineStatus({ ping });
+  const conn = connectivity(session?.mode, online);
 
   const load = async () => {
     setState('loading');
@@ -61,9 +89,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       {/* Hero */}
       <section className="space-y-xs">
         <h2 className="font-display text-display text-white">Welcome back.</h2>
-        <div className="flex items-center gap-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald" />
-          <p className="font-caption text-caption text-ink-400">Connected to byan_web</p>
+        <div className="flex items-center gap-xs" data-testid="dashboard-connectivity">
+          <span className={`w-1.5 h-1.5 rounded-full ${conn.dot}`} />
+          <p className="font-caption text-caption text-ink-400">{conn.label}</p>
         </div>
       </section>
 
