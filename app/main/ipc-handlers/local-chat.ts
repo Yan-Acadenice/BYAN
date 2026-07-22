@@ -22,6 +22,7 @@ import { IpcError, wrap } from './_error';
 import type { LocalServer } from '../local-server';
 import { localSessions, resolveProjectRoot } from '../local-data';
 import { secureStore } from '../secure-store';
+import { resolveExecutable, spawnEnv } from '../resolve-bin';
 
 // The project dir chosen at onboarding (persisted by the renderer via the store).
 // Fallback for the default cwd when the registry has no entry yet.
@@ -35,7 +36,7 @@ async function onboardingRoot(): Promise<string | undefined> {
 }
 
 // A spawn signature narrow enough for tests to inject a fake process.
-export type SpawnFn = (cmd: string, args: string[], opts: { cwd: string; stdio: [string, string, string] }) => ChildProcess;
+export type SpawnFn = (cmd: string, args: string[], opts: { cwd: string; stdio: [string, string, string]; env?: NodeJS.ProcessEnv }) => ChildProcess;
 
 interface Session {
   proc: ChildProcess;
@@ -50,6 +51,13 @@ export interface LocalClaudeDeps {
   // Default cwd when a start() omits one : first local project (registry), then
   // the onboarding project dir. May be sync (tests) or async.
   defaultCwd?: () => (string | undefined) | Promise<string | undefined>;
+  // Resolve the absolute path of the claude binary (GUI-launch PATH fix). Default:
+  // resolve-bin.resolveExecutable. Returns null when nowhere -> we fall back to the
+  // bare name. Injected in tests.
+  resolveBin?: (name: string) => string | null;
+  // Env for the spawned claude (PATH augmented so claude + its MCP node child
+  // resolve). Default: resolve-bin.spawnEnv.
+  spawnEnv?: () => NodeJS.ProcessEnv;
 }
 
 // Cap on concurrent local claude processes — a runaway renderer looping start()
@@ -62,6 +70,8 @@ export class LocalClaudeBridge {
   private readonly spawnFn: SpawnFn;
   private readonly broadcast: (msg: LocalChatMessage) => void;
   private readonly defaultCwd: () => (string | undefined) | Promise<string | undefined>;
+  private readonly resolveBin: (name: string) => string | null;
+  private readonly spawnEnv: () => NodeJS.ProcessEnv;
   private readonly sessions = new Map<string, Session>();
 
   constructor(deps: LocalClaudeDeps = {}) {
@@ -69,6 +79,8 @@ export class LocalClaudeBridge {
     this.broadcast = deps.broadcast ?? defaultBroadcast;
     // Default: the first registered local project, else the onboarding project dir.
     this.defaultCwd = deps.defaultCwd ?? (async () => resolveProjectRoot() ?? (await onboardingRoot()));
+    this.resolveBin = deps.resolveBin ?? resolveExecutable;
+    this.spawnEnv = deps.spawnEnv ?? spawnEnv;
   }
 
   // Spawn a local claude in the project directory. cwd must be an existing
@@ -96,9 +108,16 @@ export class LocalClaudeBridge {
     // in native mode = reopen claude in that project's dir (the renderer passes
     // its cwd) ; true context-reattach needs claude's uuid persisted first (suite).
 
+    // Resolve claude to an ABSOLUTE path and spawn it with the user's real PATH.
+    // A windowed launch (double-click) inherits a truncated PATH, so a bare
+    // 'claude' raised "spawn claude ENOENT" in the field. resolveBin scans the
+    // login-shell PATH + common bin dirs ; env carries that PATH to claude and
+    // its own MCP node child. Fall back to the bare name if resolution finds
+    // nothing (dev where PATH is fine).
+    const bin = this.resolveBin('claude') || 'claude';
     let proc: ChildProcess;
     try {
-      proc = this.spawnFn('claude', args, { cwd, stdio: ['pipe', 'pipe', 'pipe'] });
+      proc = this.spawnFn(bin, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: this.spawnEnv() });
     } catch (err) {
       throw new IpcError('INTERNAL', `claude introuvable ou non lançable: ${err instanceof Error ? err.message : String(err)}`);
     }

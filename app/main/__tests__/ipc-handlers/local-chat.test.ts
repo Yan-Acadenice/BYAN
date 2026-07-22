@@ -23,7 +23,7 @@ class FakeProc extends EventEmitter {
 let cwd: string;
 const origHome = process.env.BYAN_HOME;
 
-function makeBridge() {
+function makeBridge(opts: { resolveBin?: (n: string) => string | null } = {}) {
   const broadcasts: LocalChatMessage[] = [];
   const fake = new FakeProc();
   const spawnFn = vi.fn((() => fake) as unknown as SpawnFn);
@@ -31,6 +31,9 @@ function makeBridge() {
     spawnFn,
     broadcast: (m) => broadcasts.push(m),
     defaultCwd: () => cwd,
+    // Deterministic: default to bare 'claude' (resolver finds nothing) + a fixed env.
+    resolveBin: opts.resolveBin ?? (() => null),
+    spawnEnv: () => ({ PATH: '/fake/bin' }),
   });
   return { bridge, fake, spawnFn, broadcasts };
 }
@@ -56,6 +59,14 @@ describe('LocalClaudeBridge.start', () => {
     expect(args).toEqual(['--print', '--output-format', 'stream-json', '--input-format', 'stream-json']);
     expect(opts.cwd).toBe(cwd);
     expect(broadcasts[0]).toMatchObject({ type: 'started', cli: 'claude' });
+  });
+
+  it('spawns the RESOLVED absolute claude path with the augmented PATH env (ENOENT fix)', async () => {
+    const { bridge, spawnFn } = makeBridge({ resolveBin: () => '/home/yan/.local/bin/claude' });
+    await bridge.start({ cwd });
+    const [binCmd, , opts] = spawnFn.mock.calls[0];
+    expect(binCmd).toBe('/home/yan/.local/bin/claude'); // absolute, not the bare name
+    expect(opts.env).toEqual({ PATH: '/fake/bin' });    // real PATH handed to claude
   });
 
   it('adds --agent but NEVER --resume (a record id is not claude uuid)', async () => {

@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { IPC_CHANNELS, TerminalOpenOpts, TerminalOpenResult } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
+import { resolveExecutable, getAugmentedPath, spawnEnv } from '../resolve-bin';
 
 // Linux emulators we try, most-common first. The first one found on PATH wins.
 const LINUX_TERMINALS = [
@@ -69,9 +70,11 @@ export function buildLaunch(
   }
 }
 
-// Resolve the first Linux terminal emulator present on PATH.
-function detectLinuxTerminal(): string | null {
-  const dirs = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
+// Resolve the first Linux terminal emulator present on PATH. Scans the AUGMENTED
+// PATH (login-shell + common dirs), not the truncated GUI-launch PATH — otherwise
+// a double-clicked app finds no emulator and the terminal never opens (D-02).
+function detectLinuxTerminal(pathString: string = getAugmentedPath()): string | null {
+  const dirs = pathString.split(path.delimiter).filter(Boolean);
   for (const term of LINUX_TERMINALS) {
     for (const dir of dirs) {
       try {
@@ -113,6 +116,16 @@ export async function openTerminal(opts: TerminalOpenOpts): Promise<TerminalOpen
     return { ok: false, reason: 'bad-command', message: 'Commande non autorisée (caractères interdits).' };
   }
 
+  // GUI-launch PATH fix (D-02) : when the command starts with the bare `claude`,
+  // substitute its ABSOLUTE path so it runs inside the terminal regardless of the
+  // emulator's own (possibly truncated) shell PATH. An absolute path still passes
+  // SAFE_COMMAND (it allows / and .). Extra args after `claude ` are preserved.
+  let effectiveCommand = command;
+  if (command === 'claude' || command.startsWith('claude ')) {
+    const abs = resolveExecutable('claude');
+    if (abs) effectiveCommand = abs + command.slice('claude'.length);
+  }
+
   const platform = process.platform;
 
   let terminalBin: string | undefined;
@@ -124,10 +137,12 @@ export async function openTerminal(opts: TerminalOpenOpts): Promise<TerminalOpen
     terminalBin = found;
   }
 
-  const { file, args } = buildLaunch(platform, opts.cwd, command, terminalBin);
+  const { file, args } = buildLaunch(platform, opts.cwd, effectiveCommand, terminalBin);
 
   try {
-    const child = spawn(file, args, { cwd: opts.cwd, detached: true, stdio: 'ignore' });
+    // env carries the augmented PATH so the emulator and the shell inside it (and
+    // claude's own MCP node child) resolve user-installed tools.
+    const child = spawn(file, args, { cwd: opts.cwd, detached: true, stdio: 'ignore', env: spawnEnv() });
     child.unref();
     return { ok: true, terminal: terminalBin || file };
   } catch (err) {

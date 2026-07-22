@@ -6,10 +6,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { ExecException } from 'child_process';
 
-// Mock child_process BEFORE importing the module under test.
-vi.mock('child_process', () => ({
-  exec: vi.fn(),
-}));
+// Mock child_process BEFORE importing the module under test. Partial mock:
+// exec is stubbed here ; spawnSync must stay real because resolve-bin (pulled in
+// transitively for the augmented-PATH env) imports it. spawnSync only asks the
+// login shell for its PATH — harmless and bounded in a test.
+vi.mock('child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('child_process')>();
+  return { ...actual, exec: vi.fn() };
+});
 
 import { exec as _exec } from 'child_process';
 const exec = _exec as ReturnType<typeof vi.fn>;

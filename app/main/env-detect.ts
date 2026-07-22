@@ -10,14 +10,18 @@
 
 import { exec } from 'child_process';
 import type { CliDetection } from '../shared/ipc-contract';
+import { spawnEnv } from './resolve-bin';
 
 const TIMEOUT_MS = 5_000;
 
 // Promisify exec with an enforced timeout.
 // Returns the trimmed stdout on success, null on non-zero exit or timeout.
+// env carries the augmented PATH (login-shell + common dirs) so `which claude`
+// finds a binary installed via nvm / fish_add_path / ~/.local/bin — otherwise a
+// windowed launch probes a truncated PATH and reports everything absent (D-05).
 function probe(command: string): Promise<string | null> {
   return new Promise((resolve) => {
-    const child = exec(command, { timeout: TIMEOUT_MS }, (err, stdout) => {
+    const child = exec(command, { timeout: TIMEOUT_MS, env: spawnEnv() }, (err, stdout) => {
       if (err) {
         resolve(null);
         return;
