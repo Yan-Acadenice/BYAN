@@ -23,7 +23,7 @@ const req = createRequire(__filename);
 // Minimal shape of the slice of install-engine we call.
 interface InstallEngine {
   runInstall(
-    options: { projectRoot: string; projectName?: string; templateDir?: string },
+    options: { projectRoot: string; projectName?: string; templateDir?: string; rtk?: boolean },
     hooks: {
       onStep?: (s: { index: number; total: number; id: string; label: string }) => void;
       log?: (line: string) => void;
@@ -43,20 +43,57 @@ function enginePath(): string {
 }
 
 // install-engine ships OUTSIDE the asar (resources/install/lib) but its bare deps
-// (fs-extra, js-yaml) live in the app's asar-unpacked node_modules. A bare require
-// from resources/install/lib can't see them, so we add app.asar.unpacked/node_modules
-// to the global module search path (NODE_PATH + Module._initPaths) before loading
-// the engine. Same deps the forked WebUI server reaches via its child NODE_PATH.
+// (fs-extra, js-yaml, chalk...) live in the app's asar-unpacked node_modules.
+type ResolveFn = (request: string, parent: unknown, isMain: boolean, options?: { paths?: string[] }) => string;
+interface NodeModuleCtor {
+  _initPaths?: () => void;
+  _resolveFilename?: ResolveFn;
+  __byanUnpackedPatched?: boolean;
+}
+
+// The real fix (v3) : Electron's packaged main process does NOT honour
+// Module.globalPaths (NODE_PATH) for a bare require coming from a file OUTSIDE the
+// asar. NODE_PATH + _initPaths resolves fs-extra under plain Node but NOT under a
+// packaged Electron main — so the engine crashed with "Cannot find module
+// 'fs-extra'" in the field despite the deps being unpacked. Instead of relying on
+// globalPaths, we add a fallback on Module._resolveFilename : if the normal lookup
+// throws, retry once with the unpacked node_modules as an explicit search path.
+// Fallback-only -> anything that already resolves is untouched ; transitive
+// requires (claude-native-setup -> fs-extra, ...) are covered because they all
+// pass through _resolveFilename. Idempotent via a marker.
+export function patchModuleResolution(M: NodeModuleCtor | undefined, unpacked: string): boolean {
+  if (!M || typeof M._resolveFilename !== 'function' || M.__byanUnpackedPatched) return false;
+  const orig = M._resolveFilename.bind(M);
+  M._resolveFilename = function patched(request, parent, isMain, options) {
+    try {
+      return orig(request, parent, isMain, options);
+    } catch (err) {
+      try {
+        return orig(request, parent, isMain, { ...(options || {}), paths: [unpacked] });
+      } catch {
+        throw err; // preserve the original resolution error
+      }
+    }
+  };
+  M.__byanUnpackedPatched = true;
+  return true;
+}
+
 function ensureUnpackedNodePath(): void {
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (!resourcesPath) return;
   const unpacked = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules');
   if (!fs.existsSync(unpacked)) return;
+  // NODE_PATH + _initPaths first : harmless, and it does help plain Node and any
+  // child process we later spawn (they inherit NODE_PATH).
   const cur = process.env.NODE_PATH || '';
-  if (cur.split(path.delimiter).includes(unpacked)) return;
-  process.env.NODE_PATH = cur ? `${unpacked}${path.delimiter}${cur}` : unpacked;
-  const mod = req('node:module') as { Module?: { _initPaths?: () => void } };
+  if (!cur.split(path.delimiter).includes(unpacked)) {
+    process.env.NODE_PATH = cur ? `${unpacked}${path.delimiter}${cur}` : unpacked;
+  }
+  const mod = req('node:module') as { Module?: NodeModuleCtor };
   mod.Module?._initPaths?.();
+  // The decisive part for packaged Electron : the _resolveFilename fallback.
+  patchModuleResolution(mod.Module, unpacked);
 }
 
 function loadEngine(): InstallEngine {
@@ -97,8 +134,14 @@ export async function runProjectInstall(
   const runInstall = deps.runInstall ?? loadEngine().runInstall;
   const templateDir = deps.templateDir ?? resolveTemplateRoot();
 
+  // rtk:false — the desktop "New project" installs the BYAN platform INTO the
+  // chosen folder ; it must not try to install rtk (a global Rust CLI) as a side
+  // effect. In packaged Electron the PATH rarely sees a user's existing rtk, so
+  // the engine's rtk step wrongly thought it absent and blocked the install up
+  // to its 5-minute spawnSync timeout ("galere a l'etape 8"). rtk stays an
+  // explicit, separate user install.
   return runInstall(
-    { projectRoot: opts.projectRoot, projectName: opts.projectName, templateDir },
+    { projectRoot: opts.projectRoot, projectName: opts.projectName, templateDir, rtk: false },
     {
       onStep: (s) => onProgress({ type: 'step', index: s.index, total: s.total, id: s.id, label: s.label }),
       log: (line) => onProgress({ type: 'log', line }),
