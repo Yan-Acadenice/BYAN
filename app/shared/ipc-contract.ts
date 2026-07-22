@@ -218,22 +218,23 @@ export type ChatChunkPayload =
   | { streamId: string; type: 'end'; messageId: string; credentialSource: string | null }
   | { streamId: string; type: 'error'; error: string };
 
-// ---------- Local chat (F2) ----------
-// Local chat talks to the `claude` CLI on this PC through the forked WebUI
-// server's WebSocket bridge (install/src/webui/server.js). Main holds the single
-// ws:// connection to the local server ; the renderer drives it over IPC and
-// receives streamed output via the byan:chat-local:message event. This is the
-// local twin of the cloud SSE path above — same UX, no byan_web round-trip.
+// ---------- Local chat (N3) ----------
+// Native local chat : main spawns the `claude` CLI directly in the project's
+// directory (no server, no ws, no token). claude loads the byan MCP server from
+// that dir's .mcp.json (installed by N2). Streamed output arrives on the
+// byan:chat-local:message event ; the renderer drives it over IPC.
 
 export interface LocalChatStartOpts {
-  // The local CLI to drive. Defaults to 'claude' on the server side.
+  // Reserved. Native mode always drives `claude` ; other CLIs are not spawned
+  // from renderer-supplied values (a spawn-any-binary surface). Currently ignored.
   cli?: string;
-  // Optional agent slug to preload in the session.
+  // Optional agent slug (claude --agent).
   agent?: string | null;
-  // Resume an existing local session by its record id (F3). When set, the server
-  // reattaches to that session (--resume) and reuses its cwd.
+  // A session record id the UI asked to "reprendre". Native mode does NOT map it
+  // to claude --resume (a record id is not claude's own uuid) ; the UI reopens
+  // the session's project instead by passing its cwd.
   resumeSessionId?: string;
-  // Working directory for a fresh session (F3/F4). Ignored when resuming.
+  // The project directory claude runs in (must be an absolute existing dir).
   cwd?: string;
 }
 

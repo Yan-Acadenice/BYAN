@@ -18,8 +18,10 @@ const IS_DEV = process.env.BYAN_DEV === '1';
 // Removing it would require nonces threaded through every component — out of scope for F12.
 // `connect-src` whitelists:
 //   - byan-api.stark.a3n.fr (cloud REST + WSS for sync, see F19)
-//   - ws://localhost:* (F3 local mode WebSocket bridge)
 //   - *.googleapis.com (MCP gdrive integration)
+// N3 note: the old ws://localhost:* entry (the F2 WebSocket chat bridge) is
+// removed — native local chat spawns claude in the main process, the renderer
+// opens no socket, so no local ws origin is needed.
 export const CSP_DIRECTIVES: Readonly<Record<string, readonly string[]>> = Object.freeze({
   'default-src': ["'self'"],
   'script-src': IS_DEV ? ["'self'", "'unsafe-inline'"] : ["'self'"],
@@ -29,7 +31,6 @@ export const CSP_DIRECTIVES: Readonly<Record<string, readonly string[]>> = Objec
   'connect-src': [
     "'self'",
     'https://byan-api.stark.a3n.fr',
-    'ws://localhost:*',
     'wss://byan-api.stark.a3n.fr',
     'https://*.googleapis.com'
   ],

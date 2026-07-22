@@ -77,9 +77,9 @@ export default function LocalChatView() {
     } catch { /* dialog unavailable — keep current cwd */ }
   };
 
-  const onResume = (id: string) => {
+  const onResume = (id: string, dir?: string | null) => {
     setSessionsOpen(false);
-    void resume(id);
+    void resume(id, dir ?? undefined);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -142,7 +142,7 @@ export default function LocalChatView() {
                       type="button"
                       role="menuitem"
                       data-testid={`local-session-${s.id}`}
-                      onClick={() => onResume(s.id)}
+                      onClick={() => onResume(s.id, s.cwd)}
                       className="w-full text-left px-md py-sm hover:bg-ink-800 transition-colors"
                     >
                       <div className="flex items-center justify-between">

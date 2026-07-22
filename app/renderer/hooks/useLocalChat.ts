@@ -29,8 +29,8 @@ export interface UseLocalChat {
   sessions: LocalChatSessionSummary[];
   // Start a fresh local session (drops the current thread).
   newSession: (opts?: LocalChatStartOpts) => Promise<void>;
-  // Resume an existing session by record id : loads its history then reattaches.
-  resume: (recordId: string) => Promise<void>;
+  // Resume a session : reopens claude in the session's project dir (cwd).
+  resume: (recordId: string, cwd?: string) => Promise<void>;
   // Re-read the persisted session list.
   refreshSessions: () => Promise<void>;
   // Send a user message ; starts a session on the fly (with startOpts) if none exists.
@@ -192,14 +192,17 @@ export function useLocalChat(): UseLocalChat {
     }
   }, []);
 
-  const resume = useCallback(async (recordId: string) => {
+  // cwd = the session's project dir (from its list summary). Native "reprendre"
+  // reopens claude in that dir (right project + right .mcp.json), fresh — true
+  // context reattach is a follow-up (needs claude's own session uuid persisted).
+  const resume = useCallback(async (recordId: string, cwd?: string) => {
     setStarting(true);
     setError(null);
     try {
-      // Seed the thread with the stored history so the user sees the past turns.
+      // Seed the thread with any stored history so the user sees prior turns.
       const history = (await window.byanApi.localChat.history?.(recordId)) ?? [];
       setMessages(history.map((h, i) => ({ id: `h-${i}`, role: toRole(h.role), content: h.content })));
-      const { sessionId: id } = await window.byanApi.localChat.start({ resumeSessionId: recordId });
+      const { sessionId: id } = await window.byanApi.localChat.start(cwd ? { cwd } : undefined);
       setSessionId(id);
       accRef.current = '';
       setStreamText('');

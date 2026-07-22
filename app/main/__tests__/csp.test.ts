@@ -35,8 +35,8 @@ describe('CSP_DIRECTIVES', () => {
     expect(CSP_DIRECTIVES['connect-src']).toContain('wss://byan-api.stark.a3n.fr');
   });
 
-  it('whitelists localhost WebSocket for F3 local mode', () => {
-    expect(CSP_DIRECTIVES['connect-src']).toContain('ws://localhost:*');
+  it('does NOT whitelist a localhost WebSocket (N3 native chat has no renderer socket)', () => {
+    expect(CSP_DIRECTIVES['connect-src']).not.toContain('ws://localhost:*');
   });
 
   it('whitelists Google APIs for MCP gdrive', () => {

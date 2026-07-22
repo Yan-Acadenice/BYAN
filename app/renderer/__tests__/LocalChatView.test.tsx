@@ -97,7 +97,8 @@ describe('LocalChatView', () => {
     await waitFor(() => expect(screen.getByTestId('local-session-chat-old')).toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId('local-session-chat-old'));
-    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ resumeSessionId: 'chat-old' }));
+    // Native resume : reopen claude in the session's project dir (cwd), not --resume.
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/p' }));
     expect(mockHistory).toHaveBeenCalledWith('chat-old');
     await waitFor(() => expect(screen.getByText('reprends-moi')).toBeInTheDocument());
   });

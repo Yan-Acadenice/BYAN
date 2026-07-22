@@ -125,17 +125,18 @@ describe('useLocalChat', () => {
     expect(result.current.sessions[0].id).toBe('chat-a');
   });
 
-  it('resume seeds history then reattaches with resumeSessionId', async () => {
+  it('resume reopens claude in the session project dir (cwd), seeding any history', async () => {
     mockHistory.mockResolvedValue([
       { role: 'user', content: 'bonjour' },
       { role: 'assistant', content: 'salut' },
     ]);
-    mockStart.mockResolvedValue({ sessionId: 'chat-a' });
+    mockStart.mockResolvedValue({ sessionId: 'sess-2' });
     const { result } = renderHook(() => useLocalChat());
-    await act(async () => { await result.current.resume('chat-a'); });
+    await act(async () => { await result.current.resume('chat-a', '/home/yan/proj'); });
     expect(mockHistory).toHaveBeenCalledWith('chat-a');
-    expect(mockStart).toHaveBeenCalledWith({ resumeSessionId: 'chat-a' });
-    expect(result.current.sessionId).toBe('chat-a');
+    // Native: reopen in the project dir, NOT --resume by record id.
+    expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/proj' });
+    expect(result.current.sessionId).toBe('sess-2');
     expect(result.current.messages.map((m) => m.content)).toEqual(['bonjour', 'salut']);
   });
 
