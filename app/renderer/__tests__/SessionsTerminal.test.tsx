@@ -1,7 +1,6 @@
 // Sessions — F5 "open in external terminal" button. Verifies the button reads the
 // onboarding project dir and calls terminal.open, surfacing the result as a toast.
 
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Sessions from '../pages/Sessions';

@@ -6,7 +6,6 @@
 // the switch through the real AuthSessionProvider + ToastProvider so the
 // broadcast → re-read wiring is exercised end to end.
 
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { AuthResult, AuthSession, ServerStatus, ServerSpawnResult } from '../../shared/ipc-contract';

@@ -1,7 +1,6 @@
 // LocalChatView tests — renders the local chat surface with a mocked bridge and
 // drives it through the DOM: type, send, stream, complete.
 
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LocalChatView from '../components/chat/LocalChatView';

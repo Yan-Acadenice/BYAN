@@ -20,6 +20,7 @@
 
 import type { IpcMain } from 'electron';
 import { BrowserWindow } from 'electron';
+import WebSocket from 'ws';
 import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
 import type { LocalServer } from '../local-server';
@@ -32,11 +33,6 @@ export interface WsLike {
   close(): void;
 }
 export type WsFactory = (url: string) => WsLike;
-
-// ws ships no bundled TS types. We only need the constructor and immediately cast
-// to WsLike, so a typed require avoids pulling @types/ws for one call site.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const WebSocketImpl: new (url: string) => WsLike = require('ws');
 
 // ws readyState OPEN. Kept local so the fake socket in tests need not import ws.
 const WS_OPEN = 1;
@@ -69,7 +65,7 @@ export class LocalChatBridge {
 
   constructor(deps: LocalChatDeps) {
     this.getPort = deps.getPort;
-    this.wsFactory = deps.wsFactory ?? ((url: string) => new WebSocketImpl(url));
+    this.wsFactory = deps.wsFactory ?? ((url: string) => new WebSocket(url) as unknown as WsLike);
     this.broadcast = deps.broadcast ?? defaultBroadcast;
   }
 

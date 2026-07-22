@@ -4,7 +4,6 @@
 // Electron. Drives the byan:chat-local:message event stream to assert chunk
 // accumulation, complete → assistant message, error handling, and start-on-send.
 
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useLocalChat } from '../hooks/useLocalChat';

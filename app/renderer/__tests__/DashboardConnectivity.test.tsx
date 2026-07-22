@@ -2,7 +2,6 @@
 // LOCAL mode shows a Local badge (never "offline"), cloud mode shows the live
 // byan_web status.
 
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import Dashboard, { connectivity } from '../pages/Dashboard';

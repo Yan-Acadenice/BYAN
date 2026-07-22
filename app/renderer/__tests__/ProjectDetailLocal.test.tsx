@@ -1,7 +1,6 @@
 // ProjectDetail F6 — the local folder card shows when the project maps to a
 // registry entry, and "Ouvrir" reveals it in the OS file manager.
 
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ProjectDetail from '../pages/ProjectDetail';
