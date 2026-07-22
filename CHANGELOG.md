@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — App Desktop : mode local, chat local claude, sessions, terminal, dossier projet (2026-07-22)
+
+Chantier runtime de l'app Desktop Electron (`app/`) : rendre le mode local reel et
+utilisable de bout en bout, sans dependre de byan_web. Sept features (F1..F7),
+une par commit, chacune passee par review (Quinn + compliance adversarial) et
+tests.
+
+- **F1 — Mode local/cloud partout.** Corrige le bug racine : le login
+  persistait le token mais pas l'URL ni le mode, donc le mode local tapait
+  quand meme sur le cloud. Le mode + l'URL sont maintenant persistes ; un
+  contexte de session partage (`AuthSessionContext`) rend le mode lisible partout
+  et un composant `ModeSwitcher` (barre de statut) bascule local<->cloud en un
+  clic, sans re-login (reutilise le token stocke).
+- **F2 — Chat local via le claude local.** Le processus principal tient une
+  connexion WebSocket vers le serveur webui forke et la proxifie en IPC (le rendu
+  n'ouvre pas de socket lui-meme : conforme a la CSP et au bac a sable). La page
+  Chat est consciente du mode : `LocalChatView` en local, chat cloud sinon (aucun
+  appel cloud en local). Le bouton "New session" (mort) du tableau de bord est
+  branche.
+- **F3 — Session claude : creer a la volee ou reprendre.** Persistance du
+  `session_id` claude + du dossier (`cwd`) par session, drapeau `--resume`,
+  liste + historique des sessions, UI de reprise. Garde anti-traversee sur les
+  ids de session ; les reponses de l'assistant sont persistees (un fil repris
+  affiche les deux cotes).
+- **F4 — Nouvelle session sur un projet local.** La session se lie a un dossier
+  (par defaut celui de l'onboarding, sinon un selecteur de dossier).
+- **F5 — Lancer claude dans un terminal externe (multi-OS).** Handler `terminal.ts`
+  (macOS/Windows/Linux). La frontiere de confiance est le handler : `cwd` valide
+  (dossier absolu existant) et commande contrainte a une liste blanche
+  (anti-injection). Bouton dans la page Sessions.
+- **F6 — Dossier projet local visible.** Registre `~/.byan/projects.json` (ecrit
+  a l'onboarding cote Desktop), affiche dans le detail projet avec un bouton
+  "Ouvrir" (garde : n'ouvre qu'un dossier existant). L'ecriture par l'installeur
+  CLI reste a cabler (differee, non bloquante).
+- **F7 — Coherence connecte/hors-ligne.** Le tableau de bord affiche un etat de
+  connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
+  la sonde n'interroge pas byan_web.
+
 ### Changed — installation reduite au token d'abonnement (proxy Google cote serveur, 2026-07-22)
 
 L'API byan_web proxifie desormais Google Workspace cote serveur (documents crees au nom de chaque utilisateur, credentials detenus par le serveur). L'installation ne configure donc plus aucun credential Google en local : le seul geste est de coller le `BYAN_API_URL` + `BYAN_API_TOKEN` de l'abonnement.
