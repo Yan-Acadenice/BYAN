@@ -216,28 +216,39 @@ describe('electron-build.yml', () => {
     });
   });
 
-  describe('release job', () => {
+  describe('release job — publishes downloadable installers', () => {
     const job = wf.jobs.release;
 
     it('depends on the build job', () => {
       expect(job.needs).toBe('build');
     });
 
-    it('runs only on tag desktop-v*', () => {
-      expect(job.if).toBe("startsWith(github.ref, 'refs/tags/desktop-v')");
+    it('runs on a desktop-v* tag even if a build leg failed (always + tag gate)', () => {
+      // always() so a fragile mac leg never blocks the Linux AppImage from
+      // shipping; the tag guard keeps it off branch/PR pushes.
+      expect(job.if).toContain('always()');
+      expect(job.if).toContain("startsWith(github.ref, 'refs/tags/desktop-v')");
     });
 
     it('grants contents:write to publish releases', () => {
       expect(job.permissions?.contents).toBe('write');
     });
 
-    it('creates a draft release with auto-generated notes', () => {
+    it('publishes a NON-draft prerelease (immediately downloadable)', () => {
       const ghRelease = job.steps.find((s) =>
         s.uses?.startsWith('softprops/action-gh-release@')
       );
       expect(ghRelease).toBeDefined();
-      expect(ghRelease?.with?.draft).toBe(true);
+      expect(ghRelease?.with?.draft).toBe(false);
+      expect(ghRelease?.with?.prerelease).toBe(true);
       expect(ghRelease?.with?.generate_release_notes).toBe(true);
+    });
+
+    it('attaches the AppImage as a release asset', () => {
+      const ghRelease = job.steps.find((s) =>
+        s.uses?.startsWith('softprops/action-gh-release@')
+      );
+      expect(String(ghRelease?.with?.files)).toContain('.AppImage');
     });
 
     it('forwards GITHUB_TOKEN to the release step', () => {
@@ -248,17 +259,7 @@ describe('electron-build.yml', () => {
     });
   });
 
-  describe('packages-ghcr job (installers mirrored on the repo Packages page)', () => {
-    const job = wf.jobs['packages-ghcr'];
-
-    it('exists, needs build, and is gated on desktop-v* tags', () => {
-      expect(job).toBeDefined();
-      expect(job.needs).toBe('build');
-      expect(job.if).toBe("startsWith(github.ref, 'refs/tags/desktop-v')");
-    });
-
-    it('has packages:write and read-only contents', () => {
-      expect(job.permissions).toEqual({ packages: 'write', contents: 'read' });
-    });
+  it('has NO npm-in-packages job (installers are Release assets, not a registry)', () => {
+    expect(wf.jobs['packages-ghcr']).toBeUndefined();
   });
 });

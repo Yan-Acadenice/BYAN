@@ -130,11 +130,12 @@ nsis:
 # CSC_LINK / CSC_KEY_PASSWORD env vars at build time. Without a cert the app
 # ships unsigned; users will need to right-click → Open the first time.
 mac:
+  # zip uniquement pour l'instant : la construction du dmg echoue sur
+  # l'executeur macOS heberge ("app not a file", outil dmg fragile en CI). Le
+  # zip du .app est telechargeable, lancable (clic droit -> Ouvrir tant que non
+  # signe) et c'est aussi ce que l'auto-mise-a-jour consomme. Le dmg reviendra
+  # quand la construction sera fiabilisee (ou avec un certificat de signature).
   target:
-    - target: dmg
-      arch:
-        - x64
-        - arm64
     - target: zip
       arch:
         - x64

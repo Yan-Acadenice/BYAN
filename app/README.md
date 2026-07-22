@@ -5,15 +5,22 @@ in a native shell with OS-level secure storage, a 5-step onboarding flow, and a
 native application menu.
 
 **Supported platforms (v1.0):** Linux x64 (AppImage, deb), Windows x64 (NSIS
-installer), macOS x64 + arm64 (dmg + zip, built unsigned by CI — right-click →
-Open on first launch until a Developer ID certificate is plugged in, see
-CI-SIGNING.md).
+installer), macOS x64 + arm64 (zip — built unsigned by CI, right-click → Open on
+first launch until a Developer ID certificate is plugged in, see CI-SIGNING.md;
+the dmg target is parked until its CI build is stabilised).
+
+**Downloading:** the installers are attached to the GitHub **Releases**
+(https://github.com/Yan-Acadenice/BYAN/releases) — click the `.AppImage` (or
+`.deb` / `.exe` / mac `.zip`) to download. The Packages page is NOT the place:
+it only hosts registries (npm, containers), not a raw downloadable file.
 
 **Cutting a release:** push a `desktop-v*` tag (e.g. `desktop-v1.0.0`). The
-`electron-build.yml` workflow builds the three OSes, runs typecheck/lint/tests/
-E2E, and attaches AppImage/deb/exe/dmg/zip + update manifests to a DRAFT GitHub
-Release — publishing the draft is the human gate. The `v*` tags are reserved for
-npm versions of create-byan-agent and do not trigger a Desktop release.
+`electron-build.yml` workflow builds the three OSes (unit tests + typecheck +
+lint gate; E2E is advisory), then PUBLISHES a prerelease with the installer
+assets attached — no manual draft step. It runs `if: always()`, so a fragile
+mac leg does not block the Linux AppImage from shipping. The `v*` tags are
+reserved for npm versions of create-byan-agent and do not trigger a Desktop
+release.
 
 **Who is it for:** developers and teams already using BYAN who want a standalone
 desktop experience without keeping a browser tab open or managing a terminal process.
