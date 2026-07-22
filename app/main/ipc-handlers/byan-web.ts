@@ -33,42 +33,65 @@ import {
   getChatStreamUrl,
   getAuthToken,
 } from '../byan-api-client';
+import { secureStore } from '../secure-store';
+import { AUTH_MODE_KEY } from './auth';
+import {
+  localMe,
+  localProjects,
+  localProject,
+  localMemory,
+  localKnowledge,
+  localAgents,
+  localSessions,
+} from '../local-data';
 
 // Active AbortControllers keyed by streamId — allows the renderer to cancel in-flight SSE.
 const activeStreams = new Map<string, AbortController>();
 
-export function register(ipcMain: IpcMain): void {
-  ipcMain.handle(IPC_CHANNELS.byanWeb.me, wrap(() => fetchMe()));
+// N1 : in local mode every read comes from disk, never the cloud, never a token.
+// This is the single decision point that flips the data source under all pages.
+export async function isLocalMode(): Promise<boolean> {
+  try {
+    return (await secureStore.get(AUTH_MODE_KEY)) === 'local';
+  } catch {
+    return false;
+  }
+}
 
-  ipcMain.handle(IPC_CHANNELS.byanWeb.projectsList, wrap(() => fetchProjects()));
+export function register(ipcMain: IpcMain): void {
+  ipcMain.handle(IPC_CHANNELS.byanWeb.me, wrap(async () => (await isLocalMode()) ? localMe() : fetchMe()));
+
+  ipcMain.handle(IPC_CHANNELS.byanWeb.projectsList, wrap(async () => (await isLocalMode()) ? localProjects() : fetchProjects()));
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.projectsGet,
-    wrap((_evt, id: string) => fetchProject(id))
+    wrap(async (_evt, id: string) => (await isLocalMode()) ? localProject(id) : fetchProject(id))
   );
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.memoryList,
-    wrap((_evt, opts?: ByanApiListOpts) => fetchMemory(opts ?? {}))
+    wrap(async (_evt, opts?: ByanApiListOpts) => (await isLocalMode()) ? localMemory(opts ?? {}) : fetchMemory(opts ?? {}))
   );
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.knowledgeList,
-    wrap((_evt, opts?: ByanApiListOpts) => fetchKnowledge(opts ?? {}))
+    wrap(async (_evt, opts?: ByanApiListOpts) => (await isLocalMode()) ? localKnowledge(opts ?? {}) : fetchKnowledge(opts ?? {}))
   );
 
-  ipcMain.handle(IPC_CHANNELS.byanWeb.customAgentsList, wrap(() => fetchCustomAgents()));
+  ipcMain.handle(IPC_CHANNELS.byanWeb.customAgentsList, wrap(async () => (await isLocalMode()) ? localAgents() : fetchCustomAgents()));
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.sessionsList,
-    wrap((_evt, opts?: Pick<ByanApiListOpts, 'projectId' | 'limit'>) => fetchSessions(opts ?? {}))
+    wrap(async (_evt, opts?: Pick<ByanApiListOpts, 'projectId' | 'limit'>) => (await isLocalMode()) ? localSessions(opts ?? {}) : fetchSessions(opts ?? {}))
   );
 
   // ---------- Chat ----------
+  // Local mode has no cloud conversations — return empty so nothing asks for a
+  // token. Real local chat is the local claude session (N3), not this list.
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.chatConversationsList,
-    wrap(() => fetchChatConversations())
+    wrap(async () => (await isLocalMode()) ? [] : fetchChatConversations())
   );
 
   ipcMain.handle(
@@ -83,8 +106,8 @@ export function register(ipcMain: IpcMain): void {
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.chatMessagesList,
-    wrap((_evt, conversationId: string, opts?: { limit?: number }) =>
-      fetchChatMessages(conversationId, opts ?? {})
+    wrap(async (_evt, conversationId: string, opts?: { limit?: number }) =>
+      (await isLocalMode()) ? [] : fetchChatMessages(conversationId, opts ?? {})
     )
   );
 
