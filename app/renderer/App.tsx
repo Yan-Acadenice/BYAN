@@ -148,7 +148,7 @@ function AppRouter() {
       case 'chat':
         return <Chat />;
       case 'projects':
-        return <Projects />;
+        return <Projects onNavigate={setActivePage} />;
       case 'agents':
         return <Agents />;
       case 'memory':

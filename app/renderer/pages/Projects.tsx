@@ -4,9 +4,15 @@ import React, { useEffect, useState } from 'react';
 import { Search, FolderOpen, Plus, ArrowLeft, Loader2, AlertCircle, Globe, Lock, HardDriveDownload } from 'lucide-react';
 import ProjectDetail from './ProjectDetail';
 import type { ByanProject } from '../../shared/ipc-contract';
+import type { NavPage } from '../components/Sidebar';
 import { useInstallProject } from '../hooks/useInstallProject';
 
 type Filter = 'all' | 'recent';
+
+interface ProjectsProps {
+  // Navigate to another app page (forwarded to ProjectDetail for "launch chat").
+  onNavigate?: (page: NavPage) => void;
+}
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -18,7 +24,7 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-export default function Projects() {
+export default function Projects({ onNavigate }: ProjectsProps = {}) {
   const [projects, setProjects] = useState<ByanProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -55,7 +61,7 @@ export default function Projects() {
           <ArrowLeft size={14} />
           Back to Projects
         </button>
-        <ProjectDetail projectId={detailId} />
+        <ProjectDetail projectId={detailId} onNavigate={onNavigate} />
       </div>
     );
   }

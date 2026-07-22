@@ -2,14 +2,18 @@
 // Receives projectId from Projects.tsx; fetches project + memory + knowledge tabs.
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, AlertCircle, BookOpen, Brain, FolderOpen } from 'lucide-react';
+import { Loader2, AlertCircle, BookOpen, Brain, FolderOpen, MessageSquare, SquareTerminal } from 'lucide-react';
 import type { ByanProject, ByanMemory, ByanKnowledge, LocalProjectEntry } from '../../shared/ipc-contract';
+import type { NavPage } from '../components/Sidebar';
+import { useToast } from '../components/toast/ToastContext';
 
 type Tab = 'overview' | 'memory' | 'knowledge';
 const TABS: Tab[] = ['overview', 'memory', 'knowledge'];
 
 interface ProjectDetailProps {
   projectId?: string;
+  // Navigate to another app page (e.g. 'chat'). Provided by Projects -> App.
+  onNavigate?: (page: NavPage) => void;
 }
 
 function timeAgo(iso: string): string {
@@ -20,7 +24,7 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-export default function ProjectDetail({ projectId }: ProjectDetailProps) {
+export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailProps) {
   const [project, setProject] = useState<ByanProject | null>(null);
   const [memory, setMemory] = useState<ByanMemory[]>([]);
   const [knowledge, setKnowledge] = useState<ByanKnowledge[]>([]);
@@ -29,6 +33,25 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   // F6 : the local folder linked to this project (from ~/.byan/projects.json).
   const [localEntry, setLocalEntry] = useState<LocalProjectEntry | null>(null);
+  const toast = useToast();
+
+  // Start a local chat session bound to THIS project's folder (D-03). We stash the
+  // project dir so LocalChatView opens claude there, then switch to the Chat page.
+  const launchChat = async (dir: string) => {
+    try { await window.byanApi.store?.set?.('chat.pendingCwd', dir); } catch { /* non-blocking */ }
+    onNavigate?.('chat');
+  };
+
+  // Open the local claude CLI in an external terminal, in this project's folder.
+  const launchTerminal = async (dir: string) => {
+    try {
+      const res = await window.byanApi.terminal.open({ cwd: dir });
+      if (res.ok) toast.success(`claude ouvert dans ${res.terminal}.`);
+      else toast.error(res.message || 'Ouverture du terminal impossible.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ouverture du terminal impossible.');
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -138,14 +161,36 @@ export default function ProjectDetail({ projectId }: ProjectDetailProps) {
             ))}
           </div>
 
-          {/* Local folder (F6) — only shown when this project maps to a dir on this PC. */}
+          {/* Local folder (F6) — only shown when this project maps to a dir on this PC.
+              D-03 : from here the user launches a chat session or a terminal bound
+              to THIS project's folder (not just the onboarding default). */}
           {localEntry && (
             <div className="bg-ink-900 border border-ink-800 rounded-lg p-md" data-testid="project-local-folder">
-              <p className="font-label text-label text-ink-400 uppercase mb-xs">Dossier local</p>
-              <div className="flex items-center justify-between gap-md">
-                <p className="font-mono-code text-mono-code text-ink-300 text-[12px] truncate" title={localEntry.path}>
-                  {localEntry.path}
-                </p>
+              <p className="font-label text-label text-ink-400 uppercase mb-sm">Dossier local</p>
+              <p className="font-mono-code text-mono-code text-ink-300 text-[12px] truncate mb-sm" title={localEntry.path}>
+                {localEntry.path}
+              </p>
+              <div className="flex flex-wrap items-center gap-xs">
+                <button
+                  type="button"
+                  data-testid="project-launch-chat"
+                  onClick={() => void launchChat(localEntry.path)}
+                  className="btn-primary flex items-center gap-xs text-xs shrink-0"
+                  title="Lancer une session claude (chat) dans ce projet"
+                >
+                  <MessageSquare size={14} />
+                  Lancer une session
+                </button>
+                <button
+                  type="button"
+                  data-testid="project-launch-terminal"
+                  onClick={() => void launchTerminal(localEntry.path)}
+                  className="btn-secondary flex items-center gap-xs text-xs shrink-0"
+                  title="Ouvrir claude dans un terminal externe, dans ce projet"
+                >
+                  <SquareTerminal size={14} />
+                  Terminal
+                </button>
                 <button
                   type="button"
                   data-testid="project-open-folder"

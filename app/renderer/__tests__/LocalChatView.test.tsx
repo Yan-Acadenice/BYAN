@@ -113,6 +113,22 @@ describe('LocalChatView', () => {
     await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/monprojet' }));
   });
 
+  it('D-03: prefers chat.pendingCwd (project launch) over onboarding root, then clears it', async () => {
+    const setSpy = vi.fn().mockResolvedValue(undefined);
+    mockStoreGet.mockImplementation((key: string) =>
+      Promise.resolve(key === 'chat.pendingCwd' ? '/home/yan/mon-projet' : '/home/yan/onboarding'));
+    (window.byanApi as unknown as { store: { get: typeof mockStoreGet; set: typeof setSpy } }).store.set = setSpy;
+
+    render(<LocalChatView />);
+    // Header shows the project folder picked from ProjectDetail, not the onboarding one.
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('mon-projet'));
+    // The pending handoff is consumed (cleared) so a later plain visit falls back.
+    await waitFor(() => expect(setSpy).toHaveBeenCalledWith('chat.pendingCwd', ''));
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/mon-projet' }));
+  });
+
   it('F4: the folder button lets the user pick another project dir', async () => {
     mockStoreGet.mockResolvedValue('/home/yan/monprojet');
     mockOpenDialog.mockResolvedValue('/home/yan/autre');

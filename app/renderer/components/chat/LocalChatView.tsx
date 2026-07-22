@@ -36,6 +36,15 @@ export default function LocalChatView() {
   useEffect(() => {
     void (async () => {
       try {
+        // D-03 : a "Lancer une session" click on a project stashes its folder here.
+        // It wins over the onboarding default, and is cleared once consumed so a
+        // later plain visit to Chat falls back to the onboarding project.
+        const pending = await window.byanApi.store?.get?.<string>('chat.pendingCwd');
+        if (pending) {
+          setCwd(pending);
+          try { await window.byanApi.store?.set?.('chat.pendingCwd', ''); } catch { /* non-blocking */ }
+          return;
+        }
         const root = await window.byanApi.store?.get?.<string>('onboarding.projectRoot');
         if (root) setCwd(root);
       } catch { /* no stored root — cwd stays null (server default) */ }
