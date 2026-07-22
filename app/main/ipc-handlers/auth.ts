@@ -15,7 +15,7 @@
 
 import type { IpcMain } from 'electron';
 import { BrowserWindow } from 'electron';
-import { IPC_CHANNELS, AuthLoginOptions, AuthResult } from '../../shared/ipc-contract';
+import { IPC_CHANNELS, AuthLoginOptions, AuthResult, AuthMode, AuthSession } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
 import { secureStore } from '../secure-store';
 import { clearSessionCaches } from '../byan-api-client';
@@ -46,8 +46,14 @@ export function setLocalServerForAuth(ls: LocalServer): void {
   _localServer = ls;
 }
 
-// Key used to store the auth token in SecureStore.
+// Keys used to store the auth session in SecureStore.
 export const AUTH_TOKEN_KEY = 'auth.token';
+// auth.url + auth.mode were the missing half: login persisted only the token,
+// so byan-api-client.getBase() always fell back to the cloud default and LOCAL
+// mode silently hit the cloud. Persisting both makes the chosen mode real and
+// lets the renderer read the active mode after login (F1).
+export const AUTH_URL_KEY = 'auth.url';
+export const AUTH_MODE_KEY = 'auth.mode';
 
 // Probe timeout in milliseconds.
 const PROBE_TIMEOUT_MS = 8_000;
@@ -172,6 +178,10 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
     if (opts.token) {
       await secureStore.set(AUTH_TOKEN_KEY, opts.token);
     }
+    // Persist the active mode + resolved URL so getBase() targets the local
+    // server (not the cloud default) and the renderer can read the active mode.
+    await secureStore.set(AUTH_MODE_KEY, 'local');
+    await secureStore.set(AUTH_URL_KEY, localUrl);
     // Drop any cached token/responses from a prior session before the renderer
     // starts firing fresh API calls.
     clearSessionCaches();
@@ -197,8 +207,10 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
     return { ok: false, reason: 'unreachable', message: `Serveur inaccessible: ${resolvedUrl}` };
   }
 
-  // Token validated — persist.
+  // Token validated — persist token + active mode + resolved URL.
   await secureStore.set(AUTH_TOKEN_KEY, opts.token);
+  await secureStore.set(AUTH_MODE_KEY, opts.mode);
+  await secureStore.set(AUTH_URL_KEY, resolvedUrl);
   // Drop any cached token/responses from a prior session before the renderer
   // starts firing fresh API calls.
   clearSessionCaches();
@@ -210,10 +222,32 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
   };
 }
 
+// Switch the active mode WITHOUT a full logout/relogin cycle : re-run login
+// with the new mode (which re-persists mode+url+token and clears the API
+// caches), then tell the renderer to re-read its session so the whole app
+// re-routes live. Returns the same AuthResult as login so the caller can show
+// an error if the target mode is unreachable.
+export async function switchMode(opts: AuthLoginOptions): Promise<AuthResult> {
+  const result = await login(opts);
+  if (result.ok) broadcastAuthChanged('login');
+  return result;
+}
+
+// Read the persisted session (mode + url) so the renderer can show the active
+// mode everywhere and route data accordingly. null when no session is stored.
+export async function getSession(): Promise<AuthSession> {
+  const mode = (await secureStore.get(AUTH_MODE_KEY)) as AuthMode | null;
+  if (mode !== 'cloud' && mode !== 'local' && mode !== 'custom') return null;
+  const url = (await secureStore.get(AUTH_URL_KEY)) ?? '';
+  return { mode, url };
+}
+
 export async function logout(): Promise<void> {
-  // Clear stored token + drop the in-memory cache so the next session can't
-  // reuse the previous user's token or list responses.
+  // Clear stored token + mode + url, and drop the in-memory cache so the next
+  // session can't reuse the previous user's token, mode, or list responses.
   await secureStore.delete(AUTH_TOKEN_KEY);
+  await secureStore.delete(AUTH_MODE_KEY);
+  await secureStore.delete(AUTH_URL_KEY);
   clearSessionCaches();
   broadcastAuthChanged('logout');
 }
@@ -226,4 +260,6 @@ export function register(ipcMain: IpcMain): void {
   ipcMain.handle(IPC_CHANNELS.auth.login, wrap((_evt, opts: AuthLoginOptions) => login(opts)));
   ipcMain.handle(IPC_CHANNELS.auth.logout, wrap(() => logout()));
   ipcMain.handle(IPC_CHANNELS.auth.getToken, wrap(() => getToken()));
+  ipcMain.handle(IPC_CHANNELS.auth.getSession, wrap(() => getSession()));
+  ipcMain.handle(IPC_CHANNELS.auth.switchMode, wrap((_evt, opts: AuthLoginOptions) => switchMode(opts)));
 }

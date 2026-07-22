@@ -4,14 +4,20 @@
 
 import React, { useState } from 'react';
 import { Gauge, List } from 'lucide-react';
+import { useAuthSession, modeLabel } from '../context/AuthSessionContext';
 
 interface StatusStripProps {
+  // Optional override (tests / storybook). When absent the live session mode wins.
   mode?: string;
   version?: string;
 }
 
-export default function StatusStrip({ mode = 'Cloud', version = 'v1.0' }: StatusStripProps) {
+export default function StatusStrip({ mode, version = 'v1.0' }: StatusStripProps) {
   const [hoverAcadenice, setHoverAcadenice] = useState(false);
+  const { session } = useAuthSession();
+  // Live mode from the shared session; a `mode` prop still overrides for tests.
+  const shownMode = mode ?? modeLabel(session);
+  const isLocal = shownMode === 'Local';
 
   return (
     <footer
@@ -20,9 +26,9 @@ export default function StatusStrip({ mode = 'Cloud', version = 'v1.0' }: Status
     >
       {/* Left */}
       <div className="flex items-center gap-lg">
-        <div className="flex items-center gap-xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald" />
-          <span>{mode}</span>
+        <div className="flex items-center gap-xs" title={session?.url || undefined}>
+          <span className={`w-1.5 h-1.5 rounded-full ${isLocal ? 'bg-acadenice-teal' : 'bg-emerald'}`} />
+          <span>{shownMode}</span>
         </div>
         <span>{version}</span>
       </div>

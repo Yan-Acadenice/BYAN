@@ -83,6 +83,9 @@ describe('auth.login — cloud mode', () => {
       expect(r.url).toContain('byan-api.stark.a3n.fr');
     }
     expect(mockSecureStore.set).toHaveBeenCalledWith('auth.token', 'byan_valid');
+    // F1: mode + url must be persisted too (the missing half that broke local mode).
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'cloud');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', 'https://byan-api.stark.a3n.fr');
   });
 
   it('returns invalid_token when probe returns 401', async () => {
@@ -192,8 +195,10 @@ describe('auth.login — local mode', () => {
       expect.stringContaining('/api/health'),
       expect.any(Object)
     );
-    // No token supplied → SecureStore not touched.
-    expect(mockSecureStore.set).not.toHaveBeenCalled();
+    // No token supplied → the TOKEN is not written, but mode+url still are (F1).
+    expect(mockSecureStore.set).not.toHaveBeenCalledWith('auth.token', expect.anything());
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'local');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', 'http://localhost:3737');
   });
 
   it('persists token alongside the local-server health probe when one is supplied', async () => {
@@ -209,6 +214,10 @@ describe('auth.login — local mode', () => {
       expect.any(Object)
     );
     expect(mockSecureStore.set).toHaveBeenCalledWith('auth.token', 'byan_local_tok');
+    // F1: local mode persists mode='local' + the resolved localhost URL, so the
+    // data layer targets the local server instead of the cloud default.
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'local');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', 'http://localhost:9000');
   });
 
   it('returns unreachable when the local /api/health probe fails', async () => {
@@ -238,9 +247,49 @@ describe('auth.logout', () => {
     await expect(auth.logout()).resolves.toBeUndefined();
   });
 
-  it('deletes auth.token from SecureStore', async () => {
+  it('deletes auth.token, auth.mode and auth.url from SecureStore', async () => {
     await auth.logout();
     expect(mockSecureStore.delete).toHaveBeenCalledWith('auth.token');
+    expect(mockSecureStore.delete).toHaveBeenCalledWith('auth.mode');
+    expect(mockSecureStore.delete).toHaveBeenCalledWith('auth.url');
+  });
+});
+
+describe('auth.getSession (F1)', () => {
+  it('returns null when no mode is stored', async () => {
+    mockSecureStore.get.mockResolvedValue(null);
+    await expect(auth.getSession()).resolves.toBeNull();
+  });
+
+  it('returns {mode,url} from SecureStore when a session exists', async () => {
+    mockSecureStore.get.mockImplementation(async (key: string) => {
+      if (key === 'auth.mode') return 'local';
+      if (key === 'auth.url') return 'http://localhost:9000';
+      return null;
+    });
+    await expect(auth.getSession()).resolves.toEqual({ mode: 'local', url: 'http://localhost:9000' });
+  });
+
+  it('returns null (not a bogus session) when a junk mode is stored', async () => {
+    mockSecureStore.get.mockImplementation(async (key: string) => (key === 'auth.mode' ? 'mars' : null));
+    await expect(auth.getSession()).resolves.toBeNull();
+  });
+});
+
+describe('auth.switchMode (F1)', () => {
+  it('re-persists the new mode and notifies on success', async () => {
+    mockFetch.mockResolvedValue(makeResponse(200));
+    const r = await auth.switchMode({ mode: 'cloud', token: 'byan_switch' });
+    expect(r.ok).toBe(true);
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'cloud');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', 'https://byan-api.stark.a3n.fr');
+  });
+
+  it('propagates a failure result without persisting', async () => {
+    mockFetch.mockResolvedValue(makeResponse(401));
+    const r = await auth.switchMode({ mode: 'cloud', token: 'bad' });
+    expect(r.ok).toBe(false);
+    expect(mockSecureStore.set).not.toHaveBeenCalledWith('auth.mode', expect.anything());
   });
 });
 
@@ -259,12 +308,14 @@ describe('auth.getToken', () => {
 });
 
 describe('auth.register', () => {
-  it('registers all three channels on ipcMain', () => {
+  it('registers all auth channels on ipcMain (incl. getSession + switchMode)', () => {
     const handle = vi.fn();
     auth.register({ handle } as never);
     const channels = handle.mock.calls.map((c) => c[0]);
     expect(channels).toContain(IPC_CHANNELS.auth.login);
     expect(channels).toContain(IPC_CHANNELS.auth.logout);
     expect(channels).toContain(IPC_CHANNELS.auth.getToken);
+    expect(channels).toContain(IPC_CHANNELS.auth.getSession);
+    expect(channels).toContain(IPC_CHANNELS.auth.switchMode);
   });
 });

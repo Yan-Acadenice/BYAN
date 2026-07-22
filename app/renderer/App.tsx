@@ -18,6 +18,7 @@ import AppShell from './components/AppShell';
 import UpdateBanner from './components/UpdateBanner';
 import DeepLinkRouter from './components/DeepLinkRouter';
 import { ToastProvider } from './components/toast/ToastContext';
+import { AuthSessionProvider } from './context/AuthSessionContext';
 import { I18nProvider, useT } from './i18n/I18nContext';
 import type { MessageKey } from './i18n/locales';
 import type { NavPage } from './components/Sidebar';
@@ -202,7 +203,9 @@ function AppRouter() {
 export default function App() {
   return (
     <I18nProvider>
-      <AppRouter />
+      <AuthSessionProvider>
+        <AppRouter />
+      </AuthSessionProvider>
     </I18nProvider>
   );
 }

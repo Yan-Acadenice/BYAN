@@ -22,6 +22,11 @@ export type AuthResult =
   | { ok: true; mode: AuthMode; url: string; userId?: string; expiresAt?: string }
   | { ok: false; reason: 'invalid_token' | 'unreachable' | 'cancelled' | 'unknown'; message: string };
 
+// The persisted active session (mode + resolved URL), read by the renderer
+// after login so the whole app knows whether it is on cloud or local. null
+// when nothing is stored (logged out).
+export type AuthSession = { mode: AuthMode; url: string } | null;
+
 // ---------- MCP ----------
 
 export type McpStatus =
@@ -299,6 +304,8 @@ export interface ByanApi {
     login(opts: AuthLoginOptions): Promise<AuthResult>;
     logout(): Promise<void>;
     getToken(): Promise<string | null>;
+    getSession(): Promise<AuthSession>;
+    switchMode(opts: AuthLoginOptions): Promise<AuthResult>;
   };
   byanWeb: {
     projects: {
@@ -393,7 +400,9 @@ export const IPC_CHANNELS = {
   auth: {
     login: 'byan:auth:login',
     logout: 'byan:auth:logout',
-    getToken: 'byan:auth:getToken'
+    getToken: 'byan:auth:getToken',
+    getSession: 'byan:auth:getSession',
+    switchMode: 'byan:auth:switchMode'
   },
   fs: {
     openProjectDialog: 'byan:fs:openProjectDialog',

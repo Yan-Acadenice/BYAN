@@ -15,6 +15,7 @@ import {
   IPC_CHANNELS,
   AuthLoginOptions,
   AuthResult,
+  AuthSession,
   McpServer,
   McpServerInput,
   McpStatus,
@@ -52,7 +53,9 @@ const api: ByanApi = {
   auth: {
     login: (opts: AuthLoginOptions) => invoke<AuthResult>(IPC_CHANNELS.auth.login, opts),
     logout: () => invoke<void>(IPC_CHANNELS.auth.logout),
-    getToken: () => invoke<string | null>(IPC_CHANNELS.auth.getToken)
+    getToken: () => invoke<string | null>(IPC_CHANNELS.auth.getToken),
+    getSession: () => invoke<AuthSession>(IPC_CHANNELS.auth.getSession),
+    switchMode: (opts: AuthLoginOptions) => invoke<AuthResult>(IPC_CHANNELS.auth.switchMode, opts)
   },
   fs: {
     openProjectDialog: () => invoke<string | null>(IPC_CHANNELS.fs.openProjectDialog),
