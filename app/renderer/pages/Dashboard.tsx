@@ -151,6 +151,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           <div className="space-y-xs flex-1">
             <button
               type="button"
+              onClick={() => onNavigate('chat')}
               className="w-full bg-gradient-to-r from-byan-500 to-byan-700 text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:opacity-90 transition-opacity"
             >
               <Zap size={16} />

@@ -218,6 +218,31 @@ export type ChatChunkPayload =
   | { streamId: string; type: 'end'; messageId: string; credentialSource: string | null }
   | { streamId: string; type: 'error'; error: string };
 
+// ---------- Local chat (F2) ----------
+// Local chat talks to the `claude` CLI on this PC through the forked WebUI
+// server's WebSocket bridge (install/src/webui/server.js). Main holds the single
+// ws:// connection to the local server ; the renderer drives it over IPC and
+// receives streamed output via the byan:chat-local:message event. This is the
+// local twin of the cloud SSE path above — same UX, no byan_web round-trip.
+
+export interface LocalChatStartOpts {
+  // The local CLI to drive. Defaults to 'claude' on the server side.
+  cli?: string;
+  // Optional agent slug to preload in the session.
+  agent?: string | null;
+}
+
+// Normalized messages pushed on byan:chat-local:message. The main bridge maps
+// the WebUI wire protocol (chat-started / chat / chat-tool / chat-complete /
+// chat-error / chat-stopped) onto this shape so the renderer stays protocol-free.
+export type LocalChatMessage =
+  | { type: 'started'; sessionId: string; cli: string }
+  | { type: 'chunk'; sessionId: string; delta: string; role: 'assistant' }
+  | { type: 'tool'; sessionId: string; tool: unknown }
+  | { type: 'complete'; sessionId: string; result?: unknown }
+  | { type: 'error'; sessionId: string | null; error: string }
+  | { type: 'stopped'; sessionId: string };
+
 export interface ByanUser {
   id: string;
   username: string;
@@ -375,6 +400,14 @@ export interface ByanApi {
     stop(): Promise<void>;
     status(): Promise<ServerStatus>;
   };
+  localChat: {
+    // Start a local claude session ; resolves with the server-assigned sessionId.
+    start(opts?: LocalChatStartOpts): Promise<{ sessionId: string }>;
+    // Send a user message to an existing local session.
+    send(sessionId: string, message: string): Promise<void>;
+    // Stop / tear down a local session's bridge.
+    stop(sessionId: string): Promise<void>;
+  };
   app: {
     quit(): Promise<void>;
     version(): Promise<string>;
@@ -431,6 +464,11 @@ export const IPC_CHANNELS = {
     stop: 'byan:server:stop',
     status: 'byan:server:status'
   },
+  localChat: {
+    start: 'byan:localChat:start',
+    send: 'byan:localChat:send',
+    stop: 'byan:localChat:stop'
+  },
   app: {
     quit: 'byan:app:quit',
     version: 'byan:app:version',
@@ -463,10 +501,11 @@ export const IPC_CHANNELS = {
   }
 } as const;
 // Event channels pushed from main -> renderer (used with byanEvents.on):
-//   byan:chat:chunk        — ChatChunkPayload
-//   byan:mcp:statusChange  — McpStatusChangePayload
-//   byan:update:status     — UpdateState
-//   byan:deepLink          — DeepLink (F17)
+//   byan:chat:chunk         — ChatChunkPayload
+//   byan:chat-local:message — LocalChatMessage (F2)
+//   byan:mcp:statusChange   — McpStatusChangePayload
+//   byan:update:status      — UpdateState
+//   byan:deepLink           — DeepLink (F17)
 
 export interface McpStatusChangePayload {
   id: string;

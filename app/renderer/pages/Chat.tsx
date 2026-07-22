@@ -49,7 +49,9 @@ import NewConversationModal from '../components/chat/NewConversationModal';
 import MessageMarkdown from '../components/chat/MessageMarkdown';
 import ScopePicker from '../components/chat/ScopePicker';
 import AgentPicker from '../components/chat/AgentPicker';
+import LocalChatView from '../components/chat/LocalChatView';
 import { useChatDefaults } from '../hooks/useChatDefaults';
+import { useAuthSession } from '../context/AuthSessionContext';
 
 // ---------- Constants ----------
 
@@ -343,7 +345,9 @@ function DefaultsPanel({ agentId, scope, projects, onChangeAgent, onChangeScope,
 
 // ---------- Main page ----------
 
-export default function Chat() {
+// Cloud chat — the byan_web conversation model (list, history, SSE). Rendered
+// only in cloud/custom mode ; the mode-aware Chat() dispatcher below picks it.
+function CloudChat() {
   // Conversations list state
   const [convs, setConvs] = useState<ChatConversation[]>([]);
   const [convLoading, setConvLoading] = useState(true);
@@ -964,4 +968,14 @@ export default function Chat() {
       </div>
     </>
   );
+}
+
+// Mode-aware entry point. In LOCAL mode the byan_web conversation model does not
+// apply — we render a focused local claude chat instead. This keeps every cloud
+// API call (loadConvs, history, SSE) from ever firing when the user is local,
+// which is the whole point of F1's mode split.
+export default function Chat() {
+  const { session } = useAuthSession();
+  if (session?.mode === 'local') return <LocalChatView />;
+  return <CloudChat />;
 }
