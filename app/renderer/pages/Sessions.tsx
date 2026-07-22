@@ -1,8 +1,9 @@
 // Sessions — wired to live byan_web API (/api/sessions).
 
 import React, { useEffect, useState } from 'react';
-import { Eye, Archive, Loader2, AlertCircle, History } from 'lucide-react';
+import { Eye, Archive, Loader2, AlertCircle, History, TerminalSquare } from 'lucide-react';
 import type { ByanSession } from '../../shared/ipc-contract';
+import { useToast } from '../components/toast/ToastContext';
 
 function formatTs(iso: string): string {
   return iso.replace('T', ' ').replace('Z', '').slice(0, 16);
@@ -12,6 +13,28 @@ export default function Sessions() {
   const [sessions, setSessions] = useState<ByanSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [launching, setLaunching] = useState(false);
+  const toast = useToast();
+
+  // F5 : open the local `claude` CLI in an external terminal, in the project dir
+  // chosen at onboarding. For users who prefer the raw CLI over the in-app chat.
+  const openInTerminal = async () => {
+    setLaunching(true);
+    try {
+      const cwd = (await window.byanApi.store?.get?.<string>('onboarding.projectRoot')) || undefined;
+      if (!cwd) {
+        toast.error('Aucun dossier de projet configuré (onboarding).');
+        return;
+      }
+      const res = await window.byanApi.terminal.open({ cwd });
+      if (res.ok) toast.success(`claude ouvert dans ${res.terminal}.`);
+      else toast.error(res.message || 'Ouverture du terminal impossible.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ouverture du terminal impossible.');
+    } finally {
+      setLaunching(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -30,9 +53,22 @@ export default function Sessions() {
 
   return (
     <div className="space-y-lg">
-      <div>
-        <p className="section-title">Platform</p>
-        <h1 className="page-title mt-0.5">Sessions</h1>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="section-title">Platform</p>
+          <h1 className="page-title mt-0.5">Sessions</h1>
+        </div>
+        <button
+          type="button"
+          data-testid="sessions-open-terminal"
+          onClick={() => void openInTerminal()}
+          disabled={launching}
+          className="btn-secondary flex items-center gap-xs text-sm disabled:opacity-50"
+          title="Ouvrir claude dans un terminal externe"
+        >
+          {launching ? <Loader2 size={14} className="animate-spin" /> : <TerminalSquare size={14} />}
+          Ouvrir dans un terminal
+        </button>
       </div>
 
       {loading ? (

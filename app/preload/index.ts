@@ -31,6 +31,8 @@ import {
   LocalChatStartOpts,
   LocalChatSessionSummary,
   LocalChatHistoryMessage,
+  TerminalOpenOpts,
+  TerminalOpenResult,
   UpdateState,
 } from '../shared/ipc-contract';
 
@@ -95,6 +97,9 @@ const api: ByanApi = {
     stop: (sessionId: string) => invoke<void>(IPC_CHANNELS.localChat.stop, sessionId),
     list: () => invoke<LocalChatSessionSummary[]>(IPC_CHANNELS.localChat.list),
     history: (sessionId: string) => invoke<LocalChatHistoryMessage[]>(IPC_CHANNELS.localChat.history, sessionId)
+  },
+  terminal: {
+    open: (opts: TerminalOpenOpts) => invoke<TerminalOpenResult>(IPC_CHANNELS.terminal.open, opts)
   },
   app: {
     quit: () => invoke<void>(IPC_CHANNELS.app.quit),

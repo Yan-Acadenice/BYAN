@@ -258,6 +258,18 @@ export interface LocalChatHistoryMessage {
   timestamp?: string;
 }
 
+// ---------- External terminal (F5) ----------
+export interface TerminalOpenOpts {
+  // The directory the terminal opens in (the project dir).
+  cwd: string;
+  // The command to run. Defaults to 'claude'.
+  command?: string;
+}
+
+export type TerminalOpenResult =
+  | { ok: true; terminal: string }
+  | { ok: false; reason: 'no-terminal' | 'spawn-failed' | 'bad-cwd' | 'bad-command'; message: string };
+
 // Normalized messages pushed on byan:chat-local:message. The main bridge maps
 // the WebUI wire protocol (chat-started / chat / chat-tool / chat-complete /
 // chat-error / chat-stopped) onto this shape so the renderer stays protocol-free.
@@ -439,6 +451,10 @@ export interface ByanApi {
     // Load a session's stored messages (to seed the thread on resume).
     history(sessionId: string): Promise<LocalChatHistoryMessage[]>;
   };
+  terminal: {
+    // Open an external terminal running `claude` (or command) in cwd (F5).
+    open(opts: TerminalOpenOpts): Promise<TerminalOpenResult>;
+  };
   app: {
     quit(): Promise<void>;
     version(): Promise<string>;
@@ -501,6 +517,9 @@ export const IPC_CHANNELS = {
     stop: 'byan:localChat:stop',
     list: 'byan:localChat:list',
     history: 'byan:localChat:history'
+  },
+  terminal: {
+    open: 'byan:terminal:open'
   },
   app: {
     quit: 'byan:app:quit',
