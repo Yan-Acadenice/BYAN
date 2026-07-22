@@ -193,7 +193,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: false
-          prerelease: true
+          # prerelease: false + make_latest -> la release porte le badge "Latest"
+          # et /releases/latest la renvoie. Une prerelease est EXCLUE de "latest"
+          # (page depot vide, /releases/latest en 404) : c'est ce qui donnait
+          # "j'ai pas l'AppImage sur GitHub" alors qu'elle etait publiee.
+          prerelease: false
+          make_latest: 'true'
           generate_release_notes: true
           fail_on_unmatched_files: false
           # Named globs only — the mac app zip is BYAN-<version>-<arch>.zip, so

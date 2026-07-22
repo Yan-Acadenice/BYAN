@@ -234,13 +234,16 @@ describe('electron-build.yml', () => {
       expect(job.permissions?.contents).toBe('write');
     });
 
-    it('publishes a NON-draft prerelease (immediately downloadable)', () => {
+    it('publishes a non-draft LATEST release (badge + /releases/latest, not a hidden prerelease)', () => {
       const ghRelease = job.steps.find((s) =>
         s.uses?.startsWith('softprops/action-gh-release@')
       );
       expect(ghRelease).toBeDefined();
       expect(ghRelease?.with?.draft).toBe(false);
-      expect(ghRelease?.with?.prerelease).toBe(true);
+      // NOT a prerelease: a prerelease is excluded from "Latest" and 404s on
+      // /releases/latest, which reads as "the AppImage isn't on GitHub".
+      expect(ghRelease?.with?.prerelease).toBe(false);
+      expect(String(ghRelease?.with?.make_latest)).toBe('true');
       expect(ghRelease?.with?.generate_release_notes).toBe(true);
     });
 
