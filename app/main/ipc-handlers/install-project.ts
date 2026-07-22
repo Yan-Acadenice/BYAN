@@ -42,7 +42,25 @@ function enginePath(): string {
   return path.resolve(__dirname, '..', '..', '..', 'install', 'lib', 'install-engine.js');
 }
 
+// install-engine ships OUTSIDE the asar (resources/install/lib) but its bare deps
+// (fs-extra, js-yaml) live in the app's asar-unpacked node_modules. A bare require
+// from resources/install/lib can't see them, so we add app.asar.unpacked/node_modules
+// to the global module search path (NODE_PATH + Module._initPaths) before loading
+// the engine. Same deps the forked WebUI server reaches via its child NODE_PATH.
+function ensureUnpackedNodePath(): void {
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (!resourcesPath) return;
+  const unpacked = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules');
+  if (!fs.existsSync(unpacked)) return;
+  const cur = process.env.NODE_PATH || '';
+  if (cur.split(path.delimiter).includes(unpacked)) return;
+  process.env.NODE_PATH = cur ? `${unpacked}${path.delimiter}${cur}` : unpacked;
+  const mod = req('node:module') as { Module?: { _initPaths?: () => void } };
+  mod.Module?._initPaths?.();
+}
+
 function loadEngine(): InstallEngine {
+  ensureUnpackedNodePath();
   return req(enginePath()) as InstallEngine;
 }
 

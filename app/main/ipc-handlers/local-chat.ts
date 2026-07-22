@@ -21,6 +21,18 @@ import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSum
 import { IpcError, wrap } from './_error';
 import type { LocalServer } from '../local-server';
 import { localSessions, resolveProjectRoot } from '../local-data';
+import { secureStore } from '../secure-store';
+
+// The project dir chosen at onboarding (persisted by the renderer via the store).
+// Fallback for the default cwd when the registry has no entry yet.
+async function onboardingRoot(): Promise<string | undefined> {
+  try {
+    const v = await secureStore.get('onboarding.projectRoot');
+    return v || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // A spawn signature narrow enough for tests to inject a fake process.
 export type SpawnFn = (cmd: string, args: string[], opts: { cwd: string; stdio: [string, string, string] }) => ChildProcess;
@@ -35,8 +47,9 @@ export interface LocalClaudeDeps {
   spawnFn?: SpawnFn;
   // Push a normalized message to the renderer. Default: broadcast to all windows.
   broadcast?: (msg: LocalChatMessage) => void;
-  // Default cwd when a start() omits one : the first local project (registry).
-  defaultCwd?: () => string | undefined;
+  // Default cwd when a start() omits one : first local project (registry), then
+  // the onboarding project dir. May be sync (tests) or async.
+  defaultCwd?: () => (string | undefined) | Promise<string | undefined>;
 }
 
 // Cap on concurrent local claude processes — a runaway renderer looping start()
@@ -48,13 +61,14 @@ const SIGKILL_GRACE_MS = 3_000;
 export class LocalClaudeBridge {
   private readonly spawnFn: SpawnFn;
   private readonly broadcast: (msg: LocalChatMessage) => void;
-  private readonly defaultCwd: () => string | undefined;
+  private readonly defaultCwd: () => (string | undefined) | Promise<string | undefined>;
   private readonly sessions = new Map<string, Session>();
 
   constructor(deps: LocalClaudeDeps = {}) {
     this.spawnFn = deps.spawnFn ?? (spawn as unknown as SpawnFn);
     this.broadcast = deps.broadcast ?? defaultBroadcast;
-    this.defaultCwd = deps.defaultCwd ?? (() => resolveProjectRoot() ?? undefined);
+    // Default: the first registered local project, else the onboarding project dir.
+    this.defaultCwd = deps.defaultCwd ?? (async () => resolveProjectRoot() ?? (await onboardingRoot()));
   }
 
   // Spawn a local claude in the project directory. cwd must be an existing
@@ -64,7 +78,7 @@ export class LocalClaudeBridge {
     if (this.sessions.size >= MAX_SESSIONS) {
       throw new IpcError('INVALID_ARGUMENT', `Trop de sessions locales ouvertes (max ${MAX_SESSIONS}). Ferme-en une.`);
     }
-    const cwd = opts?.cwd || this.defaultCwd() || '';
+    const cwd = opts?.cwd || (await this.defaultCwd()) || '';
     if (!cwd || !path.isAbsolute(cwd)) {
       throw new IpcError('INVALID_ARGUMENT', 'Session locale : aucun dossier de projet valide (choisis-en un).');
     }

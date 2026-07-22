@@ -69,11 +69,16 @@ export default function LocalChatView() {
     void newSession(cwd ? { cwd } : undefined).then(() => void refreshSessions());
   };
 
-  // Pick a project directory for the next new session (F4).
+  // Pick a project directory for the next new session (F4). Recording it in the
+  // registry makes an EXISTING project the user points at persist : it then shows
+  // up in Projects and becomes the default cwd for future sessions (fix terrain).
   const onPickFolder = async () => {
     try {
       const picked = await window.byanApi.fs?.openProjectDialog?.();
-      if (picked) setCwd(picked);
+      if (!picked) return;
+      setCwd(picked);
+      const name = picked.replace(/[/\\]+$/, '').split(/[/\\]/).pop() || picked;
+      try { await window.byanApi.projectsLocal?.record?.({ name, path: picked }); } catch { /* non-blocking */ }
     } catch { /* dialog unavailable — keep current cwd */ }
   };
 
