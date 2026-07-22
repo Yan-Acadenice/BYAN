@@ -13,6 +13,8 @@ import type { LocalChatMessage } from '../../shared/ipc-contract';
 const mockStart = vi.fn<() => Promise<{ sessionId: string }>>();
 const mockSend = vi.fn<() => Promise<void>>();
 const mockStop = vi.fn<() => Promise<void>>();
+const mockList = vi.fn();
+const mockHistory = vi.fn();
 
 let listeners: Array<(payload: unknown) => void> = [];
 function emit(msg: LocalChatMessage) {
@@ -22,7 +24,7 @@ function emit(msg: LocalChatMessage) {
 beforeEach(() => {
   listeners = [];
   Object.defineProperty(window, 'byanApi', {
-    value: { localChat: { start: mockStart, send: mockSend, stop: mockStop } },
+    value: { localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory } },
     writable: true,
     configurable: true,
   });
@@ -39,6 +41,8 @@ beforeEach(() => {
   mockStart.mockResolvedValue({ sessionId: 'sess-1' });
   mockSend.mockResolvedValue(undefined);
   mockStop.mockResolvedValue(undefined);
+  mockList.mockResolvedValue([]);
+  mockHistory.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -110,5 +114,36 @@ describe('useLocalChat', () => {
     await act(async () => { await result.current.send('hi'); });
     expect(result.current.error).toMatch(/serveur local/i);
     expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('refreshSessions loads the persisted session list', async () => {
+    mockList.mockResolvedValue([
+      { id: 'chat-a', cli: 'claude', agent: null, cwd: '/a', resumable: true, created: '', updated: '', messageCount: 3, lastMessage: 'hi' },
+    ]);
+    const { result } = renderHook(() => useLocalChat());
+    await act(async () => { await result.current.refreshSessions(); });
+    expect(result.current.sessions).toHaveLength(1);
+    expect(result.current.sessions[0].id).toBe('chat-a');
+  });
+
+  it('resume seeds history then reattaches with resumeSessionId', async () => {
+    mockHistory.mockResolvedValue([
+      { role: 'user', content: 'bonjour' },
+      { role: 'assistant', content: 'salut' },
+    ]);
+    mockStart.mockResolvedValue({ sessionId: 'chat-a' });
+    const { result } = renderHook(() => useLocalChat());
+    await act(async () => { await result.current.resume('chat-a'); });
+    expect(mockHistory).toHaveBeenCalledWith('chat-a');
+    expect(mockStart).toHaveBeenCalledWith({ resumeSessionId: 'chat-a' });
+    expect(result.current.sessionId).toBe('chat-a');
+    expect(result.current.messages.map((m) => m.content)).toEqual(['bonjour', 'salut']);
+  });
+
+  it('send forwards resume/cwd opts are NOT set on a plain send (fresh start)', async () => {
+    const { result } = renderHook(() => useLocalChat());
+    await act(async () => { await result.current.send('hi'); });
+    // Plain send starts with no opts (fresh, default cwd).
+    expect(mockStart).toHaveBeenCalledWith();
   });
 });

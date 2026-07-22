@@ -7,15 +7,33 @@
 // persistence + resume across restarts is F3.
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, X, Plus, Loader2, MessageSquare, Cpu } from 'lucide-react';
+import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check } from 'lucide-react';
 import MessageMarkdown from './MessageMarkdown';
 import { useLocalChat } from '../../hooks/useLocalChat';
 
 export default function LocalChatView() {
-  const { messages, streaming, streamText, starting, error, sessionId, newSession, send, stop } = useLocalChat();
+  const {
+    messages, streaming, streamText, starting, error, sessionId, sessions,
+    newSession, resume, refreshSessions, send, stop,
+  } = useLocalChat();
   const [input, setInput] = useState('');
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sessionsRef = useRef<HTMLDivElement>(null);
+
+  // Load the resumable session list once on mount.
+  useEffect(() => { void refreshSessions(); }, [refreshSessions]);
+
+  // Close the sessions menu on an outside click.
+  useEffect(() => {
+    if (!sessionsOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (sessionsRef.current && !sessionsRef.current.contains(e.target as Node)) setSessionsOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [sessionsOpen]);
 
   useEffect(() => {
     if (typeof bottomRef.current?.scrollIntoView === 'function') {
@@ -25,8 +43,17 @@ export default function LocalChatView() {
 
   const submit = () => {
     if (!input.trim() || streaming) return;
-    void send(input);
+    void send(input).then(() => void refreshSessions());
     setInput('');
+  };
+
+  const onNewSession = () => {
+    void newSession().then(() => void refreshSessions());
+  };
+
+  const onResume = (id: string) => {
+    setSessionsOpen(false);
+    void resume(id);
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -49,17 +76,62 @@ export default function LocalChatView() {
             <span className="font-mono-code text-[10px] text-ink-500">session {sessionId.slice(0, 8)}</span>
           )}
         </div>
-        <button
-          type="button"
-          data-testid="local-new-session"
-          onClick={() => void newSession()}
-          disabled={starting}
-          className="flex items-center gap-xs btn-secondary text-xs disabled:opacity-50"
-          title="Nouvelle session locale"
-        >
-          {starting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-          Nouvelle session
-        </button>
+        <div className="flex items-center gap-xs">
+          {/* Resume an existing session */}
+          <div ref={sessionsRef} className="relative">
+            <button
+              type="button"
+              data-testid="local-sessions-toggle"
+              onClick={() => { setSessionsOpen((o) => !o); void refreshSessions(); }}
+              className="flex items-center gap-xs btn-ghost text-xs"
+              title="Reprendre une session"
+              aria-haspopup="menu"
+              aria-expanded={sessionsOpen}
+            >
+              <History size={12} />
+              Sessions{sessions.length ? ` (${sessions.length})` : ''}
+            </button>
+            {sessionsOpen && (
+              <div
+                role="menu"
+                className="absolute top-full right-0 mt-1 w-72 max-h-80 overflow-y-auto bg-ink-900 border border-ink-700 rounded shadow-lg py-1 z-50"
+              >
+                {sessions.length === 0 ? (
+                  <p className="px-md py-sm text-xs text-ink-500">Aucune session enregistrée.</p>
+                ) : (
+                  sessions.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      role="menuitem"
+                      data-testid={`local-session-${s.id}`}
+                      onClick={() => onResume(s.id)}
+                      className="w-full text-left px-md py-sm hover:bg-ink-800 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono-code text-[10px] text-ink-400">{s.id.slice(0, 14)}</span>
+                        {s.id === sessionId && <Check size={11} className="text-acadenice-teal" />}
+                      </div>
+                      <p className="text-xs text-ink-300 truncate">{s.lastMessage || '(vide)'}</p>
+                      <p className="text-[10px] text-ink-600">{s.messageCount} msg{s.resumable ? ' · reprenable' : ''}</p>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            data-testid="local-new-session"
+            onClick={onNewSession}
+            disabled={starting}
+            className="flex items-center gap-xs btn-secondary text-xs disabled:opacity-50"
+            title="Nouvelle session locale"
+          >
+            {starting ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+            Nouvelle session
+          </button>
+        </div>
       </div>
 
       {/* Messages */}

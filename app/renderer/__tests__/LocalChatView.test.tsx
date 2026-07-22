@@ -10,6 +10,8 @@ import type { LocalChatMessage } from '../../shared/ipc-contract';
 const mockStart = vi.fn<() => Promise<{ sessionId: string }>>();
 const mockSend = vi.fn<() => Promise<void>>();
 const mockStop = vi.fn<() => Promise<void>>();
+const mockList = vi.fn();
+const mockHistory = vi.fn();
 
 let listeners: Array<(payload: unknown) => void> = [];
 function emit(msg: LocalChatMessage) {
@@ -19,7 +21,7 @@ function emit(msg: LocalChatMessage) {
 beforeEach(() => {
   listeners = [];
   Object.defineProperty(window, 'byanApi', {
-    value: { localChat: { start: mockStart, send: mockSend, stop: mockStop } },
+    value: { localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory } },
     writable: true,
     configurable: true,
   });
@@ -36,6 +38,8 @@ beforeEach(() => {
   mockStart.mockResolvedValue({ sessionId: 'sess-1' });
   mockSend.mockResolvedValue(undefined);
   mockStop.mockResolvedValue(undefined);
+  mockList.mockResolvedValue([]);
+  mockHistory.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -43,11 +47,12 @@ afterEach(() => {
 });
 
 describe('LocalChatView', () => {
-  it('renders the empty state and the New session button', () => {
+  it('renders the empty state and the New session button', async () => {
     render(<LocalChatView />);
     expect(screen.getByTestId('local-chat-view')).toBeInTheDocument();
     expect(screen.getByTestId('local-new-session')).toBeInTheDocument();
-    expect(screen.getByText(/chat local avec claude/i)).toBeInTheDocument();
+    // findBy waits out the mount-time refreshSessions state settle (act).
+    expect(await screen.findByText(/chat local avec claude/i)).toBeInTheDocument();
   });
 
   it('sends a message and shows the streamed assistant reply', async () => {
@@ -70,5 +75,23 @@ describe('LocalChatView', () => {
     render(<LocalChatView />);
     fireEvent.click(screen.getByTestId('local-new-session'));
     await waitFor(() => expect(mockStart).toHaveBeenCalled());
+  });
+
+  it('lists resumable sessions and resumes one on click', async () => {
+    mockList.mockResolvedValue([
+      { id: 'chat-old', cli: 'claude', agent: null, cwd: '/p', resumable: true, created: '', updated: '', messageCount: 2, lastMessage: 'reprends-moi' },
+    ]);
+    mockHistory.mockResolvedValue([{ role: 'user', content: 'reprends-moi' }]);
+    mockStart.mockResolvedValue({ sessionId: 'chat-old' });
+
+    render(<LocalChatView />);
+    // Open the sessions menu (also triggers a refresh).
+    fireEvent.click(screen.getByTestId('local-sessions-toggle'));
+    await waitFor(() => expect(screen.getByTestId('local-session-chat-old')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('local-session-chat-old'));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ resumeSessionId: 'chat-old' }));
+    expect(mockHistory).toHaveBeenCalledWith('chat-old');
+    await waitFor(() => expect(screen.getByText('reprends-moi')).toBeInTheDocument());
   });
 });

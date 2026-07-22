@@ -324,18 +324,39 @@ const routes = {
   // --- Chat routes ---
 
   'POST chat/start': async (req, res, server) => {
-    const { cli, agent, model } = req.body || {};
+    const { cli, agent, model, resumeSessionId, cwd } = req.body || {};
     const sm = getSessionManager(server);
 
     const cliName = cli || 'claude';
-    const session = sm.create(cliName, agent || null);
 
+    // Resume path mirrors the ws _wsStartChat: reattach to a stored record,
+    // reuse its cwd + the claude session id ; fresh path binds a new record to cwd.
+    let session = null;
+    let claudeResume = null;
+    let projectRoot = cwd || server.projectRoot;
+    if (resumeSessionId) {
+      const existing = sm.load(resumeSessionId);
+      if (existing) {
+        session = existing;
+        claudeResume = existing.claudeSessionId || null;
+        projectRoot = existing.cwd || projectRoot;
+      }
+    }
+    if (!session) {
+      session = sm.create(cliName, agent || null, { cwd: projectRoot });
+    }
+
+    // Accumulate the assistant reply so the stored transcript shows both sides
+    // (resume would otherwise replay user turns with no answers).
+    let assistantBuf = '';
     try {
       const bridge = createBridge(cliName, {
-        projectRoot: server.projectRoot,
+        projectRoot,
         agent: agent || null,
         model: model || null,
+        resumeSessionId: claudeResume,
         onChunk: (chunk) => {
+          assistantBuf += chunk;
           sendToSessionClients(server, session.id, {
             type: 'chat',
             sessionId: session.id,
@@ -351,6 +372,13 @@ const routes = {
           });
         },
         onComplete: (result) => {
+          if (result && result.sessionId) {
+            sm.setClaudeSessionId(session.id, result.sessionId);
+          }
+          if (assistantBuf) {
+            sm.addMessage(session.id, 'assistant', assistantBuf);
+            assistantBuf = '';
+          }
           sendToSessionClients(server, session.id, {
             type: 'chat-complete',
             sessionId: session.id,
@@ -369,9 +397,10 @@ const routes = {
       await bridge.start();
       activeBridges.set(session.id, bridge);
 
-      json(res, 200, { sessionId: session.id, cli: cliName });
+      json(res, 200, { sessionId: session.id, cli: cliName, resumed: Boolean(claudeResume) });
     } catch (err) {
-      sm.delete(session.id);
+      // Never delete a resumed record ; only one created in this call.
+      if (!resumeSessionId) sm.delete(session.id);
       json(res, 500, { error: err.message });
     }
   },

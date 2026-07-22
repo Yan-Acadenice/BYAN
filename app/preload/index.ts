@@ -29,6 +29,8 @@ import {
   CreateConversationOpts,
   SendMessageOpts,
   LocalChatStartOpts,
+  LocalChatSessionSummary,
+  LocalChatHistoryMessage,
   UpdateState,
 } from '../shared/ipc-contract';
 
@@ -90,7 +92,9 @@ const api: ByanApi = {
   localChat: {
     start: (opts?: LocalChatStartOpts) => invoke<{ sessionId: string }>(IPC_CHANNELS.localChat.start, opts),
     send: (sessionId: string, message: string) => invoke<void>(IPC_CHANNELS.localChat.send, sessionId, message),
-    stop: (sessionId: string) => invoke<void>(IPC_CHANNELS.localChat.stop, sessionId)
+    stop: (sessionId: string) => invoke<void>(IPC_CHANNELS.localChat.stop, sessionId),
+    list: () => invoke<LocalChatSessionSummary[]>(IPC_CHANNELS.localChat.list),
+    history: (sessionId: string) => invoke<LocalChatHistoryMessage[]>(IPC_CHANNELS.localChat.history, sessionId)
   },
   app: {
     quit: () => invoke<void>(IPC_CHANNELS.app.quit),

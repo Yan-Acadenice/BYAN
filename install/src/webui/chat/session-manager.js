@@ -32,12 +32,26 @@ class SessionManager {
     return `chat-${ts}-${rand}`;
   }
 
-  create(cliName, agentName) {
+  // Session ids reach disk paths (load/delete). A resume request carries the id
+  // from the client, so an unvalidated id like '../../../.ssh/id_rsa' would
+  // escape sessionsDir via path.join. Only ids in our own generated shape are
+  // allowed; anything else is rejected (no file touched).
+  _isValidId(id) {
+    return typeof id === 'string' && /^chat-[a-z0-9]+-[a-f0-9]+$/.test(id);
+  }
+
+  // opts.cwd     : the project directory the CLI runs in (per-session, F3/F4).
+  // opts.claudeSessionId : the underlying claude CLI session id (F3). Usually
+  //   filled later via setClaudeSessionId once the CLI reports it, so a future
+  //   resume can pass --resume <id>.
+  create(cliName, agentName, opts = {}) {
     const id = this._generateId();
     const session = {
       id,
       cli: cliName || 'claude',
       agent: agentName || null,
+      cwd: opts.cwd || null,
+      claudeSessionId: opts.claudeSessionId || null,
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       messages: [],
@@ -46,6 +60,17 @@ class SessionManager {
     this.sessions.set(id, session);
     this._saveToDisk(session);
     return session;
+  }
+
+  // Persist the underlying CLI session id (claude's own uuid) on the record so a
+  // later start can resume it with --resume. No-op if the record is gone.
+  setClaudeSessionId(sessionId, claudeSessionId) {
+    const session = this._getSession(sessionId);
+    if (!session || !claudeSessionId) return;
+    if (session.claudeSessionId === claudeSessionId) return;
+    session.claudeSessionId = claudeSessionId;
+    session.updated = new Date().toISOString();
+    this._saveToDisk(session);
   }
 
   addMessage(sessionId, role, content, metadata = {}) {
@@ -70,6 +95,7 @@ class SessionManager {
   }
 
   load(sessionId) {
+    if (!this._isValidId(sessionId)) return null;
     if (this.sessions.has(sessionId)) {
       return this.sessions.get(sessionId);
     }
@@ -94,6 +120,9 @@ class SessionManager {
         id: session.id,
         cli: session.cli,
         agent: session.agent,
+        cwd: session.cwd || null,
+        // Resumable when the CLI reported its own session id at least once.
+        resumable: Boolean(session.claudeSessionId),
         created: session.created,
         updated: session.updated,
         messageCount: session.messages.length,
@@ -108,6 +137,7 @@ class SessionManager {
   }
 
   delete(sessionId) {
+    if (!this._isValidId(sessionId)) return;
     this.sessions.delete(sessionId);
     const filePath = path.join(this.sessionsDir, `${sessionId}.json`);
     try {

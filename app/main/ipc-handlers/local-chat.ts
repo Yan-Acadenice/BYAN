@@ -20,7 +20,7 @@
 
 import type { IpcMain } from 'electron';
 import { BrowserWindow } from 'electron';
-import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage } from '../../shared/ipc-contract';
+import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
 import type { LocalServer } from '../local-server';
 
@@ -188,8 +188,46 @@ export class LocalChatBridge {
         reject(new IpcError('INTERNAL', 'Démarrage de la session locale expiré.'));
       }, START_TIMEOUT_MS);
       this.pendingStarts.push({ resolve, reject, timer });
-      ws.send(JSON.stringify({ type: 'chat-start', cli: opts?.cli ?? 'claude', agent: opts?.agent ?? null }));
+      ws.send(JSON.stringify({
+        type: 'chat-start',
+        cli: opts?.cli ?? 'claude',
+        agent: opts?.agent ?? null,
+        // Resume an existing record + reuse its cwd when asked (F3) ; otherwise
+        // bind the fresh session to the given cwd (F4). Both omitted -> default.
+        resumeSessionId: opts?.resumeSessionId ?? null,
+        cwd: opts?.cwd ?? null,
+      }));
     });
+  }
+
+  // List persisted local sessions via the local server's HTTP API. Read-only ;
+  // returns [] when the server is down rather than throwing (the UI degrades).
+  async list(): Promise<LocalChatSessionSummary[]> {
+    const port = this.getPort();
+    if (!port) return [];
+    try {
+      const res = await fetch(`http://localhost:${port}/api/chat/sessions`);
+      if (!res.ok) return [];
+      const body = (await res.json()) as { sessions?: LocalChatSessionSummary[] };
+      return body.sessions ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  // Load a session's stored messages so the renderer can seed the thread on resume.
+  async history(sessionId: string): Promise<LocalChatHistoryMessage[]> {
+    if (!sessionId) throw new IpcError('INVALID_ARGUMENT', 'sessionId requis');
+    const port = this.getPort();
+    if (!port) return [];
+    try {
+      const res = await fetch(`http://localhost:${port}/api/chat/session/${encodeURIComponent(sessionId)}`);
+      if (!res.ok) return [];
+      const body = (await res.json()) as { session?: { messages?: LocalChatHistoryMessage[] } };
+      return body.session?.messages ?? [];
+    } catch {
+      return [];
+    }
   }
 
   async send(sessionId: string, message: string): Promise<void> {
@@ -209,6 +247,8 @@ export class LocalChatBridge {
     ipcMain.handle(IPC_CHANNELS.localChat.start, wrap((_evt, opts?: LocalChatStartOpts) => this.start(opts)));
     ipcMain.handle(IPC_CHANNELS.localChat.send, wrap((_evt, sessionId: string, message: string) => this.send(sessionId, message)));
     ipcMain.handle(IPC_CHANNELS.localChat.stop, wrap((_evt, sessionId: string) => this.stop(sessionId)));
+    ipcMain.handle(IPC_CHANNELS.localChat.list, wrap(() => this.list()));
+    ipcMain.handle(IPC_CHANNELS.localChat.history, wrap((_evt, sessionId: string) => this.history(sessionId)));
   }
 }
 
@@ -244,6 +284,8 @@ export function register(ipcMain: IpcMain): void {
     ipcMain.handle(IPC_CHANNELS.localChat.start, wrap(() => { throw new IpcError('NOT_IMPLEMENTED', 'Chat local non initialisé.'); }));
     ipcMain.handle(IPC_CHANNELS.localChat.send, wrap(() => { throw new IpcError('NOT_IMPLEMENTED', 'Chat local non initialisé.'); }));
     ipcMain.handle(IPC_CHANNELS.localChat.stop, wrap(() => { throw new IpcError('NOT_IMPLEMENTED', 'Chat local non initialisé.'); }));
+    ipcMain.handle(IPC_CHANNELS.localChat.list, wrap(() => [] as LocalChatSessionSummary[]));
+    ipcMain.handle(IPC_CHANNELS.localChat.history, wrap(() => [] as LocalChatHistoryMessage[]));
     return;
   }
   _bridge.register(ipcMain);

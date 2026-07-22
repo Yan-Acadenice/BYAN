@@ -8,7 +8,7 @@
 // isolated here so the cloud path stays untouched and this stays unit-testable.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { LocalChatMessage, LocalChatStartOpts } from '../../shared/ipc-contract';
+import type { LocalChatMessage, LocalChatStartOpts, LocalChatSessionSummary } from '../../shared/ipc-contract';
 
 export type LocalChatRole = 'user' | 'assistant' | 'system' | 'tool';
 
@@ -25,12 +25,23 @@ export interface UseLocalChat {
   streamText: string;
   starting: boolean;
   error: string | null;
+  // Persisted sessions available to resume (most recent first).
+  sessions: LocalChatSessionSummary[];
   // Start a fresh local session (drops the current thread).
   newSession: (opts?: LocalChatStartOpts) => Promise<void>;
+  // Resume an existing session by record id : loads its history then reattaches.
+  resume: (recordId: string) => Promise<void>;
+  // Re-read the persisted session list.
+  refreshSessions: () => Promise<void>;
   // Send a user message ; starts a session on the fly if none exists.
   send: (text: string) => Promise<void>;
   // Ask the local CLI to stop the current turn.
   stop: () => Promise<void>;
+}
+
+// Coerce a stored message role onto the display union (unknown -> assistant).
+function toRole(role: string): LocalChatRole {
+  return role === 'user' || role === 'system' || role === 'tool' ? role : 'assistant';
 }
 
 let _idCounter = 0;
@@ -46,6 +57,7 @@ export function useLocalChat(): UseLocalChat {
   const [streamText, setStreamText] = useState('');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
 
   // The event listener closes over a ref, not state, so it always filters on the
   // current session without re-subscribing on every session change.
@@ -170,5 +182,40 @@ export function useLocalChat(): UseLocalChat {
     setStreamText('');
   }, []);
 
-  return { sessionId, messages, streaming, streamText, starting, error, newSession, send, stop };
+  const refreshSessions = useCallback(async () => {
+    try {
+      const list = (await window.byanApi.localChat.list?.()) ?? [];
+      setSessions(list);
+    } catch {
+      setSessions([]);
+    }
+  }, []);
+
+  const resume = useCallback(async (recordId: string) => {
+    setStarting(true);
+    setError(null);
+    try {
+      // Seed the thread with the stored history so the user sees the past turns.
+      const history = (await window.byanApi.localChat.history?.(recordId)) ?? [];
+      setMessages(history.map((h, i) => ({ id: `h-${i}`, role: toRole(h.role), content: h.content })));
+      const { sessionId: id } = await window.byanApi.localChat.start({ resumeSessionId: recordId });
+      setSessionId(id);
+      accRef.current = '';
+      setStreamText('');
+      setStreaming(false);
+    } catch (err) {
+      // Reattach failed — drop the just-seeded history so the view does not show
+      // an orphan thread that never reconnected.
+      setMessages([]);
+      setSessionId(null);
+      setError(err instanceof Error ? err.message : 'Impossible de reprendre la session locale.');
+    } finally {
+      setStarting(false);
+    }
+  }, []);
+
+  return {
+    sessionId, messages, streaming, streamText, starting, error, sessions,
+    newSession, resume, refreshSessions, send, stop,
+  };
 }

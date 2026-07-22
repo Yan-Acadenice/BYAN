@@ -3,7 +3,7 @@
 // chat-started), send/stop framing, message normalization + broadcast, and the
 // error/no-server paths.
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalChatBridge, type WsLike } from '../../ipc-handlers/local-chat';
 import type { LocalChatMessage } from '../../../shared/ipc-contract';
 
@@ -64,9 +64,9 @@ describe('LocalChatBridge.start', () => {
     const p = bridge.start({ cli: 'claude' });
     fake.emitOpen();
     await flush();
-    // chat-start frame was sent with the requested cli.
+    // chat-start frame was sent with the requested cli (resume/cwd default null).
     expect(fake.sent).toHaveLength(1);
-    expect(JSON.parse(fake.sent[0])).toEqual({ type: 'chat-start', cli: 'claude', agent: null });
+    expect(JSON.parse(fake.sent[0])).toEqual({ type: 'chat-start', cli: 'claude', agent: null, resumeSessionId: null, cwd: null });
     // Server assigns the id.
     fake.emitMessage({ type: 'chat-started', sessionId: 'sess-1', cli: 'claude' });
     await expect(p).resolves.toEqual({ sessionId: 'sess-1' });
@@ -168,5 +168,56 @@ describe('LocalChatBridge message normalization', () => {
     fake.emit('message', 'not json {');
     // Only the 'started' broadcast — the garbage frame produced nothing.
     expect(broadcasts).toHaveLength(1);
+  });
+});
+
+describe('LocalChatBridge.start resume/cwd framing', () => {
+  it('includes resumeSessionId and cwd in the chat-start frame', async () => {
+    const { bridge, fake } = makeBridge();
+    const p = bridge.start({ resumeSessionId: 'chat-x', cwd: '/home/yan/p' });
+    fake.emitOpen();
+    await flush();
+    expect(JSON.parse(fake.sent[0])).toEqual({
+      type: 'chat-start', cli: 'claude', agent: null, resumeSessionId: 'chat-x', cwd: '/home/yan/p',
+    });
+    fake.emitMessage({ type: 'chat-started', sessionId: 'chat-x', cli: 'claude' });
+    await p;
+  });
+});
+
+describe('LocalChatBridge.list / history (HTTP)', () => {
+  const origFetch = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = origFetch; });
+
+  it('list fetches /api/chat/sessions and returns the array', async () => {
+    const { bridge } = makeBridge();
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ sessions: [{ id: 'chat-a', resumable: true }] }),
+    })) as unknown as typeof fetch;
+    const out = await bridge.list();
+    expect(out).toEqual([{ id: 'chat-a', resumable: true }]);
+  });
+
+  it('list returns [] when the server has no port', async () => {
+    const { bridge } = makeBridge(false);
+    const out = await bridge.list();
+    expect(out).toEqual([]);
+  });
+
+  it('history returns the session messages', async () => {
+    const { bridge } = makeBridge();
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ session: { messages: [{ role: 'user', content: 'hi' }] } }),
+    })) as unknown as typeof fetch;
+    const out = await bridge.history('chat-a');
+    expect(out).toEqual([{ role: 'user', content: 'hi' }]);
+  });
+
+  it('list degrades to [] on a fetch error', async () => {
+    const { bridge } = makeBridge();
+    globalThis.fetch = vi.fn(async () => { throw new Error('down'); }) as unknown as typeof fetch;
+    expect(await bridge.list()).toEqual([]);
   });
 });

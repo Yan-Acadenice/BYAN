@@ -10,6 +10,9 @@ class Bridge {
     this.projectRoot = options.projectRoot || process.cwd();
     this.agent = options.agent || null;
     this.model = options.model || null;
+    // When set, the adapter resumes an existing CLI session (--resume) instead
+    // of starting a fresh one (F3).
+    this.resumeSessionId = options.resumeSessionId || null;
     this.onChunk = options.onChunk || (() => {});
     this.onToolUse = options.onToolUse || (() => {});
     this.onComplete = options.onComplete || (() => {});

@@ -230,6 +230,32 @@ export interface LocalChatStartOpts {
   cli?: string;
   // Optional agent slug to preload in the session.
   agent?: string | null;
+  // Resume an existing local session by its record id (F3). When set, the server
+  // reattaches to that session (--resume) and reuses its cwd.
+  resumeSessionId?: string;
+  // Working directory for a fresh session (F3/F4). Ignored when resuming.
+  cwd?: string;
+}
+
+// Summary of a persisted local session, from GET /api/chat/sessions (F3).
+export interface LocalChatSessionSummary {
+  id: string;
+  cli: string;
+  agent: string | null;
+  cwd: string | null;
+  // True once the CLI reported its own session id, i.e. it can be resumed.
+  resumable: boolean;
+  created: string;
+  updated: string;
+  messageCount: number;
+  lastMessage: string | null;
+}
+
+// A stored message of a local session, from GET /api/chat/session/:id (F3).
+export interface LocalChatHistoryMessage {
+  role: string;
+  content: string;
+  timestamp?: string;
 }
 
 // Normalized messages pushed on byan:chat-local:message. The main bridge maps
@@ -401,12 +427,17 @@ export interface ByanApi {
     status(): Promise<ServerStatus>;
   };
   localChat: {
-    // Start a local claude session ; resolves with the server-assigned sessionId.
+    // Start (or resume, via opts.resumeSessionId) a local claude session ;
+    // resolves with the server-assigned sessionId.
     start(opts?: LocalChatStartOpts): Promise<{ sessionId: string }>;
     // Send a user message to an existing local session.
     send(sessionId: string, message: string): Promise<void>;
     // Stop / tear down a local session's bridge.
     stop(sessionId: string): Promise<void>;
+    // List persisted local sessions (most recent first) so the user can resume.
+    list(): Promise<LocalChatSessionSummary[]>;
+    // Load a session's stored messages (to seed the thread on resume).
+    history(sessionId: string): Promise<LocalChatHistoryMessage[]>;
   };
   app: {
     quit(): Promise<void>;
@@ -467,7 +498,9 @@ export const IPC_CHANNELS = {
   localChat: {
     start: 'byan:localChat:start',
     send: 'byan:localChat:send',
-    stop: 'byan:localChat:stop'
+    stop: 'byan:localChat:stop',
+    list: 'byan:localChat:list',
+    history: 'byan:localChat:history'
   },
   app: {
     quit: 'byan:app:quit',

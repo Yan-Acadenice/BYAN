@@ -30,7 +30,12 @@ class ClaudeAdapter extends Bridge {
       args.push('--model', this.model);
     }
 
-    if (this._sessionId) {
+    // Resume an existing claude session (F3) takes precedence over --session-id.
+    // --resume <uuid> reloads that session's context ; --session-id only pins the
+    // id of a fresh one, which errors if the id already exists.
+    if (this.resumeSessionId) {
+      args.push('--resume', this.resumeSessionId);
+    } else if (this._sessionId) {
       args.push('--session-id', this._sessionId);
     }
 

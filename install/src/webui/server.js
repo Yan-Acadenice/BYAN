@@ -229,25 +229,57 @@ class ByanWebUI {
   }
 
   async _wsStartChat(ws, data) {
-    const { cli, agent, model } = data;
+    const { cli, agent, model, resumeSessionId, cwd } = data;
     const cliName = cli || 'claude';
-    const session = this.sessionManager.create(cliName, agent || null);
+
+    // Resume path: reattach to an existing record, reuse its cwd + the claude
+    // session id so --resume reloads the right context. Fresh path: create a new
+    // record bound to the requested cwd (F3/F4).
+    let session = null;
+    let claudeResume = null;
+    let projectRoot = cwd || this.projectRoot;
+    if (resumeSessionId) {
+      const existing = this.sessionManager.load(resumeSessionId);
+      if (existing) {
+        session = existing;
+        claudeResume = existing.claudeSessionId || null;
+        projectRoot = existing.cwd || projectRoot;
+      }
+    }
+    if (!session) {
+      session = this.sessionManager.create(cliName, agent || null, { cwd: projectRoot });
+    }
     const sessionId = session.id;
 
     ws._chatSessionId = sessionId;
 
+    // Accumulate the assistant's streamed text for THIS turn so it can be saved
+    // to the record on complete. Without this, resume replays user turns with no
+    // replies (the transcript is half-empty). Reset each turn in onComplete.
+    let assistantBuf = '';
     try {
       const bridge = createBridge(cliName, {
-        projectRoot: this.projectRoot,
+        projectRoot,
         agent: agent || null,
         model: model || null,
+        resumeSessionId: claudeResume,
         onChunk: (chunk) => {
+          assistantBuf += chunk;
           this._sendToSession(sessionId, { type: 'chat', sessionId, chunk, role: 'assistant' });
         },
         onToolUse: (tool) => {
           this._sendToSession(sessionId, { type: 'chat-tool', sessionId, tool });
         },
         onComplete: (result) => {
+          // Persist the claude session id so this record can be resumed later.
+          if (result && result.sessionId) {
+            this.sessionManager.setClaudeSessionId(sessionId, result.sessionId);
+          }
+          // Persist the assistant reply so a resumed thread shows both sides.
+          if (assistantBuf) {
+            this.sessionManager.addMessage(sessionId, 'assistant', assistantBuf);
+            assistantBuf = '';
+          }
           this._sendToSession(sessionId, { type: 'chat-complete', sessionId, result });
         },
         onError: (err) => {
@@ -258,9 +290,10 @@ class ByanWebUI {
       await bridge.start();
       this.chatBridges.set(sessionId, bridge);
 
-      ws.send(JSON.stringify({ type: 'chat-started', sessionId, cli: cliName }));
+      ws.send(JSON.stringify({ type: 'chat-started', sessionId, cli: cliName, resumed: Boolean(claudeResume) }));
     } catch (err) {
-      this.sessionManager.delete(sessionId);
+      // Only delete a record we created in this call ; never drop a resumed one.
+      if (!resumeSessionId) this.sessionManager.delete(sessionId);
       ws.send(JSON.stringify({ type: 'chat-error', sessionId, error: err.message }));
     }
   }
