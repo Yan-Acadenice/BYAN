@@ -47,6 +47,47 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — chat local : durcissement complet du chemin stream-json (audit adversarial, 2026-07-23)
+
+Apres le fix `--verbose`, un second defaut fatal restait : le message stdin
+n'avait pas le wrapper `message.role` (`Erreur: claude: Error: Expected message
+role 'user', got 'undefined'`). Plutot que corriger une erreur a la fois, un
+audit adversarial (workflow natif, 32 agents, 4 angles + verification par
+defaut) a passe TOUT le chemin du chat au crible : 28 defauts bruts, 20
+confirmes en-scope. 18 corriges, 2 differes avec raison. Prouve par un test
+d'integration qui lance le VRAI binaire `claude` (aller-retour reel, zero erreur
+de parsing).
+
+- **Forme stdin (fatal, les 2 adaptateurs)** : `{type:'user', content}` ->
+  `{type:'user', message:{role:'user', content}}` — la forme exacte que le CLI
+  attend en `--input-format stream-json`. `app/main/ipc-handlers/local-chat.ts`
+  (chemin natif Electron) + `install/src/webui/chat/claude-adapter.js` (webui).
+- **`result` en erreur silencieuse (les 2)** : un `result` avec `is_error:true`
+  (quota, refus, erreur API) etait affiche comme une reponse valide -> desormais
+  remonte comme erreur.
+- **stderr multiligne (les 2)** : une vraie erreur suivant une ligne benigne dans
+  le meme paquet etait avalee (test `/m` unique) -> filtrage ligne par ligne.
+- **Cycle de vie serveur webui** : fermeture d'onglet laissait un process
+  `claude` orphelin ; re-demarrage d'une session laissait un bridge orphelin ;
+  `join` (verbe du client) n'etait pas ecoute cote serveur (que `chat-subscribe`).
+- **Consommateurs** : le renderer et le client webui ignoraient le texte
+  `result` (repli quand aucun morceau n'arrive) ; la banniere d'erreur persistait
+  d'un tour a l'autre.
+- **Robustesse** : UTF-8 multi-octets coupe entre deux paquets (accents ->
+  `StringDecoder`), ligne finale sans retour a la ligne (flush a la fin du flux),
+  `result` en vol perdu a l'arret (suppression differee a la sortie du process),
+  champ cout `cost_usd` -> `total_cost_usd` (nom reel).
+- **Differe (raison)** : resserrer l'allowlist stderr (marqueurs `Session`/`Token`
+  trop larges) — non fait car ca risque de faire remonter des lignes benignes
+  comme erreurs, exactement la fausse alerte a eviter. Le vrai bug (avalage
+  multiligne) est corrige ; le resserrage viendra avec des marqueurs benins
+  observes en conditions reelles.
+- Tests : forme du fil dans les deux sens (unitaire), `is_error`, stderr
+  multiligne, flush, UTF-8, cycle de vie serveur (`_onWsGone`/`join`), repli
+  renderer, + un test d'integration opt-in (`BYAN_E2E_CLAUDE=1`) contre le vrai
+  `claude`. Suite app 568 + webui 75 vertes. App bumpee 1.2.5 -> 1.2.6, tag
+  `desktop-v1.2.6`.
+
 ### Fixed — chat local : --verbose obligatoire avec claude --print + stream-json (2026-07-23)
 
 - Le chat local plantait des le premier message avec `Erreur: claude: Error:
