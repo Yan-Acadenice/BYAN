@@ -47,6 +47,27 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — mode local : plus d'AUTH_REQUIRED sur les pages sans login cloud (2026-07-23)
+
+- Symptome : en local, chaque page (Projets, Agents, Knowledge, Memory, Sessions)
+  levait `IpcError: No auth token — please log in` (`AUTH_REQUIRED`) et le serveur
+  demarrait sur le mauvais dossier (`Telechargements`).
+- Cause : le code est deja conscient du mode (N1 : `local-data.ts` lit le disque,
+  chaque handler `byan-web` route `isLocalMode() ? localXxx() : fetchXxx()`), mais
+  `isLocalMode()` renvoyait `false` quand aucun mode n'etait persiste -> l'app
+  tentait le cloud et echouait partout. Le mode `local` ne se persistait pas avant
+  le repli du magasin (desktop-v1.2.9), d'ou le retour permanent au cloud.
+- Fix : `isLocalMode()` defaute desormais sur **local** quand aucun mode n'est
+  enregistre ET qu'aucun token cloud n'existe. Un token cloud present donne la
+  priorite au cloud (un vrai utilisateur cloud n'est pas deroute) ; un mode
+  explicite (cloud/custom/local) est respecte. Un utilisateur local-first sans
+  login lit donc le disque, sans erreur d'auth.
+- La couche de donnees locale (Agents/Knowledge/Memory/Sessions/Projets depuis
+  `_byan/`) etait deja construite par N1 ; ce correctif ne fait que corriger le
+  choix du mode par defaut. Tests : table de verite isLocalMode complete (mode
+  explicite, absent+token, absent-sans-token, echec store). App 589 verte. App
+  bumpee 1.2.10 -> 1.2.11, tag `desktop-v1.2.11`.
+
 ### Fixed — build Windows : tests gpuMarkerPath POSIX-only (2026-07-23)
 
 - Meme classe de bug que resolve-bin (desktop-v1.2.4) : deux tests de `gpu.test.ts`
