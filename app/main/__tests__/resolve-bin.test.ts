@@ -12,7 +12,14 @@ import {
   resolveExecutable,
 } from '../resolve-bin';
 
-describe('commonBinDirs', () => {
+// resolve-bin is the POSIX GUI-launch PATH fix (macOS/Linux windowed apps inherit
+// a truncated PATH ; Windows GUIs get the full PATH from the registry, so the
+// mechanism does not apply there). The module itself is cross-platform (path.join
+// / path.delimiter), but these fixtures assert POSIX path SHAPES ('/home/…', ':'
+// delimiter) that cannot match on a Windows runner. Run them on POSIX only.
+const POSIX_ONLY = process.platform === 'win32';
+
+describe.skipIf(POSIX_ONLY)('commonBinDirs', () => {
   it('expands the usual user bin dirs from HOME', () => {
     const dirs = commonBinDirs('/home/yan');
     expect(dirs).toContain('/home/yan/.claude/local');
@@ -57,7 +64,7 @@ describe('loginShellPath', () => {
   });
 });
 
-describe('nodeVersionBinDirs', () => {
+describe.skipIf(POSIX_ONLY)('nodeVersionBinDirs', () => {
   it('globs nvm and fnm versioned node bin dirs', () => {
     const readdirSync = (p: string) => {
       if (p.endsWith('/.nvm/versions/node')) return ['v24.13.1', 'v20.0.0'];
@@ -69,7 +76,7 @@ describe('nodeVersionBinDirs', () => {
   });
 });
 
-describe('buildAugmentedPath', () => {
+describe.skipIf(POSIX_ONLY)('buildAugmentedPath', () => {
   it('merges process PATH, login-shell PATH and common dirs, deduped, priority-ordered', () => {
     const spawnSync = vi.fn(() => ({ status: 0, stdout: marked('/shell/only:/usr/bin') })) as never;
     const p = buildAugmentedPath({
@@ -87,7 +94,7 @@ describe('buildAugmentedPath', () => {
   });
 });
 
-describe('resolveExecutable', () => {
+describe.skipIf(POSIX_ONLY)('resolveExecutable', () => {
   it('returns the absolute path of the first dir containing the binary as a file', () => {
     const statSync = (p: string) => {
       if (p === '/home/yan/.local/bin/claude') return { isFile: () => true };
