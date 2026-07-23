@@ -47,6 +47,22 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — mode local : l'interface et la donnee ne divergent plus (2026-07-23)
+
+- Suite du fix 1.2.11 : `isLocalMode()` (la donnee) defaute sur local quand aucun
+  mode n'est enregistre, mais `getSession()` (ce que lit l'interface) renvoyait
+  encore `null` -> la barre de statut affichait "Cloud" pendant que les pages
+  lisaient le disque. Un utilisateur reellement en mode local voyait donc "Cloud"
+  et, selon le chemin, retombait sur des appels cloud.
+- Cause profonde : quand le trousseau se verrouille, le repli `.env` demarre vide,
+  donc le mode `local` ecrit auparavant dans le trousseau devient illisible.
+- Fix : une regle partagee `hasCloudToken()` dans `auth.ts`, utilisee a la fois
+  par `getSession()` et `isLocalMode()`. Sans mode explicite et sans token cloud,
+  les deux renvoient desormais **local** -> l'etiquette et la source de donnees
+  concordent. Un token cloud garde la priorite au cloud ; un mode explicite est
+  respecte. Table de verite complete testee (auth 30 + byan-web-mode 6). App
+  bumpee 1.2.11 -> 1.2.12, tag `desktop-v1.2.12`.
+
 ### Fixed — mode local : plus d'AUTH_REQUIRED sur les pages sans login cloud (2026-07-23)
 
 - Symptome : en local, chaque page (Projets, Agents, Knowledge, Memory, Sessions)
