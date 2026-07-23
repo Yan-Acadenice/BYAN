@@ -47,6 +47,38 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Added — chat local : session persistante a la navigation (2026-07-23)
+
+Quand on lancait un chat local puis qu'on changeait de page, le thread etait
+perdu : l'etat vivait dans LocalChatView, que le routeur manuel demonte a chaque
+navigation (le process claude, lui, survivait dans le processus principal — seul
+le rendu oubliait). L'etat de useLocalChat est remonte dans un LocalChatProvider
+monte une seule fois dans App(), au-dessus du routeur (meme patron que
+AuthSessionProvider) ; LocalChatView le consomme via le contexte. Naviguer
+demonte la vue mais le fournisseur garde le thread, le sessionId, l'abonnement
+aux evenements et le flux en direct. Revenir sur Chat ne redemarre pas de
+session.
+
+Durci par un audit adversarial (workflow natif, 4 angles + verification) qui a
+attrape 4 regressions introduites par la remontee d'etat, toutes corrigees :
+
+- **Deconnexion (majeur)** : le fournisseur vivant au-dessus du routeur, une
+  deconnexion ne le demontait plus -> le thread et la session claude d'un
+  utilisateur fuyaient vers la connexion suivante sur une machine partagee. Le
+  fournisseur ecoute maintenant `byan:auth:changed` et, a la deconnexion, vide le
+  thread et stoppe la session vivante.
+- **Changement de session** : demarrer une nouvelle session ou en reprendre une
+  ne stoppait pas l'ancienne (process claude orphelin, plafond de 8) et laissait
+  une fenetre de course ou un evenement tardif de l'ancienne session polluait la
+  nouvelle. Corrige : on stoppe l'ancienne et on pose la reference de session de
+  facon synchrone.
+
+Compromis assume (hors de la demande) : l'input en cours de frappe et le dossier
+selectionne (etat local de la vue) se reinitialisent encore a la navigation ; le
+dossier se re-derive du store au retour. Tests : persistance au remontage, flux
+arrivant hors-page, reset a la deconnexion, stop de l'ancienne session. Suite app
+573 verte. App bumpee 1.2.7 -> 1.2.8, tag `desktop-v1.2.8`.
+
 ### Fixed — build Windows : les installateurs .exe se reconstruisent (2026-07-23)
 
 - La jambe Windows de la CI etait rouge depuis le tag `desktop-v1.2.4` : 4 tests
