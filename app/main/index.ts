@@ -12,16 +12,27 @@ import { installMenu } from './menu';
 import { createLocalServer } from './local-server';
 import { setLocalServer } from './ipc-handlers/server';
 import { setLocalServerForAuth } from './ipc-handlers/auth';
-import { setLocalServerForChat } from './ipc-handlers/local-chat';
+import { setLocalServerForChat, stopAllLocalChat } from './ipc-handlers/local-chat';
+import { stopAllMcp } from './ipc-handlers/mcp';
 import { autoUpdater as electronAutoUpdater } from 'electron-updater';
 import { AutoUpdaterManager, type AutoUpdaterLike } from './auto-updater';
 import { _setManagerForTests as setUpdaterManager, getManager as getUpdaterManager } from './ipc-handlers/update';
 import { DEEP_LINK_SCHEME, findDeepLinkInArgv, parseDeepLink } from './deep-links';
+import { shouldDisableGpu } from './gpu';
 
 // Before anything logs: make a dead/broken stdout pipe (double-click launch,
 // no terminal) unable to crash the main process. Without this, the first
 // console write raises EPIPE and loops as an uncaughtException (froze the PC).
 installBootGuards();
+
+// Opt-out of hardware acceleration when requested (env BYAN_DISABLE_GPU=1 or the
+// <config>/byan/disable-gpu marker). MUST run before app.ready. On some Linux
+// stacks the GPU process software-renders and slows the whole machine at idle ;
+// this is the permanent form of launching with --disable-gpu. Default: unchanged.
+if (shouldDisableGpu()) {
+  app.disableHardwareAcceleration();
+  console.info('[gpu] hardware acceleration disabled (BYAN_DISABLE_GPU / marker file)');
+}
 
 // Singleton local server — started on login (F13), stopped on quit.
 const localServer = createLocalServer({ logger: console });
@@ -193,6 +204,11 @@ app.whenReady().then(() => {
 app.on('before-quit', (e) => {
   e.preventDefault();
   getUpdaterManager().stop();
+  // Kill every live local claude session AND every Settings-started MCP server —
+  // spawned children do NOT die with the parent on Linux, so without this they
+  // orphan and pile up across launches (a source of the machine slowdown).
+  stopAllLocalChat();
+  stopAllMcp();
   void localServer.stop().finally(() => app.exit(0));
 });
 

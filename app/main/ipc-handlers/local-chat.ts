@@ -40,7 +40,21 @@ async function onboardingRoot(): Promise<string | undefined> {
 }
 
 // A spawn signature narrow enough for tests to inject a fake process.
-export type SpawnFn = (cmd: string, args: string[], opts: { cwd: string; stdio: [string, string, string]; env?: NodeJS.ProcessEnv }) => ChildProcess;
+export type SpawnFn = (cmd: string, args: string[], opts: { cwd: string; stdio: [string, string, string]; env?: NodeJS.ProcessEnv; detached?: boolean }) => ChildProcess;
+
+// Kill a spawned process AND the children it forked (claude spawns an MCP `node`
+// child when it loads the project's .mcp.json). Killing only claude's pid leaves
+// that grandchild orphaned — reparented to init on Linux — which piles up and
+// slows the machine. We spawn claude DETACHED (its own process group), so a
+// negative-pid signal reaches the whole group. Windows has no POSIX process
+// groups -> fall back to a direct kill of the parent.
+function killProcTree(proc: ChildProcess, signal: NodeJS.Signals): void {
+  const pid = proc.pid;
+  if (process.platform !== 'win32' && typeof pid === 'number') {
+    try { process.kill(-pid, signal); return; } catch { /* group gone / not a leader — fall back */ }
+  }
+  try { proc.kill(signal); } catch { /* already dead */ }
+}
 
 interface Session {
   proc: ChildProcess;
@@ -82,6 +96,9 @@ export class LocalClaudeBridge {
   private readonly resolveBin: (name: string) => string | null;
   private readonly spawnEnv: () => NodeJS.ProcessEnv;
   private readonly sessions = new Map<string, Session>();
+  // Set true by stopAll() at app quit so a late start() cannot spawn a session
+  // that would escape the reaping sweep and orphan.
+  private _quitting = false;
 
   constructor(deps: LocalClaudeDeps = {}) {
     this.spawnFn = deps.spawnFn ?? (spawn as unknown as SpawnFn);
@@ -96,6 +113,9 @@ export class LocalClaudeBridge {
   // absolute dir (trust boundary : same guard as N2/F5). The byan MCP server is
   // picked up from that dir's .mcp.json — no explicit config needed.
   async start(opts?: LocalChatStartOpts): Promise<{ sessionId: string }> {
+    if (this._quitting) {
+      throw new IpcError('INVALID_ARGUMENT', 'Application en cours de fermeture.');
+    }
     if (this.sessions.size >= MAX_SESSIONS) {
       throw new IpcError('INVALID_ARGUMENT', `Trop de sessions locales ouvertes (max ${MAX_SESSIONS}). Ferme-en une.`);
     }
@@ -129,7 +149,9 @@ export class LocalClaudeBridge {
     const bin = this.resolveBin('claude') || 'claude';
     let proc: ChildProcess;
     try {
-      proc = this.spawnFn(bin, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: this.spawnEnv() });
+      // detached on POSIX -> claude leads its own process group so killProcTree
+      // can reap it AND its MCP node child at once. NOT unref'd : we keep managing it.
+      proc = this.spawnFn(bin, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], env: this.spawnEnv(), detached: process.platform !== 'win32' });
     } catch (err) {
       throw new IpcError('INTERNAL', `claude introuvable ou non lançable: ${err instanceof Error ? err.message : String(err)}`);
     }
@@ -176,15 +198,30 @@ export class LocalClaudeBridge {
     const session = this.sessions.get(sessionId);
     if (!session) return; // nothing to stop — no-op
     const proc = session.proc;
-    try { proc.kill('SIGTERM'); } catch { /* already gone */ }
-    // Force-kill if claude ignores SIGTERM within the grace period.
-    const timer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* gone */ } }, SIGKILL_GRACE_MS);
+    killProcTree(proc, 'SIGTERM');
+    // Force-kill the whole group if claude ignores SIGTERM within the grace period.
+    const timer = setTimeout(() => killProcTree(proc, 'SIGKILL'), SIGKILL_GRACE_MS);
     if (typeof (timer as { unref?: () => void }).unref === 'function') (timer as { unref: () => void }).unref();
     proc.once('exit', () => clearTimeout(timer));
     // Do NOT delete the session synchronously : claude may still flush a final
     // `result` during the SIGTERM grace window. The 'exit' handler deletes it
     // (and flushStdout drains the tail), so an in-flight reply is not dropped.
     this.broadcast({ type: 'stopped', sessionId });
+  }
+
+  // Kill EVERY live session — called at app quit. A spawned claude child does
+  // NOT die with the parent on Linux, so without this every launch+chat leaves
+  // an orphan `claude` (+ its MCP node child) running, and they pile up and slow
+  // the machine. At quit we cannot wait out a grace period (app.exit is
+  // imminent), so we SIGTERM then SIGKILL best-effort and clear the map.
+  stopAll(): void {
+    this._quitting = true;
+    for (const [sessionId, session] of this.sessions) {
+      const proc = session.proc;
+      killProcTree(proc, 'SIGTERM');
+      killProcTree(proc, 'SIGKILL');
+      this.sessions.delete(sessionId);
+    }
   }
 
   // Persisted local sessions come from disk (N1 local-data), not a cloud/server.
@@ -315,4 +352,10 @@ export function _setBridgeForTests(bridge: LocalClaudeBridge | null): void {
 export function register(ipcMain: IpcMain): void {
   if (!_bridge) _bridge = new LocalClaudeBridge();
   _bridge.register(ipcMain);
+}
+
+// Kill every live local claude session — called from main's before-quit so no
+// orphan `claude` (+ MCP child) survives the app. No-op when no bridge/sessions.
+export function stopAllLocalChat(): void {
+  _bridge?.stopAll();
 }

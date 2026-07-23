@@ -130,6 +130,41 @@ describe('LocalClaudeBridge.send / stop', () => {
     const { bridge } = makeBridge();
     await expect(bridge.stop('nope')).resolves.toBeUndefined();
   });
+
+  it('stopAll kills every live session and drains the map (app quit)', async () => {
+    const { bridge, fake } = makeBridge();
+    const { sessionId: a } = await bridge.start({ cwd });
+    const { sessionId: b } = await bridge.start({ cwd });
+    bridge.stopAll();
+    expect(fake.killed).toBe(true);
+    // Both sessions are gone — sending to either now rejects (no orphan kept).
+    await expect(bridge.send(a, 'x')).rejects.toThrow(/session/i);
+    await expect(bridge.send(b, 'x')).rejects.toThrow(/session/i);
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'stopAll signals the process GROUP so claude AND its MCP child are reaped (POSIX)',
+    async () => {
+      const { bridge, fake } = makeBridge();
+      (fake as unknown as { pid: number }).pid = 4242;
+      const killSpy = vi.spyOn(process, 'kill').mockReturnValue(true as unknown as boolean);
+      try {
+        await bridge.start({ cwd });
+        bridge.stopAll();
+        // Negative pid -> the whole group (claude + the node MCP child it forked).
+        expect(killSpy).toHaveBeenCalledWith(-4242, 'SIGTERM');
+        expect(killSpy).toHaveBeenCalledWith(-4242, 'SIGKILL');
+      } finally {
+        killSpy.mockRestore();
+      }
+    }
+  );
+
+  it('start rejects once stopAll has flagged the app as quitting', async () => {
+    const { bridge } = makeBridge();
+    bridge.stopAll();
+    await expect(bridge.start({ cwd })).rejects.toThrow(/fermeture/i);
+  });
 });
 
 describe('LocalClaudeBridge stream-json parsing', () => {

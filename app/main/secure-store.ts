@@ -239,6 +239,7 @@ class KeytarStore implements SecureStore {
 class CompositeStore implements SecureStore {
   // Resolved once on the first operation.
   private _resolved: SecureStore | null = null;
+  private _downgradeWarned = false;
 
   private resolve(): SecureStore {
     if (!this._resolved) {
@@ -251,18 +252,45 @@ class CompositeStore implements SecureStore {
   // Reset inner state — only used in tests.
   _resetForTests(): void {
     this._resolved = null;
+    this._downgradeWarned = false;
+  }
+
+  // Run an operation against the resolved backend. The keytar module can LOAD
+  // fine (native binding present) yet FAIL at call time when the OS keychain is
+  // locked or absent — on Linux libsecret then throws "Password is required".
+  // Deciding the backend only at load time (resolve) meant that runtime failure
+  // propagated and NOTHING persisted (token, mode, onboarding.projectRoot). Here
+  // a runtime keytar failure degrades PERMANENTLY to the .env fallback and the
+  // op is retried there, so the caller never sees the keychain error.
+  private async run<T>(op: (store: SecureStore) => Promise<T>): Promise<T> {
+    const store = this.resolve();
+    if (store instanceof FallbackStore) return op(store);
+    try {
+      return await op(store);
+    } catch (err) {
+      if (!this._downgradeWarned) {
+        this._downgradeWarned = true;
+        console.warn(
+          `[secure-store] OS keychain unavailable (${err instanceof Error ? err.message : String(err)}); ` +
+          'falling back to the per-user .env file (chmod 0600).'
+        );
+      }
+      const fallback = new FallbackStore();
+      this._resolved = fallback;
+      return op(fallback);
+    }
   }
 
   async set(key: string, value: string): Promise<void> {
-    return this.resolve().set(key, value);
+    return this.run((store) => store.set(key, value));
   }
 
   async get(key: string): Promise<string | null> {
-    return this.resolve().get(key);
+    return this.run((store) => store.get(key));
   }
 
   async delete(key: string): Promise<void> {
-    return this.resolve().delete(key);
+    return this.run((store) => store.delete(key));
   }
 }
 

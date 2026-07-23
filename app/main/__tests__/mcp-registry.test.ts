@@ -50,6 +50,15 @@ describe('McpProcessRegistry', () => {
     expect(registry.getStatus('unknown')).toEqual({ state: 'stopped' });
   });
 
+  it('stopAll kills a running MCP child (app quit, no orphan)', async () => {
+    await registry.start(STDIO_SERVER);
+    expect(registry.isRunning('byan')).toBe(true);
+    registry.stopAll();
+    expect(child.killed).toBe(true);
+    // proc is cleared — a second sweep is a harmless no-op.
+    expect(() => registry.stopAll()).not.toThrow();
+  });
+
   it('spawns a child and transitions to running on start', async () => {
     const status = await registry.start(STDIO_SERVER);
     expect(status.state).toBe('running');

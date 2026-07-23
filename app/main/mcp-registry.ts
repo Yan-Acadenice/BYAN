@@ -163,6 +163,18 @@ export class McpProcessRegistry {
     }
   }
 
+  // Kill EVERY running MCP child — called at app quit so a Settings-started stdio
+  // server does not orphan (a spawned child does not die with the parent on
+  // Linux). Best-effort SIGTERM then SIGKILL ; the app is exiting, no grace.
+  stopAll(): void {
+    for (const [, entry] of this.entries) {
+      if (!entry.proc) continue;
+      try { entry.proc.kill('SIGTERM'); } catch { /* already gone */ }
+      try { entry.proc.kill('SIGKILL'); } catch { /* already gone */ }
+      entry.proc = undefined;
+    }
+  }
+
   // Stops the process and waits for the exit event (with timeout safety).
   async restart(server: McpServerConfig, timeoutMs = 3000): Promise<McpStatus> {
     if (this.isRunning(server.id)) {

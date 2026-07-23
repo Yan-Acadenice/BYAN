@@ -176,3 +176,46 @@ describe('SecureStore — keytar unavailable (fallback .env)', () => {
     expect(fsMock.mkdirSync).toHaveBeenCalledWith(expect.any(String), { recursive: true });
   });
 });
+
+// ---------- SecureStore — keytar LOADS but FAILS at runtime (locked/absent keyring) ----------
+//
+// The field bug : on a Linux desktop with a locked/absent keyring, keytar's
+// native binding loads fine but libsecret throws "Password is required." at CALL
+// time. The store must degrade to the .env fallback at RUNTIME, not only when the
+// module is absent — otherwise nothing persists (token, mode, project root).
+
+describe('SecureStore — keytar loads but throws at runtime (-> .env fallback)', () => {
+  let kt: ReturnType<typeof makeKeytarMock>;
+
+  beforeEach(() => {
+    resetFsMock();
+    kt = makeKeytarMock();
+    const boom = () => Promise.reject(new Error('Password is required.'));
+    kt.setPassword.mockImplementation(boom);
+    kt.getPassword.mockImplementation(boom);
+    kt.deletePassword.mockImplementation(boom);
+    _injectKeytarForTests(kt);
+    secureStore._resetForTests();
+  });
+
+  it('set does not throw and writes to the .env fallback', async () => {
+    await expect(secureStore.set('auth.token', 'tok')).resolves.toBeUndefined();
+    expect(fsMock.writeFileSync).toHaveBeenCalled();
+    const written = fsMock.writeFileSync.mock.calls[0][1] as string;
+    expect(written).toContain('auth_token=tok');
+  });
+
+  it('onboarding.projectRoot survives a locked keyring (set -> get round-trips)', async () => {
+    await secureStore.set('onboarding.projectRoot', '/home/yan/Acquagest');
+    const v = await secureStore.get('onboarding.projectRoot');
+    expect(v).toBe('/home/yan/Acquagest'); // the chosen project folder is remembered
+  });
+
+  it('degrades PERMANENTLY — keytar is not consulted again after the first failure', async () => {
+    await secureStore.set('k', 'v'); // first op fails on keytar -> switches to fallback
+    kt.getPassword.mockClear();
+    const v = await secureStore.get('k');
+    expect(v).toBe('v');
+    expect(kt.getPassword).not.toHaveBeenCalled();
+  });
+});

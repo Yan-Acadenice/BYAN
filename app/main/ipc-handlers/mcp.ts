@@ -104,6 +104,12 @@ export async function stop(id: string): Promise<void> {
   await registry.stop(id);
 }
 
+// Kill every running MCP child — called from main's before-quit so a
+// Settings-started stdio server does not orphan when the app exits.
+export function stopAllMcp(): void {
+  registry.stopAll();
+}
+
 export async function status(id: string): Promise<McpStatus> {
   await findOrThrow(id);
   return registry.getStatus(id);
