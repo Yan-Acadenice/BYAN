@@ -19,6 +19,7 @@ import UpdateBanner from './components/UpdateBanner';
 import DeepLinkRouter from './components/DeepLinkRouter';
 import { ToastProvider } from './components/toast/ToastContext';
 import { AuthSessionProvider } from './context/AuthSessionContext';
+import { LocalChatProvider } from './context/LocalChatContext';
 import { I18nProvider, useT } from './i18n/I18nContext';
 import type { MessageKey } from './i18n/locales';
 import type { NavPage } from './components/Sidebar';
@@ -204,7 +205,11 @@ export default function App() {
   return (
     <I18nProvider>
       <AuthSessionProvider>
-        <AppRouter />
+        {/* Mounted above the router so the local chat session (thread + live
+            stream + subscription) survives navigating between pages. */}
+        <LocalChatProvider>
+          <AppRouter />
+        </LocalChatProvider>
       </AuthSessionProvider>
     </I18nProvider>
   );

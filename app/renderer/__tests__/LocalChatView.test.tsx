@@ -4,7 +4,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LocalChatView from '../components/chat/LocalChatView';
+import { LocalChatProvider } from '../hooks/useLocalChat';
 import type { LocalChatMessage } from '../../shared/ipc-contract';
+
+// LocalChatView reads useLocalChat, which now requires the provider (the state
+// was lifted so the session survives navigation). Wrap every render.
 
 const mockStart = vi.fn<() => Promise<{ sessionId: string }>>();
 const mockSend = vi.fn<() => Promise<void>>();
@@ -55,7 +59,7 @@ afterEach(() => {
 
 describe('LocalChatView', () => {
   it('renders the empty state and the New session button', async () => {
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     expect(screen.getByTestId('local-chat-view')).toBeInTheDocument();
     expect(screen.getByTestId('local-new-session')).toBeInTheDocument();
     // findBy waits out the mount-time refreshSessions state settle (act).
@@ -63,7 +67,7 @@ describe('LocalChatView', () => {
   });
 
   it('sends a message and shows the streamed assistant reply', async () => {
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     const input = screen.getByTestId('local-chat-input');
     fireEvent.change(input, { target: { value: 'salut' } });
     fireEvent.click(screen.getByTestId('local-chat-send'));
@@ -79,7 +83,7 @@ describe('LocalChatView', () => {
   });
 
   it('New session button calls start', async () => {
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     fireEvent.click(screen.getByTestId('local-new-session'));
     await waitFor(() => expect(mockStart).toHaveBeenCalled());
   });
@@ -91,7 +95,7 @@ describe('LocalChatView', () => {
     mockHistory.mockResolvedValue([{ role: 'user', content: 'reprends-moi' }]);
     mockStart.mockResolvedValue({ sessionId: 'chat-old' });
 
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     // Open the sessions menu (also triggers a refresh).
     fireEvent.click(screen.getByTestId('local-sessions-toggle'));
     await waitFor(() => expect(screen.getByTestId('local-session-chat-old')).toBeInTheDocument());
@@ -105,7 +109,7 @@ describe('LocalChatView', () => {
 
   it('F4: defaults cwd to the onboarding project root and binds a new session to it', async () => {
     mockStoreGet.mockResolvedValue('/home/yan/monprojet');
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     // The header shows the project folder (last path segment).
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
 
@@ -119,7 +123,7 @@ describe('LocalChatView', () => {
       Promise.resolve(key === 'chat.pendingCwd' ? '/home/yan/mon-projet' : '/home/yan/onboarding'));
     (window.byanApi as unknown as { store: { get: typeof mockStoreGet; set: typeof setSpy } }).store.set = setSpy;
 
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     // Header shows the project folder picked from ProjectDetail, not the onboarding one.
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('mon-projet'));
     // The pending handoff is consumed (cleared) so a later plain visit falls back.
@@ -132,7 +136,7 @@ describe('LocalChatView', () => {
   it('F4: the folder button lets the user pick another project dir', async () => {
     mockStoreGet.mockResolvedValue('/home/yan/monprojet');
     mockOpenDialog.mockResolvedValue('/home/yan/autre');
-    render(<LocalChatView />);
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
 
     fireEvent.click(screen.getByTestId('local-cwd'));
