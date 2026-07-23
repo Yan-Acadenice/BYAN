@@ -47,6 +47,16 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — chat local : --verbose obligatoire avec claude --print + stream-json (2026-07-23)
+
+- Le chat local plantait des le premier message avec `Erreur: claude: Error:
+  When using --print, --output-format=stream-json requires --verbose`. Les deux
+  adaptateurs (app Electron `app/main/ipc-handlers/local-chat.ts`, webui
+  `install/src/webui/chat/claude-adapter.js`) lancaient `claude --print
+  --output-format stream-json` sans `--verbose` — combinaison que le CLI refuse
+  au demarrage. `--verbose` ajoute aux deux, tests mis a jour (assertion des args
+  + test dedie). App bumpee 1.2.4 -> 1.2.5, tag `desktop-v1.2.5`.
+
 ### Changed — installation reduite au token d'abonnement (proxy Google cote serveur, 2026-07-22)
 
 L'API byan_web proxifie desormais Google Workspace cote serveur (documents crees au nom de chaque utilisateur, credentials detenus par le serveur). L'installation ne configure donc plus aucun credential Google en local : le seul geste est de coller le `BYAN_API_URL` + `BYAN_API_TOKEN` de l'abonnement.
