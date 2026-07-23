@@ -246,11 +246,28 @@ export async function switchMode(opts: AuthLoginOptions): Promise<AuthResult> {
 
 // Read the persisted session (mode + url) so the renderer can show the active
 // mode everywhere and route data accordingly. null when no session is stored.
+// True when a cloud token is stored. The SHARED default rule (with byan-web
+// isLocalMode) so the UI-visible mode and the data-source mode never disagree.
+export async function hasCloudToken(): Promise<boolean> {
+  try {
+    return Boolean(await secureStore.get(AUTH_TOKEN_KEY));
+  } catch {
+    return false;
+  }
+}
+
 export async function getSession(): Promise<AuthSession> {
   const mode = (await secureStore.get(AUTH_MODE_KEY)) as AuthMode | null;
-  if (mode !== 'cloud' && mode !== 'local' && mode !== 'custom') return null;
-  const url = (await secureStore.get(AUTH_URL_KEY)) ?? '';
-  return { mode, url };
+  if (mode === 'cloud' || mode === 'local' || mode === 'custom') {
+    const url = (await secureStore.get(AUTH_URL_KEY)) ?? '';
+    return { mode, url };
+  }
+  // No explicit mode (unset, junk, or LOST when the keychain locked and the .env
+  // fallback started empty) : default to a LOCAL session unless a cloud token
+  // exists — mirroring isLocalMode() so the status-bar label and the data source
+  // agree. A token but no mode stays null (cloud-needs-login, unchanged).
+  if (await hasCloudToken()) return null;
+  return { mode: 'local', url: '' };
 }
 
 export async function logout(): Promise<void> {

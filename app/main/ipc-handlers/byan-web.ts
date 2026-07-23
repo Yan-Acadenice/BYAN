@@ -34,7 +34,7 @@ import {
   getAuthToken,
 } from '../byan-api-client';
 import { secureStore } from '../secure-store';
-import { AUTH_MODE_KEY, AUTH_TOKEN_KEY } from './auth';
+import { AUTH_MODE_KEY, hasCloudToken } from './auth';
 import {
   localMe,
   localProjects,
@@ -63,9 +63,9 @@ export async function isLocalMode(): Promise<boolean> {
     const mode = await secureStore.get(AUTH_MODE_KEY);
     if (mode === 'local') return true;
     if (mode === 'cloud' || mode === 'custom') return false;
-    // Mode not set : local unless a cloud token is present.
-    const token = await secureStore.get(AUTH_TOKEN_KEY);
-    return !token;
+    // Mode not set : local unless a cloud token exists (SHARED rule with
+    // getSession via hasCloudToken, so UI label and data source never diverge).
+    return !(await hasCloudToken());
   } catch {
     return false;
   }

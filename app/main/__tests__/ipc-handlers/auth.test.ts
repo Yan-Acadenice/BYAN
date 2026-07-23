@@ -256,9 +256,11 @@ describe('auth.logout', () => {
 });
 
 describe('auth.getSession (F1)', () => {
-  it('returns null when no mode is stored', async () => {
+  it('defaults to a LOCAL session when no mode AND no cloud token (UI matches the data source)', async () => {
+    // Mode lost (keychain locked -> empty .env). isLocalMode also defaults local,
+    // so the status-bar label and the data source agree instead of diverging.
     mockSecureStore.get.mockResolvedValue(null);
-    await expect(auth.getSession()).resolves.toBeNull();
+    await expect(auth.getSession()).resolves.toEqual({ mode: 'local', url: '' });
   });
 
   it('returns {mode,url} from SecureStore when a session exists', async () => {
@@ -270,8 +272,15 @@ describe('auth.getSession (F1)', () => {
     await expect(auth.getSession()).resolves.toEqual({ mode: 'local', url: 'http://localhost:9000' });
   });
 
-  it('returns null (not a bogus session) when a junk mode is stored', async () => {
+  it('defaults to LOCAL when a junk mode is stored and no token (junk treated as unset)', async () => {
     mockSecureStore.get.mockImplementation(async (key: string) => (key === 'auth.mode' ? 'mars' : null));
+    await expect(auth.getSession()).resolves.toEqual({ mode: 'local', url: '' });
+  });
+
+  it('returns null (cloud-needs-login) when a cloud token exists but no mode', async () => {
+    mockSecureStore.get.mockImplementation(async (key: string) =>
+      key === 'auth.token' ? 'byan_' + '0'.repeat(64) : null
+    );
     await expect(auth.getSession()).resolves.toBeNull();
   });
 });
