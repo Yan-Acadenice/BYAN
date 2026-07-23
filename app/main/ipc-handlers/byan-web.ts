@@ -34,7 +34,7 @@ import {
   getAuthToken,
 } from '../byan-api-client';
 import { secureStore } from '../secure-store';
-import { AUTH_MODE_KEY } from './auth';
+import { AUTH_MODE_KEY, AUTH_TOKEN_KEY } from './auth';
 import {
   localMe,
   localProjects,
@@ -50,9 +50,22 @@ const activeStreams = new Map<string, AbortController>();
 
 // N1 : in local mode every read comes from disk, never the cloud, never a token.
 // This is the single decision point that flips the data source under all pages.
+//
+// When NO mode is persisted yet, default to LOCAL unless a cloud token exists.
+// WHY : a desktop-native, local-first app must not fire AUTH_REQUIRED on every
+// page for a user who has not logged into the cloud. Before the secure-store
+// runtime fallback landed, `set('auth.mode','local')` failed on a locked Linux
+// keyring, so the mode never persisted and the app silently fell back to cloud
+// and errored everywhere. A persisted cloud token still forces cloud (an actual
+// cloud user is not hijacked to local) ; an explicit cloud/custom stays cloud.
 export async function isLocalMode(): Promise<boolean> {
   try {
-    return (await secureStore.get(AUTH_MODE_KEY)) === 'local';
+    const mode = await secureStore.get(AUTH_MODE_KEY);
+    if (mode === 'local') return true;
+    if (mode === 'cloud' || mode === 'custom') return false;
+    // Mode not set : local unless a cloud token is present.
+    const token = await secureStore.get(AUTH_TOKEN_KEY);
+    return !token;
   } catch {
     return false;
   }

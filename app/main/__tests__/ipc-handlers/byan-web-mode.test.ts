@@ -29,8 +29,21 @@ describe('byan-web isLocalMode', () => {
     expect(await isLocalMode()).toBe(false);
   });
 
-  it('false when no mode is stored', async () => {
+  it('false when the stored mode is custom', async () => {
+    mockSecureStore.get.mockResolvedValue('custom');
+    expect(await isLocalMode()).toBe(false);
+  });
+
+  it('LOCAL by default when no mode AND no cloud token (local-first, no auth errors)', async () => {
+    // auth.mode -> null, auth.token -> null
     mockSecureStore.get.mockResolvedValue(null);
+    expect(await isLocalMode()).toBe(true);
+  });
+
+  it('CLOUD when no mode but a cloud token exists (a real cloud user is not hijacked)', async () => {
+    mockSecureStore.get.mockImplementation(async (key: string) =>
+      key === 'auth.token' ? 'byan_' + '0'.repeat(64) : null
+    );
     expect(await isLocalMode()).toBe(false);
   });
 
