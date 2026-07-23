@@ -28,7 +28,10 @@ describe('shouldDisableGpu', () => {
   });
 });
 
-describe('gpuMarkerPath', () => {
+// POSIX-only : these assert the Linux/macOS path shape (XDG / ~/.config, '/'
+// separator). On the Windows CI runner gpuMarkerPath takes the APPDATA branch
+// with '\' separators, so the fixtures cannot match there.
+describe.skipIf(process.platform === 'win32')('gpuMarkerPath (POSIX)', () => {
   it('honours XDG_CONFIG_HOME when set', () => {
     expect(gpuMarkerPath({ env: { XDG_CONFIG_HOME: '/xdg' }, homedir })).toBe('/xdg/byan/disable-gpu');
   });
