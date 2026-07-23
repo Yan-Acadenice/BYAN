@@ -47,6 +47,39 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — Desktop : magasin de reglages, ralentissement machine, process orphelins (2026-07-23)
+
+Trois defauts de terrain remontes par les logs et le ressenti utilisateur, en une
+release, durcis par un audit adversarial (workflow natif).
+
+- **Magasin de reglages (cle de voute)** : sur une machine Linux au trousseau
+  verrouille/absent, keytar se chargeait mais `setPassword` levait "Password is
+  required." a l'appel ; l'erreur remontait et RIEN ne se persistait (token, mode,
+  `onboarding.projectRoot`), d'ou le mauvais dossier projet (le chat retombait sur
+  `~/Telechargements`). Le magasin (`secure-store.ts`) se replie desormais sur le
+  fichier `.env` (chmod 0600) au RUNTIME quand une operation keytar echoue, pas
+  seulement quand le module est absent : la persistance survit a un trousseau
+  verrouille, le dossier choisi est retenu.
+- **Ralentissement machine** : sous certains pilotes/compositeurs Linux, Electron
+  rend en logiciel (llvmpipe) et ralentit toute la machine des l'ouverture, au
+  repos. Ajout d'une option pour couper l'acceleration materielle en permanence :
+  variable `BYAN_DISABLE_GPU=1` OU fichier marqueur `<config>/byan/disable-gpu`,
+  lus en synchrone avant `app.ready` -> `app.disableHardwareAcceleration()`.
+  Defaut inchange (opt-in), pour ne pas penaliser les machines au GPU sain.
+- **Process orphelins** : a la fermeture, les process `claude` des sessions
+  natives ET les serveurs MCP lances depuis Parametres n'etaient pas tues ->
+  orphelins qui s'accumulent a chaque lancement et plombent la machine. Ajout de
+  `LocalClaudeBridge.stopAll()` (spawn detache + kill du GROUPE de process, donc
+  claude ET son enfant Node MCP) et `McpProcessRegistry.stopAll()`, cables au
+  `before-quit`. Un drapeau anti-course empeche une session de demarrer pendant
+  la fermeture.
+
+Note : l'option GPU s'active en env / fichier marqueur ; l'interrupteur dans
+Parametres reste un ajout a venir. Tests : repli store runtime + persistance du
+dossier, decision GPU (env/marqueur/defaut/erreur), kill de groupe (POSIX) +
+reaping registre MCP. Suite app 587 verte. App bumpee 1.2.8 -> 1.2.9, tag
+`desktop-v1.2.9`.
+
 ### Added — chat local : session persistante a la navigation (2026-07-23)
 
 Quand on lancait un chat local puis qu'on changeait de page, le thread etait
