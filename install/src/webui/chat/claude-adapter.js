@@ -5,6 +5,7 @@
  */
 
 const { spawn } = require('child_process');
+const { StringDecoder } = require('string_decoder');
 const { Bridge } = require('./bridge');
 
 class ClaudeAdapter extends Bridge {
@@ -12,9 +13,14 @@ class ClaudeAdapter extends Bridge {
     super(options);
     this._buffer = '';
     this._sessionId = null;
+    // Preserves multi-byte UTF-8 (accented text, emoji) split across data chunks.
+    this._decoder = new StringDecoder('utf8');
   }
 
   async start() {
+    // Fresh line buffer + decoder for each run (start() can be re-called on reconnect).
+    this._buffer = '';
+    this._decoder = new StringDecoder('utf8');
     // --verbose is REQUIRED alongside --print + --output-format stream-json: the
     // CLI hard-refuses the combo otherwise ("When using --print,
     // --output-format=stream-json requires --verbose") and the chat spawn dies.
@@ -61,6 +67,7 @@ class ClaudeAdapter extends Bridge {
 
     this.process.on('exit', (code) => {
       this.active = false;
+      this._flushStdout(); // parse a final event that arrived without a closing newline
       this.onComplete({ code, sessionId: this._sessionId });
     });
   }
@@ -75,7 +82,9 @@ class ClaudeAdapter extends Bridge {
       }
     }
 
-    const payload = JSON.stringify({ type: 'user', content: message }) + '\n';
+    // stream-json input shape: the CLI reads $.message.role. A flat
+    // {type,content} makes it throw "Expected message role 'user', got 'undefined'".
+    const payload = JSON.stringify({ type: 'user', message: { role: 'user', content: message } }) + '\n';
 
     try {
       this.process.stdin.write(payload);
@@ -93,7 +102,9 @@ class ClaudeAdapter extends Bridge {
   }
 
   _handleStdout(data) {
-    this._buffer += data.toString();
+    // Decode through a StringDecoder so a multi-byte UTF-8 char split across two
+    // chunks is not mangled.
+    this._buffer += this._decoder.write(data);
     const lines = this._buffer.split('\n');
     this._buffer = lines.pop() || '';
 
@@ -104,12 +115,21 @@ class ClaudeAdapter extends Bridge {
     }
   }
 
+  // Flush the decoder tail + a trailing line with no newline at stream end / exit.
+  _flushStdout() {
+    this._buffer += this._decoder.end();
+    const line = this._buffer.trim();
+    this._buffer = '';
+    if (line) this._parseLine(line);
+  }
+
   _handleStderr(data) {
-    const text = data.toString().trim();
-    if (!text) return;
-    // Claude dumps progress/status info to stderr — not errors
-    if (/^(Initializing|Loading|Connected|Session|Warming|Cost:|Token)/m.test(text)) return;
-    this.onError(new Error(`claude stderr: ${text}`));
+    // Split per line and surface ONLY non-benign lines : a single /m test
+    // swallowed a real error when it followed a benign status line in the chunk.
+    const benign = /^(Initializing|Loading|Connected|Session|Warming|Cost:|Token)/;
+    const bad = data.toString().split('\n').map((l) => l.trim())
+      .filter((l) => l && !benign.test(l));
+    if (bad.length) this.onError(new Error(`claude stderr: ${bad.join(' ')}`));
   }
 
   _parseLine(line) {
@@ -151,9 +171,15 @@ class ClaudeAdapter extends Bridge {
 
       case 'result': {
         if (event.session_id) this._sessionId = event.session_id;
+        // is_error:true = a failed turn (rate limit, refusal, API error) ->
+        // surface as an error, not a silent onComplete the server persists.
+        if (event.is_error === true) {
+          this.onError(new Error(event.result || event.subtype || 'claude: le tour a échoué'));
+          break;
+        }
         this.onComplete({
           result: event.result,
-          cost: event.cost_usd,
+          cost: event.total_cost_usd, // real field is total_cost_usd, not cost_usd
           sessionId: event.session_id,
         });
         break;

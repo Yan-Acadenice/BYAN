@@ -86,7 +86,10 @@ export function useLocalChat(): UseLocalChat {
           setStreamText(accRef.current);
           break;
         case 'complete': {
-          const finalText = accRef.current;
+          // Prefer the streamed text ; fall back to the result payload when no
+          // chunk arrived (a message-level result with an empty accumulator).
+          const resultText = typeof m.result === 'string' ? m.result : '';
+          const finalText = accRef.current || resultText;
           accRef.current = '';
           setMessages((prev) =>
             finalText
@@ -95,6 +98,7 @@ export function useLocalChat(): UseLocalChat {
           );
           setStreaming(false);
           setStreamText('');
+          setError(null);
           break;
         }
         case 'error':
@@ -157,6 +161,7 @@ export function useLocalChat(): UseLocalChat {
     }
 
     setMessages((prev) => [...prev, { id: makeId('u'), role: 'user', content }]);
+    setError(null); // a new turn clears the previous turn's error banner
     setStreaming(true);
     accRef.current = '';
     setStreamText('');

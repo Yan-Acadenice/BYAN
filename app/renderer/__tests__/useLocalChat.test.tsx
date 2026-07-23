@@ -83,6 +83,25 @@ describe('useLocalChat', () => {
     expect(result.current.streamText).toBe('');
   });
 
+  it('falls back to the complete.result text when no chunk arrived', async () => {
+    const { result } = renderHook(() => useLocalChat());
+    await act(async () => { await result.current.send('hi'); });
+    // No 'chunk' frame — only a message-level 'complete' carrying the reply.
+    act(() => { emit({ type: 'complete', sessionId: 'sess-1', result: 'Réponse directe' }); });
+    await waitFor(() => expect(result.current.streaming).toBe(false));
+    expect(result.current.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'Réponse directe' });
+  });
+
+  it('clears the error banner on the next successful turn', async () => {
+    const { result } = renderHook(() => useLocalChat());
+    await act(async () => { await result.current.send('hi'); });
+    act(() => { emit({ type: 'error', sessionId: 'sess-1', error: 'boom' }); });
+    await waitFor(() => expect(result.current.error).toBe('boom'));
+    // A new turn must clear the stale banner.
+    await act(async () => { await result.current.send('encore'); });
+    expect(result.current.error).toBeNull();
+  });
+
   it('surfaces an error frame as a system message and stops streaming', async () => {
     const { result } = renderHook(() => useLocalChat());
     await act(async () => { await result.current.send('hi'); });

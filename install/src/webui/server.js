@@ -48,8 +48,8 @@ class ByanWebUI {
     this.wss.on('connection', (ws) => {
       this.clients.add(ws);
       ws.on('message', (raw) => this.handleChatMessage(ws, raw));
-      ws.on('close', () => this.clients.delete(ws));
-      ws.on('error', () => this.clients.delete(ws));
+      ws.on('close', () => this._onWsGone(ws));
+      ws.on('error', () => this._onWsGone(ws));
     });
 
     return new Promise((resolve) => {
@@ -206,6 +206,10 @@ class ByanWebUI {
     }
 
     switch (data.type) {
+      // 'join' is the browser client's subscribe verb ; keep both aligned so a
+      // reconnect/loadSession actually binds the ws to its session (without this
+      // the ws stays unsubscribed and receives EVERY session's frames).
+      case 'join':
       case 'chat-subscribe':
         ws._chatSessionId = data.sessionId || null;
         ws.send(JSON.stringify({ type: 'subscribed', sessionId: data.sessionId }));
@@ -288,6 +292,13 @@ class ByanWebUI {
       });
 
       await bridge.start();
+      // A resume (or a double chat-start) can target a sessionId whose bridge is
+      // still live : stop the previous one before overwriting the map entry, else
+      // its claude child process is orphaned.
+      const prev = this.chatBridges.get(sessionId);
+      if (prev && prev !== bridge) {
+        await Promise.resolve(prev.stop()).catch(() => {});
+      }
       this.chatBridges.set(sessionId, bridge);
 
       ws.send(JSON.stringify({ type: 'chat-started', sessionId, cli: cliName, resumed: Boolean(claudeResume) }));
@@ -323,6 +334,19 @@ class ByanWebUI {
       this.chatBridges.delete(sessionId);
     }
     ws.send(JSON.stringify({ type: 'chat-stopped', sessionId }));
+  }
+
+  // A dropped WebSocket (closed tab / lost connection) must not orphan the claude
+  // child process bound to it : stop + drop its bridge, then forget the client.
+  _onWsGone(ws) {
+    this.clients.delete(ws);
+    const sessionId = ws._chatSessionId;
+    if (!sessionId) return;
+    const bridge = this.chatBridges.get(sessionId);
+    if (bridge) {
+      Promise.resolve(bridge.stop()).catch(() => {});
+      this.chatBridges.delete(sessionId);
+    }
   }
 
   _sendToSession(sessionId, data) {

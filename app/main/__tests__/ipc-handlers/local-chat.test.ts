@@ -101,11 +101,16 @@ describe('LocalClaudeBridge.start', () => {
 });
 
 describe('LocalClaudeBridge.send / stop', () => {
-  it('writes a user turn to claude stdin', async () => {
+  it('writes a user turn to claude stdin in the stream-json message shape', async () => {
     const { bridge, fake } = makeBridge();
     const { sessionId } = await bridge.start({ cwd });
     await bridge.send(sessionId, 'bonjour');
-    expect(JSON.parse(fake.stdin.written[0])).toEqual({ type: 'user', content: 'bonjour' });
+    // MUST carry the message/role wrapper — a flat {type,content} makes the CLI
+    // throw "Expected message role 'user', got 'undefined'".
+    expect(JSON.parse(fake.stdin.written[0])).toEqual({
+      type: 'user',
+      message: { role: 'user', content: 'bonjour' },
+    });
   });
 
   it('send rejects for an unknown session', async () => {
@@ -161,6 +166,57 @@ describe('LocalClaudeBridge stream-json parsing', () => {
     fake.stdout.emit('data', Buffer.from('texte brut\n'));
     const chunk = broadcasts.find((b) => b.type === 'chunk') as Extract<LocalChatMessage, { type: 'chunk' }>;
     expect(chunk?.delta).toBe('texte brut');
+  });
+
+  it('surfaces a result with is_error:true as an error, not a silent complete', async () => {
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd });
+    broadcasts.length = 0;
+    fake.emitStdout({ type: 'result', is_error: true, subtype: 'error_max_turns', result: 'boom' });
+    expect(broadcasts.some((b) => b.type === 'complete')).toBe(false);
+    const err = broadcasts.find((b) => b.type === 'error') as Extract<LocalChatMessage, { type: 'error' }>;
+    expect(err?.error).toContain('boom');
+  });
+
+  it('does NOT swallow a real stderr error that follows a benign line in one chunk', async () => {
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd });
+    broadcasts.length = 0;
+    // benign first line + real error second line, same chunk : the old /m single
+    // test returned early and swallowed the error.
+    fake.stderr.emit('data', Buffer.from('Loading model\nError: quota dépassé\n'));
+    const err = broadcasts.find((b) => b.type === 'error') as Extract<LocalChatMessage, { type: 'error' }>;
+    expect(err).toBeDefined();
+    expect(err.error).toContain('quota dépassé');
+    expect(err.error).not.toContain('Loading');
+  });
+
+  it('flushes a trailing stdout line with no newline on stream end', async () => {
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd });
+    broadcasts.length = 0;
+    // final event arrives without a closing \n, then the stream ends.
+    fake.stdout.emit('data', Buffer.from('{"type":"result","result":"tail"}'));
+    expect(broadcasts.some((b) => b.type === 'complete')).toBe(false); // buffered, not parsed yet
+    fake.stdout.emit('end');
+    const done = broadcasts.find((b) => b.type === 'complete') as Extract<LocalChatMessage, { type: 'complete' }>;
+    expect(done?.result).toBe('tail');
+  });
+
+  it('decodes a multi-byte UTF-8 char split across two data chunks', async () => {
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd });
+    broadcasts.length = 0;
+    const full = Buffer.from(
+      JSON.stringify({ type: 'assistant', message: { content: [{ type: 'text', text: 'café' }] } }) + '\n',
+      'utf8'
+    );
+    // Split the buffer INSIDE the 2-byte 'é' (bytes 0xc3 0xa9) to force a boundary.
+    const cut = full.indexOf(0xc3) + 1;
+    fake.stdout.emit('data', full.subarray(0, cut));
+    fake.stdout.emit('data', full.subarray(cut));
+    const chunk = broadcasts.find((b) => b.type === 'chunk') as Extract<LocalChatMessage, { type: 'chunk' }>;
+    expect(chunk?.delta).toBe('café'); // not "cafÃ©"
   });
 });
 

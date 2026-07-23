@@ -132,7 +132,13 @@ class ByanChat {
         if (data.raw) this.appendRawOutput(data.raw);
         break;
       case 'chat-complete':
-        this.finishStreaming(data.fullResponse || this.streamingContent);
+        // Fall back to the authoritative result text : the server never emits a
+        // `fullResponse` field ; it sends { result: { result, cost, sessionId } }.
+        this.finishStreaming(
+          data.fullResponse
+          || this.streamingContent
+          || (data.result && typeof data.result.result === 'string' ? data.result.result : '')
+        );
         break;
       case 'tool-approval':
         this.showToolApproval(data.tool, data.command);

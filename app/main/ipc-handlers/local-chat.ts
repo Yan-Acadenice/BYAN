@@ -8,13 +8,16 @@
 //
 // Protocol: `claude --print --verbose --output-format stream-json --input-format stream-json`
 // (--verbose is mandatory with print + stream-json, else the CLI refuses to start).
-// User turns are written to stdin as {type:'user',content} JSON lines ; claude's
-// stdout stream-json is parsed and normalized onto LocalChatMessage, broadcast on
-// byan:chat-local:message (same contract as F2, so the renderer is unchanged).
+// User turns are written to stdin as
+// {type:'user',message:{role:'user',content}} JSON lines — the exact stream-json
+// input shape the CLI requires (a flat {type,content} triggers "Expected message
+// role 'user', got 'undefined'"). claude's stdout stream-json is parsed and
+// normalized onto LocalChatMessage, broadcast on byan:chat-local:message.
 
 import type { IpcMain } from 'electron';
 import { BrowserWindow } from 'electron';
 import { spawn, type ChildProcess } from 'child_process';
+import { StringDecoder } from 'string_decoder';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -42,6 +45,7 @@ export type SpawnFn = (cmd: string, args: string[], opts: { cwd: string; stdio: 
 interface Session {
   proc: ChildProcess;
   buffer: string; // stdout line buffer
+  decoder: StringDecoder; // preserves multi-byte UTF-8 split across data chunks
 }
 
 export interface LocalClaudeDeps {
@@ -66,6 +70,10 @@ export interface LocalClaudeDeps {
 const MAX_SESSIONS = 8;
 // Grace period after SIGTERM before we force-kill a claude that ignores it.
 const SIGKILL_GRACE_MS = 3_000;
+// Benign claude stderr prefixes (progress/status). Filtered so only real errors
+// surface. Tested per-LINE (never with /m) so an error line that follows a
+// benign one in the same chunk is NOT swallowed.
+const BENIGN_STDERR = /^(Initializing|Loading|Connected|Session|Warming|Cost:|Token)/;
 
 export class LocalClaudeBridge {
   private readonly spawnFn: SpawnFn;
@@ -127,22 +135,26 @@ export class LocalClaudeBridge {
     }
 
     const sessionId = randomUUID();
-    const session: Session = { proc, buffer: '' };
+    const session: Session = { proc, buffer: '', decoder: new StringDecoder('utf8') };
     this.sessions.set(sessionId, session);
 
     proc.stdout?.on('data', (chunk: Buffer) => this.onStdout(sessionId, chunk));
+    // On stream end, flush any decoder tail + a trailing line with no newline
+    // (claude's last event can arrive without a closing \n).
+    proc.stdout?.on('end', () => this.flushStdout(sessionId));
     proc.stderr?.on('data', (chunk: Buffer) => {
-      const text = chunk.toString().trim();
-      // claude prints progress/status to stderr — only surface a real error.
-      if (text && !/^(Initializing|Loading|Connected|Session|Warming|Cost:|Token)/m.test(text)) {
-        this.broadcast({ type: 'error', sessionId, error: `claude: ${text}` });
-      }
+      // claude prints progress/status to stderr. Split per line and surface ONLY
+      // the non-benign lines : a single /m test swallowed a real error when it
+      // followed a benign status line in the same chunk (e.g. "Loading\nError…").
+      const bad = chunk.toString().split('\n').map((l) => l.trim())
+        .filter((l) => l && !BENIGN_STDERR.test(l));
+      if (bad.length) this.broadcast({ type: 'error', sessionId, error: `claude: ${bad.join(' ')}` });
     });
     proc.on('error', (err: Error) => {
       this.broadcast({ type: 'error', sessionId, error: `claude: ${err.message}` });
       this.sessions.delete(sessionId);
     });
-    proc.on('exit', () => { this.sessions.delete(sessionId); });
+    proc.on('exit', () => { this.flushStdout(sessionId); this.sessions.delete(sessionId); });
 
     this.broadcast({ type: 'started', sessionId, cli: 'claude' });
     return { sessionId };
@@ -154,7 +166,9 @@ export class LocalClaudeBridge {
     if (!session || !session.proc.stdin || !session.proc.stdin.writable) {
       throw new IpcError('NOT_FOUND', 'Session locale absente ou fermée.');
     }
-    session.proc.stdin.write(JSON.stringify({ type: 'user', content: message }) + '\n');
+    // stream-json input shape: the CLI reads $.message.role. A flat
+    // {type,content} makes it throw "Expected message role 'user', got 'undefined'".
+    session.proc.stdin.write(JSON.stringify({ type: 'user', message: { role: 'user', content: message } }) + '\n');
   }
 
   async stop(sessionId: string): Promise<void> {
@@ -167,7 +181,9 @@ export class LocalClaudeBridge {
     const timer = setTimeout(() => { try { proc.kill('SIGKILL'); } catch { /* gone */ } }, SIGKILL_GRACE_MS);
     if (typeof (timer as { unref?: () => void }).unref === 'function') (timer as { unref: () => void }).unref();
     proc.once('exit', () => clearTimeout(timer));
-    this.sessions.delete(sessionId);
+    // Do NOT delete the session synchronously : claude may still flush a final
+    // `result` during the SIGTERM grace window. The 'exit' handler deletes it
+    // (and flushStdout drains the tail), so an in-flight reply is not dropped.
     this.broadcast({ type: 'stopped', sessionId });
   }
 
@@ -196,7 +212,9 @@ export class LocalClaudeBridge {
   private onStdout(sessionId: string, chunk: Buffer): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
-    session.buffer += chunk.toString();
+    // Decode through the session's StringDecoder so a multi-byte UTF-8 char
+    // (accented French text, emoji) split across two chunks is not mangled.
+    session.buffer += session.decoder.write(chunk);
     const lines = session.buffer.split('\n');
     session.buffer = lines.pop() || '';
     for (const raw of lines) {
@@ -204,6 +222,17 @@ export class LocalClaudeBridge {
       if (!line) continue;
       this.parseLine(sessionId, line);
     }
+  }
+
+  // Flush the decoder tail + any trailing partial line at stream end / exit, so a
+  // final event that arrived without a closing newline is still parsed once.
+  private flushStdout(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+    session.buffer += session.decoder.end();
+    const line = session.buffer.trim();
+    session.buffer = '';
+    if (line) this.parseLine(sessionId, line);
   }
 
   private parseLine(sessionId: string, line: string): void {
@@ -235,7 +264,13 @@ export class LocalClaudeBridge {
         this.broadcast({ type: 'tool', sessionId, tool: event });
         break;
       case 'result':
-        this.broadcast({ type: 'complete', sessionId, result: event.result });
+        // is_error:true = a FAILED turn (rate limit, refusal, API error). Surface
+        // it as an error, never as a silent success the renderer commits as a reply.
+        if (event.is_error === true) {
+          this.broadcast({ type: 'error', sessionId, error: `claude: ${String(event.result || event.subtype || 'le tour a échoué')}` });
+        } else {
+          this.broadcast({ type: 'complete', sessionId, result: event.result });
+        }
         break;
       case 'error':
         this.broadcast({ type: 'error', sessionId, error: String(event.error || event.message || 'Erreur claude') });

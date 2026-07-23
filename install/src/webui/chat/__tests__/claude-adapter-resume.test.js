@@ -70,4 +70,33 @@ describe('ClaudeAdapter — resume vs fresh spawn args', () => {
     expect(call.args).toContain('--resume');
     expect(call.args).not.toContain('--session-id');
   });
+
+  it('sends a user turn in the stream-json message shape (message/role wrapper)', async () => {
+    const adapter = new ClaudeAdapter({ projectRoot: '/tmp/x' });
+    await adapter.start();
+    await adapter.send('bonjour');
+    const written = adapter.process.stdin.write.mock.calls[0][0];
+    // A flat {type,content} makes the CLI throw "Expected message role 'user'".
+    expect(JSON.parse(written)).toEqual({ type: 'user', message: { role: 'user', content: 'bonjour' } });
+  });
+});
+
+describe('ClaudeAdapter — result event handling', () => {
+  it('routes a result with is_error:true to onError, not onComplete', () => {
+    const onError = jest.fn();
+    const onComplete = jest.fn();
+    const adapter = new ClaudeAdapter({ projectRoot: '/tmp/x', onError, onComplete });
+    adapter._parseLine(JSON.stringify({ type: 'result', is_error: true, subtype: 'error_max_turns', result: 'boom' }));
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0].message).toContain('boom');
+  });
+
+  it('reads the cost from total_cost_usd (not the non-existent cost_usd)', () => {
+    const onComplete = jest.fn();
+    const adapter = new ClaudeAdapter({ projectRoot: '/tmp/x', onComplete });
+    adapter._parseLine(JSON.stringify({ type: 'result', is_error: false, result: 'ok', total_cost_usd: 0.42, session_id: 'sid-1' }));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete.mock.calls[0][0]).toMatchObject({ result: 'ok', cost: 0.42, sessionId: 'sid-1' });
+  });
 });
