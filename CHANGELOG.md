@@ -47,6 +47,14 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — build Windows : tests gpuMarkerPath POSIX-only (2026-07-23)
+
+- Meme classe de bug que resolve-bin (desktop-v1.2.4) : deux tests de `gpu.test.ts`
+  comparaient des chemins POSIX en dur (`/xdg`, `~/.config`) sur le runner
+  Windows (branche APPDATA, separateur `\`) -> `Run tests` echouait avant
+  `Package Windows`, pas de `.exe` pour desktop-v1.2.9. Rendus POSIX-only
+  (`describe.skipIf(win32)`). Tag `desktop-v1.2.10`.
+
 ### Fixed — Desktop : magasin de reglages, ralentissement machine, process orphelins (2026-07-23)
 
 Trois defauts de terrain remontes par les logs et le ressenti utilisateur, en une
