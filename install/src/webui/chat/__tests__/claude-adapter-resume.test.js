@@ -50,6 +50,18 @@ describe('ClaudeAdapter — resume vs fresh spawn args', () => {
     expect(call.args).not.toContain('--session-id');
   });
 
+  it('always passes --verbose with --print + stream-json (CLI hard requirement)', async () => {
+    // The Claude CLI refuses `--print --output-format stream-json` without
+    // --verbose: "When using --print, --output-format=stream-json requires
+    // --verbose". Missing it broke the chat with a spawn-time error.
+    const adapter = new ClaudeAdapter({ projectRoot: '/tmp/x' });
+    await adapter.start();
+    const { args } = spawned[0];
+    expect(args).toContain('--print');
+    expect(args).toContain('--verbose');
+    expect(args).toContain('stream-json');
+  });
+
   it('resume takes precedence over a captured _sessionId', async () => {
     const adapter = new ClaudeAdapter({ projectRoot: '/tmp/x', resumeSessionId: 'uuid-2' });
     adapter._sessionId = 'old-pinned';

@@ -1,7 +1,7 @@
 /**
  * Claude Code CLI bridge adapter.
- * Uses --print --output-format stream-json --input-format stream-json
- * for persistent streaming sessions.
+ * Uses --print --verbose --output-format stream-json --input-format stream-json
+ * for persistent streaming sessions (--verbose is mandatory with print+stream-json).
  */
 
 const { spawn } = require('child_process');
@@ -15,8 +15,12 @@ class ClaudeAdapter extends Bridge {
   }
 
   async start() {
+    // --verbose is REQUIRED alongside --print + --output-format stream-json: the
+    // CLI hard-refuses the combo otherwise ("When using --print,
+    // --output-format=stream-json requires --verbose") and the chat spawn dies.
     const args = [
       '--print',
+      '--verbose',
       '--output-format', 'stream-json',
       '--input-format', 'stream-json',
     ];

@@ -6,7 +6,8 @@
 // `.mcp.json` (written by the N2 installer), claude loads the byan MCP server on
 // its own — the MCP channel is wired locally, zero cloud, zero token.
 //
-// Protocol: `claude --print --output-format stream-json --input-format stream-json`.
+// Protocol: `claude --print --verbose --output-format stream-json --input-format stream-json`
+// (--verbose is mandatory with print + stream-json, else the CLI refuses to start).
 // User turns are written to stdin as {type:'user',content} JSON lines ; claude's
 // stdout stream-json is parsed and normalized onto LocalChatMessage, broadcast on
 // byan:chat-local:message (same contract as F2, so the renderer is unchanged).
@@ -101,7 +102,10 @@ export class LocalClaudeBridge {
       throw new IpcError('INVALID_ARGUMENT', 'Le dossier de projet est introuvable.');
     }
 
-    const args = ['--print', '--output-format', 'stream-json', '--input-format', 'stream-json'];
+    // --verbose is REQUIRED alongside --print + --output-format stream-json: the
+    // CLI hard-refuses the combo otherwise ("When using --print,
+    // --output-format=stream-json requires --verbose") and the chat spawn dies.
+    const args = ['--print', '--verbose', '--output-format', 'stream-json', '--input-format', 'stream-json'];
     if (opts?.agent) args.push('--agent', opts.agent);
     // NOTE: no --resume here. A byan session record id is NOT claude's own
     // session uuid, so passing it to --resume would fail. "Reprendre" a session

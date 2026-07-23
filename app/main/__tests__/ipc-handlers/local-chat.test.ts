@@ -56,7 +56,9 @@ describe('LocalClaudeBridge.start', () => {
     expect(sessionId).toBeTruthy();
     const [cmd, args, opts] = spawnFn.mock.calls[0];
     expect(cmd).toBe('claude');
-    expect(args).toEqual(['--print', '--output-format', 'stream-json', '--input-format', 'stream-json']);
+    // --verbose is MANDATORY with --print + --output-format stream-json, else the
+    // CLI refuses: "When using --print, --output-format=stream-json requires --verbose".
+    expect(args).toEqual(['--print', '--verbose', '--output-format', 'stream-json', '--input-format', 'stream-json']);
     expect(opts.cwd).toBe(cwd);
     expect(broadcasts[0]).toMatchObject({ type: 'started', cli: 'claude' });
   });
