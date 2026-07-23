@@ -47,6 +47,18 @@ tests.
   connexion live et conscient du mode (fini le "Connected" fige) ; en mode local,
   la sonde n'interroge pas byan_web.
 
+### Fixed — build Windows : les installateurs .exe se reconstruisent (2026-07-23)
+
+- La jambe Windows de la CI etait rouge depuis le tag `desktop-v1.2.4` : 4 tests
+  de `resolve-bin.test.ts` (le correctif PATH au lancement fenetre, macOS/Linux)
+  comparaient des chemins POSIX en dur (`/home/...`, separateur `:`) sur un
+  runner Windows. L'etape `Run tests` echouait AVANT `Package Windows`, donc le
+  `.exe` ne se construisait plus (la release publiait quand meme ubuntu+mac via
+  `if: always()`, ce qui masquait le trou). Rendus POSIX-only (`describe.skipIf`)
+  : le mecanisme teste (PATH tronque au lancement fenetre) n'existe pas sur
+  Windows, ou le PATH systeme vient du registre. Les 3 jambes passent, le `.exe`
+  repart. Tag `desktop-v1.2.7`.
+
 ### Fixed — chat local : durcissement complet du chemin stream-json (audit adversarial, 2026-07-23)
 
 Apres le fix `--verbose`, un second defaut fatal restait : le message stdin
