@@ -157,40 +157,15 @@ export async function addMcpServer(
   }
 
   const filePath = mcpConfigPath(projectRoot);
-
-  let existing: { mcpServers: Record<string, RawMcpServer> } = { mcpServers: {} };
-  try {
-    const raw = await fs.readFile(filePath, 'utf-8');
-    const parsed = JSON.parse(raw) as RawMcpFile;
-    if (parsed && typeof parsed === 'object' && parsed.mcpServers && typeof parsed.mcpServers === 'object') {
-      existing = { mcpServers: { ...parsed.mcpServers } };
-    }
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
-      // Malformed JSON — refuse to overwrite. User must fix it manually.
-      if (e instanceof SyntaxError) {
-        throw new McpConfigError('UNAVAILABLE', '.mcp.json is malformed; fix it manually before adding entries');
-      }
-      throw e;
-    }
-  }
+  const existing = await readForWrite(filePath);
 
   if (existing.mcpServers[input.id]) {
     throw new McpConfigError('CONFLICT', `mcp: server "${input.id}" already exists`);
   }
 
-  const newEntry: RawMcpServer = {
-    command: input.command,
-    ...(input.args && input.args.length > 0 ? { args: input.args } : {}),
-    ...(input.env && Object.keys(input.env).length > 0 ? { env: input.env } : {}),
-    ...(input.cwd ? { cwd: input.cwd } : {}),
-  };
-
+  const newEntry = inputToRaw(input);
   existing.mcpServers[input.id] = newEntry;
-
-  // Format with trailing newline so editors don't fight us on save.
-  const serialized = JSON.stringify(existing, null, 2) + '\n';
-  await fs.writeFile(filePath, serialized, 'utf-8');
+  await writeFile(filePath, existing);
 
   const parsedBack = parseEntry(input.id, newEntry);
   if (!parsedBack) {
@@ -250,6 +225,11 @@ function inputToRaw(input: McpServerInput): RawMcpServer {
 
 // Updates an existing entry in .mcp.json. The id of the input must match an
 // existing server — renaming is not supported here (delete + add to rename).
+//
+// Only the fields the input SHAPE owns (command/args/env/cwd) are replaced;
+// everything else on the existing entry is preserved. Replacing the entry
+// wholesale silently re-enabled a server the user had set "enabled": false
+// (and dropped any hand-written field the app does not know about).
 export async function updateMcpServer(
   projectRoot: string,
   input: McpServerInput
@@ -259,11 +239,16 @@ export async function updateMcpServer(
 
   const filePath = mcpConfigPath(projectRoot);
   const existing = await readForWrite(filePath);
-  if (!existing.mcpServers[input.id]) {
+  const previous = existing.mcpServers[input.id];
+  if (!previous) {
     throw new McpConfigError('NOT_FOUND', `mcp: server "${input.id}" does not exist`);
   }
 
-  existing.mcpServers[input.id] = inputToRaw(input);
+  const OWNED_FIELDS = new Set(['command', 'args', 'env', 'cwd']);
+  const preserved = Object.fromEntries(
+    Object.entries(previous as Record<string, unknown>).filter(([k]) => !OWNED_FIELDS.has(k))
+  );
+  existing.mcpServers[input.id] = { ...preserved, ...inputToRaw(input) };
   await writeFile(filePath, existing);
 
   const parsedBack = parseEntry(input.id, existing.mcpServers[input.id]);

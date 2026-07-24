@@ -156,6 +156,59 @@ describe('onboarding.apply', () => {
   });
 });
 
+describe('onboarding.apply — trust boundary', () => {
+  const validPlan: FileWritePlan = {
+    path: '/proj/.claude/settings.json',
+    relPath: '.claude/settings.json',
+    description: 'test',
+    platform: 'claude',
+    action: 'create',
+    content: '{}',
+  };
+
+  it('rejects a relPath that traverses upward', async () => {
+    const evil: FileWritePlan = {
+      ...validPlan,
+      path: '/proj/../../etc/passwd',
+      relPath: '../../etc/passwd',
+    };
+    await expect(onboarding.apply([evil])).rejects.toThrow(/plans invalides/i);
+  });
+
+  it('rejects a path that is not root + relPath', async () => {
+    const evil: FileWritePlan = { ...validPlan, path: '/etc/passwd' };
+    await expect(onboarding.apply([evil])).rejects.toThrow(/plans invalides/i);
+  });
+
+  it('rejects plans pointing at two different roots', async () => {
+    const other: FileWritePlan = {
+      ...validPlan,
+      path: '/elsewhere/.claude/settings.json',
+    };
+    await expect(onboarding.apply([validPlan, other])).rejects.toThrow(/plans invalides/i);
+  });
+
+  it('refuses a plan that does not come from the templates', async () => {
+    const invented: FileWritePlan = {
+      ...validPlan,
+      path: '/proj/.claude/hooks/evil.js',
+      relPath: '.claude/hooks/evil.js',
+    };
+    const result = await onboarding.apply([invented]);
+    expect(result.written).toBe(0);
+    expect(result.errors['.claude/hooks/evil.js']).toMatch(/gabarits/i);
+  });
+
+  it('writes the RECOMPUTED template content, never the renderer content', async () => {
+    const { applyClaudeSetup } = await import('../../installers/claude');
+    const tampered: FileWritePlan = { ...validPlan, content: 'EVIL INJECTED CONTENT' };
+    const result = await onboarding.apply([tampered]);
+    expect(result.written).toBe(1);
+    const appliedPlans = (applyClaudeSetup as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0] as FileWritePlan[];
+    expect(appliedPlans[0].content).toBe('{}'); // template content, not the tampered one
+  });
+});
+
 describe('onboarding.register', () => {
   it('registers preview and apply channels on ipcMain', () => {
     const handle = vi.fn();

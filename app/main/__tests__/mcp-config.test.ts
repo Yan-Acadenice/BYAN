@@ -204,6 +204,33 @@ describe('updateMcpServer', () => {
     expect(map.get('bar')).toBe('python');
   });
 
+  it('preserves enabled:false and hand-written fields on update', async () => {
+    // The user maintains .mcp.json by hand too — a disabled server edited from
+    // the app must STAY disabled, and unknown fields must survive.
+    await write('.mcp.json', JSON.stringify({
+      mcpServers: {
+        foo: { command: 'node', args: ['a.js'], enabled: false, note: 'hand-written' },
+      },
+    }, null, 2));
+
+    await updateMcpServer(tmp, { id: 'foo', command: 'deno', args: ['b.ts'] });
+
+    const raw = JSON.parse(await fs.readFile(path.join(tmp, '.mcp.json'), 'utf-8')) as {
+      mcpServers: Record<string, Record<string, unknown>>;
+    };
+    expect(raw.mcpServers.foo.enabled).toBe(false);
+    expect(raw.mcpServers.foo.note).toBe('hand-written');
+    expect(raw.mcpServers.foo.command).toBe('deno');
+    expect(raw.mcpServers.foo.args).toEqual(['b.ts']);
+  });
+
+  it('drops an owned field the update no longer carries (args removed)', async () => {
+    await addMcpServer(tmp, { id: 'foo', command: 'node', args: ['a.js'] });
+    await updateMcpServer(tmp, { id: 'foo', command: 'node' });
+    const result = await readMcpConfig(tmp);
+    expect(result[0].args).toBeUndefined();
+  });
+
   it('throws NOT_FOUND when updating an unknown id', async () => {
     await expect(updateMcpServer(tmp, { id: 'ghost', command: 'node' }))
       .rejects.toMatchObject({ code: 'NOT_FOUND' });
