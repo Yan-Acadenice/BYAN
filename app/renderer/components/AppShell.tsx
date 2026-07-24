@@ -19,8 +19,12 @@ export default function AppShell({ activePage, onNavigate, breadcrumb, children 
     <div className="h-screen flex overflow-hidden bg-ink-950">
       <Sidebar activePage={activePage} onNavigate={onNavigate} />
 
-      {/* Main content wrapper — offset left by sidebar width */}
-      <div className="flex-1 flex flex-col" style={{ marginLeft: '240px' }}>
+      {/* Main content wrapper — offset left by sidebar width. `relative` makes
+          this column the positioned ancestor of the absolute StatusStrip:
+          without it the footer anchored to the WINDOW and its left side (the
+          Local/Cloud mode chip) sat unreachable UNDER the fixed sidebar
+          (z-50 > z-40) — caught by the switch-mode E2E on the packaged build. */}
+      <div className="relative flex-1 flex flex-col" style={{ marginLeft: '240px' }}>
         <Topbar breadcrumb={breadcrumb} />
 
         {/* Scrollable content area — subtract topbar (48px) + status strip (28px) */}
