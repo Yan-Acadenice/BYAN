@@ -20,6 +20,8 @@ const { fsMock, getFsContent, setFsContent } = vi.hoisted(() => {
       closeSync: vi.fn(),
       unlinkSync: vi.fn(),
       chmodSync: vi.fn(),
+      renameSync: vi.fn(),
+      statSync: vi.fn(() => ({ mtimeMs: Date.now() })),
       constants: { O_CREAT: 64, O_EXCL: 128, O_WRONLY: 1 }
     },
     getFsContent: () => _content,
@@ -57,6 +59,8 @@ function resetFsMock() {
   fsMock.closeSync.mockClear();
   fsMock.unlinkSync.mockClear();
   fsMock.chmodSync.mockClear();
+  fsMock.renameSync.mockClear();
+  fsMock.statSync.mockClear().mockImplementation(() => ({ mtimeMs: Date.now() }));
 }
 
 // ---------- SecureStore — keytar available ----------

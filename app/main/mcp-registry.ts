@@ -17,7 +17,7 @@ export interface SpawnLike {
   (
     command: string,
     args: ReadonlyArray<string>,
-    options: { env?: NodeJS.ProcessEnv; cwd?: string; stdio: 'pipe' | 'ignore' }
+    options: { env?: NodeJS.ProcessEnv; cwd?: string; stdio: 'pipe' | 'ignore'; detached?: boolean }
   ): ChildLike;
 }
 
@@ -48,6 +48,20 @@ export interface McpRegistryDeps {
 }
 
 const STDERR_BUFFER_DEFAULT = 4096;
+// Grace period after SIGTERM before the SIGKILL escalation.
+const SIGTERM_GRACE_MS = 3_000;
+
+// Signal the process GROUP on POSIX so an MCP server that forked its own
+// children takes them along (same rationale as engines/kill-tree.ts: children
+// are spawned detached, a negative-pid signal reaches the whole group).
+// Windows has no POSIX groups -> direct kill of the parent.
+function killGroup(proc: ChildLike, signal: NodeJS.Signals): void {
+  const pid = proc.pid;
+  if (process.platform !== 'win32' && typeof pid === 'number') {
+    try { process.kill(-pid, signal); return; } catch { /* group gone / not a leader — fall back */ }
+  }
+  try { proc.kill(signal); } catch { /* already dead */ }
+}
 
 export class McpProcessRegistry {
   private readonly entries = new Map<string, RegistryEntry>();
@@ -104,6 +118,9 @@ export class McpProcessRegistry {
         env,
         cwd: server.cwd,
         stdio: 'pipe',
+        // Own process group on POSIX so stop/stopAll can reap the server AND
+        // any children it forks (killGroup's negative-pid signal).
+        detached: process.platform !== 'win32',
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -153,14 +170,32 @@ export class McpProcessRegistry {
     return entry.status;
   }
 
-  async stop(id: string): Promise<void> {
+  // Graceful stop: SIGTERM, escalate to SIGKILL after the grace period, and
+  // resolve only when the exit event fires (bounded — a stop() that resolved
+  // on SIGTERM alone let update() restart the OLD command, and a
+  // SIGTERM-ignoring server was unstoppable from the UI).
+  async stop(id: string, graceMs = SIGTERM_GRACE_MS): Promise<void> {
     const entry = this.entries.get(id);
     if (!entry || !entry.proc) return;
-    try {
-      entry.proc.kill('SIGTERM');
-    } catch {
-      // proc may already be dead — exit listener will reconcile state.
-    }
+    const proc = entry.proc;
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      let killTimer: ReturnType<typeof setTimeout> | undefined;
+      let hardTimer: ReturnType<typeof setTimeout> | undefined;
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        if (killTimer) clearTimeout(killTimer);
+        if (hardTimer) clearTimeout(hardTimer);
+        resolve();
+      };
+      proc.on('exit', settle);
+      killTimer = setTimeout(() => killGroup(proc, 'SIGKILL'), graceMs);
+      // Absolute bound: never leave the caller hanging on a zombie that emits
+      // no exit event. State reconciliation stays with the start() listeners.
+      hardTimer = setTimeout(settle, graceMs * 2);
+      killGroup(proc, 'SIGTERM');
+    });
   }
 
   // Kill EVERY running MCP child — called at app quit so a Settings-started stdio
@@ -169,8 +204,8 @@ export class McpProcessRegistry {
   stopAll(): void {
     for (const [, entry] of this.entries) {
       if (!entry.proc) continue;
-      try { entry.proc.kill('SIGTERM'); } catch { /* already gone */ }
-      try { entry.proc.kill('SIGKILL'); } catch { /* already gone */ }
+      killGroup(entry.proc, 'SIGTERM');
+      killGroup(entry.proc, 'SIGKILL');
       entry.proc = undefined;
     }
   }

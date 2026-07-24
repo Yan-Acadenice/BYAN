@@ -92,6 +92,25 @@ function envFilePath(): string {
   return path.join(configDir, '.env');
 }
 
+// A value containing a newline (or leading/trailing whitespace, or starting
+// with a double quote) cannot survive the line-oriented format verbatim — it
+// used to round-trip truncated to its first line and could inject spurious
+// keys. Such values are JSON-quoted on write and unquoted on read; plain
+// values stay untouched, so existing files keep parsing.
+function encodeValue(v: string): string {
+  return /[\n\r]|^\s|\s$|^"/.test(v) ? JSON.stringify(v) : v;
+}
+
+function decodeValue(raw: string): string {
+  if (raw.startsWith('"')) {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (typeof parsed === 'string') return parsed;
+    } catch { /* legacy plain value that happens to start with a quote */ }
+  }
+  return raw;
+}
+
 // Parse a KEY=VALUE .env file into a Map. Lines starting with # are comments.
 // Values may contain '=' — only the first '=' per line is the separator.
 function parseDotEnv(content: string): Map<string, string> {
@@ -102,7 +121,7 @@ function parseDotEnv(content: string): Map<string, string> {
     const eqIdx = trimmed.indexOf('=');
     if (eqIdx < 1) continue;
     const k = trimmed.slice(0, eqIdx);
-    const v = trimmed.slice(eqIdx + 1);
+    const v = decodeValue(trimmed.slice(eqIdx + 1));
     map.set(k, v);
   }
   return map;
@@ -111,7 +130,7 @@ function parseDotEnv(content: string): Map<string, string> {
 function serializeDotEnv(map: Map<string, string>): string {
   const lines: string[] = [];
   for (const [k, v] of map) {
-    lines.push(`${k}=${v}`);
+    lines.push(`${k}=${encodeValue(v)}`);
   }
   // Trailing newline keeps POSIX editors happy.
   return lines.length > 0 ? lines.join('\n') + '\n' : '';
@@ -124,54 +143,49 @@ function envKey(key: string): string {
   return key.replace(/[^A-Za-z0-9_]/g, '_');
 }
 
-// Write the .env file with an advisory lock to guard against concurrent writes
-// from two app instances on the same machine.
-//
-// Linux: we use a lock file + O_EXCL to implement a spin-and-retry advisory
-//        lock, then chmod 0600 the .env so only the current user can read it.
-// Windows: O_EXCL is not supported on all FS types; we accept a simple
-//          no-lock write and document the limitation.
-function writeDotEnvSafe(filePath: string, content: string): void {
-  const dir = path.dirname(filePath);
-  fs.mkdirSync(dir, { recursive: true });
+// Advisory lock parameters. A lock file left behind by a process that died
+// mid-write is reclaimed after LOCK_STALE_MS — without that, every later write
+// waited the full retry budget and then wrote unlocked, forever.
+const LOCK_STALE_MS = 10_000;
+const LOCK_MAX_RETRIES = 20;
+const LOCK_RETRY_DELAY_MS = 50;
 
-  if (process.platform !== 'win32') {
-    // Linux / macOS — advisory lock via a companion .lock file.
-    // chmod 0600 on Linux so only the process owner can read the secrets.
-    const lockPath = filePath + '.lock';
-    const maxRetries = 20;
-    const retryDelayMs = 50;
-
-    let fd: number | null = null;
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        fd = fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
-        break;
-      } catch {
-        // Lock held by another instance — busy-wait (synchronous, acceptable
-        // because writes happen rarely and hold the lock for microseconds).
-        const deadline = Date.now() + retryDelayMs;
-        while (Date.now() < deadline) { /* spin */ }
-      }
-    }
-
+// Take the companion .lock file (O_EXCL). Waits are async sleeps, never a
+// synchronous spin (the old busy-wait blocked the main process ~1s per write
+// once the lock had gone stale). Returns null when the lock never freed — the
+// caller proceeds unlocked, best-effort, as before.
+async function acquireLock(lockPath: string): Promise<number | null> {
+  for (let i = 0; i < LOCK_MAX_RETRIES; i++) {
     try {
-      fs.writeFileSync(filePath, content, { encoding: 'utf8', mode: 0o600 });
-      // Ensure mode is 0600 even if the file already existed.
-      try { fs.chmodSync(filePath, 0o600); } catch { /* best-effort */ }
-    } finally {
-      if (fd !== null) {
-        try { fs.closeSync(fd); } catch { /* ignore */ }
-        try { fs.unlinkSync(lockPath); } catch { /* ignore */ }
+      return fs.openSync(lockPath, fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY);
+    } catch {
+      try {
+        const age = Date.now() - fs.statSync(lockPath).mtimeMs;
+        if (age > LOCK_STALE_MS) {
+          fs.unlinkSync(lockPath);
+          continue; // reclaimed — retry immediately
+        }
+      } catch {
+        continue; // lock vanished between open and stat — retry immediately
       }
+      await new Promise((r) => setTimeout(r, LOCK_RETRY_DELAY_MS));
     }
-  } else {
-    // Windows: Credential Manager is the preferred path; if we land here the
-    // file contains at most the fallback token. Race conditions between two
-    // simultaneous writes are extremely unlikely in a desktop app context.
-    // A proper fix would use a named mutex via a native addon — deferred to F10.
-    fs.writeFileSync(filePath, content, { encoding: 'utf8' });
   }
+  return null;
+}
+
+function releaseLock(fd: number, lockPath: string): void {
+  try { fs.closeSync(fd); } catch { /* ignore */ }
+  try { fs.unlinkSync(lockPath); } catch { /* ignore */ }
+}
+
+// Atomic replace: write a temp file in the same directory, then rename over
+// the target. A crash mid-write leaves the old file intact (writeFileSync in
+// place truncated first — a crash there destroyed ALL stored secrets).
+function writeFileAtomic(filePath: string, content: string, mode?: number): void {
+  const tmpPath = `${filePath}.tmp-${process.pid}`;
+  fs.writeFileSync(tmpPath, content, mode !== undefined ? { encoding: 'utf8', mode } : { encoding: 'utf8' });
+  fs.renameSync(tmpPath, filePath);
 }
 
 function readDotEnvSafe(filePath: string): string {
@@ -179,6 +193,37 @@ function readDotEnvSafe(filePath: string): string {
     return fs.readFileSync(filePath, { encoding: 'utf8' });
   } catch {
     return '';
+  }
+}
+
+// Read-modify-write of the .env under the advisory lock — the WHOLE cycle,
+// not just the final write (a lock wrapping only the write did not prevent
+// two instances from interleaving their read-modify-write and losing updates).
+//
+// Linux/macOS: companion .lock + chmod 0600 so only the owner reads secrets.
+// Windows: Credential Manager is the preferred path; if we land here the file
+// contains at most the fallback token, no lock file (O_EXCL unreliable across
+// FS types) — the atomic rename still applies.
+async function mutateDotEnvSafe(filePath: string, mutate: (map: Map<string, string>) => void): Promise<void> {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+
+  if (process.platform !== 'win32') {
+    const lockPath = filePath + '.lock';
+    const fd = await acquireLock(lockPath);
+    try {
+      const map = parseDotEnv(readDotEnvSafe(filePath));
+      mutate(map);
+      writeFileAtomic(filePath, serializeDotEnv(map), 0o600);
+      // Ensure mode is 0600 even if the file already existed.
+      try { fs.chmodSync(filePath, 0o600); } catch { /* best-effort */ }
+    } finally {
+      if (fd !== null) releaseLock(fd, lockPath);
+    }
+  } else {
+    const map = parseDotEnv(readDotEnvSafe(filePath));
+    mutate(map);
+    writeFileAtomic(filePath, serializeDotEnv(map));
   }
 }
 
@@ -192,10 +237,7 @@ class FallbackStore implements SecureStore {
   }
 
   async set(key: string, value: string): Promise<void> {
-    const content = readDotEnvSafe(this.filePath);
-    const map = parseDotEnv(content);
-    map.set(envKey(key), value);
-    writeDotEnvSafe(this.filePath, serializeDotEnv(map));
+    await mutateDotEnvSafe(this.filePath, (map) => { map.set(envKey(key), value); });
   }
 
   async get(key: string): Promise<string | null> {
@@ -205,10 +247,7 @@ class FallbackStore implements SecureStore {
   }
 
   async delete(key: string): Promise<void> {
-    const content = readDotEnvSafe(this.filePath);
-    const map = parseDotEnv(content);
-    map.delete(envKey(key));
-    writeDotEnvSafe(this.filePath, serializeDotEnv(map));
+    await mutateDotEnvSafe(this.filePath, (map) => { map.delete(envKey(key)); });
   }
 }
 

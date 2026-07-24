@@ -143,6 +143,11 @@ export async function openTerminal(opts: TerminalOpenOpts): Promise<TerminalOpen
     // env carries the augmented PATH so the emulator and the shell inside it (and
     // claude's own MCP node child) resolve user-installed tools.
     const child = spawn(file, args, { cwd: opts.cwd, detached: true, stdio: 'ignore', env: spawnEnv() });
+    // spawn() reports post-syscall launch failures (EACCES, EMFILE, ENOENT
+    // races) asynchronously on the 'error' event. Unhandled, that is an
+    // uncaughtException that kills main without running before-quit. The
+    // ok:true answer has already left — best we can do is not crash.
+    child.on('error', () => { /* async launch failure — swallowed, see above */ });
     child.unref();
     return { ok: true, terminal: terminalBin || file };
   } catch (err) {
