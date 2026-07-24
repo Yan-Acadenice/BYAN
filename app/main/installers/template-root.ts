@@ -20,6 +20,14 @@ function exists(p: string): boolean {
 
 let cached: string | null = null;
 
+// Test seam: point the installers at a small fixture tree instead of the real
+// install/templates (1000+ files — walking it in every unit test is what made
+// the installer suites time out under full-suite load). null restores the
+// normal resolution.
+export function _setTemplateRootForTests(root: string | null): void {
+  cached = root;
+}
+
 export function resolveTemplateRoot(): string {
   if (cached) return cached;
 
