@@ -9,6 +9,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — App Desktop 1.3.0 : moteur codex dans le chat local + campagne de correctifs (2026-07-24)
+
+Le chat local devient multi-moteur, et une revue adversariale de toute l'app
+(workflow natif 7 dimensions + contre-verification) a produit une campagne de
+correctifs — chaque lot committe atomiquement avec ses tests. 640 tests verts.
+
+- **Moteur codex dans le chat local (`desktop-v1.3.0`).** Le pont chat est
+  refactore en couche moteurs (`app/main/engines/`) : claude garde son
+  processus long stream-json ; codex tourne UN processus par tour
+  (`codex exec --json`, contrat JSONL verifie en direct sur codex-cli 0.145.0)
+  chaine par `codex exec resume <thread_id>`, prompt transmis par stdin plutot
+  que argv (un message commencant par `-` ne peut pas etre lu comme une
+  option). Le canal MCP est projete par invocation depuis le `.mcp.json` du
+  projet vers des surcharges `-c mcp_servers.*` (l'equivalent codex du
+  `.mcp.json` que claude lit nativement). UI : interrupteur Claude/Codex dans
+  la vue locale, codex grise si non detecte, choix persiste
+  (`chat.localEngine`).
+- **Correctifs cycle de vie process.** Course a la fermeture du pont chat
+  (start() en vol pendant before-quit orphelinait un claude) ; minuteur de
+  redemarrage du serveur local annulable + planification unique (le serveur
+  ressuscitait apres un arret explicite, double fork sur crash sante) ;
+  `mcp-registry.stop()` attend la sortie reelle avec escalade SIGKILL et tue
+  le GROUPE (les enfants d'un serveur MCP suivent) ; ecouteur error sur le
+  spawn terminal (une panne asynchrone tuait le main).
+- **Correctifs securite/confiance.** `store.get/set` verrouille par liste
+  blanche de prefixes (le renderer pouvait lire `auth.token` par le magasin
+  generique) ; `onboarding.apply` recalcule les plans cote main depuis les
+  gabarits (le renderer ne choisit que les fichiers — fin de l'ecriture de
+  chemins/contenus arbitraires) ; create/delete/flux de conversation cloud
+  gates sur `isLocalMode()`.
+- **Mode local natif assume.** `login(mode:'local')` n'exige plus le serveur
+  webui herite (le mode natif lit le disque) ; `login()` diffuse
+  `byan:auth:changed` a chaque succes (l'etiquette de mode se met a jour sans
+  recharger).
+- **Magasin de secrets durci.** Cycle lire-modifier-ecrire entier sous verrou,
+  ecriture atomique (tmp + rename), recuperation de verrou orphelin (fini le
+  blocage ~1s par ecriture), valeurs multi-lignes encodees JSON sur disque.
+- **Renderer.** Fuite de trames inter-sessions apres deconnexion ; saignement
+  de flux au changement de conversation ; bouton Envoyer aligne sur les
+  commandes slash ; `/cli` agit vraiment (moteur de la prochaine conversation,
+  retour toast) ; garde sur conversation supprimee a distance ; erreurs via
+  toasts ; abonnement menu sans resouscription a chaque rendu.
+- **Tests honnetes + outillage.** Le test E2E CSP etait une tautologie (il
+  passait CSP retiree) ; idem le test d'idempotence de l'auto-updater ;
+  `test:live` passe par cross-env (cassait cmd.exe) ; la config vitest couvre
+  preload/ ; alias `@webui` mort supprime ; le job release attache les
+  `BYAN-*.zip.blockmap` (mises a jour differentielles mac) ; installateurs
+  consolides sur `fs-utils` avec elagage de `node_modules` pendant la descente
+  (source des delais depasses en CI locale) ; gabarits de test hermetiques.
+
 ### Added — App Desktop : mode local, chat local claude, sessions, terminal, dossier projet (2026-07-22)
 
 Chantier runtime de l'app Desktop Electron (`app/`) : rendre le mode local reel et

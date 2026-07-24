@@ -4,8 +4,8 @@
 > le point sur l'app Electron : sa cible, son architecture, l'etat courant, et les
 > pieges deja rencontres. But : reprendre le dev/debug sans re-decouvrir le terrain.
 >
-> Version courante : `app/package.json` = 1.2.12. Canal de sortie : tags `desktop-v*`.
-> Branche de travail : `feat/install-engine-webui`.
+> Version courante : `app/package.json` = 1.3.0. Canal de sortie : tags `desktop-v*`.
+> Branche de travail : `main`.
 
 ## 1. Ce que c'est
 
@@ -19,11 +19,30 @@ Le contrat IPC vit dans `shared/ipc-contract.ts` (canaux + types partages main/r
 ## 2. La cible : MODE LOCAL NATIF (le coeur)
 
 L'app tourne en deux modes. Le mode LOCAL est la raison d'etre de tout le chantier
-en cours (feature FD `desktop-local-native`) :
+(`desktop-local-native`, puis moteurs multi-CLI en 1.3.0) :
 - **local** : zero cloud, zero token. Toute lecture vient du DISQUE (`_byan/` du
-  projet choisi) via `main/local-data.ts`. Le chat = un `claude` local lance
-  directement dans le dossier projet (il y trouve `.mcp.json` -> serveur MCP byan).
+  projet choisi) via `main/local-data.ts`. Le chat = un CLI local (`claude` OU
+  `codex`, au choix dans la vue) lance dans le dossier projet. `login('local')`
+  n'exige AUCUN serveur (natif, 1.3.0).
 - **cloud / custom** : lecture via l'API byan_web (token requis).
+
+### Les moteurs du chat local (main/engines/, 1.3.0)
+
+Le pont (`ipc-handlers/local-chat.ts`) est agnostique : carte des sessions, cap,
+balayage a la fermeture, diffusion. Chaque CLI vit dans un adaptateur :
+- **claude** (`engines/claude-engine.ts`) : UN processus long par session,
+  tours ecrits sur stdin en stream-json. MCP : claude lit le `.mcp.json` du
+  dossier projet tout seul.
+- **codex** (`engines/codex-engine.ts`) : UN processus PAR TOUR
+  (`codex exec --json`), chaine par `codex exec resume <thread_id>` (le
+  thread_id vient de l'evenement `thread.started`). Prompt via stdin
+  (positionnel `-`), pas argv. MCP : `.mcp.json` projete en surcharges
+  `-c mcp_servers.*` a chaque invocation (`engines/codex-config.ts`) —
+  quoting TOML via JSON.stringify, `${VAR}` expanse depuis l'env.
+  Sandbox `workspace-write`, `--skip-git-repo-check`.
+Cote contrat, le renderer ne designe pas un binaire : `LocalChatStartOpts.cli`
+est une union `'claude' | 'codex'` validee cote main (surface spawn-any-binary
+fermee, cf. test "rejects an unknown engine name").
 
 ### Le point de decision unique (a bien comprendre avant de toucher au mode)
 
@@ -48,11 +67,17 @@ appel cloud non gate depuis le renderer.
 
 | Fichier | Role |
 |--------|------|
-| `index.ts` | entree : cycle de vie app, fenetre, garde GPU, `before-quit` (stoppe serveur + sessions claude + registre MCP) |
-| `ipc-handlers/byan-web.ts` | `isLocalMode()` + tous les handlers de lecture (projets, agents, memory, knowledge, sessions, chat cloud) |
-| `ipc-handlers/auth.ts` | login / switchMode / `getSession` / logout / `hasCloudToken` ; cles `auth.mode`/`auth.token`/`auth.url` |
+| `index.ts` | entree : cycle de vie app, fenetre, garde GPU, `before-quit` (stoppe serveur + sessions CLI + registre MCP) |
+| `ipc-handlers/byan-web.ts` | `isLocalMode()` + tous les handlers de lecture (projets, agents, memory, knowledge, sessions, chat cloud) — create/delete/flux chat cloud gates en local |
+| `ipc-handlers/auth.ts` | login / switchMode / `getSession` / logout / `hasCloudToken` ; cles `auth.mode`/`auth.token`/`auth.url` ; local = natif sans serveur ; diffuse `byan:auth:changed` |
+| `ipc-handlers/store.ts` | magasin generique renderer, LISTE BLANCHE de prefixes (`chat.` `login.` `onboarding.` `ui.` `user.`) — les cles auth y sont inaccessibles |
 | `local-data.ts` | lecteurs DISQUE du mode local : `localAgents/localKnowledge/localMemory/localSessions/localProjects/localProject` depuis `_byan/` |
-| `ipc-handlers/local-chat.ts` | `LocalClaudeBridge` : spawn `claude` local (stream-json), stdin/stdout, stop, `stopAll` (kill de groupe) |
+| `ipc-handlers/local-chat.ts` | `LocalChatBridge` multi-moteur : sessions, cap, quitting re-verifie apres le trou async, diffusion |
+| `engines/claude-engine.ts` | adaptateur claude : processus long, stream-json stdin/stdout |
+| `engines/codex-engine.ts` | adaptateur codex : un `codex exec --json` par tour, resume chaine, stderr en reserve |
+| `engines/codex-config.ts` | `.mcp.json` -> surcharges `-c mcp_servers.*` (quoting TOML, expansion `${VAR}`) |
+| `engines/kill-tree.ts` / `engines/stream-lines.ts` | kill de groupe partage (TERM/grace/KILL) ; accumulateur de lignes UTF-8 |
+| `installers/fs-utils.ts` | walk (node_modules elague pendant la descente) + planTree/planFile/applyPlans partages par les 3 installateurs |
 | `secure-store.ts` | magasin secrets : keytar (trousseau OS) avec repli fichier `.env` (chmod 0600) au RUNTIME si keytar echoue |
 | `gpu.ts` | `shouldDisableGpu()` : coupe l'acceleration (env `BYAN_DISABLE_GPU=1` ou marqueur `<config>/byan/disable-gpu`) |
 | `resolve-bin.ts` | resout le chemin absolu de `claude`/`node` sous PATH tronque (app lancee en fenetre) ; cache une fois |
@@ -121,6 +146,36 @@ Tout est livre, CI verte, dans les 3 installateurs de `desktop-v1.2.12`.
 
 Backlog `desktop-local-native` (N1-N5) = DONE. Etat FD : `_byan-output/fd-state.json`.
 
+## 6bis. Journal 1.3.0 (session 2026-07-24) — moteur codex + campagne de correctifs
+
+Revue adversariale de toute l'app (workflow natif : 7 critiques + 2 lentilles de
+contre-verification par constat) -> ~30 constats uniques, corriges par lots
+atomiques. 640 tests verts, typecheck + lint propres. Detail : CHANGELOG.md
+section "App Desktop 1.3.0". L'essentiel :
+
+- **Moteur codex dans le chat local** (voir section 2, "Les moteurs").
+- Course a la fermeture du pont chat corrigee (re-verification de `_quitting`
+  et du cap APRES l'await de defaultCwd).
+- Serveur local : minuteur de redemarrage stocke/annulable, planification
+  unique (fin de la resurrection post-stop et du double fork).
+- `mcp-registry.stop()` : attente de sortie reelle, escalade SIGKILL, kill de
+  GROUPE (spawn detache) — la piste ouverte "reaping registre MCP" est FAITE.
+- `store.get/set` : liste blanche de prefixes (le renderer pouvait lire
+  `auth.token` par le magasin generique).
+- `onboarding.apply` : plans recalcules cote main depuis les gabarits (le
+  renderer ne choisit que les fichiers).
+- `login('local')` natif (plus de prerequis serveur) + diffusion
+  `byan:auth:changed` sur chaque login reussi.
+- Magasin `.env` : verrou sur tout le cycle lire-modifier-ecrire, ecriture
+  atomique, verrou orphelin recupere, valeurs multi-lignes encodees.
+- Renderer : fuite de trames post-logout, saignement de flux au changement de
+  conversation, bouton Envoyer = commandes slash, `/cli` operationnel,
+  garde conversation supprimee, toasts, abonnement menu stable.
+- Tests rendus falsifiables (l'assertion CSP e2e et le test d'idempotence de
+  l'auto-updater ne pouvaient pas echouer), cross-env sur test:live, vitest
+  couvre preload/, alias `@webui` supprime, glob `BYAN-*.zip.blockmap` ajoute
+  au job release.
+
 ## 7. Pieges connus / lecons (a ne pas re-decouvrir)
 
 - **Trousseau Linux verrouille** : keytar se CHARGE mais `set/get` peut lever "Password is
@@ -136,6 +191,14 @@ Backlog `desktop-local-native` (N1-N5) = DONE. Etat FD : `_byan-output/fd-state.
   `--output-format stream-json` ; events sortie = `assistant` (message.content[].text),
   `result` (result + session_id + total_cost_usd) ; `claude` reste vivant multi-tour tant que
   stdin est ouvert. Prouve live ; voir `local-chat.integration.test.ts`.
+- **Contrat de fil `codex` (JSONL, verifie live sur codex-cli 0.145.0)** : sortie =
+  `thread.started` (porte `thread_id`), `turn.started`, `item.completed`
+  (`item.type` = `agent_message`/`command_execution`/`mcp_tool_call`/...),
+  `turn.completed` (usage) ; echecs = `turn.failed`/`error`. PAS de mode stdin
+  multi-tour : un processus par tour, reprise par `codex exec resume <thread_id>`.
+  codex LIT stdin quand il est ouvert -> passer le prompt par stdin (positionnel
+  `-`) puis fermer, sinon il attend. Config MCP par `-c` : valeurs parsees en
+  TOML (JSON.stringify convient pour les chaines, y compris chemins Windows).
 - **Process enfants sous Linux** : un `spawn` ne meurt pas avec le parent. Tout enfant lance
   (claude, MCP) doit etre tue explicitement au quit (`stopAll`), avec kill de GROUPE
   (`process.kill(-pid)`, spawn `detached`) pour emporter les petits-enfants (le MCP node de claude).
@@ -158,5 +221,10 @@ Backlog `desktop-local-native` (N1-N5) = DONE. Etat FD : `_byan-output/fd-state.
 - Interrupteur GPU dans la page Parametres (aujourd'hui : env + fichier marqueur).
 - `ProjectDetail` en mode local (aujourd'hui la page detail est cloud) ; action au clic
   sur un projet local (revealer le dossier / lancer une session).
-- Reaping registre MCP : kill direct du process suivi (un serveur MCP tiers qui forke ses
-  propres enfants pourrait en laisser) — passer en kill de groupe si besoin.
+- Retrait du serveur webui forke (`local-server.ts`, 14K + 12K de tests) : depuis
+  1.3.0 le login local ne l'exige plus — il reste demarre au boot par legacy.
+  Etape suivante : ne plus le forker en mode natif, puis retirer fichier + tests
+  + asarUnpack/extraResources.
+- Persistance de l'engine par session dans les enregistrements disque (list()
+  etiquette encore tout en 'claude') + vraie reprise de contexte (uuid claude /
+  thread_id codex persistes).
