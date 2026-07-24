@@ -52,6 +52,7 @@ import AgentPicker from '../components/chat/AgentPicker';
 import LocalChatView from '../components/chat/LocalChatView';
 import { useChatDefaults } from '../hooks/useChatDefaults';
 import { useAuthSession } from '../context/AuthSessionContext';
+import { useToast } from '../components/toast/ToastContext';
 
 // ---------- Constants ----------
 
@@ -69,11 +70,37 @@ const CLI_BADGE_CLASS: Record<ChatCliProvider, string> = {
 
 const SLASH_COMMANDS = [
   { cmd: '/new', description: 'Start a new conversation' },
-  { cmd: '/cli', description: 'Switch CLI provider' },
+  { cmd: '/cli', description: 'Set CLI provider for the next conversation' },
   { cmd: '/scope', description: 'Edit scope for next conversation' },
   { cmd: '/agent', description: 'Edit agent for next conversation' },
   { cmd: '/clear', description: 'Delete this conversation' },
 ];
+
+// /cli accepts friendly aliases on top of the wire values.
+const CLI_ALIASES: Record<string, ChatCliProvider> = {
+  'claude-code': 'claude-code',
+  claude: 'claude-code',
+  copilot: 'copilot',
+  codex: 'codex',
+};
+
+// One factory for the synthetic system bubbles (errors…) — the 9-field
+// placeholder literal was copied three times.
+function systemMessage(conversationId: string, content: string): ChatMessage {
+  return {
+    id: `err-${Date.now()}`,
+    conversation_id: conversationId,
+    role: 'system',
+    content,
+    cli_provider: null,
+    tokens_in: null,
+    tokens_out: null,
+    cost_usd: null,
+    duration_ms: null,
+    credential_source: null,
+    created_at: new Date().toISOString(),
+  };
+}
 
 // ---------- Helpers ----------
 
@@ -394,6 +421,8 @@ function CloudChat() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const toast = useToast();
+
   const activeConv = convs.find((c) => c.id === activeConvId) ?? null;
 
   // Resolve human-readable names for header badges.
@@ -446,6 +475,17 @@ function CloudChat() {
   // ---------- Load messages when active conversation changes ----------
 
   useEffect(() => {
+    // Switching conversation mid-stream: the in-flight stream belongs to the
+    // OUTGOING conversation — without this reset it kept rendering (and
+    // erroring) into whichever conversation is now active.
+    if (streamIdRef.current) {
+      const staleId = streamIdRef.current;
+      streamIdRef.current = null;
+      void window.byanApi.byanWeb.chat.stream.abort(staleId).catch(() => { /* best effort */ });
+    }
+    setStreaming(false);
+    setStreamText('');
+
     if (!activeConvId) return;
     setMsgLoading(true);
     setMessages([]);
@@ -504,22 +544,7 @@ function CloudChat() {
         setStreamText('');
         streamIdRef.current = null;
         // Append synthetic error message to thread
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `err-${Date.now()}`,
-            conversation_id: activeConvId ?? '',
-            role: 'system',
-            content: `Error: ${p.error}`,
-            cli_provider: null,
-            tokens_in: null,
-            tokens_out: null,
-            cost_usd: null,
-            duration_ms: null,
-            credential_source: null,
-            created_at: new Date().toISOString(),
-          } satisfies ChatMessage,
-        ]);
+        setMessages((prev) => [...prev, systemMessage(activeConvId ?? '', `Error: ${p.error}`)]);
       }
     });
 
@@ -561,22 +586,7 @@ function CloudChat() {
     } catch (err) {
       setStreaming(false);
       const msg = err instanceof Error ? err.message : 'Failed to start stream';
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          conversation_id: activeConvId,
-          role: 'system',
-          content: `Error: ${msg}`,
-          cli_provider: null,
-          tokens_in: null,
-          tokens_out: null,
-          cost_usd: null,
-          duration_ms: null,
-          credential_source: null,
-          created_at: new Date().toISOString(),
-        } satisfies ChatMessage,
-      ]);
+      setMessages((prev) => [...prev, systemMessage(activeConvId, `Error: ${msg}`)]);
     }
   }, [activeConvId, activeConv, streaming]);
 
@@ -615,10 +625,10 @@ function CloudChat() {
           : defaults.scope,
       });
     } catch (err) {
-      // Surface error inline — creation failure is non-silent
-      alert(err instanceof Error ? err.message : 'Failed to create conversation');
+      // Surface error like every other page — through the toast system.
+      toast.error(err instanceof Error ? err.message : 'Failed to create conversation');
     }
-  }, [defaults, setDefaults]);
+  }, [defaults, setDefaults, toast]);
 
   // ---------- Defaults panel handlers ----------
   // `/scope` and `/agent` slash commands toggle the same inline panel and
@@ -656,11 +666,11 @@ function CloudChat() {
         setMessages([]);
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete conversation');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete conversation');
     } finally {
       setDeleteConfirm(null);
     }
-  }, [activeConvId]);
+  }, [activeConvId, toast]);
 
   // ---------- Input handling ----------
 
@@ -677,48 +687,53 @@ function CloudChat() {
     }
   };
 
+  // One submit path for BOTH the Enter key and the Send button — the button
+  // used to bypass the slash-command handling and post the literal command.
+  const handleSubmit = () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    setInput('');
+    setSlashMenu([]);
+
+    // Handle slash commands
+    if (trimmed === '/new') {
+      setNewConvOpen(true);
+      return;
+    }
+    if (trimmed === '/clear') {
+      if (activeConvId) setDeleteConfirm(activeConvId);
+      return;
+    }
+    if (trimmed === '/scope') {
+      openDefaults('scope');
+      return;
+    }
+    if (trimmed === '/agent') {
+      openDefaults('agent');
+      return;
+    }
+    if (trimmed === '/cli' || trimmed.startsWith('/cli ')) {
+      // The backend snapshots the provider per conversation, so /cli sets the
+      // provider of the NEXT conversation (persisted defaults) — it used to
+      // silently do nothing.
+      const arg = trimmed.slice('/cli'.length).trim().toLowerCase();
+      const provider = CLI_ALIASES[arg];
+      if (!provider) {
+        toast.warning('Usage : /cli claude-code | copilot | codex — s\'applique à la prochaine conversation.');
+        return;
+      }
+      setDefaults({ ...defaults, cli: provider });
+      toast.info(`Prochaine conversation avec ${CLI_LABELS[provider]} (/new pour la créer).`);
+      return;
+    }
+
+    void sendMessage(trimmed);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-
-      const trimmed = input.trim();
-      if (!trimmed) return;
-
-      // Handle slash commands
-      if (trimmed === '/new') {
-        setInput('');
-        setSlashMenu([]);
-        setNewConvOpen(true);
-        return;
-      }
-      if (trimmed === '/clear') {
-        if (activeConvId) setDeleteConfirm(activeConvId);
-        setInput('');
-        setSlashMenu([]);
-        return;
-      }
-      if (trimmed === '/scope') {
-        setInput('');
-        setSlashMenu([]);
-        openDefaults('scope');
-        return;
-      }
-      if (trimmed === '/agent') {
-        setInput('');
-        setSlashMenu([]);
-        openDefaults('agent');
-        return;
-      }
-      if (trimmed.startsWith('/cli ')) {
-        // /cli <provider> — switch CLI for the active conv (requires a new conv with that provider)
-        setInput('');
-        setSlashMenu([]);
-        return;
-      }
-
-      setInput('');
-      setSlashMenu([]);
-      void sendMessage(trimmed);
+      handleSubmit();
     }
 
     if (e.key === 'Escape') {
@@ -831,7 +846,7 @@ function CloudChat() {
 
         {/* Main pane — messages + input */}
         <div className="flex-1 flex flex-col min-w-0">
-          {activeConvId === null ? (
+          {activeConvId === null || activeConv === null ? (
             /* No conversation selected */
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <MessageSquare size={40} className="text-ink-700 mb-md" />
@@ -844,9 +859,12 @@ function CloudChat() {
             </div>
           ) : (
             <>
-              {/* Conversation header — shows project, agent and CLI badges */}
+              {/* Conversation header — shows project, agent and CLI badges.
+                  activeConv is non-null here: the branch above guards the case
+                  where a refetch dropped the active conversation (deleted from
+                  another device) — the ! assertion used to crash ConvHeader. */}
               <ConvHeader
-                conv={activeConv!}
+                conv={activeConv}
                 projectName={activeProjectName}
                 agentName={activeAgentName}
                 onDelete={() => setDeleteConfirm(activeConvId)}
@@ -946,7 +964,7 @@ function CloudChat() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => { void sendMessage(input); setInput(''); setSlashMenu([]); }}
+                      onClick={handleSubmit}
                       disabled={!input.trim()}
                       className="shrink-0 p-sm bg-byan-700 hover:bg-byan-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl text-white transition-colors"
                       title="Send"

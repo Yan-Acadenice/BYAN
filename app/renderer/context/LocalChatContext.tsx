@@ -82,7 +82,10 @@ function useLocalChatState(): UseLocalChat {
       // Frames tagged with another session are ignored — including errors, so a
       // second session's failure never disturbs this view. Session-less errors
       // (a start that failed before any id) carry sessionId null and DO surface.
-      if ('sessionId' in m && m.sessionId && sessionRef.current && m.sessionId !== sessionRef.current) {
+      // The mismatch drops the frame EVEN when no session is active: after the
+      // logout wipe (sessionRef null) a late flush from the just-stopped
+      // session used to leak the previous user's reply into the next login.
+      if ('sessionId' in m && m.sessionId && m.sessionId !== sessionRef.current) {
         return;
       }
 
@@ -242,6 +245,10 @@ function useLocalChatState(): UseLocalChat {
     setStarting(true);
     setError(null);
     const prev = sessionRef.current;
+    // Unbind the frame filter NOW: during the awaits below, frames from the
+    // still-live outgoing session used to pass the filter and pollute the
+    // freshly seeded thread. With the filter unbound they are dropped.
+    sessionRef.current = null;
     try {
       // Seed the thread with any stored history so the user sees prior turns.
       const history = (await window.byanApi.localChat.history?.(recordId)) ?? [];

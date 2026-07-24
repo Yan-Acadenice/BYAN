@@ -17,6 +17,7 @@ const mockList = vi.fn();
 const mockHistory = vi.fn();
 const mockStoreGet = vi.fn();
 const mockOpenDialog = vi.fn();
+const mockCliDetect = vi.fn();
 
 let listeners: Array<(payload: unknown) => void> = [];
 function emit(msg: LocalChatMessage) {
@@ -30,6 +31,7 @@ beforeEach(() => {
       localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory },
       store: { get: mockStoreGet, set: vi.fn() },
       fs: { openProjectDialog: mockOpenDialog },
+      cli: { detect: mockCliDetect },
     },
     writable: true,
     configurable: true,
@@ -51,6 +53,7 @@ beforeEach(() => {
   mockHistory.mockResolvedValue([]);
   mockStoreGet.mockResolvedValue(null);
   mockOpenDialog.mockResolvedValue(null);
+  mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude' }); // codex absent by default
 });
 
 afterEach(() => {
@@ -114,7 +117,7 @@ describe('LocalChatView', () => {
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
 
     fireEvent.click(screen.getByTestId('local-new-session'));
-    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/monprojet' }));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cli: 'claude', cwd: '/home/yan/monprojet' }));
   });
 
   it('D-03: prefers chat.pendingCwd (project launch) over onboarding root, then clears it', async () => {
@@ -130,7 +133,7 @@ describe('LocalChatView', () => {
     await waitFor(() => expect(setSpy).toHaveBeenCalledWith('chat.pendingCwd', ''));
 
     fireEvent.click(screen.getByTestId('local-new-session'));
-    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/mon-projet' }));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cli: 'claude', cwd: '/home/yan/mon-projet' }));
   });
 
   it('F4: the folder button lets the user pick another project dir', async () => {
@@ -143,6 +146,38 @@ describe('LocalChatView', () => {
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('autre'));
 
     fireEvent.click(screen.getByTestId('local-new-session'));
-    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/autre' }));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cli: 'claude', cwd: '/home/yan/autre' }));
+  });
+
+  it('engine switch: codex is disabled when the binary is not detected', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).toBeDisabled());
+    expect(screen.getByTestId('local-engine-claude')).not.toBeDisabled();
+  });
+
+  it('engine switch: picking codex starts the next session with cli=codex and persists the choice', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+    fireEvent.click(screen.getByTestId('local-new-session'));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cli: 'codex' }));
+    expect((window.byanApi.store!.set as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('chat.localEngine', 'codex');
+  });
+
+  it('engine switch: a persisted codex choice is restored only when codex is detected', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    mockStoreGet.mockImplementation((key: string) =>
+      Promise.resolve(key === 'chat.localEngine' ? 'codex' : null)
+    );
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    // The empty-state line reflects the restored engine — wait for it before
+    // starting, so the click cannot race the async restore.
+    expect(await screen.findByText(/chat local avec codex/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cli: 'codex' }));
   });
 });

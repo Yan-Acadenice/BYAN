@@ -17,6 +17,11 @@ function folderLabel(dir: string): string {
   return parts[parts.length - 1] || dir;
 }
 
+// The engine a NEW local session runs on. 'claude' is the long-lived stream
+// process; 'codex' runs one process per turn (resume-chained). Selecting an
+// engine applies to the NEXT session started — a live session keeps its own.
+type LocalEngine = 'claude' | 'codex';
+
 export default function LocalChatView() {
   const {
     messages, streaming, streamText, starting, error, sessionId, sessions,
@@ -27,12 +32,39 @@ export default function LocalChatView() {
   // F4 : the project directory (cwd) a new local session runs in. Defaults to the
   // folder chosen at onboarding ; the folder button lets the user pick another.
   const [cwd, setCwd] = useState<string | null>(null);
+  const [engine, setEngine] = useState<LocalEngine>('claude');
+  const [codexAvailable, setCodexAvailable] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionsRef = useRef<HTMLDivElement>(null);
 
   // Load the resumable session list + the default project dir once on mount.
   useEffect(() => { void refreshSessions(); }, [refreshSessions]);
+
+  // Detect codex on this PC, then restore the persisted engine choice — a
+  // saved 'codex' only applies when the binary is actually there.
+  useEffect(() => {
+    void (async () => {
+      let detected = false;
+      try {
+        const clis = await window.byanApi.cli?.detect?.();
+        detected = Boolean(clis?.codex);
+      } catch { /* detection failed — treat as absent */ }
+      setCodexAvailable(detected);
+      try {
+        const saved = await window.byanApi.store?.get?.<string>('chat.localEngine');
+        if (saved === 'codex' && detected) setEngine('codex');
+      } catch { /* keep the claude default */ }
+    })();
+  }, []);
+
+  const pickEngine = (next: LocalEngine) => {
+    setEngine(next);
+    try { void window.byanApi.store?.set?.('chat.localEngine', next); } catch { /* non-blocking */ }
+  };
+
+  // Start options shared by send / new session : project dir + chosen engine.
+  const startOpts = () => ({ cli: engine, ...(cwd ? { cwd } : {}) });
   useEffect(() => {
     void (async () => {
       try {
@@ -69,13 +101,13 @@ export default function LocalChatView() {
 
   const submit = () => {
     if (!input.trim() || streaming) return;
-    // Bind an on-the-fly session to the selected project dir (F4).
-    void send(input, cwd ? { cwd } : undefined).then(() => void refreshSessions());
+    // Bind an on-the-fly session to the selected project dir + engine (F4).
+    void send(input, startOpts()).then(() => void refreshSessions());
     setInput('');
   };
 
   const onNewSession = () => {
-    void newSession(cwd ? { cwd } : undefined).then(() => void refreshSessions());
+    void newSession(startOpts()).then(() => void refreshSessions());
   };
 
   // Pick a project directory for the next new session (F4). Recording it in the
@@ -108,10 +140,40 @@ export default function LocalChatView() {
       {/* Header — mode badge + New session */}
       <div className="shrink-0 flex items-center justify-between px-lg py-sm border-b border-ink-800">
         <div className="flex items-center gap-sm">
-          <span className="flex items-center gap-xs badge badge-neutral">
-            <Cpu size={12} />
-            claude local
-          </span>
+          {/* Engine switch — applies to the NEXT session started. */}
+          <div
+            role="group"
+            aria-label="Moteur local"
+            className="flex items-center rounded-lg border border-ink-700 overflow-hidden"
+          >
+            <button
+              type="button"
+              data-testid="local-engine-claude"
+              onClick={() => pickEngine('claude')}
+              className={[
+                'flex items-center gap-xs px-sm py-1 text-[11px] transition-colors',
+                engine === 'claude' ? 'bg-byan-900/50 text-byan-300' : 'text-ink-400 hover:text-ink-200',
+              ].join(' ')}
+              title="Chat local via claude"
+            >
+              <Cpu size={11} />
+              Claude
+            </button>
+            <button
+              type="button"
+              data-testid="local-engine-codex"
+              onClick={() => pickEngine('codex')}
+              disabled={!codexAvailable}
+              className={[
+                'flex items-center gap-xs px-sm py-1 text-[11px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+                engine === 'codex' ? 'bg-emerald-900/50 text-emerald-300' : 'text-ink-400 hover:text-ink-200',
+              ].join(' ')}
+              title={codexAvailable ? 'Chat local via codex' : 'codex introuvable sur ce PC'}
+            >
+              <Cpu size={11} />
+              Codex
+            </button>
+          </div>
           {/* Project directory the next session runs in (F4) — click to change. */}
           <button
             type="button"
@@ -190,7 +252,7 @@ export default function LocalChatView() {
         {messages.length === 0 && !streaming ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageSquare size={32} className="text-ink-700 mb-sm" />
-            <p className="text-sm text-ink-500">Chat local avec claude sur ce PC.</p>
+            <p className="text-sm text-ink-500">Chat local avec {engine} sur ce PC.</p>
             <p className="text-xs text-ink-600 mt-xs">Envoie un message — une session démarre toute seule.</p>
           </div>
         ) : (
@@ -240,7 +302,7 @@ export default function LocalChatView() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder={streaming ? 'claude répond...' : 'Message... (Entrée pour envoyer, Maj+Entrée pour un saut de ligne)'}
+            placeholder={streaming ? `${engine} répond...` : 'Message... (Entrée pour envoyer, Maj+Entrée pour un saut de ligne)'}
             disabled={streaming}
             rows={1}
             data-testid="local-chat-input"

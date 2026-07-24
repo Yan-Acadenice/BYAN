@@ -113,7 +113,9 @@ function AppRouter() {
       }
     });
     return unsub;
-  });
+    // The handler reads `route` — resubscribe only when it changes (an absent
+    // array tore down and re-registered the IPC listener on EVERY render).
+  }, [route]);
 
   // Auth state mutations from main (logout via Settings, IPC, e2e harness)
   // need to flip the React route — otherwise the renderer happily keeps

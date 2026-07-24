@@ -106,6 +106,7 @@ export default function NewConversationModal({
   const [form, setForm] = useState<FormState>(() => fromDefaults(defaults));
   const [projects, setProjects] = useState<ByanProject[]>([]);
   const [agents, setAgents] = useState<ByanCustomAgent[]>([]);
+  const [listsError, setListsError] = useState('');
 
   // Re-sync the form when the modal (re-)opens so an updated `defaults`
   // (e.g. after the inline /scope or /agent panel modified them) is reflected.
@@ -117,6 +118,7 @@ export default function NewConversationModal({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
+    setListsError('');
     void Promise.all([
       window.byanApi.byanWeb.projects.list(),
       window.byanApi.byanWeb.customAgents.list(),
@@ -124,6 +126,11 @@ export default function NewConversationModal({
       if (cancelled) return;
       setProjects(p as ByanProject[]);
       setAgents(a as ByanCustomAgent[]);
+    }).catch((err: unknown) => {
+      // Without this catch an IPC failure was an unhandled rejection and the
+      // dropdowns silently stayed empty with no explanation.
+      if (cancelled) return;
+      setListsError(err instanceof Error ? err.message : 'Chargement des projets/agents impossible.');
     });
     return () => { cancelled = true; };
   }, [open]);
@@ -174,6 +181,12 @@ export default function NewConversationModal({
         </div>
 
         <div className="space-y-md">
+          {listsError && (
+            <div role="alert" className="px-sm py-xs rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-xs">
+              {listsError}
+            </div>
+          )}
+
           {/* Title */}
           <div>
             <label className="block font-label text-label text-ink-400 uppercase mb-xs">
