@@ -45,14 +45,14 @@ describe('store.set / store.get — F2 contract', () => {
     mockSecureStore.set.mockResolvedValueOnce(undefined);
     mockSecureStore.get.mockResolvedValueOnce(JSON.stringify(value));
 
-    await store.set('project', value);
-    const back = await store.get<typeof value>('project');
+    await store.set('ui.project', value);
+    const back = await store.get<typeof value>('ui.project');
     expect(back).toEqual(value);
   });
 
   it('returns null for an unknown key (never undefined across IPC)', async () => {
     mockSecureStore.get.mockResolvedValueOnce(null);
-    await expect(store.get('nope')).resolves.toBeNull();
+    await expect(store.get('ui.nope')).resolves.toBeNull();
   });
 });
 
@@ -86,13 +86,41 @@ describe('store.register', () => {
 describe('store.set — delegates to SecureStore', () => {
   it('calls secureStore.set with the key and JSON-serialized value for objects', async () => {
     const obj = { x: 1 };
-    await store.set('cfg', obj);
-    expect(mockSecureStore.set).toHaveBeenCalledWith('cfg', JSON.stringify(obj));
+    await store.set('ui.cfg', obj);
+    expect(mockSecureStore.set).toHaveBeenCalledWith('ui.cfg', JSON.stringify(obj));
   });
 
   it('calls secureStore.set with raw string (not double-encoded) when value is a string', async () => {
-    await store.set('auth.token', 'byan_abc');
-    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.token', 'byan_abc');
+    await store.set('user.theme', 'dark');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('user.theme', 'dark');
+  });
+});
+
+describe('store — renderer key allowlist', () => {
+  // The generic store shares SecureStore with auth.token/auth.mode/auth.url:
+  // the renderer must not be able to reach those through this channel.
+  it('rejects reading an auth key', async () => {
+    await expect(store.get('auth.token')).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mockSecureStore.get).not.toHaveBeenCalled();
+  });
+
+  it('rejects writing an auth key', async () => {
+    await expect(store.set('auth.token', 'stolen')).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+    expect(mockSecureStore.set).not.toHaveBeenCalled();
+  });
+
+  it('rejects a key outside every allowed prefix', async () => {
+    await expect(store.get('random-key')).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('rejects a bare prefix with nothing after it', async () => {
+    await expect(store.get('chat.')).rejects.toMatchObject({ code: 'PERMISSION_DENIED' });
+  });
+
+  it('accepts the namespaced UI keys', async () => {
+    await expect(store.set('chat.localEngine', 'codex')).resolves.toBeUndefined();
+    await expect(store.set('onboarding.projectRoot', '/p')).resolves.toBeUndefined();
+    await expect(store.set('login.lastMode', 'local')).resolves.toBeUndefined();
   });
 });
 
@@ -105,19 +133,19 @@ describe('store.get — delegates to SecureStore', () => {
 
   it('parses JSON string returned by SecureStore', async () => {
     mockSecureStore.get.mockResolvedValueOnce('"hello"');
-    const result = await store.get<string>('k');
+    const result = await store.get<string>('ui.k');
     expect(result).toBe('hello');
   });
 
   it('returns raw string when SecureStore value is not valid JSON', async () => {
     mockSecureStore.get.mockResolvedValueOnce('plain text');
-    const result = await store.get<string>('k');
+    const result = await store.get<string>('ui.k');
     expect(result).toBe('plain text');
   });
 
   it('returns null when secureStore.get returns null', async () => {
     mockSecureStore.get.mockResolvedValueOnce(null);
-    const result = await store.get('missing');
+    const result = await store.get('ui.missing');
     expect(result).toBeNull();
   });
 });

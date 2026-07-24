@@ -169,76 +169,44 @@ describe('auth.login — custom mode', () => {
   });
 });
 
-describe('auth.login — local mode', () => {
-  it('returns unreachable when local server is not running', async () => {
+describe('auth.login — local mode (native : aucun serveur requis)', () => {
+  it('succeeds without any server — native mode reads the disk', async () => {
+    // No LocalServer singleton at all (beforeEach resets it to null).
+    const r = await auth.login({ mode: 'local' });
+
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.mode).toBe('local');
+    // No probe fired: local mode has no server prerequisite anymore.
+    expect(mockFetch).not.toHaveBeenCalled();
+    // No token supplied -> the TOKEN is not written, but mode+url still are.
+    expect(mockSecureStore.set).not.toHaveBeenCalledWith('auth.token', expect.anything());
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'local');
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', '');
+  });
+
+  it('succeeds when the legacy server is stopped (no resurrection prerequisite)', async () => {
     const ls = makeMockLocalServer(false);
     auth.setLocalServerForAuth(ls);
 
     const r = await auth.login({ mode: 'local' });
 
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('unreachable');
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
-  it('returns ok when local server health probe succeeds (no token)', async () => {
-    const ls = makeMockLocalServer(true, 3737);
-    auth.setLocalServerForAuth(ls);
-    // /api/health returns 200 → probe ok
-    mockFetch.mockResolvedValue(makeResponse(200));
-
-    const r = await auth.login({ mode: 'local' });
-
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.mode).toBe('local');
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/health'),
-      expect.any(Object)
-    );
-    // No token supplied → the TOKEN is not written, but mode+url still are (F1).
-    expect(mockSecureStore.set).not.toHaveBeenCalledWith('auth.token', expect.anything());
-    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'local');
-    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', 'http://localhost:3737');
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', '');
   });
 
-  it('persists token alongside the local-server health probe when one is supplied', async () => {
+  it('keeps the legacy server URL when it happens to run', async () => {
     const ls = makeMockLocalServer(true, 9000);
     auth.setLocalServerForAuth(ls);
-    mockFetch.mockResolvedValue(makeResponse(200));
 
     const r = await auth.login({ mode: 'local', token: 'byan_local_tok' });
 
     expect(r.ok).toBe(true);
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('localhost:9000/api/health'),
-      expect.any(Object)
-    );
+    // Still no health probe — the URL comes from status(), not a fetch.
+    expect(mockFetch).not.toHaveBeenCalled();
     expect(mockSecureStore.set).toHaveBeenCalledWith('auth.token', 'byan_local_tok');
-    // F1: local mode persists mode='local' + the resolved localhost URL, so the
-    // data layer targets the local server instead of the cloud default.
     expect(mockSecureStore.set).toHaveBeenCalledWith('auth.mode', 'local');
     expect(mockSecureStore.set).toHaveBeenCalledWith('auth.url', 'http://localhost:9000');
-  });
-
-  it('returns unreachable when the local /api/health probe fails', async () => {
-    const ls = makeMockLocalServer(true, 9000);
-    auth.setLocalServerForAuth(ls);
-    // Server replies but /api/health is not 200 (process degraded).
-    mockFetch.mockResolvedValue(makeResponse(500));
-
-    const r = await auth.login({ mode: 'local', token: 'any' });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('unreachable');
-    expect(mockSecureStore.set).not.toHaveBeenCalled();
-  });
-
-  it('returns unreachable when no LocalServer singleton is set', async () => {
-    // setLocalServerForAuth(null) done in beforeEach.
-    const r = await auth.login({ mode: 'local' });
-
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('unreachable');
   });
 });
 

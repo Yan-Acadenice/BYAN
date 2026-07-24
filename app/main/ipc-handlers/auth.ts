@@ -5,9 +5,10 @@
 //     On 200 → persist via SecureStore, return ok.
 //     On 401/403 → return { ok: false, reason: 'invalid_token' }.
 //     On network error / timeout → return { ok: false, reason: 'unreachable' }.
-//   - local: verifies the local server is running (via LocalServer singleton).
-//     Token is optional; if provided it is validated the same way as cloud.
-//     If the server is not up → return { ok: false, reason: 'unreachable' }.
+//   - local: NATIVE mode — data comes from the project's _byan/ tree on disk
+//     (local-data.ts) and the chat is a locally spawned CLI. No server is
+//     required, so local login always succeeds; if the legacy forked webui
+//     happens to run, its URL is persisted for the legacy paths.
 //
 // getToken: live in F6 — reads from OS keychain via SecureStore.
 //
@@ -106,33 +107,6 @@ async function probeToken(url: string, token: string): Promise<'ok' | 'invalid_t
   }
 }
 
-// Probes the embedded local server (install/src/webui/server.js).
-// That server has no auth layer — it exposes /api/health which returns
-// 200 OK as long as the process is alive. We use it as a liveness check
-// so the user gets a real "Local server is unreachable" message instead
-// of a misleading "invalid token" when the spawned process has crashed.
-async function probeLocalServer(url: string): Promise<'ok' | 'unreachable'> {
-  // Honor the same E2E mock override as probeToken — without it, login-local
-  // and switch-mode would still fire a real fetch against a port nobody is
-  // listening on (BYAN_E2E_MOCK_SERVER_PORT only fakes the spawn IPC).
-  const mock = probeMockOverride();
-  if (mock === 'ok' || mock === 'unreachable') return mock;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${url.replace(/\/$/, '')}/api/health`, {
-      method: 'GET',
-      signal: controller.signal
-    });
-    return res.status === 200 ? 'ok' : 'unreachable';
-  } catch {
-    return 'unreachable';
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
   if (!opts || typeof opts !== 'object') {
     throw new IpcError('INVALID_ARGUMENT', 'login: opts must be an object');
@@ -154,37 +128,34 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
   }
 
   if (opts.mode === 'local') {
-    // Verify local server is up.
-    const serverStatus = _localServer ? _localServer.status() : { running: false };
-    if (!serverStatus.running) {
-      return { ok: false, reason: 'unreachable', message: 'Local server is not running. Start it first.' };
-    }
-
-    // Build the actual URL from the running server's port if available.
-    const localUrl =
-      serverStatus.running && (serverStatus as { running: true; port: number }).port
-        ? `http://localhost:${(serverStatus as { running: true; port: number }).port}`
-        : resolvedUrl;
-
-    // Liveness probe against the embedded server's /api/health endpoint.
-    // The local server has no auth layer, so we never call /api/auth/me here
-    // (it does not exist there) and we ignore the token at probe time.
-    const localProbe = await probeLocalServer(localUrl);
-    if (localProbe !== 'ok') {
+    // NATIVE local mode reads the project's _byan/ tree straight off disk and
+    // spawns the chat CLI locally — the forked webui server is a legacy path,
+    // not a prerequisite. Gating login on its liveness stranded users on
+    // "Serveur local inaccessible" for a mode that never touches it.
+    // E2E keeps its deterministic failure hook.
+    if (probeMockOverride() === 'unreachable') {
       return { ok: false, reason: 'unreachable', message: 'Serveur local inaccessible.' };
     }
 
-    // Token is optional for local dev mode — persist if provided.
+    // If the legacy server happens to run, persist its real URL for the legacy
+    // paths; otherwise the URL stays empty (native mode needs none).
+    const serverStatus = _localServer ? _localServer.status() : { running: false as const };
+    const localUrl =
+      serverStatus.running && (serverStatus as { running: true; port: number }).port
+        ? `http://localhost:${(serverStatus as { running: true; port: number }).port}`
+        : '';
+
+    // Token is optional for local mode — persist if provided.
     if (opts.token) {
       await secureStore.set(AUTH_TOKEN_KEY, opts.token);
     }
-    // Persist the active mode + resolved URL so getBase() targets the local
-    // server (not the cloud default) and the renderer can read the active mode.
+    // Persist the active mode + URL so the renderer can read the active mode.
     await secureStore.set(AUTH_MODE_KEY, 'local');
     await secureStore.set(AUTH_URL_KEY, localUrl);
     // Drop any cached token/responses from a prior session before the renderer
     // starts firing fresh API calls.
     clearSessionCaches();
+    broadcastAuthChanged('login');
 
     return {
       ok: true,
@@ -214,6 +185,10 @@ export async function login(opts: AuthLoginOptions): Promise<AuthResult> {
   // Drop any cached token/responses from a prior session before the renderer
   // starts firing fresh API calls.
   clearSessionCaches();
+  // Tell the renderer to re-read its session: without this, a DIRECT login
+  // (Login page) left AuthSessionContext on its mount-time snapshot — the
+  // mode label and the local/cloud chat split only updated after a reload.
+  broadcastAuthChanged('login');
 
   return {
     ok: true,
@@ -239,9 +214,8 @@ export async function switchMode(opts: AuthLoginOptions): Promise<AuthResult> {
     const stored = await secureStore.get(AUTH_TOKEN_KEY);
     if (stored) effective = { ...opts, token: stored };
   }
-  const result = await login(effective);
-  if (result.ok) broadcastAuthChanged('login');
-  return result;
+  // login() itself broadcasts byan:auth:changed on success — no second push here.
+  return login(effective);
 }
 
 // Read the persisted session (mode + url) so the renderer can show the active

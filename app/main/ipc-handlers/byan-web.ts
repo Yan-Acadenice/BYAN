@@ -107,14 +107,27 @@ export function register(ipcMain: IpcMain): void {
     wrap(async () => (await isLocalMode()) ? [] : fetchChatConversations())
   );
 
+  // Create/delete are gated like the sibling read handlers: in local mode the
+  // cloud conversation model does not exist, and an ungated call would fire a
+  // token-bearing request the local mode promises never to make.
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.chatConversationsCreate,
-    wrap((_evt, opts: CreateConversationOpts) => createChatConversation(opts))
+    wrap(async (_evt, opts: CreateConversationOpts) => {
+      if (await isLocalMode()) {
+        throw new IpcError('UNAVAILABLE', 'Conversations cloud indisponibles en mode local (le chat local est la voie native).');
+      }
+      return createChatConversation(opts);
+    })
   );
 
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.chatConversationsDelete,
-    wrap((_evt, id: string) => deleteChatConversation(id))
+    wrap(async (_evt, id: string) => {
+      if (await isLocalMode()) {
+        throw new IpcError('UNAVAILABLE', 'Conversations cloud indisponibles en mode local.');
+      }
+      return deleteChatConversation(id);
+    })
   );
 
   ipcMain.handle(
@@ -129,6 +142,9 @@ export function register(ipcMain: IpcMain): void {
   ipcMain.handle(
     IPC_CHANNELS.byanWeb.chatStreamStart,
     async (evt: IpcMainInvokeEvent, conversationId: string, message: string, opts?: SendMessageOpts) => {
+      if (await isLocalMode()) {
+        throw new IpcError('UNAVAILABLE', 'Flux cloud indisponible en mode local.');
+      }
       const streamId = randomUUID();
       const controller = new AbortController();
       activeStreams.set(streamId, controller);
