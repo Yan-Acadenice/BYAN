@@ -323,3 +323,64 @@ describe('health-ping', () => {
     await ls.stop();
   });
 });
+
+// ---------- Restart cancellation + single-flight (regressions) -------------
+
+describe('restart cancellation and single-flight', () => {
+  it('stop() cancels a pending restart — the server does not resurrect', async () => {
+    const ls = createLocalServer({
+      serverScriptPath: '/fake/server.js',
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+      restartDelayMs: 50
+    });
+
+    fakeChild.simulateReady(12345, 5);
+    await ls.spawn();
+    expect(forkMock).toHaveBeenCalledTimes(1);
+
+    // Crash arms a restart for t+50ms; the child is already gone when stop()
+    // runs, so stop() takes the fast path. Before the fix the untracked timer
+    // survived _resetState (which cleared `stopping`) and re-forked the server.
+    fakeChild.simulateExit(1, null);
+    await ls.stop();
+
+    await new Promise((r) => setTimeout(r, 150));
+    expect(forkMock).toHaveBeenCalledTimes(1);
+    expect(ls.status().running).toBe(false);
+  });
+
+  it('a health-declared crash is ONE crash, not two (kill-exit dedup)', async () => {
+    const ls = createLocalServer({
+      serverScriptPath: '/fake/server.js',
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+      healthIntervalMs: 20,
+      healthTimeoutMs: 50,
+      healthFailThreshold: 2,
+      restartDelayMs: 300
+    });
+
+    const crashSpy = vi.fn();
+    ls.on('crash', crashSpy);
+
+    fakeChild.simulateReady(12345, 5);
+    await ls.spawn();
+
+    fetchMock.mockResolvedValue({ status: 503 });
+
+    // Health path declares the crash and SIGKILLs the child; the killed
+    // child's own exit must NOT be counted as a second crash (it used to
+    // schedule a second restart -> double fork, first child leaked).
+    await vi.waitFor(() => expect(crashSpy.mock.calls.length).toBeGreaterThanOrEqual(1), { timeout: 500 });
+    // The fake child exits ~5ms after the SIGKILL — give it room, but stay
+    // under restartDelayMs so no restart chain muddies the count.
+    await new Promise((r) => setTimeout(r, 100));
+
+    expect(crashSpy).toHaveBeenCalledTimes(1);
+    expect(crashSpy.mock.calls[0][0].signal).toBe('HEALTH_TIMEOUT');
+    expect(forkMock).toHaveBeenCalledTimes(1); // the restart has not fired yet
+
+    await ls.stop(); // also cancels the pending restart
+    await new Promise((r) => setTimeout(r, 350));
+    expect(forkMock).toHaveBeenCalledTimes(1);
+  });
+});

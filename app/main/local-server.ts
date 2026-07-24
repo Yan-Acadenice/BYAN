@@ -117,6 +117,12 @@ class LocalServerImpl extends EventEmitter implements LocalServer {
   private healthTimer: ReturnType<typeof setInterval> | null = null;
   private consecutiveHealthFails: number = 0;
 
+  // The pending restart timer. Stored so stop() can CANCEL it (an untracked
+  // timer resurrected the server after an explicit stop), and used as a
+  // single-flight guard (the health-crash path and the child 'exit' handler
+  // both used to schedule a restart for the same crash — double fork).
+  private restartTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Guard: once fatal, no more spawning.
   private fatal: boolean = false;
   // Guard: stop() in progress, ignore crash events.
@@ -263,6 +269,10 @@ class LocalServerImpl extends EventEmitter implements LocalServer {
   async stop(): Promise<void> {
     this.stopping = true;
     this._stopHealthPing();
+    // A crash may have armed a restart; without this, the timer fires after
+    // _resetState() cleared `stopping` and forks a server the caller was just
+    // told is stopped.
+    this._cancelPendingRestart();
 
     const child = this.child;
     if (!child) {
@@ -310,13 +320,27 @@ class LocalServerImpl extends EventEmitter implements LocalServer {
       return;
     }
 
+    if (this.restartTimer !== null) {
+      // The health-crash path already declared this crash (it SIGKILLed the
+      // child and scheduled the restart) — this exit is its consequence, not a
+      // second crash. Emitting + scheduling again forked TWO servers.
+      return;
+    }
+
     this.log.warn(`[local-server] exited (code=${code}, signal=${signal})`);
     this.emit('crash', { code, signal });
     this._scheduleRestart();
   }
 
+  private _cancelPendingRestart(): void {
+    if (this.restartTimer !== null) {
+      clearTimeout(this.restartTimer);
+      this.restartTimer = null;
+    }
+  }
+
   private _scheduleRestart(): void {
-    if (this.fatal) return;
+    if (this.fatal || this.restartTimer !== null) return;
 
     const now = Date.now();
     // Evict timestamps outside the sliding window.
@@ -336,9 +360,9 @@ class LocalServerImpl extends EventEmitter implements LocalServer {
     this.restartTimestamps.push(now);
     this.log.info(`[local-server] scheduling restart (attempt ${this.restartTimestamps.length})`);
 
-    setTimeout(() => {
+    this.restartTimer = setTimeout(() => {
+      this.restartTimer = null;
       if (this.fatal || this.stopping) return;
-
 
       this._doSpawn()
         .then(({ port, pid }) => {
