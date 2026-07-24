@@ -6,9 +6,10 @@ export const meta = {
     { title: 'Verify', detail: '2 adversarial lenses per finding' },
   ],
 }
-// BYAN-TIER: reviewed — la charge est repartie par complexite : les revues et
-// les verifications (analyse a jugement, pas frontiere) tournent sur sonnet.
-// L'arbitrage final des constats reste sur le fil principal (modele de session).
+// BYAN-TIER: reviewed — la charge est repartie par complexite : les revues
+// (leaves assess-*, classe ANALYSIS) tournent sur sonnet ; la verification
+// adversariale 2-lentilles reste deep (plancher STRICT-2 : elle herite du
+// modele de session). L'arbitrage final des constats reste au fil principal.
 
 const APP = '/home/yan/acadenice/interne/BYAN/app'
 const CAP = 6
@@ -96,12 +97,11 @@ For category 'refactor', real=true means the simplification is SAFE (strictly no
 }
 
 phase('Review')
-// Revues = analyse a jugement, pas frontiere -> sonnet (levier de cout de la
-// regle native-workflows). La verification 2-lentilles tourne aussi sur
-// sonnet ; l'arbitrage final reste au fil principal.
+// Revues = analyse a jugement, pas frontiere -> sonnet (auto-routage ANALYSIS
+// de la regle native-workflows, label assess-*). La verification reste deep.
 const results = await pipeline(
   DIMENSIONS,
-  (d) => agent(reviewPrompt(d), { label: `review:${d.key}`, phase: 'Review', schema: FINDINGS, model: 'sonnet' }),
+  (d) => agent(reviewPrompt(d), { label: `assess-${d.key}`, phase: 'Review', schema: FINDINGS, model: 'sonnet' }),
   (r, d) => {
     const all = (r && Array.isArray(r.findings)) ? r.findings : []
     if (all.length > CAP) log(`${d.key}: ${all.length - CAP} findings over cap, dropped`)
@@ -109,8 +109,8 @@ const results = await pipeline(
     log(`${d.key}: ${kept.length} finding(s) to verify`)
     return parallel(kept.map((f) => () =>
       parallel([
-        () => agent(verifyPrompt(f, 'code-exists'), { label: `verify:${d.key}:${f.file}:${f.line}`, phase: 'Verify', schema: VERDICT, model: 'sonnet' }),
-        () => agent(verifyPrompt(f, 'can-fire'), { label: `verify2:${d.key}:${f.file}:${f.line}`, phase: 'Verify', schema: VERDICT, model: 'sonnet' }),
+        () => agent(verifyPrompt(f, 'code-exists'), { label: `verify:${d.key}:${f.file}:${f.line}`, phase: 'Verify', schema: VERDICT }),
+        () => agent(verifyPrompt(f, 'can-fire'), { label: `verify2:${d.key}:${f.file}:${f.line}`, phase: 'Verify', schema: VERDICT }),
       ]).then((vs) => ({ ...f, votes: vs.filter(Boolean) }))
     ))
   }
