@@ -225,10 +225,12 @@ export type ChatChunkPayload =
 // byan:chat-local:message event ; the renderer drives it over IPC.
 
 export interface LocalChatStartOpts {
-  // Reserved. Native mode always drives `claude` ; other CLIs are not spawned
-  // from renderer-supplied values (a spawn-any-binary surface). Currently ignored.
-  cli?: string;
-  // Optional agent slug (claude --agent).
+  // Which ENGINE drives the session. The value names an adapter in
+  // main/engines/, never a binary — a renderer-supplied path reaching spawn
+  // would be a spawn-any-binary surface. Default: 'claude'.
+  cli?: 'claude' | 'codex';
+  // Optional agent slug (claude --agent). Ignored by the codex engine
+  // (personas live in .codex/prompts and exec mode cannot select them).
   agent?: string | null;
   // A session record id the UI asked to "reprendre". Native mode does NOT map it
   // to claude --resume (a record id is not claude's own uuid) ; the UI reopens

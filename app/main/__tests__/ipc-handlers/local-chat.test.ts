@@ -1,4 +1,4 @@
-// LocalClaudeBridge tests (N3) — native local claude, no server. A fake child
+// LocalChatBridge tests (N3) — native local claude, no server. A fake child
 // process (injected spawn) drives start/send/stop + stream-json parsing, so no
 // real claude binary is needed.
 
@@ -7,7 +7,7 @@ import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { LocalClaudeBridge, type SpawnFn } from '../../ipc-handlers/local-chat';
+import { LocalChatBridge, type SpawnFn } from '../../ipc-handlers/local-chat';
 import type { LocalChatMessage } from '../../../shared/ipc-contract';
 
 // Minimal fake ChildProcess.
@@ -27,7 +27,7 @@ function makeBridge(opts: { resolveBin?: (n: string) => string | null } = {}) {
   const broadcasts: LocalChatMessage[] = [];
   const fake = new FakeProc();
   const spawnFn = vi.fn((() => fake) as unknown as SpawnFn);
-  const bridge = new LocalClaudeBridge({
+  const bridge = new LocalChatBridge({
     spawnFn,
     broadcast: (m) => broadcasts.push(m),
     defaultCwd: () => cwd,
@@ -49,7 +49,7 @@ afterEach(() => {
   try { fs.rmSync(cwd, { recursive: true, force: true }); } catch { /* best effort */ }
 });
 
-describe('LocalClaudeBridge.start', () => {
+describe('LocalChatBridge.start', () => {
   it('spawns claude with stream-json in the project cwd and returns a sessionId', async () => {
     const { bridge, spawnFn, broadcasts } = makeBridge();
     const { sessionId } = await bridge.start({ cwd });
@@ -100,7 +100,7 @@ describe('LocalClaudeBridge.start', () => {
   });
 });
 
-describe('LocalClaudeBridge.send / stop', () => {
+describe('LocalChatBridge.send / stop', () => {
   it('writes a user turn to claude stdin in the stream-json message shape', async () => {
     const { bridge, fake } = makeBridge();
     const { sessionId } = await bridge.start({ cwd });
@@ -167,7 +167,7 @@ describe('LocalClaudeBridge.send / stop', () => {
   });
 });
 
-describe('LocalClaudeBridge stream-json parsing', () => {
+describe('LocalChatBridge stream-json parsing', () => {
   it('maps assistant text, result and error events to LocalChatMessage', async () => {
     const { bridge, fake, broadcasts } = makeBridge();
     const { sessionId } = await bridge.start({ cwd });
@@ -255,16 +255,42 @@ describe('LocalClaudeBridge stream-json parsing', () => {
   });
 });
 
-describe('LocalClaudeBridge lifecycle', () => {
+describe('LocalChatBridge lifecycle', () => {
   it('cleans the session on process exit (send then rejects)', async () => {
     const { bridge, fake } = makeBridge();
     const { sessionId } = await bridge.start({ cwd });
     fake.emit('exit', 0, null);
     await expect(bridge.send(sessionId, 'x')).rejects.toThrow(/session/i);
   });
+
+  it('rejects a start whose cwd resolution straddles stopAll (quit race)', async () => {
+    // stopAll() fires WHILE start() awaits its async defaultCwd: the quit flag
+    // must be re-checked after that gap, else the spawn escapes the sweep and
+    // the claude child orphans.
+    let resolveCwd!: (v: string) => void;
+    const pending = new Promise<string>((r) => { resolveCwd = r; });
+    const spawnFn = vi.fn((() => new FakeProc()) as unknown as SpawnFn);
+    const bridge = new LocalChatBridge({
+      spawnFn,
+      broadcast: () => {},
+      defaultCwd: () => pending,
+      resolveBin: () => null,
+      spawnEnv: () => ({ PATH: '/fake/bin' }),
+    });
+    const starting = bridge.start();
+    bridge.stopAll();
+    resolveCwd(cwd);
+    await expect(starting).rejects.toThrow(/fermeture/i);
+    expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unknown engine name (never a spawn-any-binary surface)', async () => {
+    const { bridge } = makeBridge();
+    await expect(bridge.start({ cwd, cli: 'bash' as never })).rejects.toThrow(/moteur inconnu/i);
+  });
 });
 
-describe('LocalClaudeBridge.list / history', () => {
+describe('LocalChatBridge.list / history', () => {
   it('list reads local sessions from disk (empty registry -> [])', async () => {
     const { bridge } = makeBridge();
     expect(await bridge.list()).toEqual([]);

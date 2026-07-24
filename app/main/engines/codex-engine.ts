@@ -1,0 +1,184 @@
+// Codex engine — one process PER TURN.
+//
+// codex has no long-lived stdin-driven mode: `codex exec` runs ONE turn and
+// exits. Multi-turn = chain `codex exec resume <thread_id>` per turn, with the
+// thread id captured from the first turn's `thread.started` event.
+//
+// JSONL contract (live-verified against codex-cli 0.145.0 on 2026-07-24):
+//   {"type":"thread.started","thread_id":"<uuid>"}
+//   {"type":"turn.started"}
+//   {"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"..."}}
+//   {"type":"turn.completed","usage":{...}}
+// plus item types command_execution / mcp_tool_call / web_search / file_change
+// and turn.failed / error on failures.
+//
+// The prompt travels over STDIN (positional '-'), never argv: a message
+// starting with '-' cannot be parsed as a flag, and long prompts do not hit
+// argv limits. The MCP channel is wired per-invocation from the project's
+// .mcp.json via -c overrides (see codex-config.ts) — the codex equivalent of
+// claude reading .mcp.json natively.
+
+import type { ChildProcess } from 'child_process';
+import { IpcError } from '../ipc-handlers/_error';
+import { readMcpConfig, type McpServerConfig } from '../mcp-config';
+import type { Engine, EngineDeps, EngineSession, EngineStartOpts } from './types';
+import { killProcTreeNow, stopProcTree } from './kill-tree';
+import { LineAccumulator } from './stream-lines';
+import { codexMcpArgs } from './codex-config';
+
+// Base flags of every turn. workspace-write keeps parity of usefulness with a
+// claude chat (the CLI can actually act on the project) while staying inside
+// the sandbox; --skip-git-repo-check because a project dir is not always a
+// git repo; --color never keeps stdout parseable.
+const BASE_FLAGS = ['--json', '--skip-git-repo-check', '--sandbox', 'workspace-write', '--color', 'never'];
+
+// Keep only the last few stderr lines — surfaced when a turn dies without a
+// terminal JSONL event (spawn env broken, auth expired...).
+const STDERR_TAIL_LINES = 5;
+
+export type ReadMcpFn = (projectRoot: string) => Promise<McpServerConfig[]>;
+
+export class CodexEngine implements Engine {
+  readonly id = 'codex' as const;
+
+  constructor(
+    private readonly deps: EngineDeps,
+    private readonly readMcp: ReadMcpFn = readMcpConfig
+  ) {}
+
+  start({ sessionId, cwd, emit, onClose }: EngineStartOpts): EngineSession {
+    const deps = this.deps;
+    const readMcp = this.readMcp;
+    const state = {
+      threadId: null as string | null,
+      proc: null as ChildProcess | null,
+      stopped: false,
+    };
+
+    async function send(message: string): Promise<void> {
+      if (state.stopped) throw new IpcError('NOT_FOUND', 'Session locale absente ou fermée.');
+      if (state.proc) throw new IpcError('INVALID_ARGUMENT', 'Un tour codex est déjà en cours pour cette session.');
+
+      // Project-scoped MCP wiring, re-read each turn so an edited .mcp.json
+      // applies without restarting the session. Unreadable file -> no MCP.
+      let mcpArgs: string[] = [];
+      try {
+        mcpArgs = codexMcpArgs(await readMcp(cwd));
+      } catch { /* malformed .mcp.json — chat still works, without MCP */ }
+
+      const args = state.threadId
+        ? ['exec', 'resume', state.threadId, ...BASE_FLAGS, ...mcpArgs, '-']
+        : ['exec', ...BASE_FLAGS, ...mcpArgs, '-'];
+
+      const bin = deps.resolveBin('codex') || 'codex';
+      let proc: ChildProcess;
+      try {
+        proc = deps.spawnFn(bin, args, {
+          cwd,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: deps.spawnEnv(),
+          detached: process.platform !== 'win32',
+        });
+      } catch (err) {
+        throw new IpcError('INTERNAL', `codex introuvable ou non lançable: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      state.proc = proc;
+
+      // The prompt goes through stdin ('-' positional above), then stdin
+      // closes so codex knows the instructions are complete.
+      proc.stdin?.write(message);
+      proc.stdin?.end();
+
+      let sawTerminal = false;
+      let lastAgentText: string | undefined;
+      const stderrTail: string[] = [];
+      const lines = new LineAccumulator();
+
+      const parse = (line: string): void => {
+        let event: Record<string, unknown>;
+        try {
+          event = JSON.parse(line) as Record<string, unknown>;
+        } catch {
+          return; // codex --json keeps stdout JSONL; ignore stray noise
+        }
+        switch (event.type) {
+          case 'thread.started':
+            if (typeof event.thread_id === 'string') state.threadId = event.thread_id;
+            break;
+          case 'item.completed': {
+            const item = (event.item ?? {}) as { type?: string; text?: string };
+            if (item.type === 'agent_message' && typeof item.text === 'string') {
+              lastAgentText = item.text;
+              emit({ type: 'chunk', sessionId, delta: item.text, role: 'assistant' });
+            } else if (item.type === 'command_execution' || item.type === 'mcp_tool_call' || item.type === 'web_search' || item.type === 'file_change' || item.type === 'todo_list') {
+              emit({ type: 'tool', sessionId, tool: item });
+            }
+            break;
+          }
+          case 'turn.completed':
+            sawTerminal = true;
+            emit({ type: 'complete', sessionId, result: lastAgentText });
+            break;
+          case 'turn.failed': {
+            sawTerminal = true;
+            const err = (event.error ?? {}) as { message?: string };
+            emit({ type: 'error', sessionId, error: `codex: ${err.message ?? 'le tour a échoué'}` });
+            break;
+          }
+          case 'error':
+            sawTerminal = true;
+            emit({ type: 'error', sessionId, error: `codex: ${String(event.message ?? 'Erreur codex')}` });
+            break;
+          default:
+            break;
+        }
+      };
+
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        for (const line of lines.push(chunk)) parse(line);
+      });
+      proc.stdout?.on('end', () => {
+        const tail = lines.flush();
+        if (tail) parse(tail);
+      });
+      proc.stderr?.on('data', (chunk: Buffer) => {
+        for (const l of chunk.toString().split('\n')) {
+          const line = l.trim();
+          if (!line) continue;
+          stderrTail.push(line);
+          if (stderrTail.length > STDERR_TAIL_LINES) stderrTail.shift();
+        }
+      });
+      proc.on('error', (err: Error) => {
+        state.proc = null;
+        emit({ type: 'error', sessionId, error: `codex: ${err.message}` });
+      });
+      proc.on('exit', (code) => {
+        const tail = lines.flush();
+        if (tail) parse(tail);
+        state.proc = null;
+        // A turn that dies without turn.completed/failed is an error the user
+        // must see — EXCEPT when the user just stopped the session.
+        if (!sawTerminal && !state.stopped) {
+          const detail = stderrTail.length ? ` — ${stderrTail.join(' ')}` : '';
+          emit({ type: 'error', sessionId, error: `codex: sortie prématurée (code ${code ?? 'inconnu'})${detail}` });
+        }
+      });
+    }
+
+    return {
+      send,
+      stop(): void {
+        state.stopped = true;
+        if (state.proc) stopProcTree(state.proc);
+        // No long-lived process to wait for: the session is gone now.
+        onClose();
+      },
+      kill(): void {
+        state.stopped = true;
+        if (state.proc) killProcTreeNow(state.proc);
+        onClose();
+      },
+    };
+  }
+}
