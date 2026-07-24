@@ -113,6 +113,25 @@ describe('codex engine — start/send', () => {
     await bridge.send(sessionId, 'premier');
     await expect(bridge.send(sessionId, 'deuxieme')).rejects.toThrow(/déjà en cours/i);
   });
+
+  it('a new turn can start right after turn.completed, BEFORE the old process exits', async () => {
+    // The terminal frame ends the turn at the protocol level; the process
+    // dies a moment later. A fast follow-up must not bounce on "déjà en
+    // cours" (regression caught live against the real codex binary).
+    const { bridge, procs, spawnFn, broadcasts } = makeCodexBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+    await bridge.send(sessionId, 'tour 1');
+    procs[0].emitLine({ type: 'thread.started', thread_id: 'th-1' });
+    procs[0].emitLine({ type: 'turn.completed' });
+    // NOTE: no exit emitted yet — the old process is still dying.
+    await bridge.send(sessionId, 'tour 2');
+    expect(spawnFn).toHaveBeenCalledTimes(2);
+    // The old process finally exits — it must not clobber the new turn.
+    procs[0].emit('exit', 0, null);
+    broadcasts.length = 0;
+    procs[1].emitLine({ type: 'turn.completed' });
+    expect(broadcasts.some((b) => b.type === 'complete')).toBe(true);
+  });
 });
 
 describe('codex engine — JSONL mapping', () => {
@@ -144,6 +163,10 @@ describe('codex engine — JSONL mapping', () => {
     const args2 = spawnFn.mock.calls[1][1] as string[];
     expect(args2.slice(0, 3)).toEqual(['exec', 'resume', 'thread-42']);
     expect(args2[args2.length - 1]).toBe('-');
+    // exec resume rejects --sandbox/--color ("unexpected argument", exit 2,
+    // live-verified) — the resumed session keeps its original configuration.
+    expect(args2).not.toContain('--sandbox');
+    expect(args2).not.toContain('--color');
     expect(procs[1].stdin.written.join('')).toBe('tour 2');
   });
 

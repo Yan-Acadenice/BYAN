@@ -17,12 +17,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { LocalClaudeBridge } from '../../ipc-handlers/local-chat';
+import { LocalChatBridge } from '../../ipc-handlers/local-chat';
 import type { LocalChatMessage } from '../../../shared/ipc-contract';
 
 const RUN_LIVE = process.env.BYAN_E2E_CLAUDE === '1';
 
-describe('LocalClaudeBridge — LIVE round-trip against the real claude binary', () => {
+describe('LocalChatBridge — LIVE round-trip against the real claude binary', () => {
   let cwd: string;
   beforeEach(() => {
     cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-lc-live-'));
@@ -35,7 +35,7 @@ describe('LocalClaudeBridge — LIVE round-trip against the real claude binary',
     'sends a real turn and receives a reply with NO stream-json parse error',
     async () => {
       const broadcasts: LocalChatMessage[] = [];
-      const bridge = new LocalClaudeBridge({ broadcast: (m) => broadcasts.push(m) });
+      const bridge = new LocalChatBridge({ broadcast: (m) => broadcasts.push(m) });
 
       const { sessionId } = await bridge.start({ cwd });
       expect(sessionId).toBeTruthy();

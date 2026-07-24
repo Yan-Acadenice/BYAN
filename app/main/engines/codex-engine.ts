@@ -26,11 +26,15 @@ import { killProcTreeNow, stopProcTree } from './kill-tree';
 import { LineAccumulator } from './stream-lines';
 import { codexMcpArgs } from './codex-config';
 
-// Base flags of every turn. workspace-write keeps parity of usefulness with a
+// Flags of a FRESH turn. workspace-write keeps parity of usefulness with a
 // claude chat (the CLI can actually act on the project) while staying inside
 // the sandbox; --skip-git-repo-check because a project dir is not always a
 // git repo; --color never keeps stdout parseable.
-const BASE_FLAGS = ['--json', '--skip-git-repo-check', '--sandbox', 'workspace-write', '--color', 'never'];
+const FRESH_FLAGS = ['--json', '--skip-git-repo-check', '--sandbox', 'workspace-write', '--color', 'never'];
+// `exec resume` accepts a NARROWER flag set — passing --sandbox/--color there
+// is "unexpected argument" (exit 2, live-verified on codex-cli 0.145.0); the
+// resumed session keeps its original configuration.
+const RESUME_FLAGS = ['--json', '--skip-git-repo-check'];
 
 // Keep only the last few stderr lines — surfaced when a turn dies without a
 // terminal JSONL event (spawn env broken, auth expired...).
@@ -67,8 +71,8 @@ export class CodexEngine implements Engine {
       } catch { /* malformed .mcp.json — chat still works, without MCP */ }
 
       const args = state.threadId
-        ? ['exec', 'resume', state.threadId, ...BASE_FLAGS, ...mcpArgs, '-']
-        : ['exec', ...BASE_FLAGS, ...mcpArgs, '-'];
+        ? ['exec', 'resume', state.threadId, ...RESUME_FLAGS, ...mcpArgs, '-']
+        : ['exec', ...FRESH_FLAGS, ...mcpArgs, '-'];
 
       const bin = deps.resolveBin('codex') || 'codex';
       let proc: ChildProcess;
@@ -94,6 +98,16 @@ export class CodexEngine implements Engine {
       const stderrTail: string[] = [];
       const lines = new LineAccumulator();
 
+      // A terminal frame ends the TURN at the protocol level; the process
+      // finishes dying on its own a moment later. Freeing the slot here (not
+      // at 'exit') lets the next send() start immediately — waiting for the
+      // exit event made a fast follow-up turn bounce on "déjà en cours"
+      // (caught by the live integration test against the real codex).
+      const endTurn = (): void => {
+        sawTerminal = true;
+        if (state.proc === proc) state.proc = null;
+      };
+
       const parse = (line: string): void => {
         let event: Record<string, unknown>;
         try {
@@ -116,17 +130,17 @@ export class CodexEngine implements Engine {
             break;
           }
           case 'turn.completed':
-            sawTerminal = true;
+            endTurn();
             emit({ type: 'complete', sessionId, result: lastAgentText });
             break;
           case 'turn.failed': {
-            sawTerminal = true;
+            endTurn();
             const err = (event.error ?? {}) as { message?: string };
             emit({ type: 'error', sessionId, error: `codex: ${err.message ?? 'le tour a échoué'}` });
             break;
           }
           case 'error':
-            sawTerminal = true;
+            endTurn();
             emit({ type: 'error', sessionId, error: `codex: ${String(event.message ?? 'Erreur codex')}` });
             break;
           default:
@@ -150,13 +164,15 @@ export class CodexEngine implements Engine {
         }
       });
       proc.on('error', (err: Error) => {
-        state.proc = null;
+        if (state.proc === proc) state.proc = null;
         emit({ type: 'error', sessionId, error: `codex: ${err.message}` });
       });
       proc.on('exit', (code) => {
         const tail = lines.flush();
         if (tail) parse(tail);
-        state.proc = null;
+        // Guarded: by exit time a NEW turn may already own the slot (the
+        // terminal frame freed it) — never null out someone else's process.
+        if (state.proc === proc) state.proc = null;
         // A turn that dies without turn.completed/failed is an error the user
         // must see — EXCEPT when the user just stopped the session.
         if (!sawTerminal && !state.stopped) {
