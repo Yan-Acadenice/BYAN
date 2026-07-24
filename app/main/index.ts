@@ -12,7 +12,7 @@ import { installMenu } from './menu';
 import { createLocalServer } from './local-server';
 import { setLocalServer } from './ipc-handlers/server';
 import { setLocalServerForAuth } from './ipc-handlers/auth';
-import { setLocalServerForChat, stopAllLocalChat } from './ipc-handlers/local-chat';
+import { initLocalChat, stopAllLocalChat } from './ipc-handlers/local-chat';
 import { stopAllMcp } from './ipc-handlers/mcp';
 import { autoUpdater as electronAutoUpdater } from 'electron-updater';
 import { AutoUpdaterManager, type AutoUpdaterLike } from './auto-updater';
@@ -40,7 +40,7 @@ setLocalServer(localServer);
 // auth handler needs the same singleton to check server status for mode:'local'.
 setLocalServerForAuth(localServer);
 // local chat bridge opens the ws:// to this same server on demand (F2).
-setLocalServerForChat(localServer);
+initLocalChat();
 
 localServer.on('fatal', () => {
   dialog.showErrorBox(

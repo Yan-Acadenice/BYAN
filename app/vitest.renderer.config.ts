@@ -3,15 +3,9 @@
 
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import * as path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@webui': path.resolve(__dirname, '..', 'api', 'webui', 'src')
-    }
-  },
   test: {
     name: 'renderer',
     include: ['renderer/**/*.test.tsx', 'renderer/**/*.test.ts'],

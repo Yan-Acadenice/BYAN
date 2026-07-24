@@ -84,15 +84,12 @@ export function clearSessionCaches(): void {
   responseCache.clear();
 }
 
-// ---------- Core fetch helper ----------
+// ---------- Core request helper ----------
+// One place for the token + base + timeout + 401/403 mapping the three
+// method-specific helpers used to copy verbatim. They keep only their real
+// differences: cache + 404 mapping (GET), body (POST), void return (DELETE).
 
-async function apiFetch(path: string, opts: { ttlMs?: number } = {}): Promise<unknown> {
-  const ttl = opts.ttlMs ?? 0;
-  if (ttl > 0) {
-    const hit = responseCache.get(path);
-    if (hit && Date.now() - hit.ts < ttl) return hit.data;
-  }
-
+async function apiRequest(method: 'GET' | 'POST' | 'DELETE', path: string, body?: unknown): Promise<Response> {
   const token = await getToken();
   const base = await getBase();
 
@@ -102,8 +99,12 @@ async function apiFetch(path: string, opts: { ttlMs?: number } = {}): Promise<un
   let res: Response;
   try {
     res = await fetch(`${base}${path}`, {
-      method: 'GET',
-      headers: { Authorization: `ApiKey ${token}` },
+      method,
+      headers: {
+        Authorization: `ApiKey ${token}`,
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       signal: controller.signal,
     });
   } catch (err) {
@@ -116,11 +117,22 @@ async function apiFetch(path: string, opts: { ttlMs?: number } = {}): Promise<un
     throw new IpcError('AUTH_REQUIRED', 'Session expired or token revoked — please log in again.');
   }
 
+  return res;
+}
+
+async function apiFetch(path: string, opts: { ttlMs?: number } = {}): Promise<unknown> {
+  const ttl = opts.ttlMs ?? 0;
+  if (ttl > 0) {
+    const hit = responseCache.get(path);
+    if (hit && Date.now() - hit.ts < ttl) return hit.data;
+  }
+
+  const res = await apiRequest('GET', path);
+
   if (res.status === 404) {
     // Callers that expect a nullable response handle this via the null-returning wrappers below.
     throw new IpcError('NOT_FOUND', `Resource not found: ${path}`);
   }
-
   if (!res.ok) {
     throw new IpcError('INTERNAL', `API error ${res.status} for ${path}`);
   }
@@ -130,69 +142,17 @@ async function apiFetch(path: string, opts: { ttlMs?: number } = {}): Promise<un
   return data;
 }
 
-// ---------- POST helper ----------
-// Shared logic for authenticated POST requests returning JSON.
-
 async function apiFetchPost(path: string, body: unknown): Promise<unknown> {
-  const token = await getToken();
-  const base = await getBase();
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch(`${base}${path}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `ApiKey ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    throw new IpcError('UNAVAILABLE', `API unreachable: ${err instanceof Error ? err.message : String(err)}`);
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (res.status === 401 || res.status === 403) {
-    throw new IpcError('AUTH_REQUIRED', 'Session expired or token revoked — please log in again.');
-  }
-
+  const res = await apiRequest('POST', path, body);
   if (!res.ok) {
     throw new IpcError('INTERNAL', `API error ${res.status} for ${path}`);
   }
-
   return res.json();
 }
 
 // DELETE helper — no body, returns void on 200.
 async function apiFetchDelete(path: string): Promise<void> {
-  const token = await getToken();
-  const base = await getBase();
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  let res: Response;
-  try {
-    res = await fetch(`${base}${path}`, {
-      method: 'DELETE',
-      headers: { Authorization: `ApiKey ${token}` },
-      signal: controller.signal,
-    });
-  } catch (err) {
-    throw new IpcError('UNAVAILABLE', `API unreachable: ${err instanceof Error ? err.message : String(err)}`);
-  } finally {
-    clearTimeout(timer);
-  }
-
-  if (res.status === 401 || res.status === 403) {
-    throw new IpcError('AUTH_REQUIRED', 'Session expired or token revoked — please log in again.');
-  }
-
+  const res = await apiRequest('DELETE', path);
   if (!res.ok) {
     throw new IpcError('INTERNAL', `API error ${res.status} for ${path}`);
   }

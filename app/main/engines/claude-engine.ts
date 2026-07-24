@@ -10,7 +10,6 @@
 // .mcp.json on its own.
 
 import type { ChildProcess } from 'child_process';
-import type { LocalChatMessage } from '../../shared/ipc-contract';
 import { IpcError } from '../ipc-handlers/_error';
 import type { Engine, EngineDeps, EngineSession, EngineStartOpts } from './types';
 import { killProcTreeNow, stopProcTree } from './kill-tree';

@@ -210,6 +210,7 @@ jobs:
             release-artifacts/**/BYAN-Setup-*.exe.blockmap
             release-artifacts/**/*.dmg
             release-artifacts/**/BYAN-*.zip
+            release-artifacts/**/BYAN-*.zip.blockmap
             release-artifacts/**/latest*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

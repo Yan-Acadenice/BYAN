@@ -45,17 +45,13 @@ test('CSP: script-src blocks https://evil.example.com', async () => {
     // Give the renderer a tick to log the CSP violation.
     await page.waitForTimeout(2_000);
 
-    // The script-src 'self' policy must produce at least one of:
-    //   - a CSP console violation (Chromium logs "Refused to load the script ...").
-    //   - a request that was blocked at the CSP layer (no successful response).
-    const blocked =
-      cspViolations.length > 0 ||
-      // If a request was emitted, it must NOT have completed with a 2xx — but
-      // CSP usually short-circuits before the request fires at all. We assert
-      // either path is acceptable.
-      externalRequests.length === 0 ||
-      cspViolations.length + externalRequests.length > 0;
-
+    // The script-src 'self' policy must show one of exactly two acceptable
+    // outcomes: a logged CSP violation, or NO request to the evil origin at
+    // all (CSP short-circuits before the network layer). A request that fired
+    // WITHOUT a violation means the CSP did not block it — that must fail.
+    // (The old expression also accepted "a request fired, no violation",
+    // which made the test pass with the CSP entirely removed.)
+    const blocked = cspViolations.length > 0 || externalRequests.length === 0;
     expect(blocked).toBe(true);
   } finally {
     await cleanup();

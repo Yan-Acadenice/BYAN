@@ -180,20 +180,20 @@ export class McpProcessRegistry {
     const proc = entry.proc;
     await new Promise<void>((resolve) => {
       let settled = false;
-      let killTimer: ReturnType<typeof setTimeout> | undefined;
-      let hardTimer: ReturnType<typeof setTimeout> | undefined;
+      // settle only ever runs from the timers / the exit event below, so the
+      // const timer bindings are always initialized by the time it fires.
       const settle = () => {
         if (settled) return;
         settled = true;
-        if (killTimer) clearTimeout(killTimer);
-        if (hardTimer) clearTimeout(hardTimer);
+        clearTimeout(killTimer);
+        clearTimeout(hardTimer);
         resolve();
       };
-      proc.on('exit', settle);
-      killTimer = setTimeout(() => killGroup(proc, 'SIGKILL'), graceMs);
+      const killTimer = setTimeout(() => killGroup(proc, 'SIGKILL'), graceMs);
       // Absolute bound: never leave the caller hanging on a zombie that emits
       // no exit event. State reconciliation stays with the start() listeners.
-      hardTimer = setTimeout(settle, graceMs * 2);
+      const hardTimer = setTimeout(settle, graceMs * 2);
+      proc.on('exit', settle);
       killGroup(proc, 'SIGTERM');
     });
   }

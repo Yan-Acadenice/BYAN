@@ -21,7 +21,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
-import type { LocalServer } from '../local-server';
 import { localSessions, resolveProjectRoot } from '../local-data';
 import { secureStore } from '../secure-store';
 import { resolveExecutable, spawnEnv } from '../resolve-bin';
@@ -213,9 +212,10 @@ function defaultBroadcast(msg: LocalChatMessage): void {
 
 let _bridge: LocalChatBridge | null = null;
 
-// Kept for call-site compatibility with main/index.ts. The native bridge does
-// not need the local server ; it spawns the CLI directly in the project dir.
-export function setLocalServerForChat(_ls: LocalServer): void {
+// Build the singleton bridge at boot. The native bridge needs no local server
+// (it spawns the CLI directly in the project dir) — the old signature took a
+// LocalServer it silently discarded.
+export function initLocalChat(): void {
   _bridge = new LocalChatBridge();
 }
 

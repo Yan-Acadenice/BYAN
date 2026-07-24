@@ -152,13 +152,27 @@ describe('AutoUpdaterManager — timer scheduling', () => {
     }
   });
 
-  it('start() is idempotent', () => {
-    manager.start();
-    manager.start();
-    // Second start() should not schedule anything new — verified by stopping
-    // once and checking state remains idle (no extra timer fires).
-    manager.stop();
-    expect(manager.getState().state).toBeDefined();
+  it('start() is idempotent — a double start schedules ONE timer set', async () => {
+    vi.useFakeTimers();
+    try {
+      const u = new FakeUpdater();
+      const m = new AutoUpdaterManager({
+        updater: u,
+        isDev: false,
+        initialCheckDelayMs: 100,
+        periodicCheckMs: 1000,
+      });
+      m.start();
+      m.start(); // must be a no-op, not a second timer set
+
+      // Past the initial delay + one period: one initial check + one periodic
+      // check. A non-idempotent start would have doubled both (4 calls).
+      await vi.advanceTimersByTimeAsync(1200);
+      expect(u.checkForUpdates).toHaveBeenCalledTimes(2);
+      m.stop();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
