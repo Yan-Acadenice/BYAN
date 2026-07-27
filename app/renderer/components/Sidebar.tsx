@@ -79,6 +79,7 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
             <li key={id}>
               <button
                 type="button"
+                data-testid={`nav-${id}`}
                 onClick={() => onNavigate(id)}
                 className={[
                   'w-full flex items-center gap-sm px-sm py-sm rounded transition-all duration-150 border-l-2',
