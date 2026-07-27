@@ -2,7 +2,7 @@
   "mcpServers": {
     "byan": {
       "command": "node",
-      "args": ["/home/yan/BYAN/_byan/mcp/byan-mcp-server/server.js"],
+      "args": ["${CLAUDE_PROJECT_DIR:-/home/yan/acadenice/interne/BYAN}/_byan/mcp/byan-mcp-server/server.js"],
       "env": {
         "BYAN_API_URL": "${BYAN_API_URL}",
         "BYAN_API_TOKEN": "${BYAN_API_TOKEN}",
@@ -12,9 +12,9 @@
     },
     "byan-loadbalancer": {
       "command": "node",
-      "args": ["/home/yan/BYAN/src/loadbalancer/mcp-server.js"],
+      "args": ["${CLAUDE_PROJECT_DIR:-/home/yan/acadenice/interne/BYAN}/src/loadbalancer/mcp-server.js"],
       "env": {
-        "BYAN_PROJECT_ROOT": "/home/yan/BYAN"
+        "BYAN_PROJECT_ROOT": "${CLAUDE_PROJECT_DIR:-/home/yan/acadenice/interne/BYAN}"
       }
     }
   }
