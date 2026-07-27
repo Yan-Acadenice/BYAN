@@ -199,6 +199,10 @@ class LocalServerImpl extends EventEmitter implements LocalServer {
           // PORT=0 lets the OS assign a free port; the child reports the actual
           // assigned port back via process.send({ type: 'ready', port }).
           PORT: '0',
+          // A desktop app has no business opening a browser tab. The child also
+          // detects the fork on its own, but stating it here keeps the intent at
+          // the call site instead of resting on the child's heuristic.
+          BYAN_NO_BROWSER: '1',
           BYAN_PROJECT_ROOT: process.env.BYAN_PROJECT_ROOT ?? process.cwd(),
           ...(nodePath ? { NODE_PATH: nodePath } : {})
         },

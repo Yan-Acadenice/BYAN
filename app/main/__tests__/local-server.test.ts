@@ -98,6 +98,19 @@ describe('spawn()', () => {
     expect(result.pid).toBe(12345);
   });
 
+  it('tells the child NOT to open a browser', async () => {
+    // Reported: launching the desktop app opened a page in the user's browser.
+    // The forked webui server called openBrowser() unconditionally. The child
+    // detects the fork on its own now, but the app states the intent here so the
+    // behaviour does not rest on that heuristic alone.
+    const ls = makeLocalServer();
+    fakeChild.simulateReady(12345, 10);
+    await ls.spawn();
+
+    const opts = forkMock.mock.calls[0]?.[2] as { env?: Record<string, string> };
+    expect(opts.env?.BYAN_NO_BROWSER).toBe('1');
+  });
+
   it('is idempotent: second call returns same port+pid', async () => {
     const ls = makeLocalServer();
     fakeChild.simulateReady(12345, 10);

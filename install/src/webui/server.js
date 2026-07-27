@@ -13,6 +13,20 @@ const SessionManager = require('./chat/session-manager');
 const { detectCLIs } = require('./chat/cli-detector');
 const { createBridge } = require('./chat/bridge');
 
+// Whether this run should throw a browser tab at the user.
+//
+// A standalone `byan --webui` SHOULD open one: that is the point of the web
+// interface. A run forked by BYAN Desktop should not — the user already has a
+// window, and opening a browser on top of it was a reported defect. `process.send`
+// exists only under child_process.fork(), so the fork itself is the signal; the
+// BYAN_NO_BROWSER flag lets a caller state the intent explicitly.
+function shouldOpenBrowser({ isForked, env }) {
+  if (isForked) return false;
+  const flag = (env || {}).BYAN_NO_BROWSER;
+  if (typeof flag === 'string' && flag.trim() !== '') return false;
+  return true;
+}
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -68,7 +82,10 @@ class ByanWebUI {
         if (typeof process.send === 'function') {
           process.send({ type: 'ready', port: assignedPort });
         }
-        this.openBrowser(url);
+        // Forked by the desktop app -> stay silent. See shouldOpenBrowser.
+        if (shouldOpenBrowser({ isForked: typeof process.send === 'function', env: process.env })) {
+          this.openBrowser(url);
+        }
         resolve(this);
       });
     });
@@ -411,3 +428,4 @@ if (require.main === module) {
 }
 
 module.exports = ByanWebUI;
+module.exports.shouldOpenBrowser = shouldOpenBrowser;
