@@ -92,6 +92,43 @@ describe('LocalChatBridge — LIVE round-trip against the real codex binary', ()
   );
 
   it.skipIf(!RUN_LIVE)(
+    'a running command is reported BEFORE the turn completes',
+    async () => {
+      // The unit suite feeds a captured item.started frame through a fake process.
+      // That proves the mapping, not that the REAL cli emits it under the flags
+      // the app actually uses. This closes that gap: the activity frame must land
+      // strictly before the terminal frame, which is the whole point of it.
+      const broadcasts: LocalChatMessage[] = [];
+      const bridge = new LocalChatBridge({ broadcast: (m) => broadcasts.push(m) });
+
+      const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+      const mark = broadcasts.length;
+      await bridge.send(sessionId, 'Lance la commande shell `ls` dans le dossier courant, puis arrete-toi.');
+      await settleAfter(broadcasts, mark, 180_000);
+
+      const slice = broadcasts.slice(mark);
+      const errors = slice.filter((b) => b.type === 'error') as Extract<LocalChatMessage, { type: 'error' }>[];
+      expect(errors, `turn errored: ${errors.map((e) => e.error).join(' | ')}`).toEqual([]);
+
+      const toolIdx = slice.findIndex((b) => b.type === 'tool');
+      const doneIdx = slice.findIndex((b) => b.type === 'complete');
+      expect(toolIdx, 'no tool frame arrived for a turn that ran a command').toBeGreaterThanOrEqual(0);
+      // Arriving only at completion is the defect this fixed: a 60s command would
+      // show nothing for its whole duration.
+      expect(toolIdx).toBeLessThan(doneIdx);
+
+      const tool = slice[toolIdx] as Extract<LocalChatMessage, { type: 'tool' }>;
+      expect(tool.activity?.name).toBeTruthy();
+      // At least one frame must describe work that has STARTED, not only ended.
+      const starts = slice.filter((b) => b.type === 'tool' && b.activity?.phase === 'start');
+      expect(starts.length, 'only end-phase frames: item.started is not being read').toBeGreaterThan(0);
+
+      await bridge.stop(sessionId);
+    },
+    280_000
+  );
+
+  it.skipIf(!RUN_LIVE)(
     'a fresh turn with a model AND an effort reports token counters and no price',
     async () => {
       const broadcasts: LocalChatMessage[] = [];
