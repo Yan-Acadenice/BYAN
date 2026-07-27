@@ -121,6 +121,9 @@ describe('store — renderer key allowlist', () => {
     await expect(store.set('chat.localEngine', 'codex')).resolves.toBeUndefined();
     await expect(store.set('onboarding.projectRoot', '/p')).resolves.toBeUndefined();
     await expect(store.set('login.lastMode', 'local')).resolves.toBeUndefined();
+    // app.locale is the i18n persistence key (I18nContext) — caught missing
+    // from the allowlist by the real AppImage launch, not by any suite.
+    await expect(store.set('app.locale', 'fr')).resolves.toBeUndefined();
   });
 });
 

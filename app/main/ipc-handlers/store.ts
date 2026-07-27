@@ -21,8 +21,9 @@ function assertValidKey(key: unknown): asserts key is string {
 // read or write those through this channel: the token would otherwise be one
 // store.get away from renderer memory, voiding the secure-store invariant.
 // Prefix ALLOWLIST (not a blocklist) so any future sensitive main-side key is
-// protected by default.
-const RENDERER_KEY_PREFIXES = ['chat.', 'login.', 'onboarding.', 'ui.', 'user.'];
+// protected by default. `app.` carries app.locale (i18n) — the auth session
+// keys live under `auth.`, which stays outside the list.
+const RENDERER_KEY_PREFIXES = ['app.', 'chat.', 'login.', 'onboarding.', 'ui.', 'user.'];
 
 function assertRendererKey(key: string): void {
   const allowed = RENDERER_KEY_PREFIXES.some((p) => key.startsWith(p) && key.length > p.length);
