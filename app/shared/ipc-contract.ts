@@ -331,7 +331,11 @@ export interface LocalInstallResult {
 export type LocalChatMessage =
   // `model`/`effort` echo what main ACTUALLY applied (effort is null on
   // claude), so the UI reflects the real setting instead of its own request.
-  | { type: 'started'; sessionId: string; cli: EngineId; model?: string | null; effort?: ReasoningEffort | null }
+  // `cwd` is the directory main ACTUALLY resolved (the renderer may send none and
+  // let the bridge fall back to the registry or the onboarding root). Echoed so
+  // the header can name the folder the session really runs in instead of showing
+  // an invitation to pick one while a session is already working somewhere.
+  | { type: 'started'; sessionId: string; cli: EngineId; model?: string | null; effort?: ReasoningEffort | null; cwd?: string }
   | { type: 'chunk'; sessionId: string; delta: string; role: 'assistant' }
   | { type: 'tool'; sessionId: string; tool: unknown }
   | { type: 'complete'; sessionId: string; result?: unknown; usage?: LocalChatUsage }
@@ -557,7 +561,10 @@ export interface ByanApi {
   localChat: {
     // Start (or resume, via opts.resumeSessionId) a local claude session ;
     // resolves with the server-assigned sessionId.
-    start(opts?: LocalChatStartOpts): Promise<{ sessionId: string }>;
+    // Returns the resolved `cwd` too: the renderer may send none and let the
+    // bridge fall back to the registry or the onboarding root, and it has no
+    // other way to learn which folder the session actually runs in.
+    start(opts?: LocalChatStartOpts): Promise<{ sessionId: string; cwd: string }>;
     // Send a user message to an existing local session. turnOpts carries
     // per-turn overrides (reasoning effort) — optional, so an existing
     // 2-argument call site stays valid.
@@ -594,6 +601,10 @@ export interface ByanApi {
     version(): Promise<string>;
     relaunch(): Promise<void>;
     openExternal(url: string): Promise<void>;
+    // Opens the directory Electron writes its log file to. Returns the path so a
+    // failure to open (headless, no file manager) can still name the folder
+    // instead of leaving the click looking like nothing happened.
+    openLogs(): Promise<{ ok: boolean; path: string; message?: string }>;
   };
   update: {
     check(): Promise<UpdateState>;
@@ -668,7 +679,8 @@ export const IPC_CHANNELS = {
     quit: 'byan:app:quit',
     version: 'byan:app:version',
     relaunch: 'byan:app:relaunch',
-    openExternal: 'byan:app:openExternal'
+    openExternal: 'byan:app:openExternal',
+    openLogs: 'byan:app:openLogs'
   },
   update: {
     check: 'byan:update:check',

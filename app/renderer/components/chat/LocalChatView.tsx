@@ -52,13 +52,18 @@ interface Notice {
 export default function LocalChatView() {
   const {
     messages, streaming, streamText, starting, error, sessionId, sessions,
-    usageTurns, usageTotals,
+    usageTurns, usageTotals, sessionCwd,
     newSession, resume, refreshSessions, send, stop,
   } = useLocalChat();
   const [sessionsOpen, setSessionsOpen] = useState(false);
   // F4 : the project directory (cwd) a new local session runs in. Defaults to the
   // folder chosen at onboarding ; the folder button lets the user pick another.
   const [cwd, setCwd] = useState<string | null>(null);
+  // What the folder chip shows. `cwd` is the user's explicit pick; `sessionCwd` is
+  // the directory main fell back to when there was none. Showing only `cwd` made
+  // the chip read "Choisir un dossier" while the live session was already working
+  // in a folder the user could not see.
+  const shownCwd = cwd ?? sessionCwd;
   const [engine, setEngine] = useState<LocalEngine>('claude');
   const [codexAvailable, setCodexAvailable] = useState(false);
   const [modelByEngine, setModelByEngine] = useState<ModelByEngine>({});
@@ -146,7 +151,7 @@ export default function LocalChatView() {
     if (next) merged[engine] = next; else delete merged[engine];
     setModelByEngine(merged);
     try { void window.byanApi.store?.set?.('chat.localModel', merged); } catch { /* non-blocking */ }
-    setNotice({ tone: 'info', text: next ? `Modele ${next} pour la prochaine session ${engine}.` : `Modele par defaut de ${engine} restaure.` });
+    setNotice({ tone: 'info', text: next ? `Modèle ${next} pour la prochaine session ${engine}.` : `Modèle par défaut de ${engine} restauré.` });
   };
 
   const pickEffort = (next: ReasoningEffort | null) => {
@@ -154,7 +159,7 @@ export default function LocalChatView() {
     setEffort(next);
     try { void window.byanApi.store?.set?.('chat.localEffort', next ?? ''); } catch { /* non-blocking */ }
     // Effort rides on every turn, so it lands on the NEXT message — no restart.
-    setNotice({ tone: 'info', text: next ? `Effort ${next} des le prochain message.` : 'Effort par defaut restaure.' });
+    setNotice({ tone: 'info', text: next ? `Effort ${next} dès le prochain message.` : 'Effort par défaut restauré.' });
   };
 
   // Start options shared by send / new session : project dir, engine, model,
@@ -243,15 +248,19 @@ export default function LocalChatView() {
   // reason — the order mattered and nothing said so. Applying it here costs the
   // visible transcript, which the notice states rather than hides.
   const applyAgent = (slug: string | null) => {
+    const hadThread = messages.length > 0 || streaming;
     setAgent(slug);
     try { void window.byanApi.store?.set?.('chat.localAgent', slug ?? ''); } catch { /* non-blocking */ }
     const opts = { cli: engine, ...(cwd ? { cwd } : {}), ...(model ? { model } : {}), ...(slug ? { agent: slug } : {}) };
     void newSession(opts).then(() => void refreshSessions());
     setNotice({
       tone: 'info',
-      text: slug
-        ? `Nouvelle session avec l'agent ${slug} (le fil precedent est ferme).`
-        : 'Nouvelle session sans agent (le fil precedent est ferme).',
+      // The previous thread is only mentioned when there WAS one: announcing its
+      // closure on an empty chat described an event that did not happen.
+      text: [
+        slug ? `Nouvelle session avec l'agent ${slug}.` : 'Nouvelle session sans agent.',
+        hadThread ? 'Le fil précédent est fermé.' : '',
+      ].filter(Boolean).join(' '),
     });
   };
 
@@ -303,7 +312,7 @@ export default function LocalChatView() {
           setNotice({
             tone: 'info',
             text: claudeAgents.length
-              ? `Agents disponibles ici : ${shown}${claudeAgents.length > 8 ? ', ...' : ''}. Usage : /agent <nom>, ou /agent aucun pour revenir au defaut.`
+              ? `Agents disponibles ici : ${shown}${claudeAgents.length > 8 ? ', ...' : ''}. Usage : /agent <nom>, ou /agent aucun pour revenir au défaut.`
               : "Aucun agent declare pour ce projet (.claude/agents/ est vide ou absent).",
           });
           return;
@@ -470,11 +479,13 @@ export default function LocalChatView() {
             type="button"
             data-testid="local-cwd"
             onClick={() => void onPickFolder()}
-            title={cwd || 'Choisir un dossier de projet'}
+            title={shownCwd
+              ? (cwd ? shownCwd : `${shownCwd} (dossier retenu par défaut — clique pour en choisir un autre)`)
+              : 'Choisir un dossier de projet'}
             className="flex items-center gap-xs text-[11px] text-ink-400 hover:text-ink-200 transition-colors"
           >
             <Folder size={12} />
-            {cwd ? folderLabel(cwd) : 'Choisir un dossier'}
+            {shownCwd ? folderLabel(shownCwd) : 'Choisir un dossier'}
           </button>
           {/* Model chip — both engines. Applies to the NEXT session, like the
               engine switch: claude fixes the model at spawn. */}
@@ -483,7 +494,7 @@ export default function LocalChatView() {
               type="button"
               data-testid="local-model-chip"
               onClick={() => setModelOpen((o) => !o)}
-              title={`Modele de la prochaine session ${engine}`}
+              title={`Modèle de la prochaine session ${engine}`}
               aria-haspopup="menu"
               aria-expanded={modelOpen}
               className="flex items-center gap-xs text-[11px] text-ink-400 hover:text-ink-200 transition-colors"
@@ -665,7 +676,11 @@ export default function LocalChatView() {
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageSquare size={32} className="text-ink-700 mb-sm" />
             <p className="text-sm text-ink-500">Chat local avec {engine} sur ce PC.</p>
-            <p className="text-xs text-ink-600 mt-xs">Envoie un message — une session démarre toute seule.</p>
+            <p className="text-xs text-ink-600 mt-xs">
+              {sessionId
+                ? 'Session ouverte, aucun message pour le moment. Écris quelque chose.'
+                : 'Envoie un message — une session démarre toute seule.'}
+            </p>
           </div>
         ) : (
           <>

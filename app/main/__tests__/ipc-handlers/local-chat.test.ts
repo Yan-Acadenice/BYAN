@@ -293,6 +293,20 @@ describe('LocalChatBridge — model/effort trust boundary (F6)', () => {
     expect(started.model).toBe('opus');
   });
 
+  it('RETURNS the resolved cwd, including the one the caller never sent', async () => {
+    // The renderer is allowed to start without a cwd and let the bridge fall back
+    // to the registry / onboarding root. Before this, the answer carried only the
+    // session id, so the view had no way to learn where the session actually ran
+    // and its folder chip kept inviting the user to pick one.
+    const { bridge } = makeBridge();
+    const withoutCwd = await bridge.start({ cli: 'claude' });
+    expect(withoutCwd.cwd).toBe(cwd);
+
+    const explicit = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-lc-explicit-'));
+    const withCwd = await bridge.start({ cli: 'claude', cwd: explicit });
+    expect(withCwd.cwd).toBe(explicit);
+  });
+
   it('echoes the applied model+effort on the started frame for codex', async () => {
     const { bridge, broadcasts } = makeBridge();
     await bridge.start({ cwd, cli: 'codex', model: 'gpt-5.6-sol', effort: 'xhigh' });

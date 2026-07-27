@@ -101,7 +101,7 @@ const api: ByanApi = {
     status: () => invoke<ServerStatus>(IPC_CHANNELS.server.status)
   },
   localChat: {
-    start: (opts?: LocalChatStartOpts) => invoke<{ sessionId: string }>(IPC_CHANNELS.localChat.start, opts),
+    start: (opts?: LocalChatStartOpts) => invoke<{ sessionId: string; cwd: string }>(IPC_CHANNELS.localChat.start, opts),
     send: (sessionId: string, message: string, turnOpts?: LocalChatTurnOpts) =>
       invoke<void>(IPC_CHANNELS.localChat.send, sessionId, message, turnOpts),
     stop: (sessionId: string) => invoke<void>(IPC_CHANNELS.localChat.stop, sessionId),
@@ -123,7 +123,8 @@ const api: ByanApi = {
     quit: () => invoke<void>(IPC_CHANNELS.app.quit),
     version: () => invoke<string>(IPC_CHANNELS.app.version),
     relaunch: () => invoke<void>(IPC_CHANNELS.app.relaunch),
-    openExternal: (url: string) => invoke<void>(IPC_CHANNELS.app.openExternal, url)
+    openExternal: (url: string) => invoke<void>(IPC_CHANNELS.app.openExternal, url),
+    openLogs: () => invoke<{ ok: boolean; path: string; message?: string }>(IPC_CHANNELS.app.openLogs)
   },
   update: {
     check: () => invoke<UpdateState>(IPC_CHANNELS.update.check),

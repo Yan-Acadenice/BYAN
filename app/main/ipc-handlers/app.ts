@@ -10,7 +10,7 @@ import { IPC_CHANNELS } from '../../shared/ipc-contract';
 import { IpcError, wrap } from './_error';
 
 export interface AppDeps {
-  app: Pick<App, 'quit' | 'relaunch' | 'getVersion'>;
+  app: Pick<App, 'quit' | 'relaunch' | 'getVersion' | 'getPath'>;
 }
 
 // Security: renderer-supplied URLs must be https only.
@@ -45,6 +45,15 @@ export function makeHandlers(deps: AppDeps) {
     openExternal: async (url: string): Promise<void> => {
       assertHttpsUrl(url);
       await shell.openExternal(url);
+    },
+    // No renderer-supplied path: the directory comes from Electron itself, so
+    // this cannot be steered into opening an arbitrary folder.
+    openLogs: async (): Promise<{ ok: boolean; path: string; message?: string }> => {
+      const dir = deps.app.getPath('logs');
+      // openPath returns '' on success and an error STRING on failure — it does
+      // not throw, so an empty result is the only success signal.
+      const message = await shell.openPath(dir);
+      return message ? { ok: false, path: dir, message } : { ok: true, path: dir };
     }
   };
 }
@@ -55,4 +64,5 @@ export function register(ipcMain: IpcMain, deps: AppDeps): void {
   ipcMain.handle(IPC_CHANNELS.app.version, wrap(() => h.version()));
   ipcMain.handle(IPC_CHANNELS.app.relaunch, wrap(() => h.relaunch()));
   ipcMain.handle(IPC_CHANNELS.app.openExternal, wrap((_event: unknown, url: string) => h.openExternal(url)));
+  ipcMain.handle(IPC_CHANNELS.app.openLogs, wrap(() => h.openLogs()));
 }

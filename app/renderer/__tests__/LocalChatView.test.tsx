@@ -10,7 +10,7 @@ import type { LocalChatMessage } from '../../shared/ipc-contract';
 // LocalChatView reads useLocalChat, which now requires the provider (the state
 // was lifted so the session survives navigation). Wrap every render.
 
-const mockStart = vi.fn<() => Promise<{ sessionId: string }>>();
+const mockStart = vi.fn<() => Promise<{ sessionId: string; cwd: string }>>();
 const mockSend = vi.fn<() => Promise<void>>();
 const mockStop = vi.fn<() => Promise<void>>();
 const mockList = vi.fn();
@@ -48,7 +48,7 @@ beforeEach(() => {
     writable: true,
     configurable: true,
   });
-  mockStart.mockResolvedValue({ sessionId: 'sess-1' });
+  mockStart.mockResolvedValue({ sessionId: 'sess-1', cwd: '/home/yan/monprojet' });
   mockSend.mockResolvedValue(undefined);
   mockStop.mockResolvedValue(undefined);
   mockList.mockResolvedValue([]);
@@ -102,7 +102,7 @@ describe('LocalChatView', () => {
       { id: 'chat-old', cli: 'claude', agent: null, cwd: '/p', resumable: true, created: '', updated: '', messageCount: 2, lastMessage: 'reprends-moi' },
     ]);
     mockHistory.mockResolvedValue([{ role: 'user', content: 'reprends-moi' }]);
-    mockStart.mockResolvedValue({ sessionId: 'chat-old' });
+    mockStart.mockResolvedValue({ sessionId: 'chat-old', cwd: '/home/yan/monprojet' });
 
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     // Open the sessions menu (also triggers a refresh).
@@ -482,5 +482,83 @@ describe('LocalChatView — slash commands', () => {
     fireEvent.keyDown(screen.getByTestId('local-chat-input'), { key: 'Enter', shiftKey: true });
 
     expect(mockSend).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('LocalChatView — ce que la barre annonce doit etre vrai', () => {
+  it('names the folder main fell back to instead of inviting a pick that already happened', async () => {
+    // No stored root: the view sends no cwd and the bridge falls back. Before the
+    // fix the chip stayed on "Choisir un dossier" while the session was already
+    // running in /home/yan/replidumain — the header contradicted the session.
+    mockStoreGet.mockImplementation(() => Promise.resolve(null));
+    mockStart.mockResolvedValue({ sessionId: 'sess-fb', cwd: '/home/yan/replidumain' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('Choisir un dossier'));
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('replidumain'));
+    // And it says the folder was not the user's choice, so the click still reads
+    // as available.
+    expect(screen.getByTestId('local-cwd').getAttribute('title')).toContain('défaut');
+  });
+
+  it('an explicit pick still wins over the fallback', async () => {
+    mockStoreGet.mockImplementation((k: string) =>
+      Promise.resolve(k === 'onboarding.projectRoot' ? '/home/yan/choisi' : null));
+    mockStart.mockResolvedValue({ sessionId: 'sess-x', cwd: '/home/yan/autrechose' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('choisi'));
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+    // The bridge answer must not overwrite what the user picked.
+    await waitFor(() => expect(mockStart).toHaveBeenCalled());
+    expect(screen.getByTestId('local-cwd')).toHaveTextContent('choisi');
+  });
+
+  it('stops claiming a session will start once one is open', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    expect(screen.getByText(/une session démarre toute seule/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+
+    // The session id is on screen at this point; telling the user a session will
+    // start by itself described a state the header already contradicted.
+    await waitFor(() => expect(screen.queryByText(/une session démarre toute seule/i)).toBeNull());
+    expect(screen.getByText(/session ouverte/i)).toBeInTheDocument();
+  });
+
+  it('does not announce closing a thread that never existed', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/byan');
+    pressEnter();
+
+    const notice = await screen.findByText(/nouvelle session avec l'agent bmad-byan/i);
+    expect(notice.textContent).not.toMatch(/fil précédent/i);
+  });
+
+  it('DOES announce closing a thread when there was one', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('bonjour');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    // Close the turn: the input refuses to submit while a stream is open, so
+    // without this the slash command below never runs and the test would be
+    // asserting on a command that was silently dropped.
+    emit({ type: 'complete', sessionId: 'sess-1', result: 'salut' });
+    await waitFor(() => expect(screen.getByText('salut')).toBeInTheDocument());
+
+    type('/byan');
+    pressEnter();
+
+    const notice = await screen.findByText(/fil précédent est fermé/i);
+    expect(notice).toBeInTheDocument();
   });
 });

@@ -129,6 +129,9 @@ export interface UseLocalChat {
   // The same numbers folded per engine. Separate from usageTurns so the cap on
   // the list never truncates the session's arithmetic.
   usageTotals: LocalChatUsageTotals;
+  // The directory the live session actually runs in, as main resolved it. Null
+  // when no session is open.
+  sessionCwd: string | null;
   // Start a fresh local session (drops the current thread).
   newSession: (opts?: LocalChatStartOpts) => Promise<void>;
   // Resume a session : reopens claude in the session's project dir (cwd).
@@ -165,6 +168,9 @@ function useLocalChatState(): UseLocalChat {
   const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
   const [usageTurns, setUsageTurns] = useState<LocalChatUsage[]>([]);
   const [usageTotals, setUsageTotals] = useState<LocalChatUsageTotals>({});
+  // The folder main ACTUALLY resolved. Without it the header would keep inviting
+  // the user to pick a directory while a session is already working in one.
+  const [sessionCwd, setSessionCwd] = useState<string | null>(null);
 
   // The event listener closes over a ref, not state, so it always filters on the
   // current session without re-subscribing on every session change.
@@ -264,6 +270,7 @@ function useLocalChatState(): UseLocalChat {
       // whoever logs in next.
       setUsageTurns([]);
       setUsageTotals({});
+      setSessionCwd(null);
     });
   }, []);
 
@@ -272,7 +279,8 @@ function useLocalChatState(): UseLocalChat {
     setError(null);
     const prev = sessionRef.current;
     try {
-      const { sessionId: id } = await window.byanApi.localChat.start(opts);
+      const { sessionId: id, cwd } = await window.byanApi.localChat.start(opts);
+      setSessionCwd(cwd ?? null);
       // Repoint the frame filter SYNCHRONOUSLY : the effect that syncs sessionRef
       // only runs after commit, so a late frame from the old session could
       // otherwise pass the filter and bleed into the fresh thread.
@@ -309,6 +317,7 @@ function useLocalChatState(): UseLocalChat {
       try {
         const started = await window.byanApi.localChat.start(startOpts);
         id = started.sessionId;
+        setSessionCwd(started.cwd ?? null);
         sessionRef.current = id; // sync so response frames are filtered on the right id
         setSessionId(id);
         setMessages([]);
@@ -377,7 +386,8 @@ function useLocalChatState(): UseLocalChat {
       // Seed the thread with any stored history so the user sees prior turns.
       const history = (await window.byanApi.localChat.history?.(recordId)) ?? [];
       setMessages(history.map((h, i) => ({ id: `h-${i}`, role: toRole(h.role), content: h.content })));
-      const { sessionId: id } = await window.byanApi.localChat.start(cwd ? { cwd } : undefined);
+      const { sessionId: id, cwd: resolvedCwd } = await window.byanApi.localChat.start(cwd ? { cwd } : undefined);
+      setSessionCwd(resolvedCwd ?? null);
       sessionRef.current = id; // sync (see newSession) — filter stale frames immediately
       setSessionId(id);
       accRef.current = '';
@@ -390,6 +400,7 @@ function useLocalChatState(): UseLocalChat {
       // an orphan thread that never reconnected.
       setMessages([]);
       setSessionId(null);
+      setSessionCwd(null);
       setError(err instanceof Error ? err.message : 'Impossible de reprendre la session locale.');
     } finally {
       setStarting(false);
@@ -398,7 +409,7 @@ function useLocalChatState(): UseLocalChat {
 
   return {
     sessionId, messages, streaming, streamText, starting, error, sessions,
-    usageTurns, usageTotals,
+    usageTurns, usageTotals, sessionCwd,
     newSession, resume, refreshSessions, send, stop,
   };
 }

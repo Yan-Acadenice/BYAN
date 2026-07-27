@@ -98,7 +98,7 @@ export class LocalChatBridge {
 
   // Spawn a local CLI session in the project directory. cwd must be an existing
   // absolute dir (trust boundary : same guard as N2/F5).
-  async start(opts?: LocalChatStartOpts): Promise<{ sessionId: string }> {
+  async start(opts?: LocalChatStartOpts): Promise<{ sessionId: string; cwd: string }> {
     if (this._quitting) {
       throw new IpcError('INVALID_ARGUMENT', 'Application en cours de fermeture.');
     }
@@ -163,8 +163,8 @@ export class LocalChatBridge {
     // The frame echoes what was ACTUALLY applied, not what was asked: a claude
     // session reports effort null even if the renderer sent one, so the UI
     // reflects reality instead of its own request.
-    this.broadcast({ type: 'started', sessionId, cli, model, effort });
-    return { sessionId };
+    this.broadcast({ type: 'started', sessionId, cli, model, effort, cwd });
+    return { sessionId, cwd };
   }
 
   async send(sessionId: string, message: string, turnOpts?: LocalChatTurnOpts): Promise<void> {

@@ -18,7 +18,7 @@ import * as byanWeb from './byan-web';
 import * as update from './update';
 
 export interface RegisterAllDeps {
-  app: Pick<App, 'quit' | 'relaunch' | 'getVersion'>;
+  app: Pick<App, 'quit' | 'relaunch' | 'getVersion' | 'getPath'>;
 }
 
 export function registerAll(ipcMain: IpcMain, deps: RegisterAllDeps): void {
