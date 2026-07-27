@@ -1,7 +1,7 @@
 // codex-config — .mcp.json -> `codex exec -c` overrides (pure functions).
 
 import { describe, expect, it } from 'vitest';
-import { codexMcpArgs, expandEnvValue, tomlKey, tomlString } from '../../engines/codex-config';
+import { codexEffortArgs, codexMcpArgs, codexModelArgs, expandEnvValue, tomlKey, tomlString } from '../../engines/codex-config';
 import type { McpServerConfig } from '../../mcp-config';
 
 describe('tomlString', () => {
@@ -64,5 +64,32 @@ describe('codexMcpArgs', () => {
   it('omits args/env overrides when the entry has none', () => {
     const bare: McpServerConfig = { id: 's', name: 's', transport: 'stdio', command: 'srv', enabled: true };
     expect(codexMcpArgs([bare], {})).toEqual(['-c', 'mcp_servers.s.command="srv"']);
+  });
+});
+
+describe('codexModelArgs', () => {
+  it('emits the -m pair for a chosen model', () => {
+    expect(codexModelArgs('gpt-5.6-sol')).toEqual(['-m', 'gpt-5.6-sol']);
+  });
+
+  it('emits nothing when no model is chosen (codex keeps its own default)', () => {
+    expect(codexModelArgs(null)).toEqual([]);
+    expect(codexModelArgs(undefined)).toEqual([]);
+    expect(codexModelArgs('')).toEqual([]);
+  });
+});
+
+describe('codexEffortArgs', () => {
+  it('emits the -c override with the value BARE, not TOML-quoted', () => {
+    expect(codexEffortArgs('high')).toEqual(['-c', 'model_reasoning_effort=high']);
+    // The pre-validated enum needs no quoting; a quoted value would be a TOML
+    // string where the CLI was measured parsing a bare one.
+    expect(codexEffortArgs('xhigh')[1]).toBe('model_reasoning_effort=xhigh');
+    expect(codexEffortArgs('xhigh')[1]).not.toContain('"');
+  });
+
+  it('emits nothing when no effort is set', () => {
+    expect(codexEffortArgs(null)).toEqual([]);
+    expect(codexEffortArgs(undefined)).toEqual([]);
   });
 });

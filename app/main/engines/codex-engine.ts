@@ -21,10 +21,11 @@
 import type { ChildProcess } from 'child_process';
 import { IpcError } from '../ipc-handlers/_error';
 import { readMcpConfig, type McpServerConfig } from '../mcp-config';
+import type { LocalChatTurnOpts, LocalChatUsage } from '../../shared/ipc-contract';
 import type { Engine, EngineDeps, EngineSession, EngineStartOpts } from './types';
 import { killProcTreeNow, stopProcTree } from './kill-tree';
 import { LineAccumulator } from './stream-lines';
-import { codexMcpArgs } from './codex-config';
+import { codexEffortArgs, codexMcpArgs, codexModelArgs } from './codex-config';
 
 // Flags of a FRESH turn. workspace-write keeps parity of usefulness with a
 // claude chat (the CLI can actually act on the project) while staying inside
@@ -42,6 +43,31 @@ const STDERR_TAIL_LINES = 5;
 
 export type ReadMcpFn = (projectRoot: string) => Promise<McpServerConfig[]>;
 
+// codex's turn.completed usage payload -> the IPC usage contract. Wire names are
+// snake_case (live-verified: input_tokens, cached_input_tokens,
+// cache_write_input_tokens, output_tokens, reasoning_output_tokens).
+const USAGE_FIELDS: ReadonlyArray<[string, 'inputTokens' | 'cachedInputTokens' | 'cacheWriteInputTokens' | 'outputTokens' | 'reasoningOutputTokens']> = [
+  ['input_tokens', 'inputTokens'],
+  ['cached_input_tokens', 'cachedInputTokens'],
+  ['cache_write_input_tokens', 'cacheWriteInputTokens'],
+  ['output_tokens', 'outputTokens'],
+  ['reasoning_output_tokens', 'reasoningOutputTokens'],
+];
+
+// A counter is copied ONLY when the payload really carries a number: an absent
+// metric stays undefined, because a defaulted 0 would read as a measurement.
+function codexUsage(raw: unknown, model?: string | null): LocalChatUsage {
+  const wire = (raw ?? {}) as Record<string, unknown>;
+  // codex bills a subscription and reports no dollar figure at all — null is
+  // the honest value here, and an estimate would be an invented measurement.
+  const usage: LocalChatUsage = { engine: 'codex', model: model ?? null, costUsd: null };
+  for (const [key, field] of USAGE_FIELDS) {
+    const v = wire[key];
+    if (typeof v === 'number') usage[field] = v;
+  }
+  return usage;
+}
+
 export class CodexEngine implements Engine {
   readonly id = 'codex' as const;
 
@@ -50,7 +76,7 @@ export class CodexEngine implements Engine {
     private readonly readMcp: ReadMcpFn = readMcpConfig
   ) {}
 
-  start({ sessionId, cwd, emit, onClose }: EngineStartOpts): EngineSession {
+  start({ sessionId, cwd, model, effort, emit, onClose }: EngineStartOpts): EngineSession {
     const deps = this.deps;
     const readMcp = this.readMcp;
     const state = {
@@ -59,7 +85,9 @@ export class CodexEngine implements Engine {
       stopped: false,
     };
 
-    async function send(message: string): Promise<void> {
+    // The session-default effort captured above is the baseline; a turn may
+    // raise or lower it for itself alone.
+    async function send(message: string, turnOpts?: LocalChatTurnOpts): Promise<void> {
       if (state.stopped) throw new IpcError('NOT_FOUND', 'Session locale absente ou fermée.');
       if (state.proc) throw new IpcError('INVALID_ARGUMENT', 'Un tour codex est déjà en cours pour cette session.');
 
@@ -70,9 +98,15 @@ export class CodexEngine implements Engine {
         mcpArgs = codexMcpArgs(await readMcp(cwd));
       } catch { /* malformed .mcp.json — chat still works, without MCP */ }
 
+      const effortArgs = codexEffortArgs(turnOpts?.reasoningEffort ?? effort);
+
+      // Resume takes the effort override but NOT -m. `-m` IS accepted on
+      // `exec resume` (exit 0, measured) — the model stays session-scoped by
+      // product decision, so changing model means opening a new session. That
+      // is a choice, not a CLI limitation.
       const args = state.threadId
-        ? ['exec', 'resume', state.threadId, ...RESUME_FLAGS, ...mcpArgs, '-']
-        : ['exec', ...FRESH_FLAGS, ...mcpArgs, '-'];
+        ? ['exec', 'resume', state.threadId, ...RESUME_FLAGS, ...effortArgs, ...mcpArgs, '-']
+        : ['exec', ...FRESH_FLAGS, ...codexModelArgs(model), ...effortArgs, ...mcpArgs, '-'];
 
       const bin = deps.resolveBin('codex') || 'codex';
       let proc: ChildProcess;
@@ -131,7 +165,7 @@ export class CodexEngine implements Engine {
           }
           case 'turn.completed':
             endTurn();
-            emit({ type: 'complete', sessionId, result: lastAgentText });
+            emit({ type: 'complete', sessionId, result: lastAgentText, usage: codexUsage(event.usage, model) });
             break;
           case 'turn.failed': {
             endTurn();

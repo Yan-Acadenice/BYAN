@@ -7,6 +7,7 @@
 // parsed as TOML, which gives us project-scoped wiring with zero file writes.
 
 import type { McpServerConfig } from '../mcp-config';
+import type { ReasoningEffort } from '../../shared/engine-options';
 
 // TOML basic-string quoting. JSON string escaping is a valid TOML basic string
 // (same double-quote delimiter, same backslash escapes) — including Windows
@@ -48,4 +49,23 @@ export function codexMcpArgs(servers: McpServerConfig[], env: NodeJS.ProcessEnv 
     }
   }
   return args;
+}
+
+// Model selection for a FRESH turn (`-m`). Empty when no model is chosen, so
+// the caller can splice unconditionally and codex keeps its own default.
+export function codexModelArgs(model?: string | null): string[] {
+  return model ? ['-m', model] : [];
+}
+
+// Reasoning effort as a `-c` override, accepted on fresh AND `exec resume`
+// turns (live-verified), which is what makes effort a per-turn setting.
+//
+// NOT routed through tomlString on purpose: the caller guarantees a
+// ReasoningEffort enum member (the bridge validates against REASONING_EFFORTS
+// before anything reaches here), so the value is one of seven bare words with
+// nothing to escape — the injection surface tomlString exists for cannot arise.
+// The bare form is what was measured against the CLI; quoting would hand codex
+// a TOML string where it parsed a bare value.
+export function codexEffortArgs(effort?: ReasoningEffort | null): string[] {
+  return effort ? ['-c', `model_reasoning_effort=${effort}`] : [];
 }

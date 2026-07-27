@@ -25,9 +25,18 @@ export class ClaudeEngine implements Engine {
 
   constructor(private readonly deps: EngineDeps) {}
 
-  start({ sessionId, cwd, agent, emit, onClose }: EngineStartOpts): EngineSession {
+  // `effort` is deliberately NOT destructured from EngineStartOpts, even though
+  // the contract carries it: claude has NO reasoning-effort flag in --print mode.
+  // With no local binding there is nothing to map onto argv by mistake, so a fake
+  // setting is structurally impossible here rather than merely unlikely.
+  start({ sessionId, cwd, agent, model, emit, onClose }: EngineStartOpts): EngineSession {
     const args = ['--print', '--verbose', '--output-format', 'stream-json', '--input-format', 'stream-json'];
     if (agent) args.push('--agent', agent);
+    // --model takes an alias ('opus') or a full name ('claude-fable-5'). The
+    // token arrives pre-validated: the bridge is the trust boundary and rejects
+    // anything isValidModelFor('claude') refuses BEFORE a spawn, so nothing is
+    // re-checked here. That guarantee is the bridge's to keep.
+    if (model) args.push('--model', model);
     // NOTE: no --resume. A byan session record id is NOT claude's own session
     // uuid; "reprendre" in native mode = reopen claude in the project dir.
 
@@ -86,7 +95,20 @@ export class ClaudeEngine implements Engine {
           if (event.is_error === true) {
             emit({ type: 'error', sessionId, error: `claude: ${String(event.result || event.subtype || 'le tour a échoué')}` });
           } else {
-            emit({ type: 'complete', sessionId, result: event.result });
+            // Usage reports ONLY what this stream actually carries: cost and
+            // duration. claude publishes no token breakdown here, so those
+            // fields stay ABSENT — a 0 would read as a measured zero.
+            emit({
+              type: 'complete',
+              sessionId,
+              result: event.result,
+              usage: {
+                engine: 'claude',
+                model: model ?? null,
+                costUsd: typeof event.total_cost_usd === 'number' ? event.total_cost_usd : null,
+                durationMs: typeof event.duration_ms === 'number' ? event.duration_ms : null,
+              },
+            });
           }
           break;
         case 'error':
