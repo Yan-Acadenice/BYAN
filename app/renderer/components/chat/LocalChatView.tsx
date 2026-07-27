@@ -623,7 +623,7 @@ export default function LocalChatView() {
             <span data-testid="local-agent-chip" className="font-mono-code text-[10px] text-ink-500">agent {agent}</span>
           )}
           {sessionId && (
-            <span className="font-mono-code text-[10px] text-ink-500">session {sessionId.slice(0, 8)}</span>
+            <span data-testid="local-session-id" className="font-mono-code text-[10px] text-ink-500">session {sessionId.slice(0, 8)}</span>
           )}
         </div>
         <div className="flex items-center gap-xs">
@@ -716,11 +716,21 @@ export default function LocalChatView() {
           <div className="flex flex-col items-center justify-center h-full text-center">
             <MessageSquare size={32} className="text-ink-700 mb-sm" />
             <p className="text-sm text-ink-500">Chat local avec {engine} sur ce PC.</p>
-            <p className="text-xs text-ink-600 mt-xs">
-              {sessionId
-                ? 'Session ouverte, aucun message pour le moment. Écris quelque chose.'
-                : 'Envoie un message — une session démarre toute seule.'}
-            </p>
+            {/* An opening session is the one state where the void was misleading:
+                a message typed here IS kept and sent once the session is up, so
+                the interface says so instead of looking inert. */}
+            {starting ? (
+              <p className="text-xs text-ink-400 mt-xs flex items-center gap-xs" data-testid="local-starting">
+                <Loader2 size={12} className="animate-spin" />
+                Ouverture de la session — ce que tu écris sera envoyé dès qu'elle répond.
+              </p>
+            ) : (
+              <p className="text-xs text-ink-600 mt-xs">
+                {sessionId
+                  ? 'Session ouverte, aucun message pour le moment. Écris quelque chose.'
+                  : 'Envoie un message — une session démarre toute seule.'}
+              </p>
+            )}
           </div>
         ) : (
           <>

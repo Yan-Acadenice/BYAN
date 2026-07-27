@@ -677,3 +677,60 @@ describe('LocalChatView — pendant que ca travaille', () => {
     expect(screen.getByTestId('local-activity')).toHaveTextContent('Read');
   });
 });
+
+
+describe("LocalChatView — envoyer pendant qu'une session s'ouvre", () => {
+  // Hermetic: clearAllMocks does NOT drain a mockReturnValueOnce queue, so a
+  // leftover once-value from one test would answer the next test's first call.
+  // These two tests each reset and install exactly what they need.
+  function deferStart() {
+    const gate: { resolve?: (v: { sessionId: string; cwd: string }) => void } = {};
+    mockStart.mockReset();
+    mockStart.mockReturnValueOnce(new Promise((res) => { gate.resolve = res; }));
+    mockStart.mockResolvedValue({ sessionId: 'sess-later', cwd: '/home/yan/monprojet' });
+    return gate;
+  }
+
+  it('keeps the message and sends it to the NEW session instead of losing it', async () => {
+    // The reported bug: /byan starts a session without awaiting, and a message
+    // typed during that gap went to the OUTGOING session, had its bubble erased
+    // by the incoming session's reset, and its target process stopped. No error,
+    // no reply, no trace — the message simply vanished.
+    const gate = deferStart();
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    // Starts a session and does NOT wait for it.
+    type('/byan');
+    pressEnter();
+    await waitFor(() => expect(mockStart).toHaveBeenCalledTimes(1));
+
+    // The user types into the gap.
+    type('salut');
+    pressEnter();
+
+    // The start lands only now.
+    gate.resolve?.({ sessionId: 'sess-byan', cwd: '/home/yan/monprojet' });
+
+    // The message survives...
+    expect(await screen.findByText('salut')).toBeInTheDocument();
+    // ...and reaches the session that is actually alive.
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-byan', 'salut', undefined));
+    // A second start would mean the send raced into opening its own session.
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    // And the live session is the one the turn went to.
+    expect(screen.getByTestId('local-session-id')).toHaveTextContent('sess-byan'.slice(0, 8));
+  });
+
+  it('says the session is opening instead of showing an empty void', async () => {
+    const gate = deferStart();
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    fireEvent.click(screen.getByTestId('local-new-session'));
+
+    expect(await screen.findByTestId('local-starting')).toHaveTextContent(/ouverture/i);
+    gate.resolve?.({ sessionId: 'sess-2', cwd: '/home/yan/monprojet' });
+    await waitFor(() => expect(screen.queryByTestId('local-starting')).toBeNull());
+  });
+});

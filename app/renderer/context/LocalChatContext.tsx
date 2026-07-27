@@ -198,6 +198,24 @@ function useLocalChatState(): UseLocalChat {
   // commits the full text. `streamText` state only mirrors it for rendering.
   const accRef = useRef('');
 
+  // The in-flight session start, if any. A turn sent while a session is opening
+  // used to race it: the message went to the OUTGOING session, then the incoming
+  // one reset the transcript and stopped that process — the message vanished with
+  // no error. send() now waits on this instead of reading a stale session id.
+  const startingRef = useRef<Promise<void> | null>(null);
+
+  // Wraps a start so both newSession and resume publish their promise, and clear
+  // it only if a newer start has not already replaced it.
+  const trackStart = useCallback(<T,>(run: () => Promise<T>): Promise<T> => {
+    const p = run();
+    const tracked = p.then(() => undefined, () => undefined);
+    startingRef.current = tracked;
+    void tracked.then(() => {
+      if (startingRef.current === tracked) startingRef.current = null;
+    });
+    return p;
+  }, []);
+
   useEffect(() => {
     if (typeof window.byanEvents === 'undefined') return;
     return window.byanEvents.on('byan:chat-local:message', (payload: unknown) => {
@@ -317,7 +335,7 @@ function useLocalChatState(): UseLocalChat {
     setError(null);
     const prev = sessionRef.current;
     try {
-      const { sessionId: id, cwd } = await window.byanApi.localChat.start(opts);
+      const { sessionId: id, cwd } = await trackStart(() => window.byanApi.localChat.start(opts));
       setSessionCwd(cwd ?? null);
       // Repoint the frame filter SYNCHRONOUSLY : the effect that syncs sessionRef
       // only runs after commit, so a late frame from the old session could
@@ -343,12 +361,20 @@ function useLocalChatState(): UseLocalChat {
     } finally {
       setStarting(false);
     }
-  }, []);
+  }, [trackStart]);
 
   // startOpts (F4) : when a session is created on the fly, bind it to a cwd/agent.
   const send = useCallback(async (text: string, startOpts?: LocalChatStartOpts, turnOpts?: LocalChatTurnOpts) => {
     const content = text.trim();
     if (!content || streaming) return;
+
+    // A session may be opening right now (the /agent and /byan commands start one
+    // without awaiting). Waiting here is what keeps the message: it then lands on
+    // the session that is actually alive, instead of on the one about to be
+    // stopped. The session id MUST be read after this await, not before.
+    if (startingRef.current) {
+      try { await startingRef.current; } catch { /* the start's own error path reports it */ }
+    }
 
     // Create a session on the fly if the user sends before starting one.
     let id = sessionRef.current;
@@ -434,7 +460,7 @@ function useLocalChatState(): UseLocalChat {
       // Seed the thread with any stored history so the user sees prior turns.
       const history = (await window.byanApi.localChat.history?.(recordId)) ?? [];
       setMessages(history.map((h, i) => ({ id: `h-${i}`, role: toRole(h.role), content: h.content })));
-      const { sessionId: id, cwd: resolvedCwd } = await window.byanApi.localChat.start(cwd ? { cwd } : undefined);
+      const { sessionId: id, cwd: resolvedCwd } = await trackStart(() => window.byanApi.localChat.start(cwd ? { cwd } : undefined));
       setSessionCwd(resolvedCwd ?? null);
       sessionRef.current = id; // sync (see newSession) — filter stale frames immediately
       setSessionId(id);
@@ -453,7 +479,7 @@ function useLocalChatState(): UseLocalChat {
     } finally {
       setStarting(false);
     }
-  }, []);
+  }, [trackStart]);
 
   return {
     sessionId, messages, streaming, streamText, starting, error, sessions,
