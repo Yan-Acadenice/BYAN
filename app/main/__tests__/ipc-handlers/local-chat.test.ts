@@ -255,6 +255,90 @@ describe('LocalChatBridge stream-json parsing', () => {
   });
 });
 
+describe('LocalChatBridge — model/effort trust boundary (F6)', () => {
+  // The engines push model/effort straight into argv without re-checking, so
+  // every rejection below is what keeps an unvalidated token out of a spawn.
+
+  it('rejects an unknown effort value before spawning anything', async () => {
+    const { bridge, spawnFn } = makeBridge();
+    await expect(bridge.start({ cwd, cli: 'codex', effort: 'ultra' as never }))
+      .rejects.toThrow(/effort invalide/i);
+    expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects a model that does not belong to the engine', async () => {
+    const { bridge, spawnFn } = makeBridge();
+    await expect(bridge.start({ cwd, cli: 'claude', model: 'gpt-4' }))
+      .rejects.toThrow(/modele invalide/i);
+    // And the reverse direction.
+    await expect(bridge.start({ cwd, cli: 'codex', model: 'opus' }))
+      .rejects.toThrow(/modele invalide/i);
+    expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects a model carrying shell/TOML-meaningful characters', async () => {
+    const { bridge, spawnFn } = makeBridge();
+    await expect(bridge.start({ cwd, cli: 'codex', model: 'gpt-5; rm -rf /' }))
+      .rejects.toThrow(/modele invalide/i);
+    expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it('DROPS an effort sent for claude instead of erroring, and says so on started', async () => {
+    // A UI that forgets to hide the control must not break the session — but it
+    // must not be told the setting was applied either.
+    const { bridge, broadcasts } = makeBridge();
+    await bridge.start({ cwd, cli: 'claude', effort: 'high', model: 'opus' });
+    const started = broadcasts.find((b) => b.type === 'started') as Extract<LocalChatMessage, { type: 'started' }>;
+    expect(started.effort).toBeNull();
+    expect(started.model).toBe('opus');
+  });
+
+  it('echoes the applied model+effort on the started frame for codex', async () => {
+    const { bridge, broadcasts } = makeBridge();
+    await bridge.start({ cwd, cli: 'codex', model: 'gpt-5.6-sol', effort: 'xhigh' });
+    const started = broadcasts.find((b) => b.type === 'started') as Extract<LocalChatMessage, { type: 'started' }>;
+    expect(started).toMatchObject({ cli: 'codex', model: 'gpt-5.6-sol', effort: 'xhigh' });
+  });
+
+  it('forwards a per-turn effort to a codex session', async () => {
+    const sent: Array<{ message: string; turnOpts?: unknown }> = [];
+    const bridge = new LocalChatBridge({
+      spawnFn: vi.fn((() => new FakeProc()) as unknown as SpawnFn),
+      broadcast: () => {},
+      defaultCwd: () => cwd,
+      resolveBin: () => null,
+      spawnEnv: () => ({ PATH: '/fake/bin' }),
+      readMcp: async () => [],
+    });
+    const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+    // Swap in a recording session double: this asserts the BRIDGE's forwarding,
+    // independently of how the codex engine builds its argv.
+    const entry = (bridge as unknown as { sessions: Map<string, { engine: string; session: { send: (m: string, t?: unknown) => void } }> }).sessions.get(sessionId)!;
+    entry.session = { send: (message, turnOpts) => { sent.push({ message, turnOpts }); } } as never;
+
+    await bridge.send(sessionId, 'salut', { reasoningEffort: 'low' });
+    expect(sent[0]).toEqual({ message: 'salut', turnOpts: { reasoningEffort: 'low' } });
+  });
+
+  it('rejects a per-turn effort that is not a known value', async () => {
+    const { bridge } = makeBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+    await expect(bridge.send(sessionId, 'x', { reasoningEffort: 'nope' as never }))
+      .rejects.toThrow(/effort invalide/i);
+  });
+
+  it('does NOT forward a per-turn effort to a claude session', async () => {
+    const sent: Array<{ message: string; turnOpts?: unknown }> = [];
+    const { bridge } = makeBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'claude' });
+    const entry = (bridge as unknown as { sessions: Map<string, { engine: string; session: { send: (m: string, t?: unknown) => void } }> }).sessions.get(sessionId)!;
+    entry.session = { send: (message, turnOpts) => { sent.push({ message, turnOpts }); } } as never;
+
+    await bridge.send(sessionId, 'salut', { reasoningEffort: 'high' });
+    expect(sent[0]).toEqual({ message: 'salut', turnOpts: undefined });
+  });
+});
+
 describe('LocalChatBridge lifecycle', () => {
   it('cleans the session on process exit (send then rejects)', async () => {
     const { bridge, fake } = makeBridge();

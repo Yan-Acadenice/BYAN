@@ -19,7 +19,8 @@ import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage } from '../../shared/ipc-contract';
+import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage, LocalChatTurnOpts } from '../../shared/ipc-contract';
+import { REASONING_EFFORTS, engineSupportsEffort, isValidEffort, isValidModelFor } from '../../shared/engine-options';
 import { IpcError, wrap } from './_error';
 import { localSessions, resolveProjectRoot } from '../local-data';
 import { secureStore } from '../secure-store';
@@ -128,6 +129,23 @@ export class LocalChatBridge {
       throw new IpcError('INVALID_ARGUMENT', `Trop de sessions locales ouvertes (max ${MAX_SESSIONS}). Ferme-en une.`);
     }
 
+    // The bridge is the TRUST BOUNDARY for model + effort: the adapters push
+    // these straight into argv without re-checking, so anything that fails here
+    // must never reach a spawn.
+    const model = opts?.model ?? null;
+    if (model !== null && !isValidModelFor(cli, model)) {
+      throw new IpcError('INVALID_ARGUMENT', `Modele invalide pour ${cli}: ${String(model)}.`);
+    }
+    // Effort is CODEX-ONLY. A claude start carrying one is not an error (a UI
+    // that forgets to hide the control must not break) — it is silently
+    // dropped, the mirror of the agent gate just below.
+    const effort = engineSupportsEffort(cli) ? (opts?.effort ?? null) : null;
+    if (effort !== null && !isValidEffort(effort)) {
+      // Caught here rather than at the CLI: an invalid value fails at the API
+      // with HTTP 400 and burns a whole turn (measured).
+      throw new IpcError('INVALID_ARGUMENT', `Niveau d'effort invalide: ${String(opts?.effort)}. Valeurs: ${REASONING_EFFORTS.join(', ')}.`);
+    }
+
     const sessionId = randomUUID();
     const session = this.engines[cli].start({
       sessionId,
@@ -135,19 +153,31 @@ export class LocalChatBridge {
       // --agent is a claude concept; codex personas live in .codex/prompts and
       // are not selectable from exec mode, so the option does not cross over.
       agent: cli === 'claude' ? opts?.agent : null,
+      model,
+      effort,
       emit: (msg) => this.broadcast(msg),
       onClose: () => { this.sessions.delete(sessionId); },
     });
     this.sessions.set(sessionId, { engine: cli, session });
-    this.broadcast({ type: 'started', sessionId, cli });
+    // The frame echoes what was ACTUALLY applied, not what was asked: a claude
+    // session reports effort null even if the renderer sent one, so the UI
+    // reflects reality instead of its own request.
+    this.broadcast({ type: 'started', sessionId, cli, model, effort });
     return { sessionId };
   }
 
-  async send(sessionId: string, message: string): Promise<void> {
+  async send(sessionId: string, message: string, turnOpts?: LocalChatTurnOpts): Promise<void> {
     if (!sessionId) throw new IpcError('INVALID_ARGUMENT', 'sessionId requis');
     const entry = this.sessions.get(sessionId);
     if (!entry) throw new IpcError('NOT_FOUND', 'Session locale absente ou fermée.');
-    await entry.session.send(message);
+    const turnEffort = turnOpts?.reasoningEffort;
+    if (turnEffort !== undefined && turnEffort !== null && !isValidEffort(turnEffort)) {
+      throw new IpcError('INVALID_ARGUMENT', `Niveau d'effort invalide: ${String(turnEffort)}. Valeurs: ${REASONING_EFFORTS.join(', ')}.`);
+    }
+    // A per-turn effort on an engine without the concept is dropped, not
+    // forwarded — same rule as the session-level gate.
+    const forwarded = engineSupportsEffort(entry.engine) ? turnOpts : undefined;
+    await entry.session.send(message, forwarded);
   }
 
   async stop(sessionId: string): Promise<void> {
@@ -193,7 +223,7 @@ export class LocalChatBridge {
 
   register(ipcMain: IpcMain): void {
     ipcMain.handle(IPC_CHANNELS.localChat.start, wrap((_evt, opts?: LocalChatStartOpts) => this.start(opts)));
-    ipcMain.handle(IPC_CHANNELS.localChat.send, wrap((_evt, sessionId: string, message: string) => this.send(sessionId, message)));
+    ipcMain.handle(IPC_CHANNELS.localChat.send, wrap((_evt, sessionId: string, message: string, turnOpts?: LocalChatTurnOpts) => this.send(sessionId, message, turnOpts)));
     ipcMain.handle(IPC_CHANNELS.localChat.stop, wrap((_evt, sessionId: string) => this.stop(sessionId)));
     ipcMain.handle(IPC_CHANNELS.localChat.list, wrap(() => this.list()));
     ipcMain.handle(IPC_CHANNELS.localChat.history, wrap((_evt, sessionId: string) => this.history(sessionId)));
