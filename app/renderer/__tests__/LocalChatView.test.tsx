@@ -18,6 +18,7 @@ const mockHistory = vi.fn();
 const mockStoreGet = vi.fn();
 const mockOpenDialog = vi.fn();
 const mockCliDetect = vi.fn();
+const mockAgents = vi.fn();
 const mockStoreSet = vi.fn().mockResolvedValue(undefined);
 
 let listeners: Array<(payload: unknown) => void> = [];
@@ -29,7 +30,7 @@ beforeEach(() => {
   listeners = [];
   Object.defineProperty(window, 'byanApi', {
     value: {
-      localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory },
+      localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory, agents: mockAgents },
       store: { get: mockStoreGet, set: mockStoreSet },
       fs: { openProjectDialog: mockOpenDialog },
       cli: { detect: mockCliDetect },
@@ -55,6 +56,9 @@ beforeEach(() => {
   mockStoreGet.mockResolvedValue(null);
   mockOpenDialog.mockResolvedValue(null);
   mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude' }); // codex absent by default
+  // What `claude --agent` really honours here: the declared slugs are prefixed,
+  // so a bare 'byan' has to be resolved rather than sent as typed.
+  mockAgents.mockResolvedValue(['bmad-byan', 'bmad-byan-v2', 'bmad-bmm-dev', 'claude']);
   mockStoreSet.mockClear().mockResolvedValue(undefined);
 });
 
@@ -340,15 +344,69 @@ describe('LocalChatView — slash commands', () => {
     await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'bonjour', undefined));
   });
 
-  it('"/byan" selects the byan agent and shows it', async () => {
+  it('"/byan" resolves the DECLARED slug and opens a session with it', async () => {
+    // The regression this pins: the command used to send the bare name 'byan',
+    // which no project declares. `claude --agent byan` exits 0 and silently
+    // ignores the flag (measured), so /byan looked like it worked and did
+    // nothing at all. Only the resolved slug may reach a spawn.
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     await screen.findByTestId('local-model-chip');
 
     type('/byan');
     pressEnter();
 
-    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localAgent', 'byan'));
-    expect(screen.getByTestId('local-agent-chip')).toHaveTextContent('byan');
+    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localAgent', 'bmad-byan'));
+    expect(mockStoreSet).not.toHaveBeenCalledWith('chat.localAgent', 'byan');
+    // Applied at once: --agent is a spawn-time flag, so a session is opened.
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({ cli: 'claude', agent: 'bmad-byan' }),
+    ));
+    expect(screen.getByTestId('local-agent-chip')).toHaveTextContent('bmad-byan');
+  });
+
+  it('an unknown agent is refused with suggestions, and never reaches a spawn', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/agent byanx');
+    pressEnter();
+
+    const notice = await screen.findByTestId('local-notice');
+    expect(notice).toHaveTextContent(/introuvable/i);
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(mockStoreSet).not.toHaveBeenCalledWith('chat.localAgent', 'byanx');
+  });
+
+  it('"/agent" with no argument lists what the project declares', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/agent');
+    pressEnter();
+
+    const notice = await screen.findByTestId('local-notice');
+    expect(notice).toHaveTextContent('bmad-byan');
+    expect(mockStart).not.toHaveBeenCalled();
+  });
+
+  it('a bare declared name resolves by suffix (dev -> bmad-bmm-dev)', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/agent dev');
+    pressEnter();
+
+    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localAgent', 'bmad-bmm-dev'));
+  });
+
+  it('refuses an agent on codex instead of setting one that cannot apply', async () => {
+    await renderAsCodex();
+    type('/byan');
+    pressEnter();
+
+    const notice = await screen.findByTestId('local-notice');
+    expect(notice).toHaveTextContent(/codex/i);
+    expect(mockStoreSet).not.toHaveBeenCalledWith('chat.localAgent', 'bmad-byan');
   });
 
   it('"/usage" opens the usage panel', async () => {

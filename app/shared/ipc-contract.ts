@@ -566,6 +566,10 @@ export interface ByanApi {
     stop(sessionId: string): Promise<void>;
     // List persisted local sessions (most recent first) so the user can resume.
     list(): Promise<LocalChatSessionSummary[]>;
+    // Agent slugs `claude --agent` will actually honour for this project dir.
+    // Needed because the CLI ACCEPTS an unknown slug and silently ignores it
+    // (measured), so an unvalidated choice looks applied while doing nothing.
+    agents(cwd?: string): Promise<string[]>;
     // Load a session's stored messages (to seed the thread on resume).
     history(sessionId: string): Promise<LocalChatHistoryMessage[]>;
   };
@@ -647,6 +651,7 @@ export const IPC_CHANNELS = {
     send: 'byan:localChat:send',
     stop: 'byan:localChat:stop',
     list: 'byan:localChat:list',
+    agents: 'byan:localChat:agents',
     history: 'byan:localChat:history'
   },
   terminal: {

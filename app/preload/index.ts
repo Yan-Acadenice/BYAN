@@ -106,6 +106,7 @@ const api: ByanApi = {
       invoke<void>(IPC_CHANNELS.localChat.send, sessionId, message, turnOpts),
     stop: (sessionId: string) => invoke<void>(IPC_CHANNELS.localChat.stop, sessionId),
     list: () => invoke<LocalChatSessionSummary[]>(IPC_CHANNELS.localChat.list),
+    agents: (cwd?: string) => invoke<string[]>(IPC_CHANNELS.localChat.agents, cwd),
     history: (sessionId: string) => invoke<LocalChatHistoryMessage[]>(IPC_CHANNELS.localChat.history, sessionId)
   },
   terminal: {

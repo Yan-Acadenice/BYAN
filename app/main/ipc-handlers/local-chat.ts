@@ -25,6 +25,7 @@ import { IpcError, wrap } from './_error';
 import { localSessions, resolveProjectRoot } from '../local-data';
 import { secureStore } from '../secure-store';
 import { resolveExecutable, spawnEnv } from '../resolve-bin';
+import { availableClaudeAgents } from '../claude-agents';
 import type { Engine, EngineId, EngineSession, SpawnFn } from '../engines/types';
 import { isEngineId } from '../engines/types';
 import { ClaudeEngine } from '../engines/claude-engine';
@@ -215,6 +216,14 @@ export class LocalChatBridge {
     }));
   }
 
+  // Agent slugs the claude CLI will honour for this project. Exposed because an
+  // unknown slug is accepted and silently dropped by the CLI, so the choice has
+  // to be validated before it is offered, not after it failed to apply.
+  async agents(cwd?: string): Promise<string[]> {
+    const root = cwd || (await this.defaultCwd()) || null;
+    return availableClaudeAgents(root);
+  }
+
   // Native sessions are live processes ; there is no separate on-disk transcript
   // to seed from yet, so history is empty (each CLI owns its own context).
   async history(_sessionId: string): Promise<LocalChatHistoryMessage[]> {
@@ -226,6 +235,7 @@ export class LocalChatBridge {
     ipcMain.handle(IPC_CHANNELS.localChat.send, wrap((_evt, sessionId: string, message: string, turnOpts?: LocalChatTurnOpts) => this.send(sessionId, message, turnOpts)));
     ipcMain.handle(IPC_CHANNELS.localChat.stop, wrap((_evt, sessionId: string) => this.stop(sessionId)));
     ipcMain.handle(IPC_CHANNELS.localChat.list, wrap(() => this.list()));
+    ipcMain.handle(IPC_CHANNELS.localChat.agents, wrap((_evt, cwd?: string) => this.agents(cwd)));
     ipcMain.handle(IPC_CHANNELS.localChat.history, wrap((_evt, sessionId: string) => this.history(sessionId)));
   }
 }

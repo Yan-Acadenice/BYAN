@@ -15,6 +15,7 @@ import SlashCommandMenu from './SlashCommandMenu';
 import UsagePanel from './panels/UsagePanel';
 import McpPanel from './panels/McpPanel';
 import { parseSlashInput } from '../../lib/slash-commands';
+import { resolveClaudeAgent, suggestClaudeAgents } from '../../../shared/agent-slugs';
 import {
   MODEL_PRESETS,
   REASONING_EFFORTS,
@@ -68,6 +69,10 @@ export default function LocalChatView() {
   const [usageOpen, setUsageOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  // Agent slugs the claude CLI will actually honour here. Loaded from disk
+  // because an unknown slug is accepted and silently dropped by the CLI, so a
+  // choice has to be checked before it is sent, not after it failed to apply.
+  const [claudeAgents, setClaudeAgents] = useState<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionsRef = useRef<HTMLDivElement>(null);
@@ -182,6 +187,17 @@ export default function LocalChatView() {
     })();
   }, []);
 
+  // Reload the agent list whenever the project dir changes: agents are declared
+  // per project (.claude/agents), so the valid set moves with the folder.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const list = await window.byanApi.localChat.agents?.(cwd ?? undefined);
+        setClaudeAgents(Array.isArray(list) ? list : []);
+      } catch { setClaudeAgents([]); }
+    })();
+  }, [cwd]);
+
   // Close a header menu on an outside click. One effect per menu, same rule.
   useEffect(() => {
     if (!sessionsOpen && !modelOpen && !effortOpen && !usageOpen) return;
@@ -214,6 +230,29 @@ export default function LocalChatView() {
   // selections at call time, so there is nothing to memoize.
   const onNewSession = () => {
     void newSession(startOpts()).then(() => void refreshSessions());
+  };
+
+  // Only claude takes an agent: codex exec has no equivalent flag, its personas
+  // live in .codex/prompts and are not selectable from that mode.
+  const engineSupportsAgent = (e: LocalEngine) => e === 'claude';
+
+  // Set the agent AND open a session with it, because --agent is a SPAWN-TIME
+  // flag: setting it while a session runs changes nothing until the next start.
+  // The previous version only left a "for the next session" notice, so a user who
+  // had just clicked "Nouvelle session" then typed /byan saw no effect and no
+  // reason — the order mattered and nothing said so. Applying it here costs the
+  // visible transcript, which the notice states rather than hides.
+  const applyAgent = (slug: string | null) => {
+    setAgent(slug);
+    try { void window.byanApi.store?.set?.('chat.localAgent', slug ?? ''); } catch { /* non-blocking */ }
+    const opts = { cli: engine, ...(cwd ? { cwd } : {}), ...(model ? { model } : {}), ...(slug ? { agent: slug } : {}) };
+    void newSession(opts).then(() => void refreshSessions());
+    setNotice({
+      tone: 'info',
+      text: slug
+        ? `Nouvelle session avec l'agent ${slug} (le fil precedent est ferme).`
+        : 'Nouvelle session sans agent (le fil precedent est ferme).',
+    });
   };
 
   // Run a slash command. Returns nothing: every arm either acts or explains
@@ -258,22 +297,56 @@ export default function LocalChatView() {
         return;
       }
       case '/agent': {
-        const next = arg.trim() || null;
-        setAgent(next);
-        try { void window.byanApi.store?.set?.('chat.localAgent', next ?? ''); } catch { /* non-blocking */ }
-        setNotice({
-          tone: engine === 'claude' ? 'info' : 'warn',
-          text: engine === 'claude'
-            ? (next ? `Agent ${next} pour la prochaine session.` : 'Agent par defaut restaure.')
-            : "codex ne permet pas de choisir un agent depuis ce mode — le reglage ne s'appliquera qu'a une session claude.",
-        });
+        const wanted = arg.trim();
+        if (!wanted) {
+          const shown = claudeAgents.slice(0, 8).join(', ');
+          setNotice({
+            tone: 'info',
+            text: claudeAgents.length
+              ? `Agents disponibles ici : ${shown}${claudeAgents.length > 8 ? ', ...' : ''}. Usage : /agent <nom>, ou /agent aucun pour revenir au defaut.`
+              : "Aucun agent declare pour ce projet (.claude/agents/ est vide ou absent).",
+          });
+          return;
+        }
+        if (wanted.toLowerCase() === 'aucun' || wanted.toLowerCase() === 'none') {
+          applyAgent(null);
+          return;
+        }
+        if (!engineSupportsAgent(engine)) {
+          setNotice({ tone: 'warn', text: "codex ne permet pas de choisir un agent depuis ce mode — bascule sur claude avec /engine claude." });
+          return;
+        }
+        // Resolve BEFORE sending: the CLI accepts an unknown slug and silently
+        // ignores it, so an unchecked name looks applied and changes nothing.
+        const resolved = resolveClaudeAgent(wanted, claudeAgents);
+        if (!resolved) {
+          const near = suggestClaudeAgents(wanted, claudeAgents);
+          setNotice({
+            tone: 'warn',
+            text: near.length
+              ? `Agent "${wanted}" introuvable. Tu voulais dire : ${near.join(', ')} ?`
+              : `Agent "${wanted}" introuvable pour ce projet.`,
+          });
+          return;
+        }
+        applyAgent(resolved);
         return;
       }
-      case '/byan':
-        // BYAN is a claude agent (its skill lives in .claude/skills), so this is
-        // /agent byan with a name the user does not have to remember.
-        runCommand('/agent', 'byan');
+      case '/byan': {
+        // "Parle a BYAN" is an intent, not a setting: resolve the declared slug
+        // (bmad-byan here) rather than assume a name, then open the session.
+        if (!engineSupportsAgent(engine)) {
+          setNotice({ tone: 'warn', text: "codex ne permet pas de choisir un agent — bascule sur claude avec /engine claude." });
+          return;
+        }
+        const byan = resolveClaudeAgent('byan', claudeAgents);
+        if (!byan) {
+          setNotice({ tone: 'warn', text: "Aucun agent BYAN declare dans .claude/agents/ pour ce projet." });
+          return;
+        }
+        applyAgent(byan);
         return;
+      }
       case '/new':
         onNewSession();
         return;
