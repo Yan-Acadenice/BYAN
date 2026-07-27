@@ -7,13 +7,14 @@
 // The bridge stays engine-agnostic: session map, cap, quit sweep, broadcast.
 
 import type { ChildProcess } from 'child_process';
-import type { LocalChatMessage } from '../../shared/ipc-contract';
+import type { LocalChatMessage, LocalChatTurnOpts } from '../../shared/ipc-contract';
+import type { EngineId, ReasoningEffort } from '../../shared/engine-options';
 
-export type EngineId = 'claude' | 'codex';
-
-export function isEngineId(v: unknown): v is EngineId {
-  return v === 'claude' || v === 'codex';
-}
+// EngineId + its guard now live in shared/engine-options.ts (one vocabulary for
+// main, preload and renderer). Re-exported here so existing importers of
+// '../engines/types' keep working unchanged.
+export type { EngineId, ReasoningEffort };
+export { isEngineId } from '../../shared/engine-options';
 
 // A spawn signature narrow enough for tests to inject a fake process.
 export type SpawnFn = (
@@ -42,6 +43,11 @@ export interface EngineStartOpts {
   // Agent slug — claude only (--agent). The bridge passes null for engines
   // that have no equivalent.
   agent?: string | null;
+  // Model for the session, already validated per engine by the bridge.
+  model?: string | null;
+  // Session-default reasoning effort. The bridge passes null for engines with
+  // no effort concept (claude), so an adapter cannot receive one by accident.
+  effort?: ReasoningEffort | null;
   // Broadcast a normalized message for THIS session.
   emit: (msg: LocalChatMessage) => void;
   // The session became unusable (process died, user stopped it) — the bridge
@@ -50,7 +56,9 @@ export interface EngineStartOpts {
 }
 
 export interface EngineSession {
-  send(message: string): void | Promise<void>;
+  // turnOpts is OPTIONAL so an adapter that ignores per-turn overrides can
+  // still declare send(message) and satisfy this interface.
+  send(message: string, turnOpts?: LocalChatTurnOpts): void | Promise<void>;
   // Graceful stop: terminate, escalate after a grace period. Engines call
   // onClose themselves when the underlying resources are gone.
   stop(): void;

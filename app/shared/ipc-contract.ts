@@ -1,9 +1,17 @@
 // Public IPC contract between Electron main and renderer.
 // This file is the SINGLE SOURCE OF TRUTH for the window.byanApi shape.
 //
+// The engine vocabulary (which adapters exist, which reasoning-effort values a
+// CLI accepts) lives in ./engine-options so main and renderer validate against
+// the SAME truths — see that file's sourcing notes.
+//
 // Convention: all handlers return their value directly via Promise<T>.
 // On failure, handlers throw an IpcError (serializable). The renderer awaits
 // and uses standard try/catch — no Result wrapper noise on the call site.
+
+import type { EngineId, ReasoningEffort } from './engine-options';
+
+export type { EngineId, ReasoningEffort };
 
 // ---------- Auth ----------
 
@@ -228,10 +236,20 @@ export interface LocalChatStartOpts {
   // Which ENGINE drives the session. The value names an adapter in
   // main/engines/, never a binary — a renderer-supplied path reaching spawn
   // would be a spawn-any-binary surface. Default: 'claude'.
-  cli?: 'claude' | 'codex';
+  cli?: EngineId;
   // Optional agent slug (claude --agent). Ignored by the codex engine
   // (personas live in .codex/prompts and exec mode cannot select them).
   agent?: string | null;
+  // Model for the session (claude --model / codex -m). SESSION-scoped on both
+  // engines: claude fixes it at spawn, and while codex accepts -m on `exec
+  // resume` too (live-verified), keeping it per-session is a deliberate
+  // product choice — a mid-thread model change would otherwise be an implicit
+  // context reset. Validated per engine by engine-options.isValidModelFor.
+  model?: string | null;
+  // Reasoning effort — CODEX ONLY (claude exposes no such flag in --print
+  // mode). main silently drops it for cli:'claude' rather than erroring, so a
+  // UI that forgets to hide the control cannot produce a fake setting.
+  effort?: ReasoningEffort | null;
   // A session record id the UI asked to "reprendre". Native mode does NOT map it
   // to claude --resume (a record id is not claude's own uuid) ; the UI reopens
   // the session's project instead by passing its cwd.
@@ -311,12 +329,48 @@ export interface LocalInstallResult {
 // the WebUI wire protocol (chat-started / chat / chat-tool / chat-complete /
 // chat-error / chat-stopped) onto this shape so the renderer stays protocol-free.
 export type LocalChatMessage =
-  | { type: 'started'; sessionId: string; cli: string }
+  // `model`/`effort` echo what main ACTUALLY applied (effort is null on
+  // claude), so the UI reflects the real setting instead of its own request.
+  | { type: 'started'; sessionId: string; cli: EngineId; model?: string | null; effort?: ReasoningEffort | null }
   | { type: 'chunk'; sessionId: string; delta: string; role: 'assistant' }
   | { type: 'tool'; sessionId: string; tool: unknown }
-  | { type: 'complete'; sessionId: string; result?: unknown }
+  | { type: 'complete'; sessionId: string; result?: unknown; usage?: LocalChatUsage }
   | { type: 'error'; sessionId: string | null; error: string }
   | { type: 'stopped'; sessionId: string };
+
+// What one completed turn cost, as reported BY THE CLI — never inferred.
+//
+// The two engines report DISJOINT halves and this shape refuses to paper over
+// that: claude's stream-json `result` carries total_cost_usd + duration but no
+// token breakdown; codex's `turn.completed.usage` carries token counts but no
+// dollar figure (subscription). EVERY numeric field is therefore optional —
+// `undefined` means "this engine did not report it", which a consumer must
+// render as a dash. A fabricated 0 would read as a measurement.
+//
+// Field names mirror codex's usage payload, live-verified 2026-07-27:
+// {input_tokens, cached_input_tokens, cache_write_input_tokens, output_tokens,
+//  reasoning_output_tokens} — cache_write_input_tokens was missing from the
+// first draft of this contract and only surfaced on a real turn.
+export interface LocalChatUsage {
+  engine: EngineId;
+  // The model the turn actually ran on, when known.
+  model?: string | null;
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  cacheWriteInputTokens?: number;
+  outputTokens?: number;
+  reasoningOutputTokens?: number;
+  // claude only (total_cost_usd). null when the engine reports no price.
+  costUsd?: number | null;
+  durationMs?: number | null;
+}
+
+// Per-TURN overrides. Effort is turn-scoped because `codex exec resume` accepts
+// the `-c model_reasoning_effort=` override mid-thread (live-verified F1), so a
+// change applies to the very next message without restarting the session.
+export interface LocalChatTurnOpts {
+  reasoningEffort?: ReasoningEffort | null;
+}
 
 export interface ByanUser {
   id: string;
@@ -479,8 +533,10 @@ export interface ByanApi {
     // Start (or resume, via opts.resumeSessionId) a local claude session ;
     // resolves with the server-assigned sessionId.
     start(opts?: LocalChatStartOpts): Promise<{ sessionId: string }>;
-    // Send a user message to an existing local session.
-    send(sessionId: string, message: string): Promise<void>;
+    // Send a user message to an existing local session. turnOpts carries
+    // per-turn overrides (reasoning effort) — optional, so an existing
+    // 2-argument call site stays valid.
+    send(sessionId: string, message: string, turnOpts?: LocalChatTurnOpts): Promise<void>;
     // Stop / tear down a local session's bridge.
     stop(sessionId: string): Promise<void>;
     // List persisted local sessions (most recent first) so the user can resume.
