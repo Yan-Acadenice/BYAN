@@ -427,7 +427,22 @@ export interface FileWritePlan {
   platform: 'claude' | 'codex' | 'copilot';
   action: FileWriteAction;
   // Content that will be written (empty string for directories or skipped entries).
+  // MAIN-SIDE ONLY — see PreviewFileWritePlan.
   content: string;
+}
+
+// What the renderer actually receives and sends back. Identical minus `content`:
+// the UI only displays relPath/action/description, and apply() recomputes every
+// body from the templates instead of trusting a returned one. Keeping the bodies
+// out of the payload is what makes onboarding fast — 990 plans carried roughly
+// 8.5 MB of file contents across the bridge for no reader.
+export type PreviewFileWritePlan = Omit<FileWritePlan, 'content'>;
+
+// Identifies ONE plan whose body the renderer wants to display.
+export interface PlanContentOpts {
+  projectRoot: string;
+  platform: FileWritePlan['platform'];
+  relPath: string;
 }
 
 // Result of applying an onboarding plan.
@@ -520,9 +535,19 @@ export interface ByanApi {
   };
   onboarding: {
     // Build the list of files that would be written for the given options.
-    preview(opts: OnboardingOpts): Promise<FileWritePlan[]>;
-    // Execute a (subset of) plans previously returned by preview.
-    apply(plans: FileWritePlan[]): Promise<OnboardingResult>;
+    // The returned plans carry NO `content`: the renderer only displays
+    // relPath/action/description, and apply() recomputes bodies from the
+    // templates rather than trusting anything sent back. Shipping them meant
+    // serialising the whole template tree (~8.5 MB) over IPC for nothing.
+    preview(opts: OnboardingOpts): Promise<PreviewFileWritePlan[]>;
+    // Execute a (subset of) plans previously returned by preview. Accepts the
+    // contentless shape; main re-derives what to write.
+    apply(plans: PreviewFileWritePlan[]): Promise<OnboardingResult>;
+    // Body of ONE plan, fetched when the user expands that file. Lazy on
+    // purpose: the preview list is collapsed, so eagerly shipping every body
+    // moved megabytes nobody looked at. Recomputed from the templates, like
+    // apply, so nothing is trusted from the renderer.
+    planContent(opts: PlanContentOpts): Promise<string>;
   };
   server: {
     spawn(): Promise<ServerSpawnResult>;
@@ -609,7 +634,8 @@ export const IPC_CHANNELS = {
   },
   onboarding: {
     preview: 'byan:onboarding:preview',
-    apply: 'byan:onboarding:apply'
+    apply: 'byan:onboarding:apply',
+    planContent: 'byan:onboarding:planContent'
   },
   server: {
     spawn: 'byan:server:spawn',

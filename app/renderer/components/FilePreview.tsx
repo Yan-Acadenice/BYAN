@@ -3,9 +3,9 @@
 // Design: dark terminal-like panel with action badge, path display, and monospace content.
 // No syntax-highlighting library dependency — plain pre with monospace font.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, FilePlus, FileEdit, CheckCircle, type LucideIcon } from 'lucide-react';
-import type { FileWritePlan, FileWriteAction } from '../../shared/ipc-contract';
+import type { PreviewFileWritePlan, FileWriteAction } from '../../shared/ipc-contract';
 
 const ACTION_CONFIG: Record<
   FileWriteAction,
@@ -32,14 +32,37 @@ const ACTION_CONFIG: Record<
 };
 
 interface FilePreviewProps {
-  plan: FileWritePlan;
+  plan: PreviewFileWritePlan;
   defaultExpanded?: boolean;
+  // Fetches this file's body, called at most once and only when the row is
+  // expanded. Absent -> the panel says the body is unavailable rather than
+  // rendering an empty block that reads like an empty file.
+  fetchContent?: (plan: PreviewFileWritePlan) => Promise<string>;
 }
 
-export default function FilePreview({ plan, defaultExpanded = false }: FilePreviewProps) {
+export default function FilePreview({ plan, defaultExpanded = false, fetchContent }: FilePreviewProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  // The body arrives on demand: preview ships ~1000 plans and the list is
+  // collapsed, so eagerly carrying every file across IPC moved megabytes that
+  // nobody opened.
+  const [content, setContent] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const config = ACTION_CONFIG[plan.action];
   const { Icon } = config;
+
+  // Load once, on first expand. A 'skip' row needs nothing: it renders its own
+  // "already matches" line instead of a body.
+  useEffect(() => {
+    if (!expanded || content !== null || loadError !== null) return;
+    if (plan.action === 'skip' || !fetchContent) return;
+    let cancelled = false;
+    void fetchContent(plan)
+      .then((text) => { if (!cancelled) setContent(text); })
+      .catch((err: unknown) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Lecture impossible.');
+      });
+    return () => { cancelled = true; };
+  }, [expanded, content, loadError, plan, fetchContent]);
 
   return (
     <div
@@ -90,13 +113,17 @@ export default function FilePreview({ plan, defaultExpanded = false }: FilePrevi
             <p className="px-4 py-3 text-xs text-ink-500 italic">
               File already matches — no changes will be written.
             </p>
-          ) : plan.content.length === 0 ? (
+          ) : loadError !== null ? (
+            <p className="px-4 py-3 text-xs text-amber-300/80 italic">{loadError}</p>
+          ) : content === null ? (
+            <p className="px-4 py-3 text-xs text-ink-500 italic">Chargement...</p>
+          ) : content.length === 0 ? (
             <p className="px-4 py-3 text-xs text-ink-500 italic">Empty file.</p>
           ) : (
             <pre className="px-4 py-3 text-[11px] font-mono text-ink-300 overflow-x-auto max-h-64 leading-relaxed whitespace-pre-wrap break-all">
-              {plan.content.length > 4000
-                ? plan.content.slice(0, 4000) + '\n... (truncated for display)'
-                : plan.content}
+              {content.length > 4000
+                ? content.slice(0, 4000) + '\n... (truncated for display)'
+                : content}
             </pre>
           )}
         </div>

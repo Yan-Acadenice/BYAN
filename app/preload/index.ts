@@ -23,7 +23,8 @@ import {
   ServerSpawnResult,
   ServerStatus,
   OnboardingOpts,
-  FileWritePlan,
+  PreviewFileWritePlan,
+  PlanContentOpts,
   OnboardingResult,
   ByanApiListOpts,
   CreateConversationOpts,
@@ -86,10 +87,13 @@ const api: ByanApi = {
     detect: () => invoke<CliDetection>(IPC_CHANNELS.cli.detect),
   },
   onboarding: {
+    // Contentless plans: main strips file bodies before they cross the bridge.
     preview: (opts: OnboardingOpts) =>
-      invoke<FileWritePlan[]>(IPC_CHANNELS.onboarding.preview, opts),
-    apply: (plans: FileWritePlan[]) =>
+      invoke<PreviewFileWritePlan[]>(IPC_CHANNELS.onboarding.preview, opts),
+    apply: (plans: PreviewFileWritePlan[]) =>
       invoke<OnboardingResult>(IPC_CHANNELS.onboarding.apply, plans),
+    planContent: (opts: PlanContentOpts) =>
+      invoke<string>(IPC_CHANNELS.onboarding.planContent, opts),
   },
   server: {
     spawn: () => invoke<ServerSpawnResult>(IPC_CHANNELS.server.spawn),

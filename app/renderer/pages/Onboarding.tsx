@@ -3,7 +3,7 @@
 // Flow (5 steps):
 //   0. Welcome      — intro, user picks project root
 //   1. Detection    — shows detected platforms, checkboxes
-//   2. Preview      — shows FileWritePlan[] per platform, cancel-per-platform
+//   2. Preview      — shows PreviewFileWritePlan[] per platform, cancel-per-platform
 //   3. Apply        — executes writes with progress, partial errors
 //   4. Done         — link to Login
 //
@@ -26,7 +26,7 @@ import {
   AlertTriangle,
   type LucideIcon,
 } from 'lucide-react';
-import type { CliDetection, FileWritePlan, OnboardingResult } from '../../shared/ipc-contract';
+import type { CliDetection, PreviewFileWritePlan, OnboardingResult } from '../../shared/ipc-contract';
 import Stepper, { StepDef } from '../components/Stepper';
 import FilePreview from '../components/FilePreview';
 import ByanLogo from '../components/ByanLogo';
@@ -79,7 +79,8 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     copilot: false,
   });
 
-  const [plans, setPlans] = useState<FileWritePlan[]>([]);
+  // Contentless by design: preview strips file bodies before they cross IPC.
+  const [plans, setPlans] = useState<PreviewFileWritePlan[]>([]);
   const [previewing, setPreviewing] = useState(false);
   const [cancelledPlatforms, setCancelledPlatforms] = useState<Set<PlatformKey>>(new Set());
 
@@ -562,7 +563,15 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                       ) : (
                         <div className="max-h-72 overflow-y-auto">
                           {keyPlans.map((plan) => (
-                            <FilePreview key={plan.relPath} plan={plan} />
+                            <FilePreview
+                              key={plan.relPath}
+                              plan={plan}
+                              fetchContent={(p) => window.byanApi.onboarding.planContent({
+                                projectRoot,
+                                platform: p.platform,
+                                relPath: p.relPath,
+                              })}
+                            />
                           ))}
                         </div>
                       )}
