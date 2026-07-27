@@ -6,7 +6,7 @@
 // start / resume-in-memory a session, send, watch the stream. Session
 // persistence + resume across restarts is F3.
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check, Folder, Gauge, Bot } from 'lucide-react';
 import MessageMarkdown from './MessageMarkdown';
 import { useLocalChat } from '../../hooks/useLocalChat';
@@ -196,10 +196,11 @@ export default function LocalChatView() {
     }
   }, [messages, streamText]);
 
-  const onNewSession = useCallback(() => {
+  // Plain function like the other handlers here: startOpts() reads the current
+  // selections at call time, so there is nothing to memoize.
+  const onNewSession = () => {
     void newSession(startOpts()).then(() => void refreshSessions());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newSession, refreshSessions, engine, cwd, model, effort, agent]);
+  };
 
   // Run a slash command. Returns nothing: every arm either acts or explains
   // itself through `notice` — a command must never be a silent no-op.

@@ -5,11 +5,15 @@
 //   - Right pane: message list + input with slash-command autocomplete
 //   - SSE stream: main process opens the fetch, pushes chunks via byan:chat:chunk events
 //
-// Slash-commands:
+// Slash-commands — on the shared primitive (lib/slash-commands + useSlashPalette
+// + SlashCommandMenu); this page keeps only the side effects:
 //   /new    → open NewConversationModal (with project + agent picker)
-//   /cli    → switch CLI provider for the active conversation
-//   /scope  → toggle scope picker panel
+//   /cli    → set the CLI provider of the NEXT conversation
+//   /scope  → open the inline defaults panel on scope
+//   /agent  → open the inline defaults panel on agent
 //   /clear  → delete active conversation (with confirmation)
+// An unmatched '/foo' is refused with a warning instead of being posted to the
+// model — see handleSubmit.
 //
 // Bug fix: project scope — previously created without projectId, so the CLI
 // always defaulted to the BYAN platform context. Now the modal collects
@@ -50,7 +54,10 @@ import MessageMarkdown from '../components/chat/MessageMarkdown';
 import ScopePicker from '../components/chat/ScopePicker';
 import AgentPicker from '../components/chat/AgentPicker';
 import LocalChatView from '../components/chat/LocalChatView';
+import SlashCommandMenu from '../components/chat/SlashCommandMenu';
 import { useChatDefaults } from '../hooks/useChatDefaults';
+import { useSlashPalette } from '../hooks/useSlashPalette';
+import { parseSlashInput, type SlashCommandDef } from '../lib/slash-commands';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useToast } from '../components/toast/ToastContext';
 
@@ -68,13 +75,24 @@ const CLI_BADGE_CLASS: Record<ChatCliProvider, string> = {
   codex: 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/50',
 };
 
-const SLASH_COMMANDS = [
+// The CLOUD catalogue stays HERE rather than in lib/slash-commands.ts: these five
+// commands only mean something against the byan_web conversation model (create a
+// conversation row, snapshot a provider on it, tune the defaults it inherits).
+// The lib owns the engine-agnostic logic; a page's own vocabulary does not
+// belong in it.
+const CLOUD_SLASH_COMMANDS: SlashCommandDef[] = [
   { cmd: '/new', description: 'Start a new conversation' },
-  { cmd: '/cli', description: 'Set CLI provider for the next conversation' },
+  { cmd: '/cli', description: 'Set CLI provider for the next conversation', argHint: '<provider>' },
   { cmd: '/scope', description: 'Edit scope for next conversation' },
   { cmd: '/agent', description: 'Edit agent for next conversation' },
   { cmd: '/clear', description: 'Delete this conversation' },
 ];
+
+// The palette filters by engine, but no cloud command declares `engines`, so any
+// value keeps all five visible — the option is inert here. Cloud conversations
+// carry a ChatCliProvider ('claude-code' | 'copilot' | 'codex'), a different axis
+// from the local EngineId, which is why nothing is mapped across.
+const PALETTE_ENGINE = 'claude' as const;
 
 // /cli accepts friendly aliases on top of the wire values.
 const CLI_ALIASES: Record<string, ChatCliProvider> = {
@@ -83,6 +101,13 @@ const CLI_ALIASES: Record<string, ChatCliProvider> = {
   copilot: 'copilot',
   codex: 'codex',
 };
+
+// One copy for both refusal paths (an unknown command, and a catalogue entry that
+// reached no case in the dispatch) — from the user's seat the situation is the
+// same: the command does nothing.
+function unknownCommandMessage(cmd: string): string {
+  return `Commande inconnue : ${cmd}. Tape / pour voir les commandes disponibles.`;
+}
 
 // One factory for the synthetic system bubbles (errors…) — the 9-field
 // placeholder literal was copied three times.
@@ -390,9 +415,9 @@ function CloudChat() {
   const [streamText, setStreamText] = useState('');
   const streamIdRef = useRef<string | null>(null);
 
-  // Input
-  const [input, setInput] = useState('');
-  const [slashMenu, setSlashMenu] = useState<typeof SLASH_COMMANDS>([]);
+  // Input + slash palette. The hook owns the value, the filtered list, the open
+  // flag and the keyboard navigation; dispatch stays in handleSubmit below.
+  const palette = useSlashPalette({ engine: PALETTE_ENGINE, commands: CLOUD_SLASH_COMMANDS });
 
   // Modals
   const [newConvOpen, setNewConvOpen] = useState(false);
@@ -674,76 +699,78 @@ function CloudChat() {
 
   // ---------- Input handling ----------
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    setInput(val);
-
-    // Show slash-command menu when user starts typing /
-    if (val.startsWith('/') && !val.includes(' ')) {
-      const filtered = SLASH_COMMANDS.filter((c) => c.cmd.startsWith(val));
-      setSlashMenu(filtered);
-    } else {
-      setSlashMenu([]);
-    }
-  };
-
   // One submit path for BOTH the Enter key and the Send button — the button
   // used to bypass the slash-command handling and post the literal command.
   const handleSubmit = () => {
-    const trimmed = input.trim();
+    const trimmed = palette.input.trim();
     if (!trimmed) return;
-    setInput('');
-    setSlashMenu([]);
+    palette.reset();
 
-    // Handle slash commands
-    if (trimmed === '/new') {
-      setNewConvOpen(true);
+    const parsed = parseSlashInput(trimmed, CLOUD_SLASH_COMMANDS);
+
+    if (parsed.kind === 'not-slash') {
+      void sendMessage(trimmed);
       return;
     }
-    if (trimmed === '/clear') {
-      if (activeConvId) setDeleteConfirm(activeConvId);
+
+    // DELIBERATE CORRECTION (user-validated): '/foo' used to fall off the end of
+    // the dispatch chain and reach the model as a literal message, so the user
+    // got their typo answered instead of corrected. No slash input leaves the
+    // box any more.
+    if (parsed.kind === 'unknown') {
+      toast.warning(unknownCommandMessage(parsed.cmd));
       return;
     }
-    if (trimmed === '/scope') {
-      openDefaults('scope');
-      return;
-    }
-    if (trimmed === '/agent') {
-      openDefaults('agent');
-      return;
-    }
-    if (trimmed === '/cli' || trimmed.startsWith('/cli ')) {
-      // The backend snapshots the provider per conversation, so /cli sets the
-      // provider of the NEXT conversation (persisted defaults) — it used to
-      // silently do nothing.
-      const arg = trimmed.slice('/cli'.length).trim().toLowerCase();
-      const provider = CLI_ALIASES[arg];
-      if (!provider) {
-        toast.warning('Usage : /cli claude-code | copilot | codex — s\'applique à la prochaine conversation.');
+
+    switch (parsed.cmd) {
+      case '/new':
+        setNewConvOpen(true);
+        return;
+      case '/clear':
+        if (activeConvId) setDeleteConfirm(activeConvId);
+        return;
+      case '/scope':
+        openDefaults('scope');
+        return;
+      case '/agent':
+        openDefaults('agent');
+        return;
+      case '/cli': {
+        // The backend snapshots the provider per conversation, so /cli sets the
+        // provider of the NEXT conversation (persisted defaults) — it used to
+        // silently do nothing.
+        const provider = CLI_ALIASES[parsed.arg.toLowerCase()];
+        if (!provider) {
+          toast.warning('Usage : /cli claude-code | copilot | codex — s\'applique à la prochaine conversation.');
+          return;
+        }
+        setDefaults({ ...defaults, cli: provider });
+        toast.info(`Prochaine conversation avec ${CLI_LABELS[provider]} (/new pour la créer).`);
         return;
       }
-      setDefaults({ ...defaults, cli: provider });
-      toast.info(`Prochaine conversation avec ${CLI_LABELS[provider]} (/new pour la créer).`);
-      return;
+      default:
+        // A catalogue entry with no case above is the same leak as '/foo',
+        // wearing a valid name — refuse it rather than post it.
+        toast.warning(unknownCommandMessage(parsed.cmd));
+        return;
     }
-
-    void sendMessage(trimmed);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // The palette answers first and reports whether it consumed the key. A closed
+    // menu hands Enter back, which is what keeps Enter-to-submit alive.
+    if (palette.handleKeyDown(e)) return;
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
-
-    if (e.key === 'Escape') {
-      setSlashMenu([]);
-    }
   };
 
-  const handleSlashSelect = (cmd: string) => {
-    setInput(cmd + ' ');
-    setSlashMenu([]);
+  // The palette owns the input value but not the caret: clicking a menu row
+  // blurs the textarea, so the host puts focus back for the next keystroke.
+  const handleSlashSelect = (def: SlashCommandDef) => {
+    palette.select(def);
     inputRef.current?.focus();
   };
 
@@ -919,28 +946,20 @@ function CloudChat() {
 
               {/* Input area */}
               <div className="shrink-0 px-lg py-sm border-t border-ink-800 relative">
-                {/* Slash-command menu */}
-                {slashMenu.length > 0 && (
-                  <div className="absolute bottom-full left-lg right-lg mb-xs bg-ink-850 border border-ink-700 rounded-xl overflow-hidden shadow-xl z-10">
-                    {slashMenu.map((item) => (
-                      <button
-                        key={item.cmd}
-                        type="button"
-                        onClick={() => handleSlashSelect(item.cmd)}
-                        className="w-full flex items-center gap-sm px-sm py-sm hover:bg-ink-800 transition-colors text-left"
-                      >
-                        <span className="font-mono text-byan-400 text-sm">{item.cmd}</span>
-                        <span className="text-xs text-ink-400">{item.description}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Slash-command menu — renders nothing on an empty list, and the
+                    palette empties it on Escape or selection. */}
+                <SlashCommandMenu
+                  commands={palette.commands}
+                  highlightedIndex={palette.highlightedIndex}
+                  onSelect={handleSlashSelect}
+                  onHighlight={palette.setHighlightedIndex}
+                />
 
                 <div className="flex items-end gap-sm">
                   <textarea
                     ref={inputRef}
-                    value={input}
-                    onChange={handleInputChange}
+                    value={palette.input}
+                    onChange={(e) => palette.setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={streaming ? 'Waiting for response...' : 'Message... (Enter to send, Shift+Enter for newline, / for commands)'}
                     disabled={streaming}
@@ -965,7 +984,7 @@ function CloudChat() {
                     <button
                       type="button"
                       onClick={handleSubmit}
-                      disabled={!input.trim()}
+                      disabled={!palette.input.trim()}
                       className="shrink-0 p-sm bg-byan-700 hover:bg-byan-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl text-white transition-colors"
                       title="Send"
                     >

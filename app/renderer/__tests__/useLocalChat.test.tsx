@@ -76,7 +76,9 @@ describe('useLocalChat', () => {
     const { result } = renderHook(() => useLocalChat(), { wrapper });
     await act(async () => { await result.current.send('hello'); });
     expect(mockStart).toHaveBeenCalledTimes(1);
-    expect(mockSend).toHaveBeenCalledWith('sess-1', 'hello');
+    // Third argument = the per-turn overrides. Explicitly undefined when the
+    // caller passes none, so this pins the forwarding rather than ignoring it.
+    expect(mockSend).toHaveBeenCalledWith('sess-1', 'hello', undefined);
     // Optimistic user message + streaming on.
     expect(result.current.messages.at(-1)).toMatchObject({ role: 'user', content: 'hello' });
     expect(result.current.streaming).toBe(true);
@@ -178,7 +180,16 @@ describe('useLocalChat', () => {
     const { result } = renderHook(() => useLocalChat(), { wrapper });
     await act(async () => { await result.current.send('hi', { cwd: '/home/yan/proj' }); });
     expect(mockStart).toHaveBeenCalledWith({ cwd: '/home/yan/proj' });
-    expect(mockSend).toHaveBeenCalledWith('sess-1', 'hi');
+    expect(mockSend).toHaveBeenCalledWith('sess-1', 'hi', undefined);
+  });
+
+  it('forwards per-turn overrides to the bridge', async () => {
+    // What makes an effort change apply from the very next message.
+    const { result } = renderHook(() => useLocalChat(), { wrapper });
+    await act(async () => {
+      await result.current.send('hi', { cli: 'codex' }, { reasoningEffort: 'low' });
+    });
+    expect(mockSend).toHaveBeenCalledWith('sess-1', 'hi', { reasoningEffort: 'low' });
   });
 
   it('clears the thread and stops the session on logout (no cross-user leak)', async () => {
