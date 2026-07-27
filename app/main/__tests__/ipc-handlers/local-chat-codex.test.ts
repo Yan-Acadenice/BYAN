@@ -135,6 +135,54 @@ describe('codex engine — start/send', () => {
 });
 
 describe('codex engine — JSONL mapping', () => {
+  it('reports a command AS IT STARTS, not only once it has finished', async () => {
+    // item.started was ignored, so a long command produced no frame at all until
+    // completion: a 60s build was indistinguishable from a hung app. The frame
+    // below is a verbatim capture from codex-cli 0.145.0.
+    const { bridge, procs, broadcasts } = makeCodexBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+    await bridge.send(sessionId, 'lance ls');
+    broadcasts.length = 0;
+    const p = procs[0];
+    p.emitLine({ type: 'thread.started', thread_id: '019f-uuid' });
+    p.emitLine({ type: 'item.started', item: {
+      id: 'item_1',
+      type: 'command_execution',
+      command: '/usr/bin/zsh -lc ls',
+      aggregated_output: '',
+      exit_code: null,
+      status: 'in_progress',
+    } });
+
+    const tool = broadcasts.find((b) => b.type === 'tool') as Extract<LocalChatMessage, { type: 'tool' }>;
+    expect(tool).toBeTruthy();
+    // The login-shell wrapper is stripped: '/usr/bin/zsh -lc ls' reads as 'ls'.
+    expect(tool.activity).toEqual({ name: 'commande', detail: 'ls', phase: 'start' });
+  });
+
+  it('marks the same command as finished on completion', async () => {
+    const { bridge, procs, broadcasts } = makeCodexBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+    await bridge.send(sessionId, 'lance ls');
+    broadcasts.length = 0;
+    procs[0].emitLine({ type: 'item.completed', item: {
+      id: 'item_1', type: 'command_execution', command: '/usr/bin/zsh -lc ls', exit_code: 0, status: 'completed',
+    } });
+    const tool = broadcasts.find((b) => b.type === 'tool') as Extract<LocalChatMessage, { type: 'tool' }>;
+    expect(tool.activity?.phase).toBe('end');
+  });
+
+  it('does not report the agent message itself as a tool step', async () => {
+    // item.started also fires for the message codex is about to write. Treating
+    // that as tool activity would label plain writing as a tool call.
+    const { bridge, procs, broadcasts } = makeCodexBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'codex' });
+    await bridge.send(sessionId, 'salut');
+    broadcasts.length = 0;
+    procs[0].emitLine({ type: 'item.started', item: { id: 'item_0', type: 'agent_message' } });
+    expect(broadcasts.some((b) => b.type === 'tool')).toBe(false);
+  });
+
   it('agent_message -> chunk, turn.completed -> complete (with last text as result)', async () => {
     const { bridge, procs, broadcasts } = makeCodexBridge();
     const { sessionId } = await bridge.start({ cwd, cli: 'codex' });

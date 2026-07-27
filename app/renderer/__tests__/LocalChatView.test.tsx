@@ -2,7 +2,7 @@
 // drives it through the DOM: type, send, stream, complete.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import LocalChatView from '../components/chat/LocalChatView';
 import { LocalChatProvider } from '../hooks/useLocalChat';
 import type { LocalChatMessage } from '../../shared/ipc-contract';
@@ -560,5 +560,120 @@ describe('LocalChatView — ce que la barre annonce doit etre vrai', () => {
 
     const notice = await screen.findByText(/fil précédent est fermé/i);
     expect(notice).toBeInTheDocument();
+  });
+});
+
+
+describe('LocalChatView — pendant que ca travaille', () => {
+  it('names the tool and counts the seconds instead of showing a mute spinner', async () => {
+    // The complaint this fixes: an agent activation is 20s+ of tool calls before
+    // the first word, and the interface showed one small spinner with no text, so
+    // it read as an app doing nothing.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+
+    emit({
+      type: 'tool',
+      sessionId: 'sess-1',
+      tool: {},
+      activity: { name: 'Bash', detail: 'ls', phase: 'start' },
+    });
+
+    const line = await screen.findByTestId('local-activity');
+    expect(line).toHaveTextContent('Bash');
+    expect(line).toHaveTextContent('ls');
+    expect(line.textContent).toMatch(/\d+s/);
+  });
+
+  it('the seconds counter actually advances', async () => {
+    // Asserting /\d+s/ alone passes on a frozen '0s', so a dead timer would slip
+    // through. Advance a simulated clock and require the number to change.
+    vi.useFakeTimers();
+    try {
+      render(<LocalChatView />, { wrapper: LocalChatProvider });
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      type('salut');
+      pressEnter();
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start' } });
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByTestId('local-activity').textContent).toContain('0s');
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+      expect(screen.getByTestId('local-activity').textContent).toContain('3s');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('falls back to the reasoning counter when no tool has run yet', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+
+    emit({ type: 'thinking', sessionId: 'sess-1', tokens: 50 });
+
+    const line = await screen.findByTestId('local-activity');
+    expect(line).toHaveTextContent('50');
+    expect(line).toHaveTextContent(/réflexion/i);
+  });
+
+  it('says the step finished when the engine reports completion of it', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+
+    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'commande', detail: 'ls', phase: 'end' } });
+
+    const line = await screen.findByTestId('local-activity');
+    expect(line).toHaveTextContent(/terminé/i);
+  });
+
+  it('a stale activity from the previous turn does not label the next one', async () => {
+    // The obvious version of this test — assert the line is gone after 'complete'
+    // — cannot fail: the line only renders while streaming, so it disappears
+    // whether or not the state was cleared. Proving the reset needs a SECOND turn
+    // that produces no activity of its own.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', detail: 'ls', phase: 'start' } });
+    await screen.findByTestId('local-activity');
+    emit({ type: 'complete', sessionId: 'sess-1', result: 'fini' });
+    await waitFor(() => expect(screen.getByText('fini')).toBeInTheDocument());
+
+    type('encore');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalledTimes(2));
+
+    // Showing 'Bash — ls' here would attribute the previous turn's work to this one.
+    const line = await screen.findByTestId('local-activity');
+    expect(line).not.toHaveTextContent('Bash');
+    expect(line).toHaveTextContent(/en cours/i);
+  });
+
+  it('an unlabelled tool frame keeps the previous label rather than blanking it', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', detail: 'a.ts', phase: 'start' } });
+    await screen.findByTestId('local-activity');
+
+    emit({ type: 'tool', sessionId: 'sess-1', tool: { odd: true } });
+
+    expect(screen.getByTestId('local-activity')).toHaveTextContent('Read');
   });
 });

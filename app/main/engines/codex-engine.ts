@@ -26,6 +26,7 @@ import type { Engine, EngineDeps, EngineSession, EngineStartOpts } from './types
 import { killProcTreeNow, stopProcTree } from './kill-tree';
 import { LineAccumulator } from './stream-lines';
 import { codexEffortArgs, codexMcpArgs, codexModelArgs } from './codex-config';
+import { codexItemActivity } from '../../shared/tool-activity';
 
 // Flags of a FRESH turn. workspace-write keeps parity of usefulness with a
 // claude chat (the CLI can actually act on the project) while staying inside
@@ -153,13 +154,23 @@ export class CodexEngine implements Engine {
           case 'thread.started':
             if (typeof event.thread_id === 'string') state.threadId = event.thread_id;
             break;
+          // item.started was IGNORED: during a long command codex reported
+          // nothing until it finished, so a 60s build looked like a frozen app.
+          // Measured shape: {id,type:'command_execution',command,status:'in_progress'}.
+          case 'item.started': {
+            const item = (event.item ?? {}) as { type?: string };
+            if (item.type && item.type !== 'agent_message' && item.type !== 'reasoning') {
+              emit({ type: 'tool', sessionId, tool: item, activity: codexItemActivity(item, 'start') ?? undefined });
+            }
+            break;
+          }
           case 'item.completed': {
             const item = (event.item ?? {}) as { type?: string; text?: string };
             if (item.type === 'agent_message' && typeof item.text === 'string') {
               lastAgentText = item.text;
               emit({ type: 'chunk', sessionId, delta: item.text, role: 'assistant' });
             } else if (item.type === 'command_execution' || item.type === 'mcp_tool_call' || item.type === 'web_search' || item.type === 'file_change' || item.type === 'todo_list') {
-              emit({ type: 'tool', sessionId, tool: item });
+              emit({ type: 'tool', sessionId, tool: item, activity: codexItemActivity(item, 'end') ?? undefined });
             }
             break;
           }

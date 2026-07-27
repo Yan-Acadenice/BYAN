@@ -293,6 +293,44 @@ describe('LocalChatBridge — model/effort trust boundary (F6)', () => {
     expect(started.model).toBe('opus');
   });
 
+  it('turns a tool_use frame into a readable activity instead of a raw payload', async () => {
+    // The frame below is a verbatim capture from claude 2.1.220. Without the
+    // normalized `activity` the renderer would have to parse claude's own shape,
+    // which is why it dropped these frames and showed a bare spinner.
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd, cli: 'claude' });
+    fake.emitStdout({
+      type: 'assistant',
+      message: { content: [{
+        type: 'tool_use',
+        id: 'toolu_018WtHBQRwsdZ9C3ffwtzkxk',
+        name: 'Bash',
+        input: { command: 'ls', description: 'Liste les fichiers du dossier courant' },
+      }] },
+    });
+    const tool = broadcasts.find((b) => b.type === 'tool') as Extract<LocalChatMessage, { type: 'tool' }>;
+    expect(tool).toBeTruthy();
+    expect(tool.activity).toEqual({ name: 'Bash', detail: 'ls', phase: 'start' });
+  });
+
+  it('surfaces the reasoning counter that arrives while no text is produced', async () => {
+    // Verbatim capture. These frames land exactly during the long silent stretch,
+    // so dropping them threw away the only available proof of life.
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd, cli: 'claude' });
+    fake.emitStdout({ type: 'system', subtype: 'thinking_tokens', estimated_tokens: 50, estimated_tokens_delta: 50 });
+    const think = broadcasts.find((b) => b.type === 'thinking') as Extract<LocalChatMessage, { type: 'thinking' }>;
+    expect(think).toBeTruthy();
+    expect(think.tokens).toBe(50);
+  });
+
+  it('does not mistake another system frame for a reasoning report', async () => {
+    const { bridge, fake, broadcasts } = makeBridge();
+    await bridge.start({ cwd, cli: 'claude' });
+    fake.emitStdout({ type: 'system', subtype: 'init', session_id: 'x' });
+    expect(broadcasts.some((b) => b.type === 'thinking')).toBe(false);
+  });
+
   it('RETURNS the resolved cwd, including the one the caller never sent', async () => {
     // The renderer is allowed to start without a cwd and let the bridge fall back
     // to the registry / onboarding root. Before this, the answer carried only the

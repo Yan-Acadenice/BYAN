@@ -15,6 +15,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type {
   EngineId,
+  LocalChatActivity,
   LocalChatMessage,
   LocalChatStartOpts,
   LocalChatSessionSummary,
@@ -132,6 +133,12 @@ export interface UseLocalChat {
   // The directory the live session actually runs in, as main resolved it. Null
   // when no session is open.
   sessionCwd: string | null;
+  // The engine's current step (tool call, command, search). Null between turns.
+  activity: LocalChatActivity | null;
+  // Reasoning tokens claude reports during the turn. 0 between turns.
+  thinkingTokens: number;
+  // Epoch ms the live turn started, for the elapsed counter. Null between turns.
+  turnStartedAt: number | null;
   // Start a fresh local session (drops the current thread).
   newSession: (opts?: LocalChatStartOpts) => Promise<void>;
   // Resume a session : reopens claude in the session's project dir (cwd).
@@ -171,6 +178,15 @@ function useLocalChatState(): UseLocalChat {
   // The folder main ACTUALLY resolved. Without it the header would keep inviting
   // the user to pick a directory while a session is already working in one.
   const [sessionCwd, setSessionCwd] = useState<string | null>(null);
+  // What the engine is doing right now. Both engines already emitted this and it
+  // was dropped, which is why a 20-60s turn showed a bare spinner and read as an
+  // app doing nothing.
+  const [activity, setActivity] = useState<LocalChatActivity | null>(null);
+  const [thinkingTokens, setThinkingTokens] = useState(0);
+  // When the live turn began, so the interface can show elapsed time. A silent
+  // stretch with a counter running is legible; the same stretch without one is
+  // indistinguishable from a hang.
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
 
   // The event listener closes over a ref, not state, so it always filters on the
   // current session without re-subscribing on every session change.
@@ -215,6 +231,9 @@ function useLocalChatState(): UseLocalChat {
           setStreaming(false);
           setStreamText('');
           setError(null);
+          setActivity(null);
+          setThinkingTokens(0);
+          setTurnStartedAt(null);
           // A turn without a usage payload adds nothing: the engine measured
           // nothing, and inventing a zero row would claim it measured zero. The
           // local const is what carries the narrowed type into the closures
@@ -232,13 +251,29 @@ function useLocalChatState(): UseLocalChat {
           setStreaming(false);
           setStreamText('');
           setError(m.error);
+          setActivity(null);
+          setThinkingTokens(0);
+          setTurnStartedAt(null);
           break;
         case 'stopped':
           accRef.current = '';
           setStreaming(false);
           setStreamText('');
+          setActivity(null);
+          setThinkingTokens(0);
+          setTurnStartedAt(null);
           break;
-        // 'started' is handled by newSession's resolve ; 'tool' is not surfaced yet.
+        case 'tool':
+          // A frame with no recognisable activity is still evidence of work, so
+          // the previous label is kept rather than blanked.
+          if (m.activity) setActivity(m.activity);
+          break;
+        case 'thinking':
+          // Monotonic per turn: claude reports a running estimate, and a count
+          // that went backwards would look like a bug in the counter.
+          if (typeof m.tokens === 'number') setThinkingTokens((prev) => Math.max(prev, m.tokens ?? 0));
+          break;
+        // 'started' is handled by newSession's resolve.
         default:
           break;
       }
@@ -271,6 +306,9 @@ function useLocalChatState(): UseLocalChat {
       setUsageTurns([]);
       setUsageTotals({});
       setSessionCwd(null);
+      setActivity(null);
+      setThinkingTokens(0);
+      setTurnStartedAt(null);
     });
   }, []);
 
@@ -294,6 +332,9 @@ function useLocalChatState(): UseLocalChat {
       // like the thread it replaces.
       setUsageTurns([]);
       setUsageTotals({});
+      setActivity(null);
+      setThinkingTokens(0);
+      setTurnStartedAt(null);
       // Stop the outgoing session so its claude child is not orphaned (the main
       // bridge caps at 8 concurrent and then refuses to start).
       if (prev && prev !== id) { try { void window.byanApi.localChat.stop(prev); } catch { /* best effort */ } }
@@ -332,6 +373,13 @@ function useLocalChatState(): UseLocalChat {
     setMessages((prev) => [...prev, { id: makeId('u'), role: 'user', content }]);
     setError(null); // a new turn clears the previous turn's error banner
     setStreaming(true);
+    // Redundant today with the clears on complete/error/stopped — mutation
+    // testing confirms removing THIS one alone breaks nothing. It stays as the
+    // guard for a future frame path that ends a turn without going through one
+    // of those three, which would otherwise label a new turn with old work.
+    setActivity(null);
+    setThinkingTokens(0);
+    setTurnStartedAt(Date.now());
     accRef.current = '';
     setStreamText('');
     try {
@@ -409,7 +457,7 @@ function useLocalChatState(): UseLocalChat {
 
   return {
     sessionId, messages, streaming, streamText, starting, error, sessions,
-    usageTurns, usageTotals, sessionCwd,
+    usageTurns, usageTotals, sessionCwd, activity, thinkingTokens, turnStartedAt,
     newSession, resume, refreshSessions, send, stop,
   };
 }

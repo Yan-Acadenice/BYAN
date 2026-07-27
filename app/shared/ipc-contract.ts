@@ -10,6 +10,9 @@
 // and uses standard try/catch — no Result wrapper noise on the call site.
 
 import type { EngineId, ReasoningEffort } from './engine-options';
+import type { LocalChatActivity } from './tool-activity';
+
+export type { LocalChatActivity };
 
 export type { EngineId, ReasoningEffort };
 
@@ -337,7 +340,13 @@ export type LocalChatMessage =
   // an invitation to pick one while a session is already working somewhere.
   | { type: 'started'; sessionId: string; cli: EngineId; model?: string | null; effort?: ReasoningEffort | null; cwd?: string }
   | { type: 'chunk'; sessionId: string; delta: string; role: 'assistant' }
-  | { type: 'tool'; sessionId: string; tool: unknown }
+  // `tool` keeps the raw engine object (debugging, future consumers). `activity`
+  // is the normalized one-liner the interface shows: without it the renderer
+  // would have to understand both engines' payload shapes.
+  | { type: 'tool'; sessionId: string; tool: unknown; activity?: LocalChatActivity }
+  // claude reports its reasoning token count as it thinks. Surfaced so a long
+  // silent stretch reads as work in progress rather than a stalled turn.
+  | { type: 'thinking'; sessionId: string; tokens?: number }
   | { type: 'complete'; sessionId: string; result?: unknown; usage?: LocalChatUsage }
   | { type: 'error'; sessionId: string | null; error: string }
   | { type: 'stopped'; sessionId: string };

@@ -14,6 +14,7 @@ import { IpcError } from '../ipc-handlers/_error';
 import type { Engine, EngineDeps, EngineSession, EngineStartOpts } from './types';
 import { killProcTreeNow, stopProcTree } from './kill-tree';
 import { LineAccumulator } from './stream-lines';
+import { claudeToolActivity } from '../../shared/tool-activity';
 
 // Benign claude stderr prefixes (progress/status). Filtered so only real errors
 // surface. Tested per-LINE (never with /m) so an error line that follows a
@@ -76,7 +77,11 @@ export class ClaudeEngine implements Engine {
           for (const item of items) {
             if (typeof item === 'string') emit({ type: 'chunk', sessionId, delta: item, role: 'assistant' });
             else if (item && (item as { type?: string }).type === 'text') emit({ type: 'chunk', sessionId, delta: (item as { text?: string }).text ?? '', role: 'assistant' });
-            else if (item && (item as { type?: string }).type === 'tool_use') emit({ type: 'tool', sessionId, tool: item });
+            else if (item && (item as { type?: string }).type === 'tool_use') {
+              // The raw item stays on the frame; the normalized label is what the
+              // interface can actually show without knowing claude's shape.
+              emit({ type: 'tool', sessionId, tool: item, activity: claudeToolActivity(item) ?? undefined });
+            }
           }
           break;
         }
@@ -86,7 +91,17 @@ export class ClaudeEngine implements Engine {
           break;
         }
         case 'tool_use':
-          emit({ type: 'tool', sessionId, tool: event });
+          emit({ type: 'tool', sessionId, tool: event, activity: claudeToolActivity(event) ?? undefined });
+          break;
+        // Measured on claude 2.1.220: {type:'system',subtype:'thinking_tokens',
+        // estimated_tokens,estimated_tokens_delta}. These arrive during the long
+        // stretches where no text is produced — exactly when the interface used
+        // to look frozen.
+        case 'system':
+          if (event.subtype === 'thinking_tokens') {
+            const tokens = typeof event.estimated_tokens === 'number' ? event.estimated_tokens : undefined;
+            emit({ type: 'thinking', sessionId, tokens });
+          }
           break;
         case 'result':
           // is_error:true = a FAILED turn (rate limit, refusal, API error).

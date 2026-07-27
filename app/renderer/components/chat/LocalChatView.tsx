@@ -16,6 +16,7 @@ import UsagePanel from './panels/UsagePanel';
 import McpPanel from './panels/McpPanel';
 import { parseSlashInput } from '../../lib/slash-commands';
 import { resolveClaudeAgent, suggestClaudeAgents } from '../../../shared/agent-slugs';
+import type { LocalChatActivity } from '../../../shared/tool-activity';
 import {
   MODEL_PRESETS,
   REASONING_EFFORTS,
@@ -49,10 +50,39 @@ interface Notice {
   text: string;
 }
 
+// What replaced the bare spinner. The spinner said "something is happening";
+// this says WHAT is happening and for how long. During a BYAN agent activation
+// (measured: 20s+ of tool calls before the first word) the difference is between
+// an app that looks frozen and one that is visibly working.
+function ActivityLine({ activity, thinkingTokens, elapsedS }: {
+  activity: LocalChatActivity | null;
+  thinkingTokens: number;
+  elapsedS: number;
+}) {
+  const parts: string[] = [];
+  if (activity) {
+    parts.push(activity.phase === 'end' ? `${activity.name} terminé` : activity.name);
+    if (activity.detail) parts.push(activity.detail);
+  } else if (thinkingTokens > 0) {
+    parts.push(`réflexion (${thinkingTokens} jetons)`);
+  }
+  return (
+    <span className="flex items-center gap-xs text-xs text-ink-400" data-testid="local-activity">
+      <Loader2 size={14} className="animate-spin shrink-0" />
+      {/* The elapsed counter is shown on its own when nothing else is known: a
+          number that moves is the minimum honest signal that the turn is alive. */}
+      <span className="truncate">
+        {parts.length > 0 ? parts.join(' — ') : 'en cours'}
+      </span>
+      <span className="shrink-0 text-ink-600 font-mono-code">{elapsedS}s</span>
+    </span>
+  );
+}
+
 export default function LocalChatView() {
   const {
     messages, streaming, streamText, starting, error, sessionId, sessions,
-    usageTurns, usageTotals, sessionCwd,
+    usageTurns, usageTotals, sessionCwd, activity, thinkingTokens, turnStartedAt,
     newSession, resume, refreshSessions, send, stop,
   } = useLocalChat();
   const [sessionsOpen, setSessionsOpen] = useState(false);
@@ -64,6 +94,16 @@ export default function LocalChatView() {
   // the chip read "Choisir un dossier" while the live session was already working
   // in a folder the user could not see.
   const shownCwd = cwd ?? sessionCwd;
+  // Ticks once a second while a turn runs, so the elapsed counter actually moves.
+  // A frozen number would be worse than none: it would suggest a frozen turn.
+  const [elapsedS, setElapsedS] = useState(0);
+  useEffect(() => {
+    if (turnStartedAt === null) { setElapsedS(0); return; }
+    const tick = () => setElapsedS(Math.max(0, Math.floor((Date.now() - turnStartedAt) / 1000)));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [turnStartedAt]);
   const [engine, setEngine] = useState<LocalEngine>('claude');
   const [codexAvailable, setCodexAvailable] = useState(false);
   const [modelByEngine, setModelByEngine] = useState<ModelByEngine>({});
@@ -706,7 +746,9 @@ export default function LocalChatView() {
             {streaming && (
               <div className="flex justify-start">
                 <div className="max-w-[80%] rounded-xl px-sm py-sm text-sm bg-ink-800 text-ink-200">
-                  {streamText ? <MessageMarkdown content={streamText} /> : <Loader2 size={14} className="animate-spin text-ink-400" />}
+                  {streamText
+                    ? <MessageMarkdown content={streamText} />
+                    : <ActivityLine activity={activity} thinkingTokens={thinkingTokens} elapsedS={elapsedS} />}
                 </div>
               </div>
             )}
