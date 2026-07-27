@@ -389,6 +389,23 @@ describe('LocalChatView — slash commands', () => {
     expect(screen.queryByTestId('local-usage-toggle')).toBeNull();
   });
 
+  it('"/usage" opens the panel EVEN before any turn measured anything', async () => {
+    // Regression: the panel used to be nested inside the badge's condition, so
+    // /usage set its open flag and rendered nothing at all — the silent no-op
+    // every other command is written to avoid. The panel carries its own empty
+    // state, so opening it is the honest answer.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    expect(screen.queryByTestId('local-usage-toggle')).toBeNull();
+
+    type('/usage');
+    pressEnter();
+
+    const panel = await screen.findByTestId('usage-panel');
+    expect(panel).toBeInTheDocument();
+    expect(panel).toHaveTextContent(/aucun tour mesuré/i);
+  });
+
   it('"/mcp" opens the MCP management modal', async () => {
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     await screen.findByTestId('local-model-chip');

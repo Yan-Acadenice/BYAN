@@ -503,11 +503,15 @@ export default function LocalChatView() {
           )}
         </div>
         <div className="flex items-center gap-xs">
-          {/* Usage — appears only once a turn has actually reported something, so
-              the header carries no premature "0 token" placeholder. `relative`
-              is mandatory: the panel positions itself absolute against it. */}
-          {measuredTurns > 0 && (
-            <div ref={usageRef} className="relative">
+          {/* The wrapper is ALWAYS mounted: `relative` is what the panel
+              positions itself against, and /usage must be able to open the panel
+              even before any turn reported usage. Only the BADGE waits for a
+              real measurement, so the header carries no premature "0 token"
+              placeholder — the panel has its own empty state for that case.
+              An earlier version nested the panel inside the badge's condition,
+              which made /usage a silent no-op until a turn had completed. */}
+          <div ref={usageRef} className="relative">
+            {measuredTurns > 0 && (
               <button
                 type="button"
                 data-testid="local-usage-toggle"
@@ -520,11 +524,11 @@ export default function LocalChatView() {
                 <Gauge size={12} />
                 Usage ({measuredTurns})
               </button>
-              {usageOpen && (
-                <UsagePanel turns={usageTurns} totals={usageTotals} onClose={() => setUsageOpen(false)} />
-              )}
-            </div>
-          )}
+            )}
+            {usageOpen && (
+              <UsagePanel turns={usageTurns} totals={usageTotals} onClose={() => setUsageOpen(false)} />
+            )}
+          </div>
           {/* Resume an existing session */}
           <div ref={sessionsRef} className="relative">
             <button
