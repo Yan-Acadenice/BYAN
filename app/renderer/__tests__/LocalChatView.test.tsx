@@ -351,6 +351,54 @@ describe('LocalChatView — slash commands', () => {
     expect(screen.getByTestId('local-agent-chip')).toHaveTextContent('byan');
   });
 
+  it('"/usage" opens the usage panel', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    // A turn must have reported something first — the badge and the panel do not
+    // exist before any measurement, so there is no premature "0 token" state.
+    type('bonjour');
+    pressEnter();
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    emit({ type: 'complete', sessionId: 'sess-1', usage: { engine: 'claude', costUsd: 0.08, durationMs: 4210 } });
+    await waitFor(() => expect(screen.getByTestId('local-usage-toggle')).toBeInTheDocument());
+
+    type('/usage');
+    pressEnter();
+    expect(await screen.findByTestId('usage-panel')).toBeInTheDocument();
+  });
+
+  it('the usage badge counts EVERY measured turn, not the capped list', async () => {
+    // usageTurns is capped at 50; the badge reads the totals instead, so a
+    // 55-turn session does not show "Usage (50)" next to a panel saying 55.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('bonjour');
+    pressEnter();
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+
+    for (let i = 0; i < 55; i++) {
+      emit({ type: 'complete', sessionId: 'sess-1', usage: { engine: 'codex', outputTokens: 1, costUsd: null } });
+    }
+    await waitFor(() => expect(screen.getByTestId('local-usage-toggle')).toHaveTextContent('Usage (55)'));
+  });
+
+  it('there is NO usage badge before any turn reported usage', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    expect(screen.queryByTestId('local-usage-toggle')).toBeNull();
+  });
+
+  it('"/mcp" opens the MCP management modal', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/mcp');
+    pressEnter();
+
+    expect(await screen.findByTestId('mcp-panel-shell')).toBeInTheDocument();
+  });
+
   it('Shift+Enter never submits', async () => {
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     await screen.findByTestId('local-model-chip');

@@ -131,6 +131,9 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
 
   return (
     <div
+      // Marker read by an enclosing overlay (McpPanel) so its own Escape
+      // handler does not close underneath a half-filled form.
+      data-mcp-form-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >

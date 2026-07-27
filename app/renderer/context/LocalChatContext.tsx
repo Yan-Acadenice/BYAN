@@ -13,7 +13,14 @@
 // so it runs once in the provider instead of once per Chat mount.
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import type { LocalChatMessage, LocalChatStartOpts, LocalChatSessionSummary, LocalChatTurnOpts } from '../../shared/ipc-contract';
+import type {
+  EngineId,
+  LocalChatMessage,
+  LocalChatStartOpts,
+  LocalChatSessionSummary,
+  LocalChatTurnOpts,
+  LocalChatUsage,
+} from '../../shared/ipc-contract';
 
 export type LocalChatRole = 'user' | 'assistant' | 'system' | 'tool';
 
@@ -21,6 +28,90 @@ export interface LocalMsg {
   id: string;
   role: LocalChatRole;
   content: string;
+}
+
+// The numeric metrics a total folds. Listed by hand rather than derived from a
+// sample object so a metric added to LocalChatUsage and forgotten here shows up
+// as a missing column, not as a silently dropped number.
+const USAGE_METRICS = [
+  'inputTokens',
+  'cachedInputTokens',
+  'cacheWriteInputTokens',
+  'outputTokens',
+  'reasoningOutputTokens',
+  'costUsd',
+  'durationMs',
+] as const;
+
+export type UsageMetric = (typeof USAGE_METRICS)[number];
+
+// HOW each metric aggregates across the turns of one session. Not every reported
+// number is a per-turn delta, and treating them alike produces a wrong total.
+//
+// MEASURED against the real claude CLI (three turns in one session, 2026-07-27):
+//   total_cost_usd : 0.2319165 -> 0.261986 -> 0.28187   (monotonic: SESSION TOTAL)
+//   duration_ms    : 4150      -> 2739     -> 2985      (not monotonic: PER TURN)
+// So the cost field already IS the running total. Summing it reported 0.776 USD
+// for a session that had cost 0.282 — nearly treble, presented as a measurement.
+// codex spawns one process per turn and each turn.completed reports only that
+// turn, so its counters are genuine deltas and do sum.
+//
+// 'latest' keeps the most recent reported value; 'sum' adds deltas.
+const USAGE_AGGREGATION: Record<UsageMetric, 'sum' | 'latest'> = {
+  inputTokens: 'sum',
+  cachedInputTokens: 'sum',
+  cacheWriteInputTokens: 'sum',
+  outputTokens: 'sum',
+  reasoningOutputTokens: 'sum',
+  costUsd: 'latest',
+  durationMs: 'sum',
+};
+
+// One engine's running sum. Every metric is optional for the same reason it is
+// optional on the wire: absent means "never reported", which the UI owes the user
+// as a dash. A 0 here would be indistinguishable from a measured zero.
+export type LocalChatUsageTotal = {
+  engine: EngineId;
+  // Completed turns folded into this row — a row of nothing but dashes still
+  // has to be able to say how many turns produced it.
+  turns: number;
+  // The model of the most recent turn on this engine.
+  model?: string | null;
+} & { [K in UsageMetric]?: number };
+
+export type LocalChatUsageTotals = Partial<Record<EngineId, LocalChatUsageTotal>>;
+
+// How many per-turn records are retained. A long session must not grow this
+// array (nor the panel that renders it) without bound. The TOTALS are folded
+// separately and keep accumulating past the cap, so trimming the list loses the
+// per-turn breakdown of old turns, never the session's arithmetic.
+const USAGE_TURNS_CAP = 50;
+
+// Fold one reported turn into the running per-engine totals.
+//
+// Three rules carry the honesty of the whole feature. Engines are folded
+// SEPARATELY: claude reports dollars and codex reports tokens, so one shared
+// bucket would either blend incompatible units or drop half the data. An absent
+// metric stays absent: treating `undefined` as 0 to make the arithmetic work
+// would manufacture a measurement out of a silence. And each metric obeys
+// USAGE_AGGREGATION — a field that already carries the session total is REPLACED,
+// not added, because adding running totals is how you treble a real number.
+function foldUsage(prev: LocalChatUsageTotals, usage: LocalChatUsage): LocalChatUsageTotals {
+  const before = prev[usage.engine];
+  const next: LocalChatUsageTotal = { engine: usage.engine, turns: (before?.turns ?? 0) + 1 };
+  const model = typeof usage.model === 'string' ? usage.model : before?.model;
+  if (model !== undefined) next.model = model;
+  for (const key of USAGE_METRICS) {
+    const reported = usage[key];
+    const carried = before?.[key];
+    if (typeof reported !== 'number') {
+      // Nothing reported this turn — keep whatever earlier turns established.
+      if (carried !== undefined) next[key] = carried;
+      continue;
+    }
+    next[key] = USAGE_AGGREGATION[key] === 'latest' ? reported : (carried ?? 0) + reported;
+  }
+  return { ...prev, [usage.engine]: next };
 }
 
 export interface UseLocalChat {
@@ -32,6 +123,12 @@ export interface UseLocalChat {
   error: string | null;
   // Persisted sessions available to resume (most recent first).
   sessions: LocalChatSessionSummary[];
+  // Per-turn usage exactly as the engines reported it, oldest first, capped at
+  // USAGE_TURNS_CAP. Empty until a turn completes carrying a usage payload.
+  usageTurns: LocalChatUsage[];
+  // The same numbers folded per engine. Separate from usageTurns so the cap on
+  // the list never truncates the session's arithmetic.
+  usageTotals: LocalChatUsageTotals;
   // Start a fresh local session (drops the current thread).
   newSession: (opts?: LocalChatStartOpts) => Promise<void>;
   // Resume a session : reopens claude in the session's project dir (cwd).
@@ -66,6 +163,8 @@ function useLocalChatState(): UseLocalChat {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
+  const [usageTurns, setUsageTurns] = useState<LocalChatUsage[]>([]);
+  const [usageTotals, setUsageTotals] = useState<LocalChatUsageTotals>({});
 
   // The event listener closes over a ref, not state, so it always filters on the
   // current session without re-subscribing on every session change.
@@ -110,6 +209,15 @@ function useLocalChatState(): UseLocalChat {
           setStreaming(false);
           setStreamText('');
           setError(null);
+          // A turn without a usage payload adds nothing: the engine measured
+          // nothing, and inventing a zero row would claim it measured zero. The
+          // local const is what carries the narrowed type into the closures
+          // below — a property narrowing does not survive a function boundary.
+          const usage = m.usage;
+          if (usage) {
+            setUsageTurns((prev) => [...prev, usage].slice(-USAGE_TURNS_CAP));
+            setUsageTotals((prev) => foldUsage(prev, usage));
+          }
           break;
         }
         case 'error':
@@ -151,6 +259,11 @@ function useLocalChatState(): UseLocalChat {
       setStreaming(false);
       setError(null);
       setSessions([]);
+      // The bill goes with the thread: on a shared machine, leaving the previous
+      // user's cost and token counts on screen would attribute their spend to
+      // whoever logs in next.
+      setUsageTurns([]);
+      setUsageTotals({});
     });
   }, []);
 
@@ -169,6 +282,10 @@ function useLocalChatState(): UseLocalChat {
       accRef.current = '';
       setStreamText('');
       setStreaming(false);
+      // Usage is SESSION-scoped: a fresh session starts from nothing, exactly
+      // like the thread it replaces.
+      setUsageTurns([]);
+      setUsageTotals({});
       // Stop the outgoing session so its claude child is not orphaned (the main
       // bridge caps at 8 concurrent and then refuses to start).
       if (prev && prev !== id) { try { void window.byanApi.localChat.stop(prev); } catch { /* best effort */ } }
@@ -251,6 +368,11 @@ function useLocalChatState(): UseLocalChat {
     // still-live outgoing session used to pass the filter and pollute the
     // freshly seeded thread. With the filter unbound they are dropped.
     sessionRef.current = null;
+    // Cleared here rather than after the awaits because the outgoing session is
+    // abandoned from this point on BOTH paths — a failed reattach must not leave
+    // its numbers standing next to an empty thread.
+    setUsageTurns([]);
+    setUsageTotals({});
     try {
       // Seed the thread with any stored history so the user sees prior turns.
       const history = (await window.byanApi.localChat.history?.(recordId)) ?? [];
@@ -276,6 +398,7 @@ function useLocalChatState(): UseLocalChat {
 
   return {
     sessionId, messages, streaming, streamText, starting, error, sessions,
+    usageTurns, usageTotals,
     newSession, resume, refreshSessions, send, stop,
   };
 }

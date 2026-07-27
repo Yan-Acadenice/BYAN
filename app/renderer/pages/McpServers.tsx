@@ -8,16 +8,7 @@ import type { McpServer, McpStatus, McpStatusChangePayload } from '../../shared/
 import McpServerFormModal, { type McpFormMode } from '../components/mcp/McpServerFormModal';
 import { useToast } from '../components/toast/ToastContext';
 import { useT } from '../i18n/I18nContext';
-import type { MessageKey } from '../i18n/locales';
-
-function stateLabelKey(status: McpStatus): MessageKey {
-  switch (status.state) {
-    case 'running': return 'mcp.state.running';
-    case 'starting': return 'mcp.state.starting';
-    case 'error': return 'mcp.state.error';
-    case 'stopped': return 'mcp.state.stopped';
-  }
-}
+import { mcpStatusBadge } from '../lib/mcp-status';
 
 function isTransitioning(status: McpStatus): boolean {
   return status.state === 'starting';
@@ -26,6 +17,7 @@ function isTransitioning(status: McpStatus): boolean {
 export default function McpServers() {
   const [servers, setServers] = useState<McpServer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<McpFormMode>('add');
@@ -37,8 +29,12 @@ export default function McpServers() {
     try {
       const list = await window.byanApi.mcp.list();
       setServers(list);
-    } catch {
+      setLoadError(null);
+    } catch (err) {
+      // A failed read used to fall through to the empty state, so a broken
+      // .mcp.json looked exactly like "no servers configured".
       setServers([]);
+      setLoadError((err as { message?: string }).message ?? 'unknown error');
     }
   }, []);
 
@@ -158,6 +154,20 @@ export default function McpServers() {
           <Loader2 size={20} className="animate-spin mr-sm" />
           <span className="font-body-sm text-body-sm">{t('mcp.loading')}</span>
         </div>
+      ) : loadError ? (
+        <div
+          role="alert"
+          className="bg-ink-900 border border-red-900/50 rounded-lg flex flex-col items-center justify-center py-xxl text-ink-400"
+        >
+          <AlertTriangle size={28} className="mb-md text-red-400" />
+          <p className="font-h3 text-h3 text-ink-300 mb-xs">{t('mcp.error.title')}</p>
+          <pre className="font-mono-code text-mono-code text-ink-500 text-[11px] max-w-md text-center px-md whitespace-pre-wrap break-all">
+            {loadError}
+          </pre>
+          <button type="button" onClick={() => void refresh()} className="btn-secondary btn-sm mt-md">
+            {t('mcp.error.retry')}
+          </button>
+        </div>
       ) : servers.length === 0 ? (
         <div className="bg-ink-900 border border-ink-800 rounded-lg flex flex-col items-center justify-center py-xxl text-ink-500">
           <Play size={40} className="mb-md opacity-30" />
@@ -170,23 +180,20 @@ export default function McpServers() {
         <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden divide-y divide-ink-800/50">
           {servers.map((srv) => {
             const isRunning = srv.status.state === 'running';
-            const isError = srv.status.state === 'error';
             const isBusy = busyIds.has(srv.id) || isTransitioning(srv.status);
             const errorMessage = srv.status.state === 'error' ? srv.status.message : null;
+            const badge = mcpStatusBadge(srv.status);
             return (
               <div key={srv.id} className="flex items-start justify-between px-md py-sm hover:bg-ink-800 transition-colors">
                 <div className="flex items-start gap-md min-w-0 flex-1">
                   <div
-                    className={[
-                      'w-2 h-2 rounded-full flex-shrink-0 mt-1.5',
-                      isRunning ? 'dot-on' : isError ? 'bg-red' : 'dot-off',
-                    ].join(' ')}
+                    className={['w-2 h-2 rounded-full flex-shrink-0 mt-1.5', badge.dotClass].join(' ')}
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-xs">
                       <p className="font-body-sm text-body-sm text-ink-100 font-medium">{srv.name}</p>
                       <span className="font-mono-code text-mono-code text-ink-500 text-[10px] uppercase">
-                        {t(stateLabelKey(srv.status))}
+                        {t(badge.labelKey)}
                       </span>
                       {!srv.enabled && (
                         <span className="font-mono-code text-mono-code text-ink-500 text-[10px] uppercase">{t('mcp.disabled')}</span>

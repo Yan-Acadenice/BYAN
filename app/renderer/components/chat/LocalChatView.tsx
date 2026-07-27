@@ -12,6 +12,8 @@ import MessageMarkdown from './MessageMarkdown';
 import { useLocalChat } from '../../hooks/useLocalChat';
 import { useSlashPalette } from '../../hooks/useSlashPalette';
 import SlashCommandMenu from './SlashCommandMenu';
+import UsagePanel from './panels/UsagePanel';
+import McpPanel from './panels/McpPanel';
 import { parseSlashInput } from '../../lib/slash-commands';
 import {
   MODEL_PRESETS,
@@ -49,6 +51,7 @@ interface Notice {
 export default function LocalChatView() {
   const {
     messages, streaming, streamText, starting, error, sessionId, sessions,
+    usageTurns, usageTotals,
     newSession, resume, refreshSessions, send, stop,
   } = useLocalChat();
   const [sessionsOpen, setSessionsOpen] = useState(false);
@@ -62,12 +65,15 @@ export default function LocalChatView() {
   const [agent, setAgent] = useState<string | null>(null);
   const [modelOpen, setModelOpen] = useState(false);
   const [effortOpen, setEffortOpen] = useState(false);
+  const [usageOpen, setUsageOpen] = useState(false);
+  const [mcpOpen, setMcpOpen] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionsRef = useRef<HTMLDivElement>(null);
   const modelRef = useRef<HTMLDivElement>(null);
   const effortRef = useRef<HTMLDivElement>(null);
+  const usageRef = useRef<HTMLDivElement>(null);
 
   // The palette owns the input value: it has to see every keystroke to filter.
   const palette = useSlashPalette({ engine });
@@ -75,6 +81,11 @@ export default function LocalChatView() {
   const setInput = palette.setInput;
 
   const model = modelByEngine[engine] ?? null;
+
+  // Turn count for the header badge, taken from the TOTALS rather than from
+  // usageTurns.length: that list is capped at 50, so a 55-turn session would
+  // have shown "Usage (50)" beside a panel correctly reporting 55.
+  const measuredTurns = Object.values(usageTotals).reduce((n, t) => n + (t?.turns ?? 0), 0);
 
   // Load the resumable session list + the default project dir once on mount.
   useEffect(() => { void refreshSessions(); }, [refreshSessions]);
@@ -173,16 +184,19 @@ export default function LocalChatView() {
 
   // Close a header menu on an outside click. One effect per menu, same rule.
   useEffect(() => {
-    if (!sessionsOpen && !modelOpen && !effortOpen) return;
+    if (!sessionsOpen && !modelOpen && !effortOpen && !usageOpen) return;
     const onDoc = (e: MouseEvent) => {
       const target = e.target as Node;
       if (sessionsOpen && sessionsRef.current && !sessionsRef.current.contains(target)) setSessionsOpen(false);
       if (modelOpen && modelRef.current && !modelRef.current.contains(target)) setModelOpen(false);
       if (effortOpen && effortRef.current && !effortRef.current.contains(target)) setEffortOpen(false);
+      if (usageOpen && usageRef.current && !usageRef.current.contains(target)) setUsageOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [sessionsOpen, modelOpen, effortOpen]);
+    // mcpOpen is absent on purpose: McpPanel is a full modal with its own
+    // backdrop and Escape handling, not a header dropdown.
+  }, [sessionsOpen, modelOpen, effortOpen, usageOpen]);
 
   // Switching to an engine without an effort concept closes a stale menu; the
   // chip itself leaves the DOM, so an open dropdown would otherwise orphan.
@@ -269,6 +283,12 @@ export default function LocalChatView() {
         onNewSession();
         setNotice({ tone: 'info', text: 'Nouvelle session locale.' });
         return;
+      case '/usage':
+        setUsageOpen(true);
+        return;
+      case '/mcp':
+        setMcpOpen(true);
+        return;
       case '/help':
         setNotice({ tone: 'info', text: 'Tape "/" pour voir la liste des commandes disponibles.' });
         return;
@@ -331,6 +351,10 @@ export default function LocalChatView() {
 
   return (
     <div className="flex flex-col h-full" data-testid="local-chat-view">
+      {/* Full MCP management surface, opened by /mcp. A modal rather than a
+          header dropdown because it carries the page's own CRUD; it owns its
+          backdrop and Escape handling. */}
+      <McpPanel open={mcpOpen} onClose={() => setMcpOpen(false)} />
       {/* Header — mode badge + New session */}
       <div className="shrink-0 flex items-center justify-between px-lg py-sm border-b border-ink-800">
         <div className="flex items-center gap-sm">
@@ -479,6 +503,28 @@ export default function LocalChatView() {
           )}
         </div>
         <div className="flex items-center gap-xs">
+          {/* Usage — appears only once a turn has actually reported something, so
+              the header carries no premature "0 token" placeholder. `relative`
+              is mandatory: the panel positions itself absolute against it. */}
+          {measuredTurns > 0 && (
+            <div ref={usageRef} className="relative">
+              <button
+                type="button"
+                data-testid="local-usage-toggle"
+                onClick={() => setUsageOpen((o) => !o)}
+                className="flex items-center gap-xs btn-ghost text-xs"
+                title="Consommation de la session"
+                aria-haspopup="dialog"
+                aria-expanded={usageOpen}
+              >
+                <Gauge size={12} />
+                Usage ({measuredTurns})
+              </button>
+              {usageOpen && (
+                <UsagePanel turns={usageTurns} totals={usageTotals} onClose={() => setUsageOpen(false)} />
+              )}
+            </div>
+          )}
           {/* Resume an existing session */}
           <div ref={sessionsRef} className="relative">
             <button
