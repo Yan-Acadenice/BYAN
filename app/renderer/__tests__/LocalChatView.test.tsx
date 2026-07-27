@@ -734,3 +734,68 @@ describe("LocalChatView — envoyer pendant qu'une session s'ouvre", () => {
     await waitFor(() => expect(screen.queryByTestId('local-starting')).toBeNull());
   });
 });
+
+
+describe("LocalChatView — une commande ne mange pas le texte qui la suit", () => {
+  it('/byan <texte> switches to the agent AND sends the text', async () => {
+    // Reported verbatim: "/byan salut mon reuf" did nothing. The command arm read
+    // the slug it needed and DISCARDED the rest, so the message was never sent
+    // anywhere — no bubble, no error, no trace.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/byan salut mon reuf');
+    pressEnter();
+
+    // The agent is applied...
+    await waitFor(() => expect(screen.getByTestId('local-agent-chip')).toHaveTextContent('bmad-byan'));
+    // ...and the words the user typed actually reach the engine.
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'salut mon reuf', undefined));
+    expect(await screen.findByText('salut mon reuf')).toBeInTheDocument();
+  });
+
+  it('/byan alone still just opens the session', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/byan');
+    pressEnter();
+
+    await waitFor(() => expect(mockStart).toHaveBeenCalled());
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('/agent <slug> <texte> takes the slug and sends the rest', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/agent dev salut');
+    pressEnter();
+
+    await waitFor(() => expect(screen.getByTestId('local-agent-chip')).toHaveTextContent('bmad-bmm-dev'));
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'salut', undefined));
+  });
+
+  it('/new <texte> opens the session and sends the text', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/new bonjour');
+    pressEnter();
+
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'bonjour', undefined));
+  });
+
+  it('a panel command SAYS the trailing text was not sent instead of eating it', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/usage salut');
+    pressEnter();
+
+    // The panel opens, but the words are accounted for rather than dropped.
+    expect(await screen.findByTestId('usage-panel')).toBeInTheDocument();
+    expect(await screen.findByText(/salut.*pas ete envoye|pas ete envoye/i)).toBeInTheDocument();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+});

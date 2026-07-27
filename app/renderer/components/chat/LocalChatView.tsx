@@ -304,6 +304,27 @@ export default function LocalChatView() {
     });
   };
 
+  // Text typed AFTER a session-opening command. Reported bug: "/byan salut mon
+  // reuf" applied the agent and DISCARDED the words, so the message reached
+  // nothing and left no trace. send() waits on the in-flight start, so calling it
+  // right after applyAgent/onNewSession lands the turn on the new session.
+  const sendTrailing = (text: string) => {
+    const content = text.trim();
+    if (!content) return;
+    void send(content, startOpts(), turnOpts()).then(() => void refreshSessions());
+  };
+
+  // A command that opens a PANEL cannot carry a message. Saying so beats eating
+  // the words: the user learns why nothing was sent.
+  const notePanelArg = (cmd: string, arg: string) => {
+    const rest = arg.trim();
+    if (!rest) return;
+    setNotice({
+      tone: 'warn',
+      text: `"${rest}" n'a pas ete envoye : ${cmd} ouvre un panneau et ne transporte pas de message.`,
+    });
+  };
+
   // Run a slash command. Returns nothing: every arm either acts or explains
   // itself through `notice` — a command must never be a silent no-op.
   const runCommand = (cmd: string, arg: string) => {
@@ -346,7 +367,11 @@ export default function LocalChatView() {
         return;
       }
       case '/agent': {
-        const wanted = arg.trim();
+        // An agent slug is a filename, so it holds no space: the first word is the
+        // agent and everything after it is a message to send, same as /byan.
+        const [firstWord, ...restWords] = arg.trim().split(/\s+/);
+        const wanted = firstWord ?? '';
+        const trailing = restWords.join(' ');
         if (!wanted) {
           const shown = claudeAgents.slice(0, 8).join(', ');
           setNotice({
@@ -359,6 +384,7 @@ export default function LocalChatView() {
         }
         if (wanted.toLowerCase() === 'aucun' || wanted.toLowerCase() === 'none') {
           applyAgent(null);
+          sendTrailing(trailing);
           return;
         }
         if (!engineSupportsAgent(engine)) {
@@ -379,6 +405,7 @@ export default function LocalChatView() {
           return;
         }
         applyAgent(resolved);
+        sendTrailing(trailing);
         return;
       }
       case '/byan': {
@@ -394,25 +421,31 @@ export default function LocalChatView() {
           return;
         }
         applyAgent(byan);
+        sendTrailing(arg);
         return;
       }
       case '/new':
         onNewSession();
+        sendTrailing(arg);
         return;
       case '/clear':
         // A fresh session IS the local "clear": the transcript belongs to the
         // session, and there is nothing else to erase.
         onNewSession();
         setNotice({ tone: 'info', text: 'Nouvelle session locale.' });
+        sendTrailing(arg);
         return;
       case '/usage':
         setUsageOpen(true);
+        notePanelArg(cmd, arg);
         return;
       case '/mcp':
         setMcpOpen(true);
+        notePanelArg(cmd, arg);
         return;
       case '/help':
         setNotice({ tone: 'info', text: 'Tape "/" pour voir la liste des commandes disponibles.' });
+        notePanelArg(cmd, arg);
         return;
       default:
         // A command declared in the catalogue but not handled here would be a
