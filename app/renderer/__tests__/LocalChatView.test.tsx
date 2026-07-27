@@ -18,6 +18,7 @@ const mockHistory = vi.fn();
 const mockStoreGet = vi.fn();
 const mockOpenDialog = vi.fn();
 const mockCliDetect = vi.fn();
+const mockStoreSet = vi.fn().mockResolvedValue(undefined);
 
 let listeners: Array<(payload: unknown) => void> = [];
 function emit(msg: LocalChatMessage) {
@@ -29,7 +30,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'byanApi', {
     value: {
       localChat: { start: mockStart, send: mockSend, stop: mockStop, list: mockList, history: mockHistory },
-      store: { get: mockStoreGet, set: vi.fn() },
+      store: { get: mockStoreGet, set: mockStoreSet },
       fs: { openProjectDialog: mockOpenDialog },
       cli: { detect: mockCliDetect },
     },
@@ -54,6 +55,7 @@ beforeEach(() => {
   mockStoreGet.mockResolvedValue(null);
   mockOpenDialog.mockResolvedValue(null);
   mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude' }); // codex absent by default
+  mockStoreSet.mockClear().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -75,7 +77,7 @@ describe('LocalChatView', () => {
     fireEvent.change(input, { target: { value: 'salut' } });
     fireEvent.click(screen.getByTestId('local-chat-send'));
 
-    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'salut'));
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'salut', undefined));
     expect(screen.getByText('salut')).toBeInTheDocument();
 
     // Stream a reply then complete.
@@ -111,7 +113,10 @@ describe('LocalChatView', () => {
   });
 
   it('F4: defaults cwd to the onboarding project root and binds a new session to it', async () => {
-    mockStoreGet.mockResolvedValue('/home/yan/monprojet');
+    // Key-aware: a blanket mockResolvedValue handed the SAME path to every key,
+    // so chat.localAgent silently became a directory and leaked into startOpts.
+    mockStoreGet.mockImplementation((k: string) =>
+      Promise.resolve(k === 'onboarding.projectRoot' ? '/home/yan/monprojet' : null));
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     // The header shows the project folder (last path segment).
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
@@ -122,8 +127,13 @@ describe('LocalChatView', () => {
 
   it('D-03: prefers chat.pendingCwd (project launch) over onboarding root, then clears it', async () => {
     const setSpy = vi.fn().mockResolvedValue(undefined);
-    mockStoreGet.mockImplementation((key: string) =>
-      Promise.resolve(key === 'chat.pendingCwd' ? '/home/yan/mon-projet' : '/home/yan/onboarding'));
+    // Only the two cwd keys answer here: a catch-all would also feed
+    // chat.localAgent / chat.localModel a directory path.
+    mockStoreGet.mockImplementation((key: string) => Promise.resolve(
+      key === 'chat.pendingCwd' ? '/home/yan/mon-projet'
+        : key === 'onboarding.projectRoot' ? '/home/yan/onboarding'
+          : null,
+    ));
     (window.byanApi as unknown as { store: { get: typeof mockStoreGet; set: typeof setSpy } }).store.set = setSpy;
 
     render(<LocalChatView />, { wrapper: LocalChatProvider });
@@ -137,7 +147,10 @@ describe('LocalChatView', () => {
   });
 
   it('F4: the folder button lets the user pick another project dir', async () => {
-    mockStoreGet.mockResolvedValue('/home/yan/monprojet');
+    // Key-aware: a blanket mockResolvedValue handed the SAME path to every key,
+    // so chat.localAgent silently became a directory and leaked into startOpts.
+    mockStoreGet.mockImplementation((k: string) =>
+      Promise.resolve(k === 'onboarding.projectRoot' ? '/home/yan/monprojet' : null));
     mockOpenDialog.mockResolvedValue('/home/yan/autre');
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     await waitFor(() => expect(screen.getByTestId('local-cwd')).toHaveTextContent('monprojet'));
@@ -179,5 +192,172 @@ describe('LocalChatView', () => {
 
     fireEvent.click(screen.getByTestId('local-new-session'));
     await waitFor(() => expect(mockStart).toHaveBeenCalledWith({ cli: 'codex' }));
+  });
+});
+
+// ---------- F8: model / effort chips + slash palette ----------
+
+// Put the view in codex mode and wait until the switch reflects it, so a test
+// never races the async detection.
+async function renderAsCodex() {
+  mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+  render(<LocalChatView />, { wrapper: LocalChatProvider });
+  await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+  fireEvent.click(screen.getByTestId('local-engine-codex'));
+  return screen.getByTestId('local-chat-input');
+}
+
+function type(value: string) {
+  fireEvent.change(screen.getByTestId('local-chat-input'), { target: { value } });
+}
+
+function pressEnter() {
+  fireEvent.keyDown(screen.getByTestId('local-chat-input'), { key: 'Enter' });
+}
+
+describe('LocalChatView — effort chip presence', () => {
+  it('is ABSENT from the DOM on claude — not merely disabled', async () => {
+    // claude exposes no reasoning-effort flag; a greyed control would advertise
+    // a setting that does not exist.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    expect(await screen.findByTestId('local-model-chip')).toBeInTheDocument();
+    expect(screen.queryByTestId('local-effort-chip')).toBeNull();
+  });
+
+  it('appears on codex', async () => {
+    await renderAsCodex();
+    expect(screen.getByTestId('local-effort-chip')).toBeInTheDocument();
+  });
+
+  it('disappears again when the user switches back to claude', async () => {
+    await renderAsCodex();
+    expect(screen.getByTestId('local-effort-chip')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('local-engine-claude'));
+    await waitFor(() => expect(screen.queryByTestId('local-effort-chip')).toBeNull());
+  });
+});
+
+describe('LocalChatView — slash commands', () => {
+  it('opens the palette on "/" and offers /model', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('/mo');
+    expect(screen.getByTestId('slash-cmd-model')).toBeInTheDocument();
+  });
+
+  it('hides /effort from the palette on claude', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('/e');
+    expect(screen.queryByTestId('slash-cmd-effort')).toBeNull();
+  });
+
+  it('offers /effort in the palette on codex', async () => {
+    await renderAsCodex();
+    type('/e');
+    expect(screen.getByTestId('slash-cmd-effort')).toBeInTheDocument();
+  });
+
+  it('"/model opus" persists the choice per engine and relabels the chip', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/model opus');
+    pressEnter();
+
+    // Stored under the engine key: the two model spaces are disjoint.
+    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localModel', { claude: 'opus' }));
+    expect(screen.getByTestId('local-model-chip')).toHaveTextContent('opus');
+    // A command is consumed, never sent to the engine.
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('refuses a model that belongs to the other engine, and does not persist it', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/model gpt-4');
+    pressEnter();
+
+    expect(await screen.findByTestId('local-notice')).toHaveTextContent(/n'est pas un modele valide/i);
+    expect(mockStoreSet).not.toHaveBeenCalledWith('chat.localModel', expect.anything());
+  });
+
+  it('"/effort high" on claude explains itself instead of silently doing nothing', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/effort high');
+    pressEnter();
+
+    expect(await screen.findByTestId('local-notice')).toHaveTextContent(/effort/i);
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('"/effort xhigh" on codex persists the level', async () => {
+    await renderAsCodex();
+    type('/effort xhigh');
+    pressEnter();
+
+    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localEffort', 'xhigh'));
+    expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('xhigh');
+  });
+
+  it('an unknown command is refused, NOT forwarded to the engine', async () => {
+    // The whole point of the primitive's 'unknown' classification.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/mdl');
+    pressEnter();
+
+    expect(await screen.findByTestId('local-notice')).toHaveTextContent(/inconnue/i);
+    expect(mockSend).not.toHaveBeenCalled();
+  });
+
+  it('a plain message still goes through, carrying the selected effort per turn', async () => {
+    await renderAsCodex();
+    type('/effort low');
+    pressEnter();
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('low'));
+
+    type('bonjour');
+    pressEnter();
+
+    // Third argument is the per-turn override — this is what makes an effort
+    // change apply from the very next message.
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'bonjour', { reasoningEffort: 'low' }));
+  });
+
+  it('does NOT attach a per-turn effort on claude', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('bonjour');
+    pressEnter();
+
+    await waitFor(() => expect(mockSend).toHaveBeenCalledWith('sess-1', 'bonjour', undefined));
+  });
+
+  it('"/byan" selects the byan agent and shows it', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('/byan');
+    pressEnter();
+
+    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localAgent', 'byan'));
+    expect(screen.getByTestId('local-agent-chip')).toHaveTextContent('byan');
+  });
+
+  it('Shift+Enter never submits', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('bonjour');
+    fireEvent.keyDown(screen.getByTestId('local-chat-input'), { key: 'Enter', shiftKey: true });
+
+    expect(mockSend).not.toHaveBeenCalled();
   });
 });

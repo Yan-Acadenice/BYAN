@@ -6,10 +6,22 @@
 // start / resume-in-memory a session, send, watch the stream. Session
 // persistence + resume across restarts is F3.
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check, Folder } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check, Folder, Gauge, Bot } from 'lucide-react';
 import MessageMarkdown from './MessageMarkdown';
 import { useLocalChat } from '../../hooks/useLocalChat';
+import { useSlashPalette } from '../../hooks/useSlashPalette';
+import SlashCommandMenu from './SlashCommandMenu';
+import { parseSlashInput } from '../../lib/slash-commands';
+import {
+  MODEL_PRESETS,
+  REASONING_EFFORTS,
+  engineSupportsEffort,
+  isValidEffort,
+  isValidModelFor,
+  type EngineId,
+  type ReasoningEffort,
+} from '../../../shared/engine-options';
 
 // Short display for a directory path (last segment, or the whole thing if short).
 function folderLabel(dir: string): string {
@@ -20,23 +32,49 @@ function folderLabel(dir: string): string {
 // The engine a NEW local session runs on. 'claude' is the long-lived stream
 // process; 'codex' runs one process per turn (resume-chained). Selecting an
 // engine applies to the NEXT session started — a live session keeps its own.
-type LocalEngine = 'claude' | 'codex';
+type LocalEngine = EngineId;
+
+// Model choices are stored PER ENGINE: the two model spaces are disjoint, so one
+// shared slot would hand codex a claude alias the moment the user switched.
+type ModelByEngine = Partial<Record<LocalEngine, string>>;
+
+// A short-lived line above the input. Used for everything the user must be told
+// but that is not part of the conversation: an unknown command, a setting
+// applied, a setting refused. Silence would read as a broken command.
+interface Notice {
+  tone: 'info' | 'warn';
+  text: string;
+}
 
 export default function LocalChatView() {
   const {
     messages, streaming, streamText, starting, error, sessionId, sessions,
     newSession, resume, refreshSessions, send, stop,
   } = useLocalChat();
-  const [input, setInput] = useState('');
   const [sessionsOpen, setSessionsOpen] = useState(false);
   // F4 : the project directory (cwd) a new local session runs in. Defaults to the
   // folder chosen at onboarding ; the folder button lets the user pick another.
   const [cwd, setCwd] = useState<string | null>(null);
   const [engine, setEngine] = useState<LocalEngine>('claude');
   const [codexAvailable, setCodexAvailable] = useState(false);
+  const [modelByEngine, setModelByEngine] = useState<ModelByEngine>({});
+  const [effort, setEffort] = useState<ReasoningEffort | null>(null);
+  const [agent, setAgent] = useState<string | null>(null);
+  const [modelOpen, setModelOpen] = useState(false);
+  const [effortOpen, setEffortOpen] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionsRef = useRef<HTMLDivElement>(null);
+  const modelRef = useRef<HTMLDivElement>(null);
+  const effortRef = useRef<HTMLDivElement>(null);
+
+  // The palette owns the input value: it has to see every keystroke to filter.
+  const palette = useSlashPalette({ engine });
+  const input = palette.input;
+  const setInput = palette.setInput;
+
+  const model = modelByEngine[engine] ?? null;
 
   // Load the resumable session list + the default project dir once on mount.
   useEffect(() => { void refreshSessions(); }, [refreshSessions]);
@@ -55,6 +93,29 @@ export default function LocalChatView() {
         const saved = await window.byanApi.store?.get?.<string>('chat.localEngine');
         if (saved === 'codex' && detected) setEngine('codex');
       } catch { /* keep the claude default */ }
+      // Restore the model / effort / agent choices. Each is re-validated against
+      // the SHARED guards rather than trusted: a stored value can predate a
+      // rename, and the bridge would reject it at spawn time with an error the
+      // user could not connect to a setting they made days ago.
+      try {
+        const storedModels = await window.byanApi.store?.get?.<ModelByEngine>('chat.localModel');
+        if (storedModels && typeof storedModels === 'object') {
+          const kept: ModelByEngine = {};
+          for (const e of ['claude', 'codex'] as const) {
+            const v = storedModels[e];
+            if (typeof v === 'string' && isValidModelFor(e, v)) kept[e] = v;
+          }
+          setModelByEngine(kept);
+        }
+      } catch { /* no stored model — the CLI default applies */ }
+      try {
+        const storedEffort = await window.byanApi.store?.get?.<string>('chat.localEffort');
+        if (isValidEffort(storedEffort)) setEffort(storedEffort);
+      } catch { /* no stored effort */ }
+      try {
+        const storedAgent = await window.byanApi.store?.get?.<string>('chat.localAgent');
+        if (storedAgent) setAgent(storedAgent);
+      } catch { /* no stored agent */ }
     })();
   }, []);
 
@@ -63,8 +124,35 @@ export default function LocalChatView() {
     try { void window.byanApi.store?.set?.('chat.localEngine', next); } catch { /* non-blocking */ }
   };
 
-  // Start options shared by send / new session : project dir + chosen engine.
-  const startOpts = () => ({ cli: engine, ...(cwd ? { cwd } : {}) });
+  const pickModel = (next: string | null) => {
+    setModelOpen(false);
+    const merged: ModelByEngine = { ...modelByEngine };
+    if (next) merged[engine] = next; else delete merged[engine];
+    setModelByEngine(merged);
+    try { void window.byanApi.store?.set?.('chat.localModel', merged); } catch { /* non-blocking */ }
+    setNotice({ tone: 'info', text: next ? `Modele ${next} pour la prochaine session ${engine}.` : `Modele par defaut de ${engine} restaure.` });
+  };
+
+  const pickEffort = (next: ReasoningEffort | null) => {
+    setEffortOpen(false);
+    setEffort(next);
+    try { void window.byanApi.store?.set?.('chat.localEffort', next ?? ''); } catch { /* non-blocking */ }
+    // Effort rides on every turn, so it lands on the NEXT message — no restart.
+    setNotice({ tone: 'info', text: next ? `Effort ${next} des le prochain message.` : 'Effort par defaut restaure.' });
+  };
+
+  // Start options shared by send / new session : project dir, engine, model,
+  // effort, agent. The bridge re-validates and drops what an engine cannot use.
+  const startOpts = () => ({
+    cli: engine,
+    ...(cwd ? { cwd } : {}),
+    ...(model ? { model } : {}),
+    ...(effort ? { effort } : {}),
+    ...(agent ? { agent } : {}),
+  });
+
+  // Per-turn overrides, read on EVERY send so an effort change applies at once.
+  const turnOpts = () => (engineSupportsEffort(engine) && effort ? { reasoningEffort: effort } : undefined);
   useEffect(() => {
     void (async () => {
       try {
@@ -83,15 +171,24 @@ export default function LocalChatView() {
     })();
   }, []);
 
-  // Close the sessions menu on an outside click.
+  // Close a header menu on an outside click. One effect per menu, same rule.
   useEffect(() => {
-    if (!sessionsOpen) return;
+    if (!sessionsOpen && !modelOpen && !effortOpen) return;
     const onDoc = (e: MouseEvent) => {
-      if (sessionsRef.current && !sessionsRef.current.contains(e.target as Node)) setSessionsOpen(false);
+      const target = e.target as Node;
+      if (sessionsOpen && sessionsRef.current && !sessionsRef.current.contains(target)) setSessionsOpen(false);
+      if (modelOpen && modelRef.current && !modelRef.current.contains(target)) setModelOpen(false);
+      if (effortOpen && effortRef.current && !effortRef.current.contains(target)) setEffortOpen(false);
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
-  }, [sessionsOpen]);
+  }, [sessionsOpen, modelOpen, effortOpen]);
+
+  // Switching to an engine without an effort concept closes a stale menu; the
+  // chip itself leaves the DOM, so an open dropdown would otherwise orphan.
+  useEffect(() => {
+    if (!engineSupportsEffort(engine)) setEffortOpen(false);
+  }, [engine]);
 
   useEffect(() => {
     if (typeof bottomRef.current?.scrollIntoView === 'function') {
@@ -99,15 +196,108 @@ export default function LocalChatView() {
     }
   }, [messages, streamText]);
 
-  const submit = () => {
-    if (!input.trim() || streaming) return;
-    // Bind an on-the-fly session to the selected project dir + engine (F4).
-    void send(input, startOpts()).then(() => void refreshSessions());
-    setInput('');
+  const onNewSession = useCallback(() => {
+    void newSession(startOpts()).then(() => void refreshSessions());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newSession, refreshSessions, engine, cwd, model, effort, agent]);
+
+  // Run a slash command. Returns nothing: every arm either acts or explains
+  // itself through `notice` — a command must never be a silent no-op.
+  const runCommand = (cmd: string, arg: string) => {
+    switch (cmd) {
+      case '/model': {
+        if (!arg) { setModelOpen(true); return; }
+        if (!isValidModelFor(engine, arg)) {
+          setNotice({ tone: 'warn', text: `"${arg}" n'est pas un modele valide pour ${engine}.` });
+          return;
+        }
+        pickModel(arg);
+        return;
+      }
+      case '/effort': {
+        // The command is only offered for codex, but a user can still type it.
+        if (!engineSupportsEffort(engine)) {
+          setNotice({ tone: 'warn', text: `${engine} n'expose aucun reglage d'effort — ce reglage n'existe que pour codex.` });
+          return;
+        }
+        if (!arg) { setEffortOpen(true); return; }
+        if (!isValidEffort(arg)) {
+          setNotice({ tone: 'warn', text: `Effort inconnu: "${arg}". Valeurs: ${REASONING_EFFORTS.join(', ')}.` });
+          return;
+        }
+        pickEffort(arg);
+        return;
+      }
+      case '/engine': {
+        const next = arg.toLowerCase();
+        if (next !== 'claude' && next !== 'codex') {
+          setNotice({ tone: 'warn', text: 'Usage: /engine claude|codex.' });
+          return;
+        }
+        if (next === 'codex' && !codexAvailable) {
+          setNotice({ tone: 'warn', text: 'codex est introuvable sur ce PC.' });
+          return;
+        }
+        pickEngine(next);
+        setNotice({ tone: 'info', text: `Moteur ${next} pour la prochaine session.` });
+        return;
+      }
+      case '/agent': {
+        const next = arg.trim() || null;
+        setAgent(next);
+        try { void window.byanApi.store?.set?.('chat.localAgent', next ?? ''); } catch { /* non-blocking */ }
+        setNotice({
+          tone: engine === 'claude' ? 'info' : 'warn',
+          text: engine === 'claude'
+            ? (next ? `Agent ${next} pour la prochaine session.` : 'Agent par defaut restaure.')
+            : "codex ne permet pas de choisir un agent depuis ce mode — le reglage ne s'appliquera qu'a une session claude.",
+        });
+        return;
+      }
+      case '/byan':
+        // BYAN is a claude agent (its skill lives in .claude/skills), so this is
+        // /agent byan with a name the user does not have to remember.
+        runCommand('/agent', 'byan');
+        return;
+      case '/new':
+        onNewSession();
+        return;
+      case '/clear':
+        // A fresh session IS the local "clear": the transcript belongs to the
+        // session, and there is nothing else to erase.
+        onNewSession();
+        setNotice({ tone: 'info', text: 'Nouvelle session locale.' });
+        return;
+      case '/help':
+        setNotice({ tone: 'info', text: 'Tape "/" pour voir la liste des commandes disponibles.' });
+        return;
+      default:
+        // A command declared in the catalogue but not handled here would be a
+        // silent hole; say so instead of ignoring the keystroke.
+        setNotice({ tone: 'warn', text: `Commande non implementee: ${cmd}.` });
+    }
   };
 
-  const onNewSession = () => {
-    void newSession(startOpts()).then(() => void refreshSessions());
+  const submit = () => {
+    const raw = input;
+    if (!raw.trim() || streaming) return;
+    setNotice(null);
+
+    const parsed = parseSlashInput(raw);
+    if (parsed.kind === 'command') {
+      setInput('');
+      runCommand(parsed.cmd, parsed.arg);
+      return;
+    }
+    if (parsed.kind === 'unknown') {
+      // NEVER forwarded to the engine: a typo must be corrected, not answered.
+      setNotice({ tone: 'warn', text: `Commande inconnue: ${parsed.cmd}. Tape "/" pour voir la liste.` });
+      return;
+    }
+
+    // Bind an on-the-fly session to the selected project dir + engine (F4).
+    void send(raw, startOpts(), turnOpts()).then(() => void refreshSessions());
+    setInput('');
   };
 
   // Pick a project directory for the next new session (F4). Recording it in the
@@ -129,6 +319,9 @@ export default function LocalChatView() {
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // The palette gets first refusal. It returns false when its menu is closed,
+    // which is what keeps plain Enter-to-submit working.
+    if (palette.handleKeyDown(e)) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       submit();
@@ -185,6 +378,101 @@ export default function LocalChatView() {
             <Folder size={12} />
             {cwd ? folderLabel(cwd) : 'Choisir un dossier'}
           </button>
+          {/* Model chip — both engines. Applies to the NEXT session, like the
+              engine switch: claude fixes the model at spawn. */}
+          <div ref={modelRef} className="relative">
+            <button
+              type="button"
+              data-testid="local-model-chip"
+              onClick={() => setModelOpen((o) => !o)}
+              title={`Modele de la prochaine session ${engine}`}
+              aria-haspopup="menu"
+              aria-expanded={modelOpen}
+              className="flex items-center gap-xs text-[11px] text-ink-400 hover:text-ink-200 transition-colors"
+            >
+              <Bot size={12} />
+              {model ?? 'modele auto'}
+            </button>
+            {modelOpen && (
+              <div role="menu" className="absolute top-full left-0 mt-1 w-56 bg-ink-900 border border-ink-700 rounded shadow-lg py-1 z-50">
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="local-model-auto"
+                  onClick={() => pickModel(null)}
+                  className="w-full text-left px-md py-xs text-xs text-ink-300 hover:bg-ink-800"
+                >
+                  Defaut du CLI
+                </button>
+                {MODEL_PRESETS[engine].map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    role="menuitem"
+                    data-testid={`local-model-${preset.value}`}
+                    onClick={() => pickModel(preset.value)}
+                    className="w-full text-left px-md py-xs text-xs text-ink-300 hover:bg-ink-800 flex items-center justify-between"
+                  >
+                    {preset.label}
+                    {model === preset.value && <Check size={11} className="text-acadenice-teal" />}
+                  </button>
+                ))}
+                <p className="px-md pt-xs text-[10px] text-ink-600 border-t border-ink-800 mt-1">
+                  Autre modele : /model &lt;nom&gt;
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Effort chip — ABSENT from the DOM on claude, not merely disabled:
+              claude exposes no reasoning-effort flag, so showing a greyed
+              control would advertise a setting that does not exist. */}
+          {engineSupportsEffort(engine) && (
+            <div ref={effortRef} className="relative">
+              <button
+                type="button"
+                data-testid="local-effort-chip"
+                onClick={() => setEffortOpen((o) => !o)}
+                title="Effort de raisonnement (codex) — appliqué au prochain message"
+                aria-haspopup="menu"
+                aria-expanded={effortOpen}
+                className="flex items-center gap-xs text-[11px] text-ink-400 hover:text-ink-200 transition-colors"
+              >
+                <Gauge size={12} />
+                {effort ?? 'effort auto'}
+              </button>
+              {effortOpen && (
+                <div role="menu" className="absolute top-full left-0 mt-1 w-44 bg-ink-900 border border-ink-700 rounded shadow-lg py-1 z-50">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="local-effort-auto"
+                    onClick={() => pickEffort(null)}
+                    className="w-full text-left px-md py-xs text-xs text-ink-300 hover:bg-ink-800"
+                  >
+                    Defaut du CLI
+                  </button>
+                  {REASONING_EFFORTS.map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      role="menuitem"
+                      data-testid={`local-effort-${level}`}
+                      onClick={() => pickEffort(level)}
+                      className="w-full text-left px-md py-xs text-xs text-ink-300 hover:bg-ink-800 flex items-center justify-between"
+                    >
+                      {level}
+                      {effort === level && <Check size={11} className="text-acadenice-teal" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {agent && (
+            <span data-testid="local-agent-chip" className="font-mono-code text-[10px] text-ink-500">agent {agent}</span>
+          )}
           {sessionId && (
             <span className="font-mono-code text-[10px] text-ink-500">session {sessionId.slice(0, 8)}</span>
           )}
@@ -294,15 +582,37 @@ export default function LocalChatView() {
         </div>
       )}
 
-      {/* Input */}
-      <div className="shrink-0 px-lg py-sm border-t border-ink-800">
+      {notice && (
+        <div
+          role="status"
+          data-testid="local-notice"
+          className={[
+            'shrink-0 px-lg py-xs text-xs border-t',
+            notice.tone === 'warn'
+              ? 'text-amber-300 bg-amber-900/20 border-amber-800/60'
+              : 'text-ink-300 bg-ink-800/60 border-ink-700',
+          ].join(' ')}
+        >
+          {notice.text}
+        </div>
+      )}
+
+      {/* Input — `relative` anchors the slash palette, which positions itself
+          against the nearest positioned ancestor. */}
+      <div className="shrink-0 px-lg py-sm border-t border-ink-800 relative">
+        <SlashCommandMenu
+          commands={palette.commands}
+          highlightedIndex={palette.highlightedIndex}
+          onSelect={palette.select}
+          onHighlight={palette.setHighlightedIndex}
+        />
         <div className="flex items-end gap-sm">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder={streaming ? `${engine} répond...` : 'Message... (Entrée pour envoyer, Maj+Entrée pour un saut de ligne)'}
+            placeholder={streaming ? `${engine} répond...` : 'Message ou / pour une commande (Entrée pour envoyer, Maj+Entrée pour un saut de ligne)'}
             disabled={streaming}
             rows={1}
             data-testid="local-chat-input"

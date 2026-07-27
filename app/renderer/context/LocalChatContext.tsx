@@ -13,7 +13,7 @@
 // so it runs once in the provider instead of once per Chat mount.
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import type { LocalChatMessage, LocalChatStartOpts, LocalChatSessionSummary } from '../../shared/ipc-contract';
+import type { LocalChatMessage, LocalChatStartOpts, LocalChatSessionSummary, LocalChatTurnOpts } from '../../shared/ipc-contract';
 
 export type LocalChatRole = 'user' | 'assistant' | 'system' | 'tool';
 
@@ -39,7 +39,9 @@ export interface UseLocalChat {
   // Re-read the persisted session list.
   refreshSessions: () => Promise<void>;
   // Send a user message ; starts a session on the fly (with startOpts) if none exists.
-  send: (text: string, startOpts?: LocalChatStartOpts) => Promise<void>;
+  // turnOpts carries per-turn overrides (reasoning effort). It is read on EVERY
+  // turn, so changing the effort applies from the next message on — no restart.
+  send: (text: string, startOpts?: LocalChatStartOpts, turnOpts?: LocalChatTurnOpts) => Promise<void>;
   // Ask the local CLI to stop the current turn.
   stop: () => Promise<void>;
 }
@@ -178,7 +180,7 @@ function useLocalChatState(): UseLocalChat {
   }, []);
 
   // startOpts (F4) : when a session is created on the fly, bind it to a cwd/agent.
-  const send = useCallback(async (text: string, startOpts?: LocalChatStartOpts) => {
+  const send = useCallback(async (text: string, startOpts?: LocalChatStartOpts, turnOpts?: LocalChatTurnOpts) => {
     const content = text.trim();
     if (!content || streaming) return;
 
@@ -207,7 +209,7 @@ function useLocalChatState(): UseLocalChat {
     accRef.current = '';
     setStreamText('');
     try {
-      await window.byanApi.localChat.send(id, content);
+      await window.byanApi.localChat.send(id, content, turnOpts);
     } catch (err) {
       setStreaming(false);
       setMessages((prev) => [

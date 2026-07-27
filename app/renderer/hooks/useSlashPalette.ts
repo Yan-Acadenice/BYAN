@@ -93,8 +93,19 @@ export function useSlashPalette(opts: UseSlashPaletteOpts): SlashPalette {
       case 'ArrowUp':
         setHighlightedIndex((i) => (i - 1 + matches.length) % matches.length);
         return consume();
-      case 'Enter':
+      case 'Enter': {
+        const def = matches[highlightedIndex];
+        if (!def) return false;
+        // Nothing left to complete: the user typed the whole command, so Enter
+        // must RUN it. Consuming here would force a second Enter for every
+        // no-argument command — friction the host cannot work around, since it
+        // only sees "key consumed".
+        if (input.trim() === def.cmd) return false;
+        select(def);
+        return consume();
+      }
       case 'Tab': {
+        // Tab is completion-only: it always fills in, never submits.
         const def = matches[highlightedIndex];
         if (!def) return false;
         select(def);
@@ -106,7 +117,7 @@ export function useSlashPalette(opts: UseSlashPaletteOpts): SlashPalette {
       default:
         return false;
     }
-  }, [open, matches, highlightedIndex, select, close]);
+  }, [open, matches, highlightedIndex, select, close, input]);
 
   return {
     input,
