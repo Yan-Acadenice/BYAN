@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { AuthMode, AuthResult } from '../../shared/ipc-contract';
 import ByanLogo from '../components/ByanLogo';
+import { useAppVersion, formatVersion } from '../hooks/useAppVersion';
 
 const CLOUD_DEFAULT_URL = 'https://byan-api.stark.a3n.fr';
 const LOCAL_DEFAULT_URL = 'http://localhost:3737';
@@ -62,6 +63,8 @@ interface LoginProps {
 }
 
 export default function Login({ onAuthenticated }: LoginProps) {
+  // A version literal cannot stay true; read the running binary.
+  const appVersion = useAppVersion();
   const [activeTab, setActiveTab] = useState<Tab>('cloud');
   const [cloudUrl, setCloudUrl] = useState(CLOUD_DEFAULT_URL);
   const [cloudToken, setCloudToken] = useState('');
@@ -483,7 +486,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
 
         <div className="mt-lg text-center flex justify-center gap-lg">
           <span className="font-caption text-caption text-ink-500/60 uppercase tracking-[0.2em]">
-            Builder of YAN &middot; v1.0
+            Builder of YAN{appVersion ? ` \u00b7 ${formatVersion(appVersion)}` : ''}
           </span>
         </div>
       </div>

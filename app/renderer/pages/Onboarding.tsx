@@ -30,6 +30,7 @@ import type { CliDetection, PreviewFileWritePlan, OnboardingResult } from '../..
 import Stepper, { StepDef } from '../components/Stepper';
 import FilePreview from '../components/FilePreview';
 import ByanLogo from '../components/ByanLogo';
+import { useAppVersion, formatVersion } from '../hooks/useAppVersion';
 
 const STEPS: StepDef[] = [
   { id: 'welcome', label: 'Welcome' },
@@ -67,6 +68,8 @@ const PLATFORM_ICONS: Record<PlatformKey, LucideIcon> = {
 const STAGGER_DELAYS = ['delay-0', 'delay-75', 'delay-150'];
 
 export default function Onboarding({ onComplete }: OnboardingProps) {
+  // A version literal cannot stay true; read the running binary.
+  const appVersion = useAppVersion();
   const [step, setStep] = useState(0);
   const [checkingSkip, setCheckingSkip] = useState(true);
 
@@ -730,7 +733,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         </div>
 
         <p className="text-center text-[11px] text-ink-500/60 mt-6 uppercase tracking-[0.2em]">
-          Builder of YAN &middot; v1.0
+          Builder of YAN{appVersion ? ` \u00b7 ${formatVersion(appVersion)}` : ''}
         </p>
       </div>
     </div>

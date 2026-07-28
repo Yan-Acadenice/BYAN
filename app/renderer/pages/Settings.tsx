@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { LogOut, KeyRound, Info, ArrowLeftRight, ExternalLink, Languages, type LucideIcon } from 'lucide-react';
 import { useT } from '../i18n/I18nContext';
 import { LOCALES, type Locale } from '../i18n/locales';
+import { useAppVersion, formatVersion } from '../hooks/useAppVersion';
 
 interface SettingsProps {
   onLogout?: () => void;
@@ -40,6 +41,8 @@ const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 export default function Settings({ onLogout }: SettingsProps) {
+  // A version literal cannot stay true; read the running binary.
+  const appVersion = useAppVersion();
   const [loggingOut, setLoggingOut] = useState(false);
   const { locale, setLocale } = useT();
 
@@ -137,7 +140,9 @@ export default function Settings({ onLogout }: SettingsProps) {
             <span className="text-gradient-primary font-semibold">BYAN</span>
             {' — '}Builder of YAN · Agent Orchestration Platform
           </p>
-          <p className="font-body-sm text-body-sm text-ink-500">Merise Agile + TDD · 64 Mantras · v1.0</p>
+          <p className="font-body-sm text-body-sm text-ink-400">
+            Merise Agile + TDD &middot; 64 Mantras{appVersion ? ` \u00b7 ${formatVersion(appVersion)}` : ''}
+          </p>
         </div>
       </div>
 
