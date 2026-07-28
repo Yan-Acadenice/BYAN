@@ -218,3 +218,79 @@ describe('onboarding.register', () => {
     expect(channels).toContain(IPC_CHANNELS.onboarding.apply);
   });
 });
+
+
+// ---------------------------------------------------------------------------
+// The hard rule: a conflict is never written without explicit acceptance.
+//
+// A conflict means the file carries the user's own edits since we wrote it.
+// Overwriting it destroys work, so the renderer leaving it ticked is not enough:
+// main refuses unless the caller names it. That makes "silently overwrite a hand
+// edit" impossible from the renderer, bug or not.
+// ---------------------------------------------------------------------------
+describe('apply — conflicts', () => {
+  const CONFLICT_PLAN: FileWritePlan = {
+    path: '/proj/.claude/settings.json',
+    relPath: '.claude/settings.json',
+    description: 'Claude Code settings',
+    platform: 'claude',
+    action: 'conflict',
+    content: '{}',
+  };
+
+  it('refuses to write a conflict nobody accepted', async () => {
+    const claude = await import('../../installers/claude');
+    vi.mocked(claude.previewClaudeSetup).mockResolvedValueOnce([CONFLICT_PLAN]);
+    vi.mocked(claude.applyClaudeSetup).mockClear();
+
+    const result = await onboarding.apply([CONFLICT_PLAN]);
+
+    expect(claude.applyClaudeSetup).not.toHaveBeenCalled();
+    expect(result.written).toBe(0);
+    expect(result.conflictsKept).toBe(1);
+  });
+
+  it('writes a conflict the caller named', async () => {
+    const claude = await import('../../installers/claude');
+    vi.mocked(claude.previewClaudeSetup).mockResolvedValueOnce([CONFLICT_PLAN]);
+    vi.mocked(claude.applyClaudeSetup).mockClear();
+
+    const result = await onboarding.apply([CONFLICT_PLAN], {
+      acceptedConflicts: ['claude .claude/settings.json'],
+    });
+
+    expect(claude.applyClaudeSetup).toHaveBeenCalledOnce();
+    expect(result.written).toBe(1);
+    expect(result.conflictsKept).toBe(0);
+  });
+
+  it('an acceptance for another file does not unlock this one', async () => {
+    // The key is platform + relPath, so a name that does not match exactly is
+    // not an acceptance. A loose match here would be a way in.
+    const claude = await import('../../installers/claude');
+    vi.mocked(claude.previewClaudeSetup).mockResolvedValueOnce([CONFLICT_PLAN]);
+    vi.mocked(claude.applyClaudeSetup).mockClear();
+
+    const result = await onboarding.apply([CONFLICT_PLAN], {
+      acceptedConflicts: ['claude .claude/other.json', '.claude/settings.json'],
+    });
+
+    expect(claude.applyClaudeSetup).not.toHaveBeenCalled();
+    expect(result.conflictsKept).toBe(1);
+  });
+
+  it('the renderer cannot disguise a conflict as an update', async () => {
+    // main recomputes the action from the templates and the fingerprint record.
+    // What the renderer claims the action is never decides whether a file is
+    // written — only main's own verdict does.
+    const claude = await import('../../installers/claude');
+    vi.mocked(claude.previewClaudeSetup).mockResolvedValueOnce([CONFLICT_PLAN]);
+    vi.mocked(claude.applyClaudeSetup).mockClear();
+
+    const lying: FileWritePlan = { ...CONFLICT_PLAN, action: 'update' };
+    const result = await onboarding.apply([lying]);
+
+    expect(claude.applyClaudeSetup).not.toHaveBeenCalled();
+    expect(result.conflictsKept).toBe(1);
+  });
+});

@@ -426,7 +426,11 @@ export interface OnboardingOpts {
 }
 
 // Action to take on a single file. 'skip' means the file already matches target.
-export type FileWriteAction = 'create' | 'update' | 'skip';
+// 'conflict' is the fourth case, and it exists because 'update' used to hide it:
+// the file carries the user's own edits since we last wrote it, so overwriting
+// destroys work rather than refreshing a stale copy. Told apart via a content
+// fingerprint recorded at apply time (main/installers/fingerprint.ts).
+export type FileWriteAction = 'create' | 'update' | 'conflict' | 'skip';
 
 // Preview of one file that will be written (or skipped) during onboarding.
 export interface FileWritePlan {
@@ -459,6 +463,11 @@ export interface PlanContentOpts {
 }
 
 // Result of applying an onboarding plan.
+export interface OnboardingApplyOpts {
+  // Keys of the form `<platform> <relPath>`.
+  acceptedConflicts?: string[];
+}
+
 export interface OnboardingResult {
   // Number of files written/updated successfully.
   written: number;
@@ -466,6 +475,11 @@ export interface OnboardingResult {
   skipped: number;
   // Per-file errors (file path → error message).
   errors: Record<string, string>;
+  // Conflicts left untouched because nobody accepted them. Counted separately
+  // from `skipped`: skipped means "already up to date", this means "your edits
+  // are still there and we did not touch them". Reporting them as skipped would
+  // read as nothing-to-do.
+  conflictsKept: number;
 }
 
 // ---------- Local server lifecycle ----------
@@ -555,7 +569,11 @@ export interface ByanApi {
     preview(opts: OnboardingOpts): Promise<PreviewFileWritePlan[]>;
     // Execute a (subset of) plans previously returned by preview. Accepts the
     // contentless shape; main re-derives what to write.
-    apply(plans: PreviewFileWritePlan[]): Promise<OnboardingResult>;
+    // `acceptedConflicts` names the conflicts the user explicitly agreed to
+    // overwrite, as `<platform> <relPath>`. A conflict absent from this list is
+    // NOT written, whatever the plan claims its action is: main recomputes the
+    // verdict, so a renderer bug cannot overwrite a hand-edited file.
+    apply(plans: PreviewFileWritePlan[], opts?: OnboardingApplyOpts): Promise<OnboardingResult>;
     // Body of ONE plan, fetched when the user expands that file. Lazy on
     // purpose: the preview list is collapsed, so eagerly shipping every body
     // moved megabytes nobody looked at. Recomputed from the templates, like

@@ -8,11 +8,23 @@ import { previewCopilotSetup, applyCopilotSetup } from '../../installers/copilot
 
 let tmpDir: string;
 
+// The installer records a content fingerprint per written file under
+// ~/.byan/. Without an isolated home these tests would write into the real one
+// (measured: they did, 10 entries of /tmp test paths), and one test's record
+// would turn the next test's plain 'update' into a 'conflict'.
+let homeDir: string;
+const origHome = process.env.BYAN_HOME;
+
 beforeEach(async () => {
+  homeDir = await fs.mkdtemp(nodePath.join(os.tmpdir(), 'byan-home-test-'));
+  process.env.BYAN_HOME = homeDir;
   tmpDir = await fs.mkdtemp(nodePath.join(os.tmpdir(), 'byan-copilot-test-'));
 });
 
 afterEach(async () => {
+  if (origHome === undefined) delete process.env.BYAN_HOME;
+  else process.env.BYAN_HOME = origHome;
+  await fs.rm(homeDir, { recursive: true, force: true });
   await fs.rm(tmpDir, { recursive: true, force: true });
 });
 

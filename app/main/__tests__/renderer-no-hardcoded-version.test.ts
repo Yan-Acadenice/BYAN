@@ -7,12 +7,16 @@
 // Three per-site tests would have covered those four. This scans instead, so the
 // FIFTH site — the one nobody has written yet — is caught the day it appears.
 // The version always comes from main via useAppVersion().
+//
+// It lives under main/__tests__ rather than renderer/__tests__ because it reads
+// files: the renderer lint config forbids fs there, and rightly so. Static source
+// scans belong with the other build-time guards (see ci-workflow.test.ts).
 
 import { describe, expect, it } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const RENDERER = path.resolve(__dirname, '..');
+const RENDERER = path.resolve(__dirname, '..', '..', 'renderer');
 
 // Mentioning the literal while explaining why it is forbidden is legitimate, so a
 // comment line is exempt. Everything else — JSX text, a string, an attribute — is

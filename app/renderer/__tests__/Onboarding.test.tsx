@@ -68,7 +68,7 @@ beforeEach(() => {
       content: '{}',
     },
   ]);
-  mockOnboardingApply.mockResolvedValue({ written: 1, skipped: 0, errors: {} });
+  mockOnboardingApply.mockResolvedValue({ written: 1, skipped: 0, errors: {}, conflictsKept: 0 });
   mockStoreGet.mockResolvedValue(null);
   mockStoreSet.mockResolvedValue(undefined);
 });
@@ -266,6 +266,7 @@ describe('Onboarding — Step 4: Done', () => {
     mockOnboardingApply.mockResolvedValue({
       written: 0,
       skipped: 0,
+      conflictsKept: 0,
       errors: { '.claude/settings.json': 'permission denied' },
     });
     await goToDone();

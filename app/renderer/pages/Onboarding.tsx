@@ -191,7 +191,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       // Done with an "already configured" summary. Otherwise the user
       // would land on an empty Preview screen with no way forward.
       if (result.length === 0) {
-        setApplyResult({ written: 0, skipped: 0, errors: {} });
+        setApplyResult({ written: 0, skipped: 0, errors: {}, conflictsKept: 0 });
         setStep(4);
       } else {
         setStep(2);
@@ -253,6 +253,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       setApplyResult({
         written: 0,
         skipped: 0,
+        conflictsKept: 0,
         errors: { '_apply': err instanceof Error ? err.message : 'Unknown error' },
       });
     } finally {

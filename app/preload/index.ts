@@ -25,6 +25,7 @@ import {
   OnboardingOpts,
   PreviewFileWritePlan,
   PlanContentOpts,
+  OnboardingApplyOpts,
   OnboardingResult,
   ByanApiListOpts,
   CreateConversationOpts,
@@ -90,8 +91,8 @@ const api: ByanApi = {
     // Contentless plans: main strips file bodies before they cross the bridge.
     preview: (opts: OnboardingOpts) =>
       invoke<PreviewFileWritePlan[]>(IPC_CHANNELS.onboarding.preview, opts),
-    apply: (plans: PreviewFileWritePlan[]) =>
-      invoke<OnboardingResult>(IPC_CHANNELS.onboarding.apply, plans),
+    apply: (plans: PreviewFileWritePlan[], opts?: OnboardingApplyOpts) =>
+      invoke<OnboardingResult>(IPC_CHANNELS.onboarding.apply, plans, opts),
     planContent: (opts: PlanContentOpts) =>
       invoke<string>(IPC_CHANNELS.onboarding.planContent, opts),
   },

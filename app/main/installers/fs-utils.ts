@@ -9,6 +9,8 @@
 import * as fs from 'fs/promises';
 import * as nodePath from 'path';
 import type { FileWritePlan } from '../../shared/ipc-contract';
+import { classifyAction, hashContent } from './fingerprint';
+import { readFingerprints, recordFingerprints } from './install-fingerprints';
 
 export async function safeReadFile(p: string): Promise<string | null> {
   try {
@@ -63,10 +65,13 @@ export interface TreePlanSpec {
 // (create / update / skip). This loop was copied in the three installers.
 export async function planTree(spec: TreePlanSpec): Promise<FileWritePlan[]> {
   if (!(await fileExists(spec.templateSrc))) return [];
+  // Read the record ONCE per tree: a first launch plans ~990 files and re-reading
+  // the store per file would turn one small read into a thousand.
+  const recorded = readFingerprints(spec.destRoot);
   const plans: FileWritePlan[] = [];
   for (const src of await walkFiles(spec.templateSrc)) {
     const rel = nodePath.relative(spec.templateSrc, src);
-    plans.push(await planOne(src, spec, rel));
+    plans.push(await planOne(src, spec, rel, recorded));
   }
   return plans;
 }
@@ -74,28 +79,55 @@ export async function planTree(spec: TreePlanSpec): Promise<FileWritePlan[]> {
 // One plan for a single template file (e.g. .claude/settings.json).
 export async function planFile(spec: TreePlanSpec): Promise<FileWritePlan[]> {
   if (!(await fileExists(spec.templateSrc))) return [];
-  return [await planOne(spec.templateSrc, spec, '')];
+  return [await planOne(spec.templateSrc, spec, '', readFingerprints(spec.destRoot))];
 }
 
-async function planOne(src: string, spec: TreePlanSpec, rel: string): Promise<FileWritePlan> {
+async function planOne(
+  src: string,
+  spec: TreePlanSpec,
+  rel: string,
+  recorded: Record<string, string> = {},
+): Promise<FileWritePlan> {
   const dest = nodePath.join(spec.destRoot, ...spec.destPrefix, rel);
   const content = (await safeReadFile(src)) ?? '';
-  const same = await fileExistsAndMatches(dest, content);
+  // One read of the destination, reused for both the equality test and the
+  // fingerprint comparison. The previous version read it twice (once via
+  // fileExistsAndMatches, once via fileExists).
+  const destContent = await safeReadFile(dest);
   return {
     path: dest,
     relPath: nodePath.join(...spec.destPrefix, rel),
     description: spec.description,
     platform: spec.platform,
-    action: same ? 'skip' : (await fileExists(dest)) ? 'update' : 'create',
+    action: classifyAction({
+      destExists: destContent !== null,
+      destContent,
+      templateContent: content,
+      recordedHash: recorded[dest] ?? null,
+    }),
     content,
   };
 }
 
 // Execute the plans returned by a preview — identical across installers.
+//
+// Every written file is recorded, which is what lets the NEXT preview tell a hand
+// edit apart from a stale copy. Without the record every difference reads as an
+// 'update' and the user's work is overwritten without a word.
 export async function applyPlans(plans: FileWritePlan[]): Promise<void> {
+  const written: Record<string, string> = {};
+  let root: string | null = null;
   for (const plan of plans) {
     if (plan.action === 'skip') continue;
     await fs.mkdir(nodePath.dirname(plan.path), { recursive: true });
     await fs.writeFile(plan.path, plan.content, 'utf8');
+    written[plan.path] = hashContent(plan.content);
+    // Every plan of one apply shares a destRoot; derive it from the first plan's
+    // path minus its relPath rather than threading another argument through the
+    // three installers.
+    if (root === null && plan.path.endsWith(plan.relPath)) {
+      root = plan.path.slice(0, plan.path.length - plan.relPath.length).replace(/[/\\]+$/, '');
+    }
   }
+  if (root) recordFingerprints(root, written);
 }
