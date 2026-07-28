@@ -11,16 +11,20 @@ export default {
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
-        // Stitch design system font aliases
-        'h1': ['Inter'],
-        'h2': ['Inter'],
-        'h3': ['Inter'],
-        'body': ['Inter'],
-        'body-sm': ['Inter'],
-        'display': ['Inter'],
-        'caption': ['Inter'],
-        'label': ['Inter'],
-        'mono-code': ['JetBrains Mono'],
+        // Semantic aliases. Titles and buttons are Josefin Sans (AcadeNice brand
+        // rule); running text stays Inter; code-ish text stays JetBrains Mono (a
+        // deliberate departure from AcadeNice's Courier New: this app shows file
+        // paths, binary names and aligned counters all day).
+        // Josefin Sans tops out at 700 — no title may carry font-black.
+        'h1': ['Josefin Sans', 'Inter', 'sans-serif'],
+        'h2': ['Josefin Sans', 'Inter', 'sans-serif'],
+        'h3': ['Josefin Sans', 'Inter', 'sans-serif'],
+        'display': ['Josefin Sans', 'Inter', 'sans-serif'],
+        'body': ['Inter', 'sans-serif'],
+        'body-sm': ['Inter', 'sans-serif'],
+        'caption': ['Inter', 'sans-serif'],
+        'label': ['Inter', 'sans-serif'],
+        'mono-code': ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       fontSize: {
         // Stitch design system text scale
@@ -56,137 +60,169 @@ export default {
         // Keep Tailwind's rounded-2xl (1rem) and rounded-3xl (1.5rem) via extend
       },
       colors: {
-        // ---- BYAN brand ----
+        // ---- AcadeNice teal — the single brand hue ----
+        // Kept as literal hex, not var(), so Tailwind's /opacity modifiers keep
+        // working (bg-teal-500/15). The role tokens below are var()-based and are
+        // used WITHOUT an opacity modifier.
+        teal: {
+          50: '#EDFAF8',
+          100: '#D0F5F0',
+          200: '#A8EBE2',
+          300: '#6ADDD0',
+          400: '#4CCCB8',
+          500: '#2FB5A0',
+          600: '#1E8E7E',
+          700: '#1C7269',
+          800: '#155A53',
+          900: '#0F433E',
+          950: '#0A2E2A',
+        },
+        // ---- The AcadeNice neutral ramp ----
+        // 975 and 1000 are ADDED to the system: AcadeNice is a light system and
+        // stops at 950. They continue the existing progression (hue ~176) rather
+        // than being picked by eye. Brand rule: no pure grey, ever — every step
+        // is teal-tinted.
+        neutral: {
+          50: '#F7FAFA',
+          100: '#EEF3F3',
+          200: '#DCE8E7',
+          300: '#BDD0CF',
+          400: '#94B0AF',
+          500: '#6B9190',
+          600: '#527472',
+          700: '#425E5D',
+          800: '#334847',
+          900: '#2A3D3C',
+          950: '#1A2827',
+          975: '#131E1D',
+          1000: '#0C1312',
+        },
+        // ---- Role tokens, one commutable layer ----
+        // Values live in index.css on :root (dark) and .light. ONE layer, not two
+        // hand-written sets: two sets is what shifted the whole muted tier of the
+        // light theme by one step (measured 2.31:1 instead of 3.3:1).
+        surface: {
+          page: 'var(--surface-page)',
+          card: 'var(--surface-card)',
+          raised: 'var(--surface-raised)',
+          hover: 'var(--surface-hover)',
+        },
+        content: {
+          strong: 'var(--text-strong)',
+          body: 'var(--text-body)',
+          secondary: 'var(--text-secondary)',
+          // The readability FLOOR. Anything informative stops here.
+          tertiary: 'var(--text-tertiary)',
+          // Below the floor ON PURPOSE: the dash of an unmeasured value and
+          // decorative text. Never a sentence the user must read.
+          muted: 'var(--text-muted)',
+        },
+        edge: {
+          subtle: 'var(--border-subtle)',
+          strong: 'var(--border-strong)',
+        },
+        // Role colours through the same commutable layer, so a theme switch moves
+        // them together with the surfaces instead of one step behind.
+        accent: {
+          action: 'var(--accent-action)',
+          change: 'var(--accent-change)',
+          danger: 'var(--accent-danger)',
+          success: 'var(--accent-success)',
+        },
+        // Text placed ON a filled accent. Dark in both themes.
+        'on-accent': 'var(--on-accent)',
+        // ---- byan-* : ALIAS onto teal during the migration ----
+        // 116 occurrences across 23 files. Remapping the ramp turns all of them
+        // teal at once, with zero component edits; lot 4 then renames them for
+        // cleanliness rather than for appearance. Deleting the ramp first would
+        // leave the app broken for the whole chantier.
         byan: {
-          50: '#eef2ff',
-          100: '#dbe4ff',
-          200: '#bac8ff',
-          300: '#91a7ff',
-          400: '#748ffc',
-          500: '#5c7cfa',
-          600: '#4c6ef5',
-          700: '#4263eb',
-          800: '#3b5bdb',
-          900: '#364fc7'
+          50: '#EDFAF8',
+          100: '#D0F5F0',
+          200: '#A8EBE2',
+          300: '#6ADDD0',
+          400: '#4CCCB8',
+          500: '#4CCCB8',
+          600: '#2FB5A0',
+          700: '#1E8E7E',
+          800: '#155A53',
+          900: '#0F433E',
         },
-        // ---- ink scale (BYAN original + Stitch flat tokens) ----
+        // ---- ink-* : ALIAS onto the AcadeNice neutrals during the migration ----
+        // 704 occurrences across 34 files. Same reasoning as byan-*, at six times
+        // the scale. ink-500 was used for informative text in several places and
+        // is below the floor in the new ramp — those sites move up a step in lot 4
+        // rather than being translated as-is.
         ink: {
-          950: '#070b17',
-          900: '#0a0f1e',
-          850: '#0f172a',
-          800: '#111827',
-          700: '#1e293b',
-          600: '#273246',
-          500: '#334155',
-          400: '#64748b',
-          300: '#94a3b8',
-          200: '#cbd5e1',
-          100: '#e2e8f0',
+          950: '#0C1312',
+          900: '#131E1D',
+          850: '#1A2827',
+          800: '#2A3D3C',
+          700: '#334847',
+          600: '#425E5D',
+          500: '#527472',
+          400: '#6B9190',
+          300: '#94B0AF',
+          200: '#BDD0CF',
+          100: '#DCE8E7',
         },
-        // ---- Stitch Material Design 3 surface tokens ----
-        surface: '#12131a',
-        'surface-dim': '#12131a',
-        'surface-bright': '#383941',
-        'surface-container-lowest': '#0c0e15',
-        'surface-container-low': '#1a1b23',
-        'surface-container': '#1e1f27',
-        'surface-container-high': '#282931',
-        'surface-container-highest': '#33343d',
-        'surface-variant': '#33343d',
-        'surface-tint': '#b8c4ff',
-        'on-surface': '#e2e1ec',
-        'on-surface-variant': '#c4c5d6',
-        'inverse-surface': '#e2e1ec',
-        'inverse-on-surface': '#2f3038',
-        background: '#12131a',
-        'on-background': '#e2e1ec',
-        // ---- Stitch primary/secondary/tertiary ----
-        primary: '#b8c4ff',
-        'on-primary': '#002585',
-        'primary-container': '#6b89ff',
-        'on-primary-container': '#001f75',
-        'inverse-primary': '#2f52d0',
-        'primary-fixed': '#dde1ff',
-        'primary-fixed-dim': '#b8c4ff',
-        'on-primary-fixed': '#001453',
-        'on-primary-fixed-variant': '#0337b8',
-        secondary: '#4cd7f6',
-        'on-secondary': '#003640',
-        'secondary-container': '#03b5d3',
-        'on-secondary-container': '#00424e',
-        'secondary-fixed': '#acedff',
-        'secondary-fixed-dim': '#4cd7f6',
-        'on-secondary-fixed': '#001f26',
-        'on-secondary-fixed-variant': '#004e5c',
-        tertiary: '#ffb77d',
-        'on-tertiary': '#4d2600',
-        'tertiary-container': '#d87812',
-        'on-tertiary-container': '#432100',
-        'tertiary-fixed': '#ffdcc3',
-        'tertiary-fixed-dim': '#ffb77d',
-        'on-tertiary-fixed': '#2f1500',
-        'on-tertiary-fixed-variant': '#6e3900',
-        // ---- Stitch error + outline ----
-        error: '#ffb4ab',
-        'on-error': '#690005',
-        'error-container': '#93000a',
-        'on-error-container': '#ffdad6',
-        outline: '#8e90a0',
-        'outline-variant': '#444654',
-        // ---- Semantic accent flat tokens (Stitch design system) ----
-        // These flat names are used in Stitch HTML as e.g. bg-emerald, text-amber, etc.
-        // Alongside them we keep standard Tailwind scales so @apply bg-emerald-500/15 works.
-        cyan: {
-          glow: '#06b6d4',
-          // Standard Tailwind cyan scale for /opacity utilities in @apply
-          300: '#67e8f9',
-          400: '#22d3ee',
-          500: '#06b6d4',
-          600: '#0891b2',
-        },
-        emerald: {
-          // Flat token alias used in Stitch HTML: bg-emerald = #34d399
-          DEFAULT: '#34d399',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#10b981',
-          600: '#059669',
-        },
+        // ---- Role colours, dark-theme values ----
+        // Each says one thing and nothing else. Contrasts measured on #131E1D:
+        // teal 8.7 · amber 8.4 · green 7.5 · red 4.6 (short text only).
         amber: {
-          DEFAULT: '#fbbf24',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
+          DEFAULT: '#FDA100',
+          300: '#FFC04D',
+          400: '#FDA100',
+          500: '#E08E00',
+          600: '#9E5200',
         },
         red: {
-          DEFAULT: '#f87171',
-          300: '#fca5a5',
-          400: '#f87171',
-          500: '#ef4444',
-          600: '#dc2626',
+          DEFAULT: '#EF4444',
+          300: '#F87171',
+          400: '#EF4444',
+          500: '#DC2626',
+          600: '#991B1B',
+        },
+        emerald: {
+          DEFAULT: '#22C55E',
+          300: '#4ADE80',
+          400: '#22C55E',
+          500: '#16A34A',
+          600: '#065F46',
         },
         white: '#ffffff',
         // ---- Acadenice co-branding (single source of truth) ----
+        // DO NOT rename this key: DashboardConnectivity.test.tsx pins
+        // 'bg-acadenice-teal', and renaming it to `primary` would also re-introduce
+        // the very name the dead Material tokens just freed.
         acadenice: {
           teal: '#4cccb8',
-          'teal-dark': '#50a88f',
+          'teal-dark': '#1E8E7E',
           orange: '#fda100',
         },
       },
       boxShadow: {
-        'glow-sm': '0 0 12px rgba(66, 99, 235, 0.25)',
-        'glow': '0 0 24px rgba(66, 99, 235, 0.35)',
-        'glow-lg': '0 0 48px rgba(66, 99, 235, 0.45)',
-        'glow-cyan': '0 0 24px rgba(6, 182, 212, 0.35)',
+        // Glow is teal now, and RESERVED: active selection or success
+        // confirmation, kept brief. It is no longer applied at rest — the brief
+        // forbids it and the code carried it on .btn-primary, .nav-item-active,
+        // .dot-on and .hover-lift permanently.
+        'glow-sm': '0 0 12px rgba(76, 204, 184, 0.25)',
+        'glow': '0 0 24px rgba(76, 204, 184, 0.35)',
+        'glow-lg': '0 0 48px rgba(76, 204, 184, 0.45)',
+        // A dark drop shadow with no blur behind it — despite the name, this one
+        // is not glass-morphism and stays.
         'glass': '0 8px 32px rgba(0, 0, 0, 0.35)',
-        'glass-lg': '0 24px 60px rgba(0, 0, 0, 0.55)'
+        'glass-lg': '0 24px 60px rgba(0, 0, 0, 0.55)',
+        // The inner light edge that makes the floating layers read as a cut
+        // surface rather than a translucent panel (lot 3.5).
+        'edge-inset': 'inset 0 1px 0 rgba(208, 245, 240, 0.14)',
       },
       backgroundImage: {
-        'grid-dark': "radial-gradient(circle at 1px 1px, rgba(148,163,184,0.08) 1px, transparent 0)",
-        'hero-glow': 'radial-gradient(ellipse at top, rgba(76,110,245,0.18), transparent 60%), radial-gradient(ellipse at bottom right, rgba(6,182,212,0.12), transparent 55%)',
-        'primary-gradient': 'linear-gradient(135deg, #5c7cfa 0%, #4263eb 50%, #3b5bdb 100%)',
-        'cyan-gradient': 'linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)'
+        'grid-dark': "radial-gradient(circle at 1px 1px, rgba(208,245,240,0.06) 1px, transparent 0)",
+        'hero-glow': 'radial-gradient(ellipse at top, rgba(76,204,184,0.16), transparent 60%), radial-gradient(ellipse at bottom right, rgba(76,204,184,0.08), transparent 55%)',
+        // Mono-hue, as decided for the monogram: one brand colour, no second tint.
+        'primary-gradient': 'linear-gradient(135deg, #6ADDD0 0%, #4CCCB8 50%, #1E8E7E 100%)',
+        'teal-gradient': 'linear-gradient(135deg, #6ADDD0 0%, #1E8E7E 100%)'
       },
       keyframes: {
         shimmer: {
@@ -194,8 +230,8 @@ export default {
           '100%': { backgroundPosition: '200% 0' }
         },
         glowPulse: {
-          '0%, 100%': { boxShadow: '0 0 18px rgba(76, 110, 245, 0.25)' },
-          '50%': { boxShadow: '0 0 34px rgba(76, 110, 245, 0.55)' }
+          '0%, 100%': { boxShadow: '0 0 18px rgba(76, 204, 184, 0.25)' },
+          '50%': { boxShadow: '0 0 34px rgba(76, 204, 184, 0.55)' }
         },
         fadeInUp: {
           '0%': { opacity: 0, transform: 'translateY(8px)' },

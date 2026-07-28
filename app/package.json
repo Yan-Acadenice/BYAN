@@ -39,6 +39,9 @@
     "build:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/josefin-sans": "^5.3.0",
     "byan-platform-config": "file:../install/packages/platform-config",
     "chalk": "^4.1.2",
     "electron-updater": "^6.8.3",

@@ -130,3 +130,7 @@ _bmad-output/
 # to repo root); the template keeps its own seed copies under install/templates/.
 _byan/memoire/elo-profile.json
 _byan/memoire/fact-graph.json
+
+# Passation de conception : les deux specifications sont versionnees sous
+# docs/design-handoff/. Le zip et ses maquettes HTML (2,6 Mo genere) restent hors git.
+Sp*cifications UX chat multiplateforme*.zip

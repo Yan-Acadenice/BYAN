@@ -49,6 +49,19 @@ describe('CSP_DIRECTIVES', () => {
     }
   });
 
+  it('allows no external host for fonts or stylesheets', () => {
+    // The app used to pull Inter and JetBrains Mono from Google Fonts on every
+    // launch, so a "no cloud" desktop app went to the network for its letters and
+    // fell back to the system sans offline. The typography now ships inside the
+    // bundle; re-opening these hosts would undo that and hand a compromised
+    // renderer a real endpoint to talk to.
+    for (const directive of ['font-src', 'style-src'] as const) {
+      for (const source of CSP_DIRECTIVES[directive]) {
+        expect(source, `${directive} must stay local, got ${source}`).not.toMatch(/^https?:/);
+      }
+    }
+  });
+
   it('forbids unsafe-inline in script-src (only style-src may use it)', () => {
     expect(CSP_DIRECTIVES['script-src']).not.toContain("'unsafe-inline'");
     expect(CSP_DIRECTIVES['style-src']).toContain("'unsafe-inline'");

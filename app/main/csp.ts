@@ -25,8 +25,11 @@ const IS_DEV = process.env.BYAN_DEV === '1';
 export const CSP_DIRECTIVES: Readonly<Record<string, readonly string[]>> = Object.freeze({
   'default-src': ["'self'"],
   'script-src': IS_DEV ? ["'self'", "'unsafe-inline'"] : ["'self'"],
-  'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-  'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+  // No external font or stylesheet host: the typography ships inside the app
+  // (see renderer/main.tsx). Allowing fonts.googleapis/gstatic would let a
+  // compromised renderer exfiltrate to a real endpoint under a benign name.
+  'style-src': ["'self'", "'unsafe-inline'"],
+  'font-src': ["'self'", 'data:'],
   'img-src': ["'self'", 'data:', 'https:'],
   'connect-src': [
     "'self'",

@@ -11,6 +11,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MenuItemConstructorOptions } from 'electron';
 
+// Every test here calls loadMenu(), which does vi.resetModules() followed by a
+// dynamic import so the module re-reads process.env at load time. That is 20 cold
+// module resolutions in one file. Measured: fine in isolation (5/5 runs pass, well
+// under a second each), but under the full 67-file parallel suite one of them took
+// 5791ms and tripped the 5000ms default — an intermittent failure that looked
+// random because ANY of the 20 could be the one that trips.
+// The assertions themselves are instant; the cost is the reload. Memoising the
+// import instead would stop exercising the module-level isDev computation these
+// tests exist to check.
+vi.setConfig({ testTimeout: 30_000 });
+
+
 // ---------- Electron mock ----------
 // We intercept Menu.buildFromTemplate to capture the template without needing
 // a real Electron environment. BrowserWindow and app are stubbed minimally.

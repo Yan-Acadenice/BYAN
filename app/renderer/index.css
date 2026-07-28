@@ -2,122 +2,190 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------------------------------------------------------------------------
+   The role-token layer.
+
+   ONE layer, switched by a class on the root — not two hand-written sets of
+   values. Two sets is precisely what shifted the whole muted tier of the light
+   theme by one step (measured 2.31:1 where 3.3:1 was intended), and a single
+   layer makes that mistake impossible by construction.
+
+   The rule that catches people: neutral-500 and neutral-600 SWAP roles between
+   themes. In dark, fading out means going DOWN toward the background; in light
+   it means going UP toward it. So the two steps nearest the floor exchange:
+   neutral-500 is the readability floor in dark and the dash in light,
+   neutral-600 is the dash in dark and the floor in light. Wiring
+   "tertiary = neutral-500" without a per-theme distinction is the bug.
+   --------------------------------------------------------------------------- */
 @layer base {
+  :root {
+    /* Dark is the default: the app ships dark and must stay usable with no
+       class on the root at all. */
+    --surface-page: #0C1312;      /* neutral-1000, added to the system */
+    --surface-card: #131E1D;      /* neutral-975, added to the system */
+    --surface-raised: #1A2827;    /* neutral-950 — modal, popover, menu */
+    --surface-hover: #2A3D3C;     /* neutral-900 */
+
+    /* Borders are teal-tinted translucent, not white: that is what carries the
+       "no pure grey" brand rule all the way into the separators. */
+    --border-subtle: rgba(208, 245, 240, 0.07);
+    --border-strong: rgba(208, 245, 240, 0.12);
+
+    --text-strong: #FFFFFF;       /* 17.4:1 */
+    --text-body: #DCE8E7;         /* neutral-200 — 13.6:1 */
+    --text-secondary: #94B0AF;    /* neutral-400 — 7.4:1 */
+    --text-tertiary: #6B9190;     /* neutral-500 — 4.95:1, the FLOOR */
+    --text-muted: #527472;        /* neutral-600 — 3.34:1, below the floor ON PURPOSE */
+
+    --accent-action: #4CCCB8;     /* 8.7:1 — action, active, focus, link, local mode */
+    --accent-change: #FDA100;     /* 8.4:1 — change and waiting */
+    --accent-danger: #EF4444;     /* 4.6:1 — failure and destructive conflict, short text only */
+    --accent-success: #22C55E;    /* 7.5:1 — end summary, server running */
+    /* Text ON a filled accent. Dark, never white: white on teal is 2.0:1. This
+       is the inverse of the AcadeNice light-mode convention, and both are right
+       in their own context. */
+    --on-accent: #0C1312;
+  }
+
+  .light {
+    --surface-page: #F7FAFA;      /* neutral-50 */
+    --surface-card: #FFFFFF;
+    --surface-raised: #FFFFFF;    /* plus a shadow — see .surface-raised users */
+    --surface-hover: #EEF3F3;     /* neutral-100 */
+
+    --border-subtle: #DCE8E7;     /* neutral-200 */
+    --border-strong: #BDD0CF;     /* neutral-300 */
+
+    --text-strong: #0A2E2A;       /* teal-950 — 15.8:1 */
+    --text-body: #1A2827;         /* neutral-950 — 14.5:1 */
+    --text-secondary: #425E5D;    /* neutral-700 — 8.7:1 */
+    --text-tertiary: #527472;     /* neutral-600 — 4.88:1, the FLOOR (swapped) */
+    --text-muted: #6B9190;        /* neutral-500 — 3.29:1, the dash (swapped) */
+
+    /* Each role colour loses about four points of contrast on a light ground,
+       so each steps down one rung. */
+    --accent-action: #1C7269;     /* teal-700 — 5.5:1 */
+    --accent-change: #9E5200;     /* amber-700 — 5.4:1 */
+    --accent-danger: #991B1B;     /* 7.9:1 */
+    --accent-success: #065F46;    /* 7.4:1 */
+    --on-accent: #0A2E2A;         /* 7.4:1 on teal */
+  }
+
   html, body, #root {
     @apply h-full;
   }
   body {
-    /* Solid surface per Stitch design system — no ambient gradient orbs */
-    @apply antialiased bg-ink-950 text-ink-100 font-sans;
+    /* No colour is hardcoded here any more. While `bg-ink-950 text-ink-100` sat
+       on the body, NO class on the root could produce a light theme, whatever
+       darkMode:'class' claimed. */
+    @apply antialiased bg-surface-page text-content-body font-sans;
   }
   ::selection {
-    background: rgba(76, 110, 245, 0.35);
-    color: #fff;
+    background: rgba(76, 204, 184, 0.32);
+    color: var(--text-strong);
   }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.15);
+    background: rgba(208, 245, 240, 0.14);
     border-radius: 8px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.3); background-clip: padding-box; border: 2px solid transparent; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(208, 245, 240, 0.26); background-clip: padding-box; border: 2px solid transparent; }
   input, textarea, select { color-scheme: dark; }
+  .light input, .light textarea, .light select { color-scheme: light; }
 }
 
 @layer components {
-  .glass {
-    @apply bg-ink-900/60 backdrop-blur-xl border border-white/5;
-  }
-  .glass-strong {
-    @apply bg-ink-850/85 backdrop-blur-2xl border border-white/[0.08];
-    box-shadow: 0 0 0 0.5px rgba(255,255,255,0.04) inset, 0 24px 60px rgba(0,0,0,0.55);
-  }
-  .glass-card {
-    @apply glass rounded-2xl shadow-glass;
-  }
-  .glass-panel {
-    @apply glass rounded-xl p-4;
-  }
-  .card {
-    @apply glass-card p-6;
-  }
+  /* The four glass classes are gone. DESIGN-BRIEF.md forbade them in as many
+     words, no component ever used them, and `.card` was built on top of one —
+     verified unused too, so it goes with them. Lot 3.5 reintroduces glass
+     deliberately and only on the layers that FLOAT above content. */
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none;
+    /* Pill radius is an AcadeNice brand rule, not a preference. Buttons are
+       Josefin Sans for the same reason. */
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-h1 text-sm font-medium transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none;
   }
   .btn-primary {
-    @apply btn text-white bg-primary-gradient shadow-glow-sm hover:shadow-glow hover:-translate-y-px active:translate-y-0;
+    /* Teal with DARK text: white on teal is 2.0:1, dark on teal is 9.6:1. And no
+       glow at rest — glow is reserved for active selection or a brief success. */
+    @apply btn bg-accent-action text-on-accent hover:brightness-110 active:brightness-95;
   }
   .btn-secondary {
-    @apply btn bg-white/5 text-ink-100 border border-white/10 hover:bg-white/10 hover:border-white/20;
+    @apply btn bg-white/5 text-content-body border border-edge-strong hover:bg-white/10;
   }
   .btn-ghost {
-    @apply btn text-ink-300 hover:text-white hover:bg-white/5;
+    @apply btn text-content-secondary hover:text-content-strong hover:bg-white/5;
   }
   .btn-danger {
     @apply btn bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 hover:text-red-200;
   }
   .btn-sm {
-    @apply px-3 py-1.5 text-xs rounded-lg;
+    @apply px-3 py-1.5 text-xs;
   }
 
   .input {
-    @apply w-full px-3.5 py-2.5 rounded-xl text-sm bg-white/5 border border-white/10 text-ink-100 placeholder:text-ink-400 transition-colors focus:outline-none focus:border-byan-500/60 focus:bg-white/[0.07] focus:ring-2 focus:ring-byan-500/20;
+    @apply w-full px-3.5 py-2.5 rounded-lg text-sm bg-white/5 border border-edge-strong text-content-body placeholder:text-content-tertiary transition-colors focus:outline-none focus:border-accent-action focus:bg-white/[0.07] focus:ring-2 focus:ring-teal-400/25;
   }
   .input-sm {
-    @apply px-3 py-2 text-xs rounded-lg;
+    @apply px-3 py-2 text-xs;
   }
 
   .nav-item {
-    @apply relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-ink-300 transition-all duration-150 hover:text-white hover:bg-white/5;
+    @apply relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-content-secondary transition-all duration-150 hover:text-content-strong hover:bg-surface-hover;
   }
   .nav-item-active {
-    @apply text-white bg-white/[0.06] border border-white/10 shadow-glow-sm;
+    /* The teal bar carries the active state. No permanent glow. */
+    @apply text-content-strong bg-white/[0.06] border border-edge-strong;
   }
   .nav-item-active::before {
     content: '';
-    @apply absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-primary-gradient;
+    @apply absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-accent-action;
   }
 
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium uppercase tracking-wider border;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border;
   }
-  .badge-neutral    { @apply badge bg-white/5 text-ink-200 border-white/10; }
-  .badge-primary    { @apply badge bg-byan-500/15 text-byan-300 border-byan-500/30; }
-  .badge-cyan       { @apply badge bg-cyan-500/15 text-cyan-300 border-cyan-500/30; }
-  .badge-success    { @apply badge bg-emerald-500/15 text-emerald-300 border-emerald-500/30; }
-  .badge-warning    { @apply badge bg-amber-500/15 text-amber-300 border-amber-500/30; }
+  .badge-neutral    { @apply badge bg-white/5 text-content-body border-edge-strong; }
+  .badge-primary    { @apply badge bg-teal-400/15 text-teal-300 border-teal-400/30; }
+  .badge-success    { @apply badge bg-emerald-400/15 text-emerald-300 border-emerald-400/30; }
+  .badge-warning    { @apply badge bg-amber-400/15 text-amber-300 border-amber-400/30; }
   .badge-danger     { @apply badge bg-red-500/15 text-red-300 border-red-500/30; }
-  .badge-working    { @apply badge bg-amber-500/15 text-amber-300 border-amber-500/30; }
-  .badge-short      { @apply badge bg-sky-500/15 text-sky-300 border-sky-500/30; }
-  .badge-long       { @apply badge bg-emerald-500/15 text-emerald-300 border-emerald-500/30; }
-  .badge-pinned     { @apply badge bg-purple-500/15 text-purple-300 border-purple-500/30; }
+  .badge-working    { @apply badge bg-amber-400/15 text-amber-300 border-amber-400/30; }
+  /* These two used to be purple-500 and sky-500 — two hues from the Tailwind
+     defaults that exist in no BYAN or AcadeNice system, against the two-accents
+     rule. Back inside the palette. */
+  .badge-short      { @apply badge bg-white/5 text-content-secondary border-edge-strong; }
+  .badge-long       { @apply badge bg-teal-400/15 text-teal-300 border-teal-400/30; }
+  .badge-pinned     { @apply badge bg-amber-400/15 text-amber-300 border-amber-400/30; }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-white/10 text-ink-200;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-edge-strong text-content-body;
   }
 
   .dot {
     @apply inline-block w-1.5 h-1.5 rounded-full;
   }
-  .dot-on  { @apply dot bg-emerald-400 shadow-[0_0_10px_#34d399]; }
-  .dot-off { @apply dot bg-ink-500; }
+  /* No permanent glow: an idle indicator that glows forever spends the one
+     effect reserved for confirming something just happened. */
+  .dot-on  { @apply dot bg-accent-success; }
+  .dot-off { @apply dot bg-content-muted; }
 
   .page-title {
-    @apply text-2xl font-semibold text-white tracking-tight;
+    @apply font-h1 text-2xl font-semibold text-content-strong tracking-tight;
   }
   .section-title {
-    @apply text-[11px] font-semibold text-ink-400 uppercase tracking-[0.18em];
+    @apply text-[11px] font-semibold text-content-tertiary uppercase tracking-[0.18em];
   }
 
   .hover-lift {
-    @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:shadow-glow-sm;
+    @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-edge-strong;
   }
 
   .stream-shimmer {
-    background: linear-gradient(90deg, transparent 0%, rgba(76,110,245,0.12) 45%, rgba(6,182,212,0.18) 50%, rgba(76,110,245,0.12) 55%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(76,204,184,0.10) 45%, rgba(106,221,208,0.18) 50%, rgba(76,204,184,0.10) 55%, transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 2.4s linear infinite;
   }
@@ -128,7 +196,7 @@
 
 @layer utilities {
   .text-gradient-primary {
-    background: linear-gradient(135deg, #91a7ff 0%, #4c6ef5 50%, #06b6d4 100%);
+    background: linear-gradient(135deg, #6ADDD0 0%, #4CCCB8 50%, #1E8E7E 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
