@@ -15,6 +15,21 @@
 // An unmatched '/foo' is refused with a warning instead of being posted to the
 // model — see handleSubmit.
 //
+// The dispatch is now TOTAL on the parser's three outcomes, which is what "wire
+// the cloud surface onto parseSlashInput" costs in full:
+//   not-slash → send it ; unknown → refuse it ; command → run it, AND account for
+//   `parsed.arg`. That last one was the remaining leak: four of the five cloud
+//   commands read the verb and DROPPED whatever was typed after it, so "/new
+//   bonjour" opened the modal and ate the word with no error and no trace — the
+//   same bug that was fixed on the local surface and never here. A command that
+//   cannot carry a message now says so.
+//
+// LANGUAGE: the strings this file writes are French. Several older ones are not,
+// and they are left alone on purpose — 'Loading', 'Aucune conversation pour le moment',
+// 'Retry', the 'New conversation' title and the 'Project:' / 'Agent:' badges are
+// pinned verbatim by renderer/__tests__/ByanWebPages.test.tsx, which is not owned
+// here. Translating the cloud surface is handoff lot 3, with that test.
+//
 // Bug fix: project scope — previously created without projectId, so the CLI
 // always defaulted to the BYAN platform context. Now the modal collects
 // projectId + agentId and passes them at creation time.
@@ -58,6 +73,7 @@ import SlashCommandMenu from '../components/chat/SlashCommandMenu';
 import { useChatDefaults } from '../hooks/useChatDefaults';
 import { useSlashPalette } from '../hooks/useSlashPalette';
 import { parseSlashInput, type SlashCommandDef } from '../lib/slash-commands';
+import { trailingIgnoredMessage, unknownCommandMessage } from '../components/chat/command-copy';
 import { useAuthSession } from '../context/AuthSessionContext';
 import { useToast } from '../components/toast/ToastContext';
 
@@ -81,12 +97,19 @@ const CLI_BADGE_CLASS: Record<ChatCliProvider, string> = {
 // The lib owns the engine-agnostic logic; a page's own vocabulary does not
 // belong in it.
 const CLOUD_SLASH_COMMANDS: SlashCommandDef[] = [
-  { cmd: '/new', description: 'Start a new conversation' },
-  { cmd: '/cli', description: 'Set CLI provider for the next conversation', argHint: '<provider>' },
-  { cmd: '/scope', description: 'Edit scope for next conversation' },
-  { cmd: '/agent', description: 'Edit agent for next conversation' },
-  { cmd: '/clear', description: 'Delete this conversation' },
+  { cmd: '/new', description: 'Démarrer une nouvelle conversation' },
+  { cmd: '/cli', description: 'Choisir le CLI de la prochaine conversation', argHint: '<fournisseur>' },
+  { cmd: '/scope', description: 'Régler le périmètre de la prochaine conversation' },
+  { cmd: '/agent', description: 'Régler l\'agent de la prochaine conversation' },
+  // Named for what it does. The local /clear empties the DISPLAY ; this one
+  // destroys a row on the server, so the description carries the word the label
+  // owes the user before the dialog repeats it.
+  { cmd: '/clear', description: 'Supprimer cette conversation (définitif)' },
 ];
+
+// The cloud commands that open a surface instead of sending something. Any text
+// typed after them has nowhere to go, so it is reported rather than swallowed.
+const CLOUD_COMMANDS_WITHOUT_MESSAGE = ['/new', '/scope', '/agent', '/clear'];
 
 // The palette filters by engine, but no cloud command declares `engines`, so any
 // value keeps all five visible — the option is inert here. Cloud conversations
@@ -102,12 +125,11 @@ const CLI_ALIASES: Record<string, ChatCliProvider> = {
   codex: 'codex',
 };
 
-// One copy for both refusal paths (an unknown command, and a catalogue entry that
-// reached no case in the dispatch) — from the user's seat the situation is the
-// same: the command does nothing.
-function unknownCommandMessage(cmd: string): string {
-  return `Commande inconnue : ${cmd}. Tape / pour voir les commandes disponibles.`;
-}
+// unknownCommandMessage serves both refusal paths (an unknown command, and a
+// catalogue entry that reached no case in the dispatch) — from the user's seat the
+// situation is the same: the command does nothing. Both sentences now live in
+// components/chat/command-copy.ts, shared with the local surface, which had drifted
+// into a second spelling of each.
 
 // One factory for the synthetic system bubbles (errors…) — the 9-field
 // placeholder literal was copied three times.
@@ -184,13 +206,13 @@ function ConvItem({ conv, active, onClick, onDelete }: ConvItemProps) {
       className={[
         'group flex items-start gap-xs px-xs py-sm rounded-lg cursor-pointer transition-all border',
         active
-          ? 'bg-byan-900/40 border-byan-700/50 text-byan-300'
-          : 'border-transparent hover:bg-ink-800 hover:border-ink-700 text-ink-400',
+          ? 'bg-teal-900/40 border-teal-600/50 text-teal-300'
+          : 'border-transparent hover:bg-surface-hover hover:border-edge-strong text-content-tertiary',
       ].join(' ')}
     >
       <MessageSquare size={14} className="shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className={`text-sm truncate ${active ? 'text-byan-300 font-medium' : 'text-ink-300'}`}>
+        <p className={`text-sm truncate ${active ? 'text-teal-300 font-medium' : 'text-content-secondary'}`}>
           {conv.title || 'New conversation'}
         </p>
         <div className="flex items-center gap-xs mt-0.5 flex-wrap">
@@ -199,12 +221,12 @@ function ConvItem({ conv, active, onClick, onDelete }: ConvItemProps) {
               {CLI_LABELS[cli]}
             </span>
           )}
-          <span className="text-[10px] text-ink-500">{formatRelativeTime(conv.updated_at)}</span>
+          <span className="text-[10px] text-content-tertiary">{formatRelativeTime(conv.updated_at)}</span>
         </div>
       </div>
       <button
         onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-        className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 rounded text-ink-500 hover:text-red-400 transition-colors"
+        className="opacity-0 group-hover:opacity-100 shrink-0 p-0.5 rounded text-content-tertiary hover:text-red-400 transition-colors"
         title="Delete conversation"
         type="button"
       >
@@ -228,7 +250,7 @@ const MessageBubble = memo(function MessageBubble({ msg }: MessageBubbleProps) {
   if (msg.role === 'system') {
     return (
       <div className="flex justify-center mb-md">
-        <span className="px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-400 text-xs">
+        <span className="px-sm py-xs bg-surface-hover border border-edge-strong rounded-lg text-content-tertiary text-xs">
           {msg.content}
         </span>
       </div>
@@ -238,7 +260,7 @@ const MessageBubble = memo(function MessageBubble({ msg }: MessageBubbleProps) {
   return (
     <div className={`flex mb-md ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
-        <div className="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-byan-600 to-cyan-600 flex items-center justify-center text-white text-[10px] font-bold mr-xs mt-0.5">
+        <div className="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white text-[10px] font-bold mr-xs mt-0.5">
           AI
         </div>
       )}
@@ -246,8 +268,8 @@ const MessageBubble = memo(function MessageBubble({ msg }: MessageBubbleProps) {
         className={[
           'max-w-[76%] rounded-xl px-sm py-sm text-sm',
           isUser
-            ? 'bg-byan-700 text-white rounded-br-sm'
-            : 'bg-ink-800 border border-ink-700 text-ink-200 rounded-bl-sm',
+            ? 'bg-teal-600 text-white rounded-br-sm'
+            : 'bg-surface-hover border border-edge-strong text-content-body rounded-bl-sm',
         ].join(' ')}
       >
         {/* Markdown rendering — CLIs return lists, code blocks, tables; plain text is illegible. */}
@@ -258,7 +280,7 @@ const MessageBubble = memo(function MessageBubble({ msg }: MessageBubbleProps) {
               {CLI_LABELS[cli]}
             </span>
           )}
-          <span className="text-[10px] text-ink-500 ml-auto">{formatRelativeTime(msg.created_at)}</span>
+          <span className="text-[10px] text-content-tertiary ml-auto">{formatRelativeTime(msg.created_at)}</span>
         </div>
       </div>
     </div>
@@ -272,20 +294,20 @@ interface StreamingBubbleProps {
 function StreamingBubble({ text }: StreamingBubbleProps) {
   return (
     <div className="flex mb-md justify-start">
-      <div className="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-byan-600 to-cyan-600 flex items-center justify-center text-white text-[10px] font-bold mr-xs mt-0.5">
+      <div className="w-7 h-7 shrink-0 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center text-white text-[10px] font-bold mr-xs mt-0.5">
         AI
       </div>
-      <div className="max-w-[76%] rounded-xl rounded-bl-sm px-sm py-sm bg-ink-800 border border-ink-700 text-sm text-ink-200">
+      <div className="max-w-[76%] rounded-xl rounded-bl-sm px-sm py-sm bg-surface-hover border border-edge-strong text-sm text-content-body">
         {text ? (
           <span className="whitespace-pre-wrap break-words leading-relaxed">
             {text}
-            <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle bg-byan-400 animate-pulse rounded-sm" />
+            <span className="inline-block w-1.5 h-3.5 ml-0.5 align-middle bg-accent-action animate-pulse rounded-sm" />
           </span>
         ) : (
           <div className="flex gap-1 items-center py-0.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-byan-400 animate-pulse" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-byan-400 animate-pulse" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-byan-400 animate-pulse" style={{ animationDelay: '300ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-action animate-pulse" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-action animate-pulse" style={{ animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-action animate-pulse" style={{ animationDelay: '300ms' }} />
           </div>
         )}
       </div>
@@ -308,9 +330,9 @@ interface ConvHeaderProps {
 function ConvHeader({ conv, projectName, agentName, onDelete, onToggleDefaults, defaultsOpen }: ConvHeaderProps) {
   const cli = conv.cli_provider;
   return (
-    <div className="flex items-center justify-between px-lg py-sm border-b border-ink-800 shrink-0 gap-sm">
+    <div className="flex items-center justify-between px-lg py-sm border-b border-edge-subtle shrink-0 gap-sm">
       <div className="flex items-center gap-sm min-w-0 flex-wrap">
-        <p className="font-medium text-ink-200 truncate">
+        <p className="font-medium text-content-body truncate">
           {conv.title || 'Conversation'}
         </p>
         {cli && (
@@ -336,8 +358,8 @@ function ConvHeader({ conv, projectName, agentName, onDelete, onToggleDefaults, 
           className={[
             'flex items-center gap-xs px-xs py-1 rounded text-xs transition-colors',
             defaultsOpen
-              ? 'text-byan-300 bg-byan-900/30 border border-byan-700/40'
-              : 'text-ink-500 hover:text-ink-300 hover:bg-ink-800 border border-transparent',
+              ? 'text-teal-300 bg-teal-900/30 border border-teal-600/40'
+              : 'text-content-tertiary hover:text-content-secondary hover:bg-surface-hover border border-transparent',
           ].join(' ')}
           title="Configure defaults for the next conversation"
           aria-expanded={defaultsOpen}
@@ -350,7 +372,7 @@ function ConvHeader({ conv, projectName, agentName, onDelete, onToggleDefaults, 
         <button
           type="button"
           onClick={onDelete}
-          className="text-ink-500 hover:text-red-400 transition-colors p-1 rounded"
+          className="text-content-tertiary hover:text-red-400 transition-colors p-1 rounded"
           title="Delete conversation"
         >
           <Trash2 size={14} />
@@ -377,17 +399,17 @@ interface DefaultsPanelProps {
 
 function DefaultsPanel({ agentId, scope, projects, onChangeAgent, onChangeScope, initialFocus }: DefaultsPanelProps) {
   return (
-    <div className="border-b border-ink-800 bg-ink-950 px-lg py-sm shrink-0">
-      <p className="text-[10px] text-ink-500 uppercase tracking-wider mb-xs">
+    <div className="border-b border-edge-subtle bg-surface-page px-lg py-sm shrink-0">
+      <p className="text-[10px] text-content-tertiary uppercase tracking-wider mb-xs">
         Defaults for next conversation
       </p>
       <div className="flex items-start gap-md flex-wrap">
         <div data-section="agent" data-focus={initialFocus === 'agent' ? '1' : '0'}>
-          <p className="text-[10px] text-ink-500 mb-xs uppercase tracking-wide">Agent</p>
+          <p className="text-[10px] text-content-tertiary mb-xs uppercase tracking-wide">Agent</p>
           <AgentPicker value={agentId} onChange={onChangeAgent} />
         </div>
         <div className="flex-1 min-w-[260px]" data-section="scope" data-focus={initialFocus === 'scope' ? '1' : '0'}>
-          <p className="text-[10px] text-ink-500 mb-xs uppercase tracking-wide">Scope</p>
+          <p className="text-[10px] text-content-tertiary mb-xs uppercase tracking-wide">Scope</p>
           <ScopePicker scope={scope} onChange={onChangeScope} projects={projects} />
         </div>
       </div>
@@ -722,12 +744,25 @@ function CloudChat() {
       return;
     }
 
+    // Account for the argument BEFORE the side effect, so the words are reported
+    // whether or not the command below succeeds. Four of the five cloud commands
+    // used to read the verb and drop the rest in silence.
+    if (parsed.arg && CLOUD_COMMANDS_WITHOUT_MESSAGE.includes(parsed.cmd)) {
+      toast.warning(trailingIgnoredMessage(parsed.cmd, parsed.arg));
+    }
+
     switch (parsed.cmd) {
       case '/new':
         setNewConvOpen(true);
         return;
       case '/clear':
-        if (activeConvId) setDeleteConfirm(activeConvId);
+        // No active conversation means there is nothing to delete — and a command
+        // that returns without a word is the silent no-op rule 3 forbids.
+        if (!activeConvId) {
+          toast.warning('Aucune conversation active à supprimer. /new pour en ouvrir une.');
+          return;
+        }
+        setDeleteConfirm(activeConvId);
         return;
       case '/scope':
         openDefaults('scope');
@@ -787,18 +822,23 @@ function CloudChat() {
         defaults={defaults}
       />
 
-      {/* Delete confirmation */}
+      {/* Delete confirmation.
+          NOT migrated onto the shared ConsequenceDialog, and not translated: its
+          copy is pinned verbatim by renderer/pages/__tests__/Chat.slash.test.tsx
+          ('Delete conversation?', the /^Delete$/ button), which is not owned here.
+          It already asks before destroying, so it is not one of the silent
+          commands lot 1.3 is about; upgrading it belongs with that test. */}
       {deleteConfirm && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-md"
           onClick={() => setDeleteConfirm(null)}
         >
           <div
-            className="bg-ink-900 border border-ink-700 rounded-xl p-lg max-w-sm w-full"
+            className="bg-surface-card border border-edge-strong rounded-xl p-lg max-w-sm w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="font-h3 text-h3 text-ink-100 mb-sm">Delete conversation?</h3>
-            <p className="text-sm text-ink-400 mb-lg">This cannot be undone.</p>
+            <h3 className="font-h3 text-h3 text-content-body mb-sm">Delete conversation?</h3>
+            <p className="text-sm text-content-tertiary mb-lg">This cannot be undone.</p>
             <div className="flex justify-end gap-sm">
               <button type="button" className="btn-ghost" onClick={() => setDeleteConfirm(null)}>Cancel</button>
               <button type="button" className="btn-danger" onClick={() => void handleDelete(deleteConfirm)}>Delete</button>
@@ -809,18 +849,18 @@ function CloudChat() {
 
       {/* Full-height layout: sidebar + main pane */}
       <div
-        className="flex gap-0 bg-ink-950 rounded-xl border border-ink-800 overflow-hidden"
+        className="flex gap-0 bg-surface-page rounded-xl border border-edge-subtle overflow-hidden"
         style={{ height: 'calc(100vh - 48px - 28px - 2.5rem)' }}
       >
         {/* Sidebar — conversation list */}
-        <div className="w-64 shrink-0 flex flex-col border-r border-ink-800 bg-ink-950">
+        <div className="w-64 shrink-0 flex flex-col border-r border-edge-subtle bg-surface-page">
           {/* Sidebar header */}
-          <div className="flex items-center justify-between px-md py-sm border-b border-ink-800 shrink-0">
-            <h2 className="font-h3 text-h3 text-ink-200">Chat</h2>
+          <div className="flex items-center justify-between px-md py-sm border-b border-edge-subtle shrink-0">
+            <h2 className="font-h3 text-h3 text-content-body">Chat</h2>
             <button
               type="button"
               onClick={() => setNewConvOpen(true)}
-              className="p-1 rounded-lg text-ink-400 hover:text-byan-400 hover:bg-ink-800 transition-colors"
+              className="p-1 rounded-lg text-content-tertiary hover:text-accent-action hover:bg-surface-hover transition-colors"
               title="New conversation"
             >
               <Plus size={16} />
@@ -830,20 +870,20 @@ function CloudChat() {
           {/* Conversations */}
           <div className="flex-1 overflow-y-auto px-xs py-xs">
             {convLoading ? (
-              <div className="flex items-center justify-center py-xl text-ink-500">
+              <div className="flex items-center justify-center py-xl text-content-tertiary">
                 <Loader2 size={16} className="animate-spin mr-xs" />
-                <span className="text-xs">Loading...</span>
+                <span className="text-xs">Chargement…</span>
               </div>
             ) : convError ? (
               <div className="flex flex-col items-center py-xl text-center">
                 <AlertCircle size={20} className="text-red-400 mb-xs" />
-                <p className="text-xs text-ink-500 mb-sm">{convError}</p>
+                <p className="text-xs text-content-tertiary mb-sm">{convError}</p>
                 <button type="button" className="btn-ghost text-xs" onClick={() => void loadConvs()}>Retry</button>
               </div>
             ) : groups.length === 0 ? (
               <div className="flex flex-col items-center py-xl text-center">
-                <MessageSquare size={24} className="text-ink-600 mb-sm" />
-                <p className="text-xs text-ink-500 mb-sm">No conversations yet</p>
+                <MessageSquare size={24} className="text-content-tertiary mb-sm" />
+                <p className="text-xs text-content-tertiary mb-sm">Aucune conversation pour le moment</p>
                 <button type="button" className="btn-secondary text-xs" onClick={() => setNewConvOpen(true)}>
                   Start one
                 </button>
@@ -852,7 +892,7 @@ function CloudChat() {
               <div className="space-y-xs">
                 {groups.map((group) => (
                   <div key={group.label}>
-                    <p className="px-xs py-xs text-[10px] text-ink-500 uppercase tracking-wider font-label">
+                    <p className="px-xs py-xs text-[10px] text-content-tertiary uppercase tracking-wider font-label">
                       {group.label}
                     </p>
                     {group.items.map((conv) => (
@@ -876,9 +916,9 @@ function CloudChat() {
           {activeConvId === null || activeConv === null ? (
             /* No conversation selected */
             <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <MessageSquare size={40} className="text-ink-700 mb-md" />
-              <p className="font-h3 text-h3 text-ink-500 mb-xs">Select a conversation</p>
-              <p className="text-sm text-ink-600 mb-lg">Or create a new one to get started</p>
+              <MessageSquare size={40} className="text-content-muted mb-md" />
+              <p className="font-h3 text-h3 text-content-tertiary mb-xs">Select a conversation</p>
+              <p className="text-sm text-content-muted mb-lg">Ou crée-en une nouvelle pour démarrer</p>
               <button type="button" className="btn-primary" onClick={() => setNewConvOpen(true)}>
                 <Plus size={14} className="mr-xs" />
                 New conversation
@@ -919,16 +959,16 @@ function CloudChat() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto px-lg py-lg">
                 {msgLoading ? (
-                  <div className="flex items-center justify-center py-xl text-ink-500">
+                  <div className="flex items-center justify-center py-xl text-content-tertiary">
                     <Loader2 size={16} className="animate-spin mr-xs" />
-                    <span className="text-sm">Loading messages...</span>
+                    <span className="text-sm">Chargement des messages…</span>
                   </div>
                 ) : messages.length === 0 && !streaming ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <MessageSquare size={32} className="text-ink-700 mb-sm" />
-                    <p className="text-sm text-ink-500">Send a message to start chatting</p>
+                    <MessageSquare size={32} className="text-content-muted mb-sm" />
+                    <p className="text-sm text-content-tertiary">Send a message to start chatting</p>
                     {activeConv?.cli_provider && (
-                      <p className="text-xs text-ink-600 mt-xs">
+                      <p className="text-xs text-content-muted mt-xs">
                         Using {CLI_LABELS[activeConv.cli_provider]}
                       </p>
                     )}
@@ -945,7 +985,7 @@ function CloudChat() {
               </div>
 
               {/* Input area */}
-              <div className="shrink-0 px-lg py-sm border-t border-ink-800 relative">
+              <div className="shrink-0 px-lg py-sm border-t border-edge-subtle relative">
                 {/* Slash-command menu — renders nothing on an empty list, and the
                     palette empties it on Escape or selection. */}
                 <SlashCommandMenu
@@ -965,9 +1005,9 @@ function CloudChat() {
                     disabled={streaming}
                     rows={1}
                     className={[
-                      'flex-1 bg-ink-800 border border-ink-700 rounded-xl px-sm py-sm text-sm text-ink-200',
-                      'focus:outline-none focus:border-byan-500 transition-colors resize-none',
-                      'placeholder-ink-600 disabled:opacity-50',
+                      'flex-1 bg-surface-hover border border-edge-strong rounded-xl px-sm py-sm text-sm text-content-body',
+                      'focus:outline-none focus:border-accent-action transition-colors resize-none',
+                      'placeholder-content-tertiary disabled:opacity-50',
                     ].join(' ')}
                     style={{ minHeight: '40px', maxHeight: '120px' }}
                   />
@@ -985,7 +1025,7 @@ function CloudChat() {
                       type="button"
                       onClick={handleSubmit}
                       disabled={!palette.input.trim()}
-                      className="shrink-0 p-sm bg-byan-700 hover:bg-byan-600 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl text-white transition-colors"
+                      className="shrink-0 p-sm bg-teal-600 hover:bg-teal-500 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl text-white transition-colors"
                       title="Send"
                     >
                       <Send size={16} />
@@ -993,10 +1033,10 @@ function CloudChat() {
                   )}
                 </div>
 
-                <p className="text-[10px] text-ink-600 mt-xs">
-                  <code className="font-mono">/new</code> start,{' '}
-                  <code className="font-mono">/scope</code> + <code className="font-mono">/agent</code> tune defaults,{' '}
-                  <code className="font-mono">/clear</code> delete
+                <p className="text-[10px] text-content-muted mt-xs">
+                  <code className="font-mono">/new</code> démarrer,{' '}
+                  <code className="font-mono">/scope</code> + <code className="font-mono">/agent</code> régler la prochaine,{' '}
+                  <code className="font-mono">/clear</code> supprimer
                 </p>
               </div>
             </>

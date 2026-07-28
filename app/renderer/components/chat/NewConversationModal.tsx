@@ -43,8 +43,8 @@ function CliSelector({ value, onChange }: CliSelectorProps) {
           className={[
             'px-sm py-xs rounded-lg text-sm font-medium border transition-colors',
             value === p
-              ? 'bg-byan-700 border-byan-500 text-white'
-              : 'bg-ink-800 border-ink-700 text-ink-400 hover:border-ink-600',
+              ? 'bg-teal-600 border-accent-action text-white'
+              : 'bg-surface-hover border-edge-strong text-content-tertiary hover:border-edge-strong',
           ].join(' ')}
         >
           {CLI_LABELS[p]}
@@ -161,19 +161,19 @@ export default function NewConversationModal({
       onClick={onClose}
     >
       <div
-        className="bg-ink-900 border border-ink-700 rounded-xl shadow-xl w-full max-w-lg p-lg max-h-[90vh] overflow-y-auto"
+        className="bg-surface-card border border-edge-strong rounded-xl shadow-xl w-full max-w-lg p-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-lg">
           <div>
-            <h3 className="font-h3 text-h3 text-ink-100">New conversation</h3>
-            <p className="text-xs text-ink-500 mt-0.5">Configure CLI, project and agent scope</p>
+            <h3 className="font-h3 text-h3 text-content-body">New conversation</h3>
+            <p className="text-xs text-content-tertiary mt-0.5">Configure CLI, project and agent scope</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-ink-500 hover:text-ink-300 transition-colors"
+            className="text-content-tertiary hover:text-content-secondary transition-colors"
             aria-label="Close"
           >
             <X size={18} />
@@ -189,7 +189,7 @@ export default function NewConversationModal({
 
           {/* Title */}
           <div>
-            <label className="block font-label text-label text-ink-400 uppercase mb-xs">
+            <label className="block font-label text-label text-content-tertiary uppercase mb-xs">
               Title
             </label>
             <input
@@ -197,7 +197,7 @@ export default function NewConversationModal({
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
               placeholder="New conversation"
-              className="w-full bg-ink-800 border border-ink-700 rounded-lg px-sm py-sm text-ink-200 text-sm focus:outline-none focus:border-byan-500 transition-colors"
+              className="w-full bg-surface-hover border border-edge-strong rounded-lg px-sm py-sm text-content-body text-sm focus:outline-none focus:border-accent-action transition-colors"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
             />
@@ -205,7 +205,7 @@ export default function NewConversationModal({
 
           {/* CLI Provider */}
           <div>
-            <label className="block font-label text-label text-ink-400 uppercase mb-xs">
+            <label className="block font-label text-label text-content-tertiary uppercase mb-xs">
               CLI Provider
             </label>
             <CliSelector value={form.cli} onChange={(v) => set('cli', v)} />
@@ -213,7 +213,7 @@ export default function NewConversationModal({
 
           {/* Project */}
           <div>
-            <label className="block font-label text-label text-ink-400 uppercase mb-xs">
+            <label className="block font-label text-label text-content-tertiary uppercase mb-xs">
               Project
             </label>
             <select
@@ -242,7 +242,7 @@ export default function NewConversationModal({
                     : { ...DEFAULT_SCOPE },
                 }));
               }}
-              className="w-full bg-ink-800 border border-ink-700 rounded-lg px-sm py-sm text-ink-200 text-sm focus:outline-none focus:border-byan-500 transition-colors"
+              className="w-full bg-surface-hover border border-edge-strong rounded-lg px-sm py-sm text-content-body text-sm focus:outline-none focus:border-accent-action transition-colors"
             >
               <option value="">None (global context)</option>
               {projects.map((p) => (
@@ -262,13 +262,13 @@ export default function NewConversationModal({
 
           {/* Agent */}
           <div>
-            <label className="block font-label text-label text-ink-400 uppercase mb-xs">
+            <label className="block font-label text-label text-content-tertiary uppercase mb-xs">
               Agent
             </label>
             <select
               value={form.agentId}
               onChange={(e) => set('agentId', e.target.value)}
-              className="w-full bg-ink-800 border border-ink-700 rounded-lg px-sm py-sm text-ink-200 text-sm focus:outline-none focus:border-byan-500 transition-colors"
+              className="w-full bg-surface-hover border border-edge-strong rounded-lg px-sm py-sm text-content-body text-sm focus:outline-none focus:border-accent-action transition-colors"
             >
               <option value="">None (bare CLI)</option>
               {agents.map((a) => (
@@ -282,7 +282,7 @@ export default function NewConversationModal({
             <button
               type="button"
               onClick={() => set('showScope', !form.showScope)}
-              className="flex items-center gap-xs text-xs text-ink-400 hover:text-ink-200 transition-colors"
+              className="flex items-center gap-xs text-xs text-content-tertiary hover:text-content-body transition-colors"
             >
               {form.showScope ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
               {form.showScope ? 'Hide' : 'Configure'} advanced scope

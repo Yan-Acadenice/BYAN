@@ -42,7 +42,7 @@ const COMPONENTS: Components = {
     // anchor when external IPC is unavailable (e.g. test env).
     <a
       href={href ?? '#'}
-      className="text-byan-300 underline hover:text-byan-200"
+      className="text-teal-300 underline hover:text-teal-200"
       onClick={(e) => {
         e.preventDefault();
         if (href && window.byanApi?.app?.openExternal) {
@@ -57,15 +57,15 @@ const COMPONENTS: Components = {
     const isBlock = (className ?? '').startsWith('language-');
     if (isBlock) {
       return (
-        <pre className="my-2 px-3 py-2 rounded-lg bg-ink-950 border border-ink-700 overflow-x-auto">
-          <code className="font-mono text-[12px] text-ink-100 whitespace-pre">
+        <pre className="my-2 px-3 py-2 rounded-lg bg-surface-page border border-edge-strong overflow-x-auto">
+          <code className="font-mono text-[12px] text-content-body whitespace-pre">
             {children}
           </code>
         </pre>
       );
     }
     return (
-      <code className="font-mono text-[12px] px-1 py-0.5 rounded bg-ink-700/60 text-byan-200">
+      <code className="font-mono text-[12px] px-1 py-0.5 rounded bg-neutral-800/60 text-teal-200">
         {children}
       </code>
     );
@@ -84,10 +84,10 @@ const COMPONENTS: Components = {
     <h2 className="text-sm font-semibold mt-2 mb-1 text-white">{children}</h2>
   ),
   h3: ({ children }) => (
-    <h3 className="text-sm font-semibold mt-2 mb-1 text-ink-100">{children}</h3>
+    <h3 className="text-sm font-semibold mt-2 mb-1 text-content-body">{children}</h3>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="border-l-2 border-byan-500/40 pl-2 my-1 text-ink-300 italic">
+    <blockquote className="border-l-2 border-teal-400/40 pl-2 my-1 text-content-secondary italic">
       {children}
     </blockquote>
   ),
@@ -97,12 +97,12 @@ const COMPONENTS: Components = {
     </div>
   ),
   th: ({ children }) => (
-    <th className="border border-ink-700 px-2 py-1 bg-ink-800 text-left font-medium">
+    <th className="border border-edge-strong px-2 py-1 bg-surface-hover text-left font-medium">
       {children}
     </th>
   ),
   td: ({ children }) => (
-    <td className="border border-ink-700 px-2 py-1">{children}</td>
+    <td className="border border-edge-strong px-2 py-1">{children}</td>
   ),
 };
 

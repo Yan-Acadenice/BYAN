@@ -84,18 +84,18 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-xxl text-ink-400">
+      <div className="flex items-center justify-center py-xxl text-content-tertiary">
         <Loader2 size={20} className="animate-spin mr-sm" />
-        <span className="font-body-sm text-body-sm">Loading project...</span>
+        <span className="font-body-sm text-body-sm">Chargement du projet…</span>
       </div>
     );
   }
 
   if (error || !project) {
     return (
-      <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+      <div className="flex flex-col items-center justify-center py-xxl text-content-tertiary">
         <AlertCircle size={40} className="mb-md text-red opacity-70" />
-        <p className="font-h3 text-h3 text-ink-300 mb-xs">{error || 'Project not found'}</p>
+        <p className="font-h3 text-h3 text-content-secondary mb-xs">{error || 'Project not found'}</p>
         <button type="button" className="btn-secondary mt-md" onClick={() => void load()}>Retry</button>
       </div>
     );
@@ -110,7 +110,7 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-xs border-b border-ink-800">
+      <div className="flex gap-xs border-b border-edge-subtle">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -119,8 +119,8 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
             className={[
               'px-sm pb-sm pt-xs font-body-sm text-body-sm capitalize transition-all border-b-2 -mb-px',
               activeTab === tab
-                ? 'text-byan-400 border-byan-500'
-                : 'text-ink-400 border-transparent hover:text-ink-200',
+                ? 'text-accent-action border-accent-action'
+                : 'text-content-tertiary border-transparent hover:text-content-body',
             ].join(' ')}
           >
             {tab}
@@ -131,10 +131,10 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
       {/* Overview tab */}
       {activeTab === 'overview' && (
         <div className="space-y-lg animate-fade-in-up">
-          <div className="bg-ink-900 border border-ink-800 rounded-lg p-md">
-            <p className="font-label text-label text-ink-400 uppercase mb-sm">Description</p>
-            <p className="font-body text-body text-ink-200">
-              {project.description ?? 'No description.'}
+          <div className="bg-surface-card border border-edge-subtle rounded-lg p-md">
+            <p className="font-label text-label text-content-tertiary uppercase mb-sm">Description</p>
+            <p className="font-body text-body text-content-body">
+              {project.description ?? 'Aucune description.'}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-md">
@@ -143,8 +143,8 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
               { label: 'Visibility', value: project.visibility },
               { label: 'Your role', value: project.my_role },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
-                <p className="font-label text-label text-ink-400 uppercase mb-xs">{label}</p>
+              <div key={label} className="bg-surface-card border border-edge-subtle rounded-lg p-md">
+                <p className="font-label text-label text-content-tertiary uppercase mb-xs">{label}</p>
                 <p className="font-body-sm text-body-sm text-white">{value}</p>
               </div>
             ))}
@@ -154,8 +154,8 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
               { label: 'Memory entries (preview)', value: memory.length },
               { label: 'Knowledge entries (preview)', value: knowledge.length },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
-                <p className="font-label text-label text-ink-400 uppercase mb-xs">{label}</p>
+              <div key={label} className="bg-surface-card border border-edge-subtle rounded-lg p-md">
+                <p className="font-label text-label text-content-tertiary uppercase mb-xs">{label}</p>
                 <p className="font-display text-display text-white">{value}</p>
               </div>
             ))}
@@ -165,9 +165,9 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
               D-03 : from here the user launches a chat session or a terminal bound
               to THIS project's folder (not just the onboarding default). */}
           {localEntry && (
-            <div className="bg-ink-900 border border-ink-800 rounded-lg p-md" data-testid="project-local-folder">
-              <p className="font-label text-label text-ink-400 uppercase mb-sm">Dossier local</p>
-              <p className="font-mono-code text-mono-code text-ink-300 text-[12px] truncate mb-sm" title={localEntry.path}>
+            <div className="bg-surface-card border border-edge-subtle rounded-lg p-md" data-testid="project-local-folder">
+              <p className="font-label text-label text-content-tertiary uppercase mb-sm">Dossier local</p>
+              <p className="font-mono-code text-mono-code text-content-secondary text-[12px] truncate mb-sm" title={localEntry.path}>
                 {localEntry.path}
               </p>
               <div className="flex flex-wrap items-center gap-xs">
@@ -211,20 +211,20 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
       {activeTab === 'memory' && (
         <div className="space-y-sm animate-fade-in-up">
           {memory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+            <div className="flex flex-col items-center justify-center py-xxl text-content-tertiary">
               <Brain size={40} className="mb-md opacity-30" />
-              <p className="font-h3 text-h3 text-ink-400">No memory entries</p>
+              <p className="font-h3 text-h3 text-content-tertiary">Aucune entrée de mémoire</p>
             </div>
           ) : (
             memory.map((m) => (
-              <div key={m.id} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
+              <div key={m.id} className="bg-surface-card border border-edge-subtle rounded-lg p-md">
                 <div className="flex items-center gap-sm mb-xs">
                   <span className="badge badge-neutral">{m.layer}</span>
                   {m.category && <span className="badge badge-neutral">{m.category}</span>}
                   {m.pinned && <span className="badge badge-primary">pinned</span>}
-                  <span className="font-caption text-caption text-ink-500 ml-auto">{timeAgo(m.created_at)}</span>
+                  <span className="font-caption text-caption text-content-tertiary ml-auto">{timeAgo(m.created_at)}</span>
                 </div>
-                <p className="font-body-sm text-body-sm text-ink-300">{m.content}</p>
+                <p className="font-body-sm text-body-sm text-content-secondary">{m.content}</p>
               </div>
             ))
           )}
@@ -235,19 +235,19 @@ export default function ProjectDetail({ projectId, onNavigate }: ProjectDetailPr
       {activeTab === 'knowledge' && (
         <div className="space-y-sm animate-fade-in-up">
           {knowledge.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+            <div className="flex flex-col items-center justify-center py-xxl text-content-tertiary">
               <BookOpen size={40} className="mb-md opacity-30" />
-              <p className="font-h3 text-h3 text-ink-400">No knowledge entries</p>
+              <p className="font-h3 text-h3 text-content-tertiary">Aucun article de connaissance</p>
             </div>
           ) : (
             knowledge.map((k) => (
-              <div key={k.id} className="bg-ink-900 border border-ink-800 rounded-lg p-md">
+              <div key={k.id} className="bg-surface-card border border-edge-subtle rounded-lg p-md">
                 <div className="flex items-center gap-sm mb-xs">
-                  <h3 className="font-h3 text-h3 text-ink-100">{k.title}</h3>
-                  <span className="font-caption text-caption text-ink-500 ml-auto">{timeAgo(k.created_at)}</span>
+                  <h3 className="font-h3 text-h3 text-content-body">{k.title}</h3>
+                  <span className="font-caption text-caption text-content-tertiary ml-auto">{timeAgo(k.created_at)}</span>
                 </div>
                 {k.path && (
-                  <p className="font-mono-code text-mono-code text-ink-500 text-[11px] mb-xs">{k.path}</p>
+                  <p className="font-mono-code text-mono-code text-content-tertiary text-[11px] mb-xs">{k.path}</p>
                 )}
                 {k.tags && k.tags.length > 0 && (
                   <div className="flex flex-wrap gap-xs">

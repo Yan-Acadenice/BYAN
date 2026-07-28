@@ -73,9 +73,14 @@ export function I18nProvider({ children, initialLocale }: I18nProviderProps) {
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
-// Returns the translator + locale state. Falls back to an English no-op
-// translator when called outside a provider so isolated unit tests do not
-// have to mount the provider.
+// Returns the translator + locale state. Called outside a provider, it falls
+// back to a no-op translator bound to DEFAULT_LOCALE — French — so isolated unit
+// tests do not have to mount the provider.
+//
+// Read that carefully before pinning a string in a test: a component rendered
+// WITHOUT <I18nProvider> speaks the default language, not English. A test that
+// asserts an English literal must mount <I18nProvider initialLocale="en">, or it
+// is really asserting what the default locale happens to be.
 export function useT(): I18nContextShape {
   const ctx = useContext(I18nContext);
   if (ctx) return ctx;

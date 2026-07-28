@@ -42,7 +42,7 @@ const TABS: TabConfig[] = [
     id: 'cloud',
     label: 'Cloud',
     Icon: Cloud,
-    description: 'Connect to BYAN cloud service',
+    description: 'Se connecter au service cloud BYAN',
   },
   {
     id: 'local',
@@ -113,10 +113,10 @@ export default function Login({ onAuthenticated }: LoginProps) {
 
       if (!result.ok) {
         const messages: Record<string, string> = {
-          invalid_token: 'Token invalide ou refuse par le serveur.',
+          invalid_token: 'Token invalide ou refusé par le serveur.',
           unreachable:
             "Serveur inaccessible. Verifiez l'URL et votre connexion.",
-          cancelled: 'Connexion annulee.',
+          cancelled: 'Connexion annulée.',
           unknown: 'Erreur inconnue lors de la connexion.',
         };
         setError(messages[result.reason] ?? result.message);
@@ -145,7 +145,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
       setLocalPort(result.port);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Impossible de demarrer le serveur local.'
+        err instanceof Error ? err.message : 'Impossible de démarrer le serveur local.'
       );
     } finally {
       setServerStarting(false);
@@ -168,25 +168,25 @@ export default function Login({ onAuthenticated }: LoginProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-ink-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-surface-page px-4">
       <div className="w-full max-w-[480px] animate-fade-in-up">
         {/* Header */}
         <div className="flex flex-col items-center mb-xl">
-          <div className="mb-md w-16 h-16 rounded-lg overflow-hidden bg-ink-900 border border-ink-800 flex items-center justify-center shadow-glow-sm">
+          <div className="mb-md w-16 h-16 rounded-lg overflow-hidden bg-surface-card border border-edge-subtle flex items-center justify-center shadow-glow-sm">
             <ByanLogo size={56} />
           </div>
-          <h1 className="font-h1 text-h1 text-white">Connect to BYAN</h1>
+          <h1 className="font-h1 text-h1 text-content-strong">Se connecter à BYAN</h1>
           {/* Acadenice co-branding caption */}
-          <p className="font-caption text-caption text-ink-400 mt-xs uppercase tracking-wider">
+          <p className="font-caption text-caption text-content-tertiary mt-xs uppercase tracking-wider">
             An AcadéNice product
           </p>
         </div>
 
         {/* Main card */}
-        <div className="bg-ink-900 border border-ink-800 rounded-xl overflow-hidden shadow-glass">
+        <div className="bg-surface-card border border-edge-subtle rounded-xl overflow-hidden shadow-glass">
           <div className="p-7">
-            <h2 className="text-lg font-bold text-white mb-0.5">Connect to BYAN</h2>
-            <p className="text-xs text-ink-400 mb-5">Choose your connection mode</p>
+            <h2 className="text-lg font-bold text-content-strong mb-0.5">Se connecter à BYAN</h2>
+            <p className="text-xs text-content-tertiary mb-5">Choisis ton mode de connexion</p>
 
             {/* Mode tabs */}
             <div className="flex gap-1 mb-6 p-1 bg-white/5 rounded-xl border border-white/8">
@@ -202,8 +202,8 @@ export default function Login({ onAuthenticated }: LoginProps) {
                     className={[
                       'flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-all duration-200',
                       isActive
-                        ? 'bg-byan-500/20 text-byan-200 border border-byan-500/30 shadow-glow-sm'
-                        : 'text-ink-400 hover:text-ink-200 hover:bg-white/5',
+                        ? 'bg-teal-400/20 text-teal-200 border border-teal-400/30 shadow-glow-sm'
+                        : 'text-content-tertiary hover:text-content-body hover:bg-white/5',
                     ].join(' ')}
                   >
                     <Icon size={12} />
@@ -232,24 +232,24 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 data-testid="panel-cloud"
               >
                 <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                  <label className="block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-[0.15em]">
                     BYAN Cloud URL
                   </label>
                   <input
                     type="url"
                     value={cloudUrl}
                     onChange={(e) => setCloudUrl(e.target.value)}
-                    className="input text-ink-400"
+                    className="input text-content-tertiary"
                     placeholder={CLOUD_DEFAULT_URL}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                  <label className="block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-[0.15em]">
                     API Token
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-content-tertiary pointer-events-none">
                       <Key size={14} />
                     </div>
                     <input
@@ -263,10 +263,10 @@ export default function Login({ onAuthenticated }: LoginProps) {
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-content-tertiary hover:text-content-secondary transition-colors"
                       onClick={() => setShowCloudToken((v) => !v)}
                       tabIndex={-1}
-                      aria-label={showCloudToken ? 'Hide token' : 'Show token'}
+                      aria-label={showCloudToken ? 'Masquer le jeton' : 'Afficher le jeton'}
                     >
                       {showCloudToken ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -275,13 +275,13 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 <div className="flex items-center justify-between pt-1">
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 text-xs text-byan-400 hover:text-byan-300 transition-colors"
+                    className="flex items-center gap-1.5 text-xs text-accent-action hover:text-teal-300 transition-colors"
                     onClick={() => {
                       void window.byanApi.app.openExternal('https://byan-api.stark.a3n.fr');
                     }}
                   >
                     <ExternalLink size={11} />
-                    Get a token
+                    Obtenir un jeton
                   </button>
                   <button
                     type="submit"
@@ -312,7 +312,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 className="space-y-4 animate-fade-in-up"
                 data-testid="panel-local"
               >
-                <p className="text-xs text-ink-400 leading-relaxed">
+                <p className="text-xs text-content-tertiary leading-relaxed">
                   Launch an embedded BYAN server locally. No internet connection required.
                 </p>
 
@@ -352,11 +352,11 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 )}
 
                 <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                  <label className="block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-[0.15em]">
                     Token (optional)
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-content-tertiary pointer-events-none">
                       <Key size={14} />
                     </div>
                     <input
@@ -364,15 +364,15 @@ export default function Login({ onAuthenticated }: LoginProps) {
                       value={localToken}
                       onChange={(e) => setLocalToken(e.target.value)}
                       className="input pl-9 pr-10"
-                      placeholder="Leave empty for dev mode"
+                      placeholder="Laisse vide pour le mode développement"
                       data-testid="local-token-input"
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-content-tertiary hover:text-content-secondary transition-colors"
                       onClick={() => setShowLocalToken((v) => !v)}
                       tabIndex={-1}
-                      aria-label={showLocalToken ? 'Hide token' : 'Show token'}
+                      aria-label={showLocalToken ? 'Masquer le jeton' : 'Afficher le jeton'}
                     >
                       {showLocalToken ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -409,15 +409,15 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 className="space-y-4 animate-fade-in-up"
                 data-testid="panel-custom"
               >
-                <p className="text-xs text-ink-400 leading-relaxed">
+                <p className="text-xs text-content-tertiary leading-relaxed">
                   Connect to a self-hosted BYAN instance.
                 </p>
                 <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                  <label className="block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-[0.15em]">
                     Server URL
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-content-tertiary pointer-events-none">
                       <WifiOff size={14} />
                     </div>
                     <input
@@ -432,11 +432,11 @@ export default function Login({ onAuthenticated }: LoginProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-ink-300 mb-1.5 uppercase tracking-[0.15em]">
+                  <label className="block text-xs font-semibold text-content-secondary mb-1.5 uppercase tracking-[0.15em]">
                     API Token
                   </label>
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-500 pointer-events-none">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-content-tertiary pointer-events-none">
                       <Key size={14} />
                     </div>
                     <input
@@ -450,10 +450,10 @@ export default function Login({ onAuthenticated }: LoginProps) {
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300 transition-colors"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-content-tertiary hover:text-content-secondary transition-colors"
                       onClick={() => setShowCustomToken((v) => !v)}
                       tabIndex={-1}
-                      aria-label={showCustomToken ? 'Hide token' : 'Show token'}
+                      aria-label={showCustomToken ? 'Masquer le jeton' : 'Afficher le jeton'}
                     >
                       {showCustomToken ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
@@ -485,7 +485,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
         </div>
 
         <div className="mt-lg text-center flex justify-center gap-lg">
-          <span className="font-caption text-caption text-ink-500/60 uppercase tracking-[0.2em]">
+          <span className="font-caption text-caption text-neutral-600/60 uppercase tracking-[0.2em]">
             Builder of YAN{appVersion ? ` \u00b7 ${formatVersion(appVersion)}` : ''}
           </span>
         </div>

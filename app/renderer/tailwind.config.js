@@ -6,6 +6,20 @@ export default {
     '!**/dist/**',
   ],
   darkMode: 'class',
+  // The root-state classes are put on <html> by JavaScript at runtime, so they
+  // appear in NO scanned .ts/.tsx/.html file. Tailwind purges `@layer base`
+  // rules whose selector is an undetected class candidate, which means the whole
+  // `.light { ... }` half of the token layer — every light value, both light
+  // glass recipes — was being tree-shaken OUT of the bundle. Verified by
+  // building index.css against an empty content set: `--surface-page: #F7FAFA`
+  // was absent from the output, and present the moment the literal string
+  // `light` appeared in the scanned content.
+  //
+  // That is the failure mode this whole layer was built to prevent: measurable,
+  // and invisible to a re-read of the CSS. Safelisting the three runtime root
+  // classes is what makes the light theme actually ship. Do not remove them
+  // because "nothing uses them" — nothing in the MARKUP uses them, on purpose.
+  safelist: ['light', 'dark', 'no-blur'],
   theme: {
     extend: {
       fontFamily: {
@@ -106,6 +120,11 @@ export default {
           card: 'var(--surface-card)',
           raised: 'var(--surface-raised)',
           hover: 'var(--surface-hover)',
+          // The neutral fill under secondary buttons, chips and inactive nav.
+          // Replaces the literal `bg-white/5`, which is invisible on a white
+          // card: in light this token is a DARK tint instead.
+          fill: 'var(--fill-subtle)',
+          'fill-hover': 'var(--fill-subtle-hover)',
         },
         content: {
           strong: 'var(--text-strong)',
@@ -120,6 +139,14 @@ export default {
         edge: {
           subtle: 'var(--border-subtle)',
           strong: 'var(--border-strong)',
+          // A border that carries a role colour. In dark this is the ONLY thing
+          // a state card tints; in light the ground has to be tinted too,
+          // because on white an amber border and a red border read almost the
+          // same from a step back.
+          action: 'var(--edge-action)',
+          change: 'var(--edge-change)',
+          danger: 'var(--edge-danger)',
+          success: 'var(--edge-success)',
         },
         // Role colours through the same commutable layer, so a theme switch moves
         // them together with the surfaces instead of one step behind.
@@ -129,43 +156,27 @@ export default {
           danger: 'var(--accent-danger)',
           success: 'var(--accent-success)',
         },
+        // A role colour as a SURFACE. Replaces the literal `bg-teal-400/15`
+        // family, which has no light-theme answer: the /15 alpha modifier only
+        // works on a literal hex, and a 15% teal on white is not the same
+        // decision as a 15% teal on #131E1D.
+        wash: {
+          action: 'var(--wash-action)',
+          change: 'var(--wash-change)',
+          danger: 'var(--wash-danger)',
+          success: 'var(--wash-success)',
+        },
+        // Ink ON a wash — one rung up from the accent in dark, the accent itself
+        // in light. See the note in index.css: without this pair the 10px
+        // uppercase of a red badge lands near 4.5:1 in dark.
+        'on-wash': {
+          action: 'var(--on-wash-action)',
+          change: 'var(--on-wash-change)',
+          danger: 'var(--on-wash-danger)',
+          success: 'var(--on-wash-success)',
+        },
         // Text placed ON a filled accent. Dark in both themes.
         'on-accent': 'var(--on-accent)',
-        // ---- byan-* : ALIAS onto teal during the migration ----
-        // 116 occurrences across 23 files. Remapping the ramp turns all of them
-        // teal at once, with zero component edits; lot 4 then renames them for
-        // cleanliness rather than for appearance. Deleting the ramp first would
-        // leave the app broken for the whole chantier.
-        byan: {
-          50: '#EDFAF8',
-          100: '#D0F5F0',
-          200: '#A8EBE2',
-          300: '#6ADDD0',
-          400: '#4CCCB8',
-          500: '#4CCCB8',
-          600: '#2FB5A0',
-          700: '#1E8E7E',
-          800: '#155A53',
-          900: '#0F433E',
-        },
-        // ---- ink-* : ALIAS onto the AcadeNice neutrals during the migration ----
-        // 704 occurrences across 34 files. Same reasoning as byan-*, at six times
-        // the scale. ink-500 was used for informative text in several places and
-        // is below the floor in the new ramp — those sites move up a step in lot 4
-        // rather than being translated as-is.
-        ink: {
-          950: '#0C1312',
-          900: '#131E1D',
-          850: '#1A2827',
-          800: '#2A3D3C',
-          700: '#334847',
-          600: '#425E5D',
-          500: '#527472',
-          400: '#6B9190',
-          300: '#94B0AF',
-          200: '#BDD0CF',
-          100: '#DCE8E7',
-        },
         // ---- Role colours, dark-theme values ----
         // Each says one thing and nothing else. Contrasts measured on #131E1D:
         // teal 8.7 · amber 8.4 · green 7.5 · red 4.6 (short text only).
@@ -201,6 +212,11 @@ export default {
           orange: '#fda100',
         },
       },
+      ringColor: {
+        // The focus ring follows the theme. `ring-teal-400/25` was a literal and
+        // stayed at the dark value on a white ground.
+        focus: 'var(--ring-focus)',
+      },
       boxShadow: {
         // Glow is teal now, and RESERVED: active selection or success
         // confirmation, kept brief. It is no longer applied at rest — the brief
@@ -214,8 +230,12 @@ export default {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.35)',
         'glass-lg': '0 24px 60px rgba(0, 0, 0, 0.55)',
         // The inner light edge that makes the floating layers read as a cut
-        // surface rather than a translucent panel (lot 3.5).
-        'edge-inset': 'inset 0 1px 0 rgba(208, 245, 240, 0.14)',
+        // surface rather than a translucent panel. Per-theme, hence the var:
+        // in light it is a near-white highlight, in dark a teal-tinted one.
+        'edge-inset': 'var(--glass-edge)',
+        // What an elevated surface separates itself WITH in light, where card
+        // and raised are both #FFFFFF and the surface value alone says nothing.
+        'raised': 'var(--shadow-raised)',
       },
       backgroundImage: {
         'grid-dark': "radial-gradient(circle at 1px 1px, rgba(208,245,240,0.06) 1px, transparent 0)",

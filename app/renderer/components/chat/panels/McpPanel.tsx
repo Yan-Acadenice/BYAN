@@ -67,15 +67,15 @@ export default function McpPanel({ open, onClose }: McpPanelProps) {
         aria-modal="true"
         aria-label={t('mcp.title')}
         data-testid="mcp-panel-shell"
-        className="bg-ink-900 border border-ink-700 rounded-xl shadow-2xl w-full max-w-3xl mx-md flex flex-col"
+        className="bg-surface-card border border-edge-strong rounded-xl shadow-2xl w-full max-w-3xl mx-md flex flex-col"
         style={{ maxHeight: '80vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-end px-md py-sm border-b border-ink-800 flex-shrink-0">
+        <div className="flex items-center justify-end px-md py-sm border-b border-edge-subtle flex-shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="text-ink-500 hover:text-ink-300 transition-colors"
+            className="text-content-tertiary hover:text-content-secondary transition-colors"
             aria-label="Close"
           >
             <X size={18} />

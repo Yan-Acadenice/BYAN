@@ -48,29 +48,29 @@ export default function UpdateBanner() {
   const handleInstall = () => { void window.byanApi.update.install(); };
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-40 bg-byan-900 border-b border-byan-700 px-md py-sm flex items-center justify-between gap-md">
+    <div className="fixed top-0 left-0 right-0 z-40 bg-teal-900 border-b border-accent-action px-md py-sm flex items-center justify-between gap-md">
       <div className="flex items-center gap-sm min-w-0">
         {state.state === 'downloading' ? (
-          <RefreshCcw size={14} className="text-byan-300 flex-shrink-0 animate-spin" />
+          <RefreshCcw size={14} className="text-teal-300 flex-shrink-0 animate-spin" />
         ) : (
-          <Download size={14} className="text-byan-300 flex-shrink-0" />
+          <Download size={14} className="text-teal-300 flex-shrink-0" />
         )}
         <div className="min-w-0">
           {state.state === 'available' && (
-            <span className="font-body-sm text-body-sm text-ink-100">
+            <span className="font-body-sm text-body-sm text-content-body">
               {t('update.available', { version: state.version })}
             </span>
           )}
           {state.state === 'downloading' && (
-            <span className="font-body-sm text-body-sm text-ink-100">
+            <span className="font-body-sm text-body-sm text-content-body">
               {t('update.downloading', { percent: state.percent.toFixed(0) })}
-              <span className="text-ink-400 ml-xs">
+              <span className="text-content-tertiary ml-xs">
                 ({formatBytes(state.transferred)} / {formatBytes(state.total)})
               </span>
             </span>
           )}
           {state.state === 'downloaded' && (
-            <span className="font-body-sm text-body-sm text-ink-100">
+            <span className="font-body-sm text-body-sm text-content-body">
               {t('update.downloaded', { version: state.version })}
             </span>
           )}
@@ -85,7 +85,7 @@ export default function UpdateBanner() {
         <button
           type="button"
           onClick={() => setDismissed(true)}
-          className="text-ink-400 hover:text-ink-200 transition-colors"
+          className="text-content-tertiary hover:text-content-body transition-colors"
           aria-label={t('update.dismiss')}
         >
           <X size={14} />

@@ -138,17 +138,17 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
       onClick={onClose}
     >
       <div
-        className="bg-ink-900 border border-ink-700 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-surface-card border border-edge-strong rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-md py-sm border-b border-ink-800">
-          <h2 className="font-h3 text-h3 text-ink-100">
+        <div className="flex items-center justify-between px-md py-sm border-b border-edge-subtle">
+          <h2 className="font-h3 text-h3 text-content-body">
             {isEdit ? `Edit ${initial?.id ?? 'server'}` : 'Add MCP server'}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-ink-500 hover:text-ink-300 transition-colors"
+            className="text-content-tertiary hover:text-content-secondary transition-colors"
             aria-label="Close"
           >
             <X size={18} />
@@ -157,8 +157,8 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
 
         <div className="p-md space-y-md">
           <div>
-            <label htmlFor="mcp-form-id" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
-              id <span className="text-ink-500">(lowercase, kebab-case)</span>
+            <label htmlFor="mcp-form-id" className="block font-body-sm text-body-sm text-content-secondary mb-xs">
+              id <span className="text-content-tertiary">(lowercase, kebab-case)</span>
             </label>
             <input
               id="mcp-form-id"
@@ -167,18 +167,18 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
               onChange={(e) => setForm({ ...form, id: e.target.value })}
               disabled={isEdit}
               placeholder="my-server"
-              className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full px-sm py-xs bg-surface-hover border border-edge-strong rounded-lg text-content-body font-mono-code text-mono-code focus:outline-none focus:border-accent-action disabled:opacity-60 disabled:cursor-not-allowed"
               autoFocus={!isEdit}
             />
             {isEdit && (
-              <p className="text-ink-500 text-[11px] mt-xs">
+              <p className="text-content-tertiary text-[11px] mt-xs">
                 Renaming an MCP server requires deleting it and adding it again.
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="mcp-form-command" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
+            <label htmlFor="mcp-form-command" className="block font-body-sm text-body-sm text-content-secondary mb-xs">
               command
             </label>
             <input
@@ -187,14 +187,14 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
               value={form.command}
               onChange={(e) => setForm({ ...form, command: e.target.value })}
               placeholder="node"
-              className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500"
+              className="w-full px-sm py-xs bg-surface-hover border border-edge-strong rounded-lg text-content-body font-mono-code text-mono-code focus:outline-none focus:border-accent-action"
               autoFocus={isEdit}
             />
           </div>
 
           <div>
-            <label htmlFor="mcp-form-args" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
-              args <span className="text-ink-500">(one per line, optional)</span>
+            <label htmlFor="mcp-form-args" className="block font-body-sm text-body-sm text-content-secondary mb-xs">
+              args <span className="text-content-tertiary">(one per line, optional)</span>
             </label>
             <textarea
               id="mcp-form-args"
@@ -202,13 +202,13 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
               onChange={(e) => setForm({ ...form, argsText: e.target.value })}
               placeholder="_byan/mcp/server.js"
               rows={3}
-              className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500 resize-none"
+              className="w-full px-sm py-xs bg-surface-hover border border-edge-strong rounded-lg text-content-body font-mono-code text-mono-code focus:outline-none focus:border-accent-action resize-none"
             />
           </div>
 
           <div>
-            <label htmlFor="mcp-form-env" className="block font-body-sm text-body-sm text-ink-300 mb-xs">
-              env <span className="text-ink-500">(KEY=VALUE per line, optional)</span>
+            <label htmlFor="mcp-form-env" className="block font-body-sm text-body-sm text-content-secondary mb-xs">
+              env <span className="text-content-tertiary">(KEY=VALUE per line, optional)</span>
             </label>
             <textarea
               id="mcp-form-env"
@@ -216,10 +216,10 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
               onChange={(e) => setForm({ ...form, envText: e.target.value })}
               placeholder="BYAN_API_URL=https://example.com"
               rows={3}
-              className="w-full px-sm py-xs bg-ink-800 border border-ink-700 rounded-lg text-ink-100 font-mono-code text-mono-code focus:outline-none focus:border-byan-500 resize-none"
+              className="w-full px-sm py-xs bg-surface-hover border border-edge-strong rounded-lg text-content-body font-mono-code text-mono-code focus:outline-none focus:border-accent-action resize-none"
             />
             {isEdit && (
-              <p className="text-ink-500 text-[11px] mt-xs">
+              <p className="text-content-tertiary text-[11px] mt-xs">
                 Existing env values are not displayed. Leaving this empty overwrites them with nothing — re-enter values to keep them.
               </p>
             )}
@@ -233,7 +233,7 @@ export default function McpServerFormModal({ open, mode, initial, onClose, onSav
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-sm px-md py-sm border-t border-ink-800">
+        <div className="flex items-center justify-end gap-sm px-md py-sm border-t border-edge-subtle">
           <button
             type="button"
             onClick={onClose}

@@ -142,7 +142,7 @@ function kindStyles(kind: ToastKind): { border: string; bg: string; icon: React.
       return { border: 'border-amber-700', bg: 'bg-amber-950/80', icon: <AlertTriangle size={16} className="text-amber-400" /> };
     case 'info':
     default:
-      return { border: 'border-byan-700', bg: 'bg-byan-950/80', icon: <Info size={16} className="text-byan-300" /> };
+      return { border: 'border-accent-action', bg: 'bg-teal-950/80', icon: <Info size={16} className="text-teal-300" /> };
   }
 }
 
@@ -168,11 +168,11 @@ function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
             ].join(' ')}
           >
             <div className="flex-shrink-0 mt-0.5">{s.icon}</div>
-            <p className="font-body-sm text-body-sm text-ink-100 flex-1 break-words">{t.message}</p>
+            <p className="font-body-sm text-body-sm text-content-body flex-1 break-words">{t.message}</p>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}
-              className="text-ink-400 hover:text-ink-200 transition-colors flex-shrink-0"
+              className="text-content-tertiary hover:text-content-body transition-colors flex-shrink-0"
               aria-label="Dismiss notification"
             >
               <X size={14} />

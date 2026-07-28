@@ -1,16 +1,22 @@
 // StatusStrip — 28px bottom status bar.
 // Left: connection mode dot + label, version.
-// Right: latency, logs link, Acadenice hover label.
+// Right: latency, logs link, AcadéNice hover label.
 //
 // Everything shown here is either MEASURED or absent. Three things used to be
 // decoration presented as fact: the version was the literal 'v1.0' while the app
 // shipped 1.4.0, the latency was the literal '12ms' with nothing behind it, and
 // the Logs button had no handler at all. A status bar that invents its own
 // readings is worse than one that shows nothing, because it is trusted.
+//
+// The wording comes from the locale layer, not from literals in this file. The
+// bar sat in hardcoded French while Settings offered a language selector, so
+// switching the language left the only permanently visible strip of the app
+// untranslated. Numbers stay measured here; only their labels are translated.
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Gauge, List } from 'lucide-react';
 import ModeSwitcher from './ModeSwitcher';
+import { useT } from '../i18n/I18nContext';
 
 interface StatusStripProps {
   // Only tests pass this. In the app the version is read from main, so no
@@ -23,6 +29,7 @@ interface StatusStripProps {
 const PING_INTERVAL_MS = 15_000;
 
 export default function StatusStrip({ version }: StatusStripProps) {
+  const { t } = useT();
   const [hoverAcadenice, setHoverAcadenice] = useState(false);
   const [resolvedVersion, setResolvedVersion] = useState<string | null>(version ?? null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
@@ -66,13 +73,13 @@ export default function StatusStrip({ version }: StatusStripProps) {
       // with — the click still tells the user where to look.
       setLogsNote(res.ok ? null : res.path);
     } catch {
-      setLogsNote('dossier de logs introuvable');
+      setLogsNote(t('status.logs.missing'));
     }
-  }, []);
+  }, [t]);
 
   return (
     <footer
-      className="absolute bottom-0 left-0 w-full bg-ink-900 border-t border-ink-800 flex items-center justify-between px-md font-mono-code text-mono-code text-ink-400 z-40"
+      className="absolute bottom-0 left-0 w-full bg-surface-card border-t border-edge-subtle flex items-center justify-between px-md font-mono-code text-mono-code text-content-tertiary z-40"
       style={{ height: '28px' }}
     >
       {/* Left — live mode toggle (Local/Cloud) reachable from every screen */}
@@ -91,8 +98,8 @@ export default function StatusStrip({ version }: StatusStripProps) {
           className="flex items-center gap-xs"
           data-testid="status-latency"
           title={latencyMs === null
-            ? 'Latence du pont IPC : pas encore mesurée'
-            : `Aller-retour vers le processus principal, mesuré il y a moins de ${PING_INTERVAL_MS / 1000}s`}
+            ? t('status.latency.pending')
+            : t('status.latency.measured', { seconds: PING_INTERVAL_MS / 1000 })}
         >
           <Gauge size={12} />
           {latencyMs === null ? '--' : `${latencyMs}ms`}
@@ -101,21 +108,21 @@ export default function StatusStrip({ version }: StatusStripProps) {
           type="button"
           data-testid="status-logs"
           onClick={() => void openLogs()}
-          title={logsNote ?? 'Ouvrir le dossier des logs'}
-          className="flex items-center gap-xs hover:text-ink-200 transition-colors"
+          title={logsNote ?? t('status.logs.open')}
+          className="flex items-center gap-xs hover:text-content-body transition-colors"
         >
           <List size={12} />
-          {logsNote ? logsNote : 'Logs'}
+          {logsNote ? logsNote : t('status.logs')}
         </button>
-        {/* Acadenice footer mention */}
+        {/* AcadéNice footer mention */}
         <button
           type="button"
-          className="text-ink-600 hover:text-acadenice-teal transition-colors text-[10px] font-mono-code"
+          className="text-content-muted hover:text-acadenice-teal transition-colors text-[10px] font-mono-code"
           onMouseEnter={() => setHoverAcadenice(true)}
           onMouseLeave={() => setHoverAcadenice(false)}
           onClick={() => void window.byanApi.app.openExternal('https://acadenice.fr')}
         >
-          {hoverAcadenice ? 'Un produit AcadéNice — formations à Nice' : 'AcadéNice'}
+          {hoverAcadenice ? t('status.acadenice.hover') : t('status.acadenice')}
         </button>
       </div>
     </footer>

@@ -162,7 +162,7 @@ describe('Login — error display', () => {
     fireEvent.click(screen.getByTestId('cloud-submit'));
 
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('Token invalide ou refuse par le serveur.')
+      expect(screen.getByRole('alert')).toHaveTextContent('Token invalide ou refusé par le serveur.')
     );
   });
 

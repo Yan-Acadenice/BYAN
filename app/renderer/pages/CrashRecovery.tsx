@@ -18,7 +18,7 @@ export default function CrashRecovery({
   const handleRestart = () => void window.byanApi.app.relaunch();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-ink-950 p-lg">
+    <div className="min-h-screen flex items-center justify-center bg-surface-page p-lg">
       <div className="w-full max-w-[480px] animate-fade-in-up">
         {/* Icon */}
         <div className="flex justify-center mb-lg">
@@ -28,22 +28,22 @@ export default function CrashRecovery({
         </div>
 
         {/* Title */}
-        <h1 className="font-h1 text-h1 text-ink-100 text-center mb-xs">Something went wrong</h1>
-        <p className="font-body text-body text-ink-400 text-center mb-xl">{message}</p>
+        <h1 className="font-h1 text-h1 text-content-body text-center mb-xs">Quelque chose a cassé</h1>
+        <p className="font-body text-body text-content-tertiary text-center mb-xl">{message}</p>
 
         {/* Details toggle */}
         {details && (
-          <div className="bg-ink-900 border border-ink-800 rounded-lg mb-lg overflow-hidden">
+          <div className="bg-surface-card border border-edge-subtle rounded-lg mb-lg overflow-hidden">
             <button
               type="button"
               onClick={() => setShowDetails((v) => !v)}
-              className="w-full flex items-center justify-between px-md py-sm text-ink-400 hover:bg-ink-800 transition-colors"
+              className="w-full flex items-center justify-between px-md py-sm text-content-tertiary hover:bg-surface-hover transition-colors"
             >
-              <span className="font-body-sm text-body-sm">Error details</span>
+              <span className="font-body-sm text-body-sm">Détail de l'erreur</span>
               {showDetails ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
             {showDetails && (
-              <pre className="px-md pb-md pt-xs font-mono-code text-mono-code text-ink-300 text-[11px] overflow-x-auto max-h-40 whitespace-pre-wrap break-words">
+              <pre className="px-md pb-md pt-xs font-mono-code text-mono-code text-content-secondary text-[11px] overflow-x-auto max-h-40 whitespace-pre-wrap break-words">
                 {details}
               </pre>
             )}

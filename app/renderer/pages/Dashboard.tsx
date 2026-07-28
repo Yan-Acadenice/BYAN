@@ -66,19 +66,19 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   if (state === 'loading') {
     return (
-      <div className="flex items-center justify-center py-xxl text-ink-400">
+      <div className="flex items-center justify-center py-xxl text-content-tertiary">
         <Loader2 size={20} className="animate-spin mr-sm" />
-        <span className="font-body-sm text-body-sm">Loading dashboard...</span>
+        <span className="font-body-sm text-body-sm">Chargement du tableau de bord…</span>
       </div>
     );
   }
 
   if (state === 'error') {
     return (
-      <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+      <div className="flex flex-col items-center justify-center py-xxl text-content-tertiary">
         <AlertCircle size={40} className="mb-md text-red opacity-70" />
-        <p className="font-h3 text-h3 text-ink-300 mb-xs">Could not load dashboard</p>
-        <p className="font-body-sm text-body-sm text-ink-500 mb-md">{error}</p>
+        <p className="font-h3 text-h3 text-content-secondary mb-xs">Impossible de charger le tableau de bord</p>
+        <p className="font-body-sm text-body-sm text-content-tertiary mb-md">{error}</p>
         <button type="button" className="btn-secondary" onClick={() => void load()}>Retry</button>
       </div>
     );
@@ -88,37 +88,37 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     <div className="space-y-xl">
       {/* Hero */}
       <section className="space-y-xs">
-        <h2 className="font-display text-display text-white">Welcome back.</h2>
+        <h2 className="font-display text-display text-white">Content de te revoir.</h2>
         <div className="flex items-center gap-xs" data-testid="dashboard-connectivity">
           <span className={`w-1.5 h-1.5 rounded-full ${conn.dot}`} />
-          <p className="font-caption text-caption text-ink-400">{conn.label}</p>
+          <p className="font-caption text-caption text-content-tertiary">{conn.label}</p>
         </div>
       </section>
 
       {/* KPI cards */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-md">
         {/* Active projects */}
-        <div className="bg-ink-900 border border-ink-800 rounded-lg p-lg hover:-translate-y-px hover:border-ink-700 transition-all duration-200 group">
+        <div className="bg-surface-card border border-edge-subtle rounded-lg p-lg hover:-translate-y-px hover:border-edge-strong transition-all duration-200 group">
           <div className="flex justify-between items-start mb-4">
-            <FolderOpen size={20} className="text-ink-400 group-hover:text-byan-500 transition-colors" />
+            <FolderOpen size={20} className="text-content-tertiary group-hover:text-accent-action transition-colors" />
           </div>
-          <p className="font-body-sm text-body-sm text-ink-400 mb-1">Active projects</p>
+          <p className="font-body-sm text-body-sm text-content-tertiary mb-1">Projets actifs</p>
           <p className="font-display text-display text-white">{projects.length}</p>
         </div>
         {/* Sessions */}
-        <div className="bg-ink-900 border border-ink-800 rounded-lg p-lg hover:-translate-y-px hover:border-ink-700 transition-all duration-200 group">
+        <div className="bg-surface-card border border-edge-subtle rounded-lg p-lg hover:-translate-y-px hover:border-edge-strong transition-all duration-200 group">
           <div className="flex justify-between items-start mb-4">
-            <History size={20} className="text-ink-400 group-hover:text-byan-500 transition-colors" />
+            <History size={20} className="text-content-tertiary group-hover:text-accent-action transition-colors" />
           </div>
-          <p className="font-body-sm text-body-sm text-ink-400 mb-1">Recent sessions</p>
+          <p className="font-body-sm text-body-sm text-content-tertiary mb-1">Sessions récentes</p>
           <p className="font-display text-display text-white">{sessions.length}</p>
         </div>
         {/* MCP servers — still from local IPC, not byan_web */}
-        <div className="bg-ink-900 border border-ink-800 rounded-lg p-lg hover:-translate-y-px hover:border-ink-700 transition-all duration-200 group">
+        <div className="bg-surface-card border border-edge-subtle rounded-lg p-lg hover:-translate-y-px hover:border-edge-strong transition-all duration-200 group">
           <div className="flex justify-between items-start mb-4">
-            <Terminal size={20} className="text-ink-400 group-hover:text-byan-500 transition-colors" />
+            <Terminal size={20} className="text-content-tertiary group-hover:text-accent-action transition-colors" />
           </div>
-          <p className="font-body-sm text-body-sm text-ink-400 mb-1">MCP servers</p>
+          <p className="font-body-sm text-body-sm text-content-tertiary mb-1">Serveurs MCP</p>
           <p className="font-display text-display text-white">
             <span className="cursor-pointer" onClick={() => onNavigate('mcp-servers')}>View</span>
           </p>
@@ -128,12 +128,12 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       {/* Two-column section */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-md">
         {/* Recent sessions — 2 cols */}
-        <div className="lg:col-span-2 bg-ink-900 border border-ink-800 rounded-lg overflow-hidden flex flex-col">
-          <div className="px-md py-sm border-b border-ink-800 flex justify-between items-center">
-            <h3 className="font-h3 text-h3 text-ink-100">Recent sessions</h3>
+        <div className="lg:col-span-2 bg-surface-card border border-edge-subtle rounded-lg overflow-hidden flex flex-col">
+          <div className="px-md py-sm border-b border-edge-subtle flex justify-between items-center">
+            <h3 className="font-h3 text-h3 text-content-body">Recent sessions</h3>
             <button
               type="button"
-              className="font-label text-label text-byan-500 hover:text-byan-700 transition-colors uppercase"
+              className="font-label text-label text-accent-action hover:text-teal-600 transition-colors uppercase"
               onClick={() => onNavigate('sessions')}
             >
               View all
@@ -141,29 +141,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           </div>
           <div className="flex-1">
             {sessions.length === 0 ? (
-              <div className="flex items-center justify-center py-xl text-ink-500">
-                <p className="font-body-sm text-body-sm">No sessions yet.</p>
+              <div className="flex items-center justify-center py-xl text-content-tertiary">
+                <p className="font-body-sm text-body-sm">Aucune session pour le moment.</p>
               </div>
             ) : (
               sessions.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center px-md border-b border-ink-800/50 last:border-b-0 hover:bg-ink-800 transition-colors cursor-pointer group"
+                  className="flex items-center px-md border-b border-neutral-900/50 last:border-b-0 hover:bg-surface-hover transition-colors cursor-pointer group"
                   style={{ height: '56px' }}
                 >
-                  <div className="w-8 h-8 rounded bg-ink-850 border border-ink-700 flex items-center justify-center mr-md shrink-0">
-                    <Zap size={14} className="text-ink-300 group-hover:text-byan-500 transition-colors" />
+                  <div className="w-8 h-8 rounded bg-surface-raised border border-edge-strong flex items-center justify-center mr-md shrink-0">
+                    <Zap size={14} className="text-content-secondary group-hover:text-accent-action transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0 pr-md">
-                    <p className="font-body-sm text-body-sm text-ink-100 truncate font-medium">
+                    <p className="font-body-sm text-body-sm text-content-body truncate font-medium">
                       {s.agent_slug ?? 'Session'}
                     </p>
-                    <p className="font-caption text-caption text-ink-400 truncate mt-0.5">
+                    <p className="font-caption text-caption text-content-tertiary truncate mt-0.5">
                       {s.status}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-caption text-caption text-ink-500 mt-0.5">
+                    <p className="font-caption text-caption text-content-tertiary mt-0.5">
                       {new Date(s.started_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -174,20 +174,20 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {/* Quick actions — 1 col */}
-        <div className="bg-ink-900 border border-ink-800 rounded-lg p-md flex flex-col">
-          <h3 className="font-h3 text-h3 text-ink-100 mb-md px-xs">Quick actions</h3>
+        <div className="bg-surface-card border border-edge-subtle rounded-lg p-md flex flex-col">
+          <h3 className="font-h3 text-h3 text-content-body mb-md px-xs">Actions rapides</h3>
           <div className="space-y-xs flex-1">
             <button
               type="button"
               onClick={() => onNavigate('chat')}
-              className="w-full bg-gradient-to-r from-byan-500 to-byan-700 text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:opacity-90 transition-opacity"
+              className="w-full bg-gradient-to-r from-teal-400 to-teal-600 text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:opacity-90 transition-opacity"
             >
               <Zap size={16} />
               New session
             </button>
             <button
               type="button"
-              className="w-full bg-transparent border border-ink-600 text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:bg-ink-800 transition-colors mt-sm"
+              className="w-full bg-transparent border border-edge-strong text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:bg-surface-hover transition-colors mt-sm"
               onClick={() => onNavigate('projects')}
             >
               <Upload size={16} />
@@ -195,7 +195,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </button>
             <button
               type="button"
-              className="w-full bg-transparent border border-ink-600 text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:bg-ink-800 transition-colors"
+              className="w-full bg-transparent border border-edge-strong text-white font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:bg-surface-hover transition-colors"
               onClick={() => onNavigate('projects')}
             >
               <ArrowUpRight size={16} />
@@ -203,7 +203,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </button>
             <button
               type="button"
-              className="w-full bg-transparent text-ink-400 font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:text-ink-100 hover:bg-ink-850 transition-colors"
+              className="w-full bg-transparent text-content-tertiary font-body-sm text-body-sm font-medium h-9 rounded flex items-center justify-center gap-xs hover:text-content-body hover:bg-surface-raised transition-colors"
               onClick={() => onNavigate('memory')}
             >
               <Brain size={16} />

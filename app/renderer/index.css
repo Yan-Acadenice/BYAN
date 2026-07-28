@@ -16,15 +16,29 @@
    neutral-500 is the readability floor in dark and the dash in light,
    neutral-600 is the dash in dark and the floor in light. Wiring
    "tertiary = neutral-500" without a per-theme distinction is the bug.
+
+   Every value below is measured, not estimated. If you change one, re-measure
+   the pair it sits against — the amber/red pair in the file preview is the
+   first place a drift shows up, because a conflict counter and an update
+   counter sit side by side there.
    --------------------------------------------------------------------------- */
 @layer base {
   :root {
     /* Dark is the default: the app ships dark and must stay usable with no
        class on the root at all. */
+    color-scheme: dark;
+
     --surface-page: #0C1312;      /* neutral-1000, added to the system */
     --surface-card: #131E1D;      /* neutral-975, added to the system */
     --surface-raised: #1A2827;    /* neutral-950 — modal, popover, menu */
     --surface-hover: #2A3D3C;     /* neutral-900 */
+
+    /* The neutral fill that carries secondary buttons, chips and inactive nav.
+       In dark it is a WHITE tint (lifting away from the page); in light it is a
+       DARK tint. Same token, opposite direction — which is why an inset flood
+       of it always reads as "toward the foreground" in both themes. */
+    --fill-subtle: rgba(255, 255, 255, 0.05);
+    --fill-subtle-hover: rgba(255, 255, 255, 0.10);
 
     /* Borders are teal-tinted translucent, not white: that is what carries the
        "no pure grey" brand rule all the way into the separators. */
@@ -45,13 +59,54 @@
        is the inverse of the AcadeNice light-mode convention, and both are right
        in their own context. */
     --on-accent: #0C1312;
+
+    /* A role colour as a SURFACE rather than as ink. In dark a state card keeps
+       a neutral ground and only its border carries the colour, so these stay
+       faint; in light the tinted ground becomes necessary — on white, an amber
+       border and a red border read almost the same from a step back. */
+    --wash-action: rgba(76, 204, 184, 0.15);
+    --wash-change: rgba(253, 161, 0, 0.15);
+    --wash-danger: rgba(239, 68, 68, 0.15);
+    --wash-success: rgba(34, 197, 94, 0.15);
+
+    --edge-action: rgba(76, 204, 184, 0.30);
+    --edge-change: rgba(253, 161, 0, 0.30);
+    --edge-danger: rgba(239, 68, 68, 0.30);
+    --edge-success: rgba(34, 197, 94, 0.30);
+
+    /* Ink ON a wash. In dark the wash lifts the ground, so the ink steps UP one
+       rung off the accent to keep its distance; in light the accent is already
+       the stepped-down rung and needs no further move. Without this pair the
+       10px uppercase text of a red badge lands near 4.5:1 in dark. */
+    --on-wash-action: #6ADDD0;    /* teal-300 */
+    --on-wash-change: #FFC04D;
+    --on-wash-danger: #F87171;
+    --on-wash-success: #4ADE80;
+
+    --ring-focus: rgba(76, 204, 184, 0.35);
+    --selection-bg: rgba(76, 204, 184, 0.32);
+    --scrollbar-thumb: rgba(208, 245, 240, 0.14);
+    --scrollbar-thumb-hover: rgba(208, 245, 240, 0.26);
+
+    /* An elevated surface needs its own separation. In dark the raise is
+       carried by the surface value itself (neutral-950 over neutral-975); in
+       light card and raised are BOTH white, so the shadow is the only thing
+       that says "above". */
+    --shadow-raised: 0 18px 44px rgba(0, 0, 0, 0.45);
+
+    --gradient-brand: linear-gradient(135deg, #6ADDD0 0%, #4CCCB8 50%, #1E8E7E 100%);
   }
 
   .light {
+    color-scheme: light;
+
     --surface-page: #F7FAFA;      /* neutral-50 */
     --surface-card: #FFFFFF;
-    --surface-raised: #FFFFFF;    /* plus a shadow — see .surface-raised users */
+    --surface-raised: #FFFFFF;    /* plus --shadow-raised — see .elevated */
     --surface-hover: #EEF3F3;     /* neutral-100 */
+
+    --fill-subtle: rgba(26, 40, 39, 0.04);
+    --fill-subtle-hover: rgba(26, 40, 39, 0.07);
 
     --border-subtle: #DCE8E7;     /* neutral-200 */
     --border-strong: #BDD0CF;     /* neutral-300 */
@@ -61,6 +116,8 @@
     --text-secondary: #425E5D;    /* neutral-700 — 8.7:1 */
     --text-tertiary: #527472;     /* neutral-600 — 4.88:1, the FLOOR (swapped) */
     --text-muted: #6B9190;        /* neutral-500 — 3.29:1, the dash (swapped) */
+    /* #94B0AF (neutral-400) must carry NO text in light. It is a border or an
+       icon value here and nothing more. */
 
     /* Each role colour loses about four points of contrast on a light ground,
        so each steps down one rung. */
@@ -69,6 +126,93 @@
     --accent-danger: #991B1B;     /* 7.9:1 */
     --accent-success: #065F46;    /* 7.4:1 */
     --on-accent: #0A2E2A;         /* 7.4:1 on teal */
+
+    --wash-action: #EDFAF8;       /* teal-50 */
+    --wash-change: #FFF8E6;
+    --wash-danger: #FEE2E2;       /* danger-bg */
+    --wash-success: #D1FAE5;      /* success-bg */
+
+    --edge-action: rgba(28, 114, 105, 0.30);
+    --edge-change: rgba(158, 82, 0, 0.30);
+    --edge-danger: rgba(153, 27, 27, 0.30);
+    --edge-success: rgba(6, 95, 70, 0.30);
+
+    --on-wash-action: #1C7269;
+    --on-wash-change: #9E5200;
+    --on-wash-danger: #991B1B;
+    --on-wash-success: #065F46;
+
+    --ring-focus: rgba(28, 114, 105, 0.30);
+    --selection-bg: rgba(76, 204, 184, 0.30);
+    --scrollbar-thumb: rgba(26, 40, 39, 0.18);
+    --scrollbar-thumb-hover: rgba(26, 40, 39, 0.32);
+
+    --shadow-raised: 0 12px 32px rgba(26, 40, 39, 0.10);
+
+    /* The 300 rung of the brand gradient fails on white, so the light gradient
+       runs one octave lower. A wordmark is still text. */
+    --gradient-brand: linear-gradient(135deg, #2FB5A0 0%, #1C7269 50%, #0F433E 100%);
+  }
+
+  /* -------------------------------------------------------------------------
+     The glass, section 3 of THEMES-ET-MATIERE.md.
+
+     Two details carry the whole effect, and neither is the blur:
+
+     - THE INNER LIGHT EDGE (`inset 0 1px 0`). Without it this is a
+       semi-transparent panel. With it, it is a cut edge.
+     - THE SATURATION DIFFERENCE, 160% in dark against 180% in light. Without
+       the extra 20 points the blur washes the colours toward grey and the teal
+       turns muddy.
+
+     Opacity is not an aesthetic dial, it is a contrast budget. The dark glass
+     was first laid at .62; at 38% transmission the text buried behind stayed
+     READABLE and collided with the labels in front of it — the background
+     talking over the foreground. At .85 it becomes texture, which is its job.
+     Hard constraint: if the dark ground ever drops below .85, the muted tier
+     of anything sitting on it has to move up a rung to compensate.
+     ------------------------------------------------------------------------- */
+  :root {
+    --glass-bg: rgba(19, 30, 29, 0.85);
+    --glass-filter: blur(24px) saturate(160%);
+    --glass-border: rgba(208, 245, 240, 0.10);
+    --glass-edge: inset 0 1px 0 rgba(208, 245, 240, 0.14);
+    --glass-drop: 0 10px 34px rgba(0, 0, 0, 0.32);
+  }
+
+  .light {
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-filter: blur(24px) saturate(180%);
+    --glass-border: rgba(26, 40, 39, 0.09);
+    --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+    --glass-drop: 0 10px 30px rgba(26, 40, 39, 0.07);
+  }
+
+  /* Section 3.4, third limit: the cost of three recomputing backdrop-filters in
+     Electron on a Linux box with no GPU compositor is to be MEASURED, not
+     supposed. Until it is measured on the target machine there has to be a way
+     out, so there are two: the OS accessibility preference, and a class the
+     main process can put on the root next to its existing GPU switch
+     (BYAN_DISABLE_GPU / ~/.config/byan/disable-gpu).
+
+     Both collapse the glass to the opaque surface and drop the filter. The
+     inner edge and the drop shadow stay — the material degrades to a plain
+     raised panel, it does not vanish.
+
+     Double-class selectors, so these win over `.light` regardless of source
+     order rather than depending on it. */
+  :root.no-blur,
+  :root.no-blur.light {
+    --glass-bg: var(--surface-card);
+    --glass-filter: none;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    :root,
+    :root.light {
+      --glass-bg: var(--surface-card);
+      --glass-filter: none;
+    }
   }
 
   html, body, #root {
@@ -81,27 +225,26 @@
     @apply antialiased bg-surface-page text-content-body font-sans;
   }
   ::selection {
-    background: rgba(76, 204, 184, 0.32);
+    background: var(--selection-bg);
     color: var(--text-strong);
   }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(208, 245, 240, 0.14);
+    background: var(--scrollbar-thumb);
     border-radius: 8px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(208, 245, 240, 0.26); background-clip: padding-box; border: 2px solid transparent; }
-  input, textarea, select { color-scheme: dark; }
-  .light input, .light textarea, .light select { color-scheme: light; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); background-clip: padding-box; border: 2px solid transparent; }
 }
 
 @layer components {
-  /* The four glass classes are gone. DESIGN-BRIEF.md forbade them in as many
-     words, no component ever used them, and `.card` was built on top of one —
-     verified unused too, so it goes with them. Lot 3.5 reintroduces glass
-     deliberately and only on the layers that FLOAT above content. */
+  /* The four old glass classes are gone: DESIGN-BRIEF.md forbade them in as many
+     words, no component ever used them, and `.card` was built on top of one.
+     The glass below is not those classes back — it is deliberately scoped to the
+     layers that FLOAT above content, and it is theme-aware. See "The float rule"
+     further down. */
 
   .btn {
     /* Pill radius is an AcadeNice brand rule, not a preference. Buttons are
@@ -109,25 +252,33 @@
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-h1 text-sm font-medium transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none;
   }
   .btn-primary {
-    /* Teal with DARK text: white on teal is 2.0:1, dark on teal is 9.6:1. And no
-       glow at rest — glow is reserved for active selection or a brief success. */
+    /* Teal with DARK text: white on teal is 2.0:1, dark on teal is 9.6:1 in dark
+       and 7.4:1 in light. The AcadeNice default (white on teal, 1.97:1) fails in
+       BOTH themes — this is a design-system defect, not a theme one, which is
+       why the fix is the same rule on both sides. And no glow at rest: glow is
+       reserved for active selection or a brief success. */
     @apply btn bg-accent-action text-on-accent hover:brightness-110 active:brightness-95;
   }
   .btn-secondary {
-    @apply btn bg-white/5 text-content-body border border-edge-strong hover:bg-white/10;
+    @apply btn bg-surface-fill text-content-body border border-edge-strong hover:bg-surface-fill-hover;
   }
   .btn-ghost {
-    @apply btn text-content-secondary hover:text-content-strong hover:bg-white/5;
+    @apply btn text-content-secondary hover:text-content-strong hover:bg-surface-fill;
   }
   .btn-danger {
-    @apply btn bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25 hover:text-red-200;
+    @apply btn bg-wash-danger text-on-wash-danger border border-edge-danger;
   }
+  /* Hover emphasis with no second value to keep in sync: the subtle fill is a
+     white tint in dark and a dark tint in light, so an inset flood of it always
+     moves the surface TOWARD the viewer. brightness() cannot do that — it
+     lightens a light wash into nothing. */
+  .btn-danger:hover { box-shadow: inset 0 0 0 100vmax var(--fill-subtle); }
   .btn-sm {
     @apply px-3 py-1.5 text-xs;
   }
 
   .input {
-    @apply w-full px-3.5 py-2.5 rounded-lg text-sm bg-white/5 border border-edge-strong text-content-body placeholder:text-content-tertiary transition-colors focus:outline-none focus:border-accent-action focus:bg-white/[0.07] focus:ring-2 focus:ring-teal-400/25;
+    @apply w-full px-3.5 py-2.5 rounded-lg text-sm bg-surface-fill border border-edge-strong text-content-body placeholder:text-content-tertiary transition-colors focus:outline-none focus:border-accent-action focus:bg-surface-fill-hover focus:ring-2 focus:ring-focus;
   }
   .input-sm {
     @apply px-3 py-2 text-xs;
@@ -138,7 +289,7 @@
   }
   .nav-item-active {
     /* The teal bar carries the active state. No permanent glow. */
-    @apply text-content-strong bg-white/[0.06] border border-edge-strong;
+    @apply text-content-strong bg-surface-fill border border-edge-strong;
   }
   .nav-item-active::before {
     content: '';
@@ -148,21 +299,21 @@
   .badge {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border;
   }
-  .badge-neutral    { @apply badge bg-white/5 text-content-body border-edge-strong; }
-  .badge-primary    { @apply badge bg-teal-400/15 text-teal-300 border-teal-400/30; }
-  .badge-success    { @apply badge bg-emerald-400/15 text-emerald-300 border-emerald-400/30; }
-  .badge-warning    { @apply badge bg-amber-400/15 text-amber-300 border-amber-400/30; }
-  .badge-danger     { @apply badge bg-red-500/15 text-red-300 border-red-500/30; }
-  .badge-working    { @apply badge bg-amber-400/15 text-amber-300 border-amber-400/30; }
+  .badge-neutral    { @apply badge bg-surface-fill text-content-body border-edge-strong; }
+  .badge-primary    { @apply badge bg-wash-action text-on-wash-action border-edge-action; }
+  .badge-success    { @apply badge bg-wash-success text-on-wash-success border-edge-success; }
+  .badge-warning    { @apply badge bg-wash-change text-on-wash-change border-edge-change; }
+  .badge-danger     { @apply badge bg-wash-danger text-on-wash-danger border-edge-danger; }
+  .badge-working    { @apply badge bg-wash-change text-on-wash-change border-edge-change; }
   /* These two used to be purple-500 and sky-500 — two hues from the Tailwind
      defaults that exist in no BYAN or AcadeNice system, against the two-accents
      rule. Back inside the palette. */
-  .badge-short      { @apply badge bg-white/5 text-content-secondary border-edge-strong; }
-  .badge-long       { @apply badge bg-teal-400/15 text-teal-300 border-teal-400/30; }
-  .badge-pinned     { @apply badge bg-amber-400/15 text-amber-300 border-amber-400/30; }
+  .badge-short      { @apply badge bg-surface-fill text-content-secondary border-edge-strong; }
+  .badge-long       { @apply badge bg-wash-action text-on-wash-action border-edge-action; }
+  .badge-pinned     { @apply badge bg-wash-change text-on-wash-change border-edge-change; }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-white/5 border border-edge-strong text-content-body;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-surface-fill border border-edge-strong text-content-body;
   }
 
   .dot {
@@ -184,6 +335,83 @@
     @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-edge-strong;
   }
 
+  /* An elevated surface: modal, popover, dropdown that is NOT glass because it
+     carries information. In light, card and raised are both white — the shadow
+     is the only thing that says "above". */
+  .elevated {
+    @apply bg-surface-raised border border-edge-strong shadow-raised;
+  }
+
+  /* -------------------------------------------------------------------------
+     THE FLOAT RULE — read this before reaching for a glass class.
+
+     Glass belongs to the layers that float ABOVE content: header, identity bar,
+     input bar, menus, action footer. Content that carries INFORMATION stays
+     opaque. That is not a half-measure; it is what separates liquid glass from
+     decorative glass, and it is also what saves the contrasts — on a translucent
+     ground a contrast stops being a value and becomes a range.
+
+     Three limits, all three load-bearing:
+
+     1. NEVER glass under data. A measured number, a file path, a code block, a
+        long text: opaque surface. The dash of an unmeasured value was already at
+        the edge of legible on a solid ground; on a translucent one it vanishes.
+        Need a number inside a floating layer? Wrap it in `.surface-opaque`.
+     2. Glass only means something if something passes BEHIND it. The sidebar has
+        nothing behind it, so it stays solid and keeps only the edge —
+        `.solid-edge`. Glass over nothing is one more tint, not a material.
+     3. The cost is to be measured, not supposed. `.no-blur` on the root and the
+        reduced-transparency media query are the two ways out (see the base
+        layer).
+
+     GEOMETRY, so the glass proves itself (section 3.5). The tuck — content
+     overrunning under the glass layer — is not cosmetic: without it the glass
+     is unprovable. EXACTLY ONE unit (one bubble, one file row) crosses each
+     glass edge; no unit fully buried, none fully outside, none clipped by the
+     container; the visible overrun clears ~20px on a 35px unit or nothing
+     troubles to the eye. The trap, hit twice: ADDING ROWS DOES NOT CHANGE THE
+     TUCK DEPTH. Rows have a fixed pitch, so the crossing is invariant modulo
+     that pitch. The lever is the stack's OFFSET, not its element count.
+     ------------------------------------------------------------------------- */
+  .glass,
+  .glass-header,
+  .glass-bar,
+  .glass-footer,
+  .glass-menu {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    /* The inner light edge FIRST: it is the arete. The drop shadow second. */
+    box-shadow: var(--glass-edge), var(--glass-drop);
+  }
+  /* A free-floating panel and a menu are bounded on all four sides. A header, a
+     footer and a bar span the window, so a full box would draw two vertical
+     lines against the window chrome that nothing is on the other side of. */
+  .glass,
+  .glass-menu   { border: 1px solid var(--glass-border); }
+  .glass-header { border-bottom: 1px solid var(--glass-border); }
+  .glass-footer { border-top: 1px solid var(--glass-border); }
+  .glass-bar {
+    border-top: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .glass-menu   { @apply rounded-xl; }
+
+  /* The sidebar. Nothing passes behind it, so it is solid — it keeps only the
+     inner light edge, which is the part that was doing the work anyway. */
+  .solid-edge {
+    background: var(--surface-card);
+    box-shadow: var(--glass-edge);
+  }
+
+  /* The positive escape from glass, for a measured value that has to sit inside
+     a floating layer. Named so the rule is reachable instead of remembered. */
+  .surface-opaque {
+    background: var(--surface-card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   .stream-shimmer {
     background: linear-gradient(90deg, transparent 0%, rgba(76,204,184,0.10) 45%, rgba(106,221,208,0.18) 50%, rgba(76,204,184,0.10) 55%, transparent 100%);
     background-size: 200% 100%;
@@ -196,7 +424,7 @@
 
 @layer utilities {
   .text-gradient-primary {
-    background: linear-gradient(135deg, #6ADDD0 0%, #4CCCB8 50%, #1E8E7E 100%);
+    background: var(--gradient-brand);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

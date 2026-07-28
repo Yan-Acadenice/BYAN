@@ -33,7 +33,7 @@ const ERRORED: McpServer = {
 type EventListener = (payload: unknown) => void;
 let listeners: Map<string, EventListener[]>;
 
-function mountApi(list: () => Promise<McpServer[]>) {
+function mountApi(list: () => Promise<McpServer[]>, projectRoot: string | null = '/home/yan/monprojet') {
   Object.defineProperty(window, 'byanApi', {
     value: {
       mcp: {
@@ -45,7 +45,9 @@ function mountApi(list: () => Promise<McpServer[]>) {
         update: vi.fn().mockResolvedValue(undefined),
         delete: vi.fn().mockResolvedValue(undefined),
       },
-      store: { get: vi.fn().mockResolvedValue(null), set: vi.fn() },
+      // The page reads this key to know WHICH .mcp.json was read, and whether
+      // "Add" can succeed at all (mcp.add throws UNAVAILABLE without a root).
+      store: { get: vi.fn().mockResolvedValue(projectRoot), set: vi.fn() },
     },
     writable: true,
     configurable: true,
@@ -98,15 +100,15 @@ describe('McpPanel — listing', () => {
   it('updates a row when a status-change event arrives', async () => {
     render(<McpPanel open onClose={vi.fn()} />);
     await screen.findByText('leantime');
-    expect(screen.getByText('Stopped')).toBeTruthy();
+    expect(screen.getByText('Arrêté')).toBeTruthy();
 
     emit('byan:mcp:statusChange', {
       id: 'leantime',
       status: { state: 'running', since: '2026-07-27T11:00:00Z', pid: 77 },
     });
 
-    await waitFor(() => expect(screen.getAllByText('Running')).toHaveLength(2));
-    expect(screen.queryByText('Stopped')).toBeNull();
+    await waitFor(() => expect(screen.getAllByText('Actif')).toHaveLength(2));
+    expect(screen.queryByText('Arrêté')).toBeNull();
   });
 });
 
@@ -126,9 +128,9 @@ describe('McpPanel — badge parity with the page', () => {
       expect(surface.querySelectorAll('.dot-off')).toHaveLength(1);
       expect(surface.querySelectorAll('.bg-red')).toHaveLength(1);
 
-      expect(within(surface).getByText('Running')).toBeTruthy();
-      expect(within(surface).getByText('Stopped')).toBeTruthy();
-      expect(within(surface).getByText('Error')).toBeTruthy();
+      expect(within(surface).getByText('Actif')).toBeTruthy();
+      expect(within(surface).getByText('Arrêté')).toBeTruthy();
+      expect(within(surface).getByText('Erreur')).toBeTruthy();
     }
   });
 });
@@ -161,7 +163,7 @@ describe('McpPanel — dismissal', () => {
     render(<McpPanel open onClose={onClose} />);
     await screen.findByText('byan-mcp');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add MCP server' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ajouter un serveur MCP' }));
     await waitFor(() => expect(document.querySelector('[data-mcp-form-modal]')).toBeTruthy());
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -198,7 +200,7 @@ describe('McpPanel — constrained viewport', () => {
     // The page content must live INSIDE the scrolling region, otherwise the
     // shell grows with the list instead of clipping it.
     expect(scroll.contains(within(host).getByText('byan-mcp'))).toBe(true);
-    expect(scroll.contains(within(host).getByRole('button', { name: 'Add MCP server' }))).toBe(true);
+    expect(scroll.contains(within(host).getByRole('button', { name: 'Ajouter un serveur MCP' }))).toBe(true);
 
     expect(getComputedStyle(scroll).overflowY).toBe('auto');
     expect(getComputedStyle(shell).maxHeight).toBe('80vh');
@@ -229,10 +231,10 @@ describe('McpPanel — failing list', () => {
     mountApi(async () => { throw new Error('ENOENT: .mcp.json missing'); });
     render(<McpPanel open onClose={vi.fn()} />);
 
-    expect(await screen.findByText('Could not load MCP servers')).toBeTruthy();
+    expect(await screen.findByText('Impossible de lire les serveurs MCP')).toBeTruthy();
     expect(screen.getByText(/ENOENT: \.mcp\.json missing/)).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
-    expect(screen.queryByText('No MCP servers configured')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy();
+    expect(screen.queryByText('Aucun serveur MCP dans ce projet')).toBeNull();
   });
 
   it('recovers on retry so the failure is not a dead end', async () => {
@@ -242,20 +244,20 @@ describe('McpPanel — failing list', () => {
       return [RUNNING];
     });
     render(<McpPanel open onClose={vi.fn()} />);
-    await screen.findByText('Could not load MCP servers');
+    await screen.findByText('Impossible de lire les serveurs MCP');
 
     shouldFail = false;
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
 
     expect(await screen.findByText('byan-mcp')).toBeTruthy();
-    expect(screen.queryByText('Could not load MCP servers')).toBeNull();
+    expect(screen.queryByText('Impossible de lire les serveurs MCP')).toBeNull();
   });
 
   it('keeps the empty state for a genuinely empty config', async () => {
     mountApi(async () => []);
     render(<McpPanel open onClose={vi.fn()} />);
 
-    expect(await screen.findByText('No MCP servers configured')).toBeTruthy();
-    expect(screen.queryByText('Could not load MCP servers')).toBeNull();
+    expect(await screen.findByText('Aucun serveur MCP dans ce projet')).toBeTruthy();
+    expect(screen.queryByText('Impossible de lire les serveurs MCP')).toBeNull();
   });
 });

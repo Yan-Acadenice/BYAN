@@ -47,7 +47,7 @@ function TagInput({ tags, onChange, placeholder }: TagInputProps) {
         {tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-xs px-xs py-0.5 rounded-md bg-byan-900/30 text-byan-300 text-[11px] border border-byan-700/40"
+            className="inline-flex items-center gap-xs px-xs py-0.5 rounded-md bg-teal-900/30 text-teal-300 text-[11px] border border-teal-600/40"
           >
             {tag}
             <button
@@ -73,7 +73,7 @@ function TagInput({ tags, onChange, placeholder }: TagInputProps) {
         }}
         onBlur={() => { if (input.trim()) addTag(input); }}
         placeholder={placeholder ?? 'tag1, tag2...'}
-        className="w-full bg-ink-800 border border-ink-700 rounded-lg px-xs py-xs text-xs text-ink-200 focus:outline-none focus:border-byan-500 placeholder-ink-600"
+        className="w-full bg-surface-hover border border-edge-strong rounded-lg px-xs py-xs text-xs text-content-body focus:outline-none focus:border-accent-action placeholder-content-tertiary"
       />
     </div>
   );
@@ -91,13 +91,13 @@ interface SectionHeaderProps {
 
 function SectionHeader({ title, enabled, onToggle, expanded, onExpandToggle }: SectionHeaderProps) {
   return (
-    <div className="flex items-center gap-xs px-sm py-sm bg-ink-850 border-b border-ink-800">
+    <div className="flex items-center gap-xs px-sm py-sm bg-surface-raised border-b border-edge-subtle">
       <input
         type="checkbox"
         checked={enabled}
         onChange={(e) => onToggle(e.target.checked)}
         onClick={(e) => e.stopPropagation()}
-        className="w-3.5 h-3.5 accent-byan-500 cursor-pointer"
+        className="w-3.5 h-3.5 accent-teal-400 cursor-pointer"
         aria-label={`Enable ${title}`}
       />
       <button
@@ -105,12 +105,12 @@ function SectionHeader({ title, enabled, onToggle, expanded, onExpandToggle }: S
         onClick={onExpandToggle}
         className="flex-1 flex items-center justify-between text-left"
       >
-        <span className={`text-xs font-semibold ${enabled ? 'text-ink-200' : 'text-ink-500'}`}>
+        <span className={`text-xs font-semibold ${enabled ? 'text-content-body' : 'text-content-tertiary'}`}>
           {title}
         </span>
         <ChevronDown
           size={13}
-          className={`text-ink-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          className={`text-content-tertiary transition-transform ${expanded ? 'rotate-180' : ''}`}
         />
       </button>
     </div>
@@ -151,7 +151,7 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
   return (
     <div className="space-y-xs">
       {/* ---------- Project ---------- */}
-      <div className="border border-ink-700 rounded-xl overflow-hidden">
+      <div className="border border-edge-strong rounded-xl overflow-hidden">
         <SectionHeader
           title="Project context"
           enabled={hasType('project')}
@@ -161,13 +161,13 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
         />
         {expandedSections.project && hasType('project') && (
           <div className="px-sm py-sm space-y-xs">
-            <label className="block text-[10px] text-ink-500 uppercase tracking-wide mb-xs">
+            <label className="block text-[10px] text-content-tertiary uppercase tracking-wide mb-xs">
               Project
             </label>
             <select
               value={s.projectId ?? ''}
               onChange={(e) => set('projectId', e.target.value || null)}
-              className="w-full bg-ink-800 border border-ink-700 rounded-lg px-xs py-xs text-xs text-ink-200 focus:outline-none focus:border-byan-500"
+              className="w-full bg-surface-hover border border-edge-strong rounded-lg px-xs py-xs text-xs text-content-body focus:outline-none focus:border-accent-action"
             >
               <option value="">None</option>
               {projects.map((p) => (
@@ -179,7 +179,7 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
       </div>
 
       {/* ---------- Knowledge ---------- */}
-      <div className="border border-ink-700 rounded-xl overflow-hidden">
+      <div className="border border-edge-strong rounded-xl overflow-hidden">
         <SectionHeader
           title="Knowledge"
           enabled={hasType('knowledge')}
@@ -189,7 +189,7 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
         />
         {expandedSections.knowledge && hasType('knowledge') && (
           <div className="px-sm py-sm space-y-xs">
-            <label className="block text-[10px] text-ink-500 uppercase tracking-wide">
+            <label className="block text-[10px] text-content-tertiary uppercase tracking-wide">
               Filter by tags (optional)
             </label>
             <TagInput
@@ -198,14 +198,14 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
               placeholder="architecture, api..."
             />
             <div className="flex items-center gap-xs mt-xs">
-              <label className="text-[10px] text-ink-500 uppercase tracking-wide shrink-0">Max entries</label>
+              <label className="text-[10px] text-content-tertiary uppercase tracking-wide shrink-0">Max entries</label>
               <input
                 type="number"
                 min={1}
                 max={50}
                 value={s.knowledgeLimit ?? 10}
                 onChange={(e) => set('knowledgeLimit', Number(e.target.value))}
-                className="w-16 bg-ink-800 border border-ink-700 rounded-lg px-xs py-0.5 text-xs text-ink-200 focus:outline-none focus:border-byan-500"
+                className="w-16 bg-surface-hover border border-edge-strong rounded-lg px-xs py-0.5 text-xs text-content-body focus:outline-none focus:border-accent-action"
               />
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
       </div>
 
       {/* ---------- Memory ---------- */}
-      <div className="border border-ink-700 rounded-xl overflow-hidden">
+      <div className="border border-edge-strong rounded-xl overflow-hidden">
         <SectionHeader
           title="Memory"
           enabled={hasType('memory')}
@@ -223,7 +223,7 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
         />
         {expandedSections.memory && hasType('memory') && (
           <div className="px-sm py-sm space-y-xs">
-            <label className="block text-[10px] text-ink-500 uppercase tracking-wide">
+            <label className="block text-[10px] text-content-tertiary uppercase tracking-wide">
               Filter by tags (optional)
             </label>
             <TagInput
@@ -232,14 +232,14 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
               placeholder="sprint, decision..."
             />
             <div className="flex items-center gap-xs mt-xs">
-              <label className="text-[10px] text-ink-500 uppercase tracking-wide shrink-0">Max entries</label>
+              <label className="text-[10px] text-content-tertiary uppercase tracking-wide shrink-0">Max entries</label>
               <input
                 type="number"
                 min={1}
                 max={50}
                 value={s.memoryLimit ?? 10}
                 onChange={(e) => set('memoryLimit', Number(e.target.value))}
-                className="w-16 bg-ink-800 border border-ink-700 rounded-lg px-xs py-0.5 text-xs text-ink-200 focus:outline-none focus:border-byan-500"
+                className="w-16 bg-surface-hover border border-edge-strong rounded-lg px-xs py-0.5 text-xs text-content-body focus:outline-none focus:border-accent-action"
               />
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
 
       {/* ---------- Token budget ---------- */}
       <div className="flex items-center gap-xs px-xs py-xs">
-        <label className="text-[10px] text-ink-500 uppercase tracking-wide shrink-0">
+        <label className="text-[10px] text-content-tertiary uppercase tracking-wide shrink-0">
           Token budget
         </label>
         <input
@@ -258,9 +258,9 @@ export default function ScopePicker({ scope, onChange, projects }: ScopePickerPr
           step={500}
           value={s.tokenBudget ?? 2000}
           onChange={(e) => set('tokenBudget', Number(e.target.value))}
-          className="w-20 bg-ink-800 border border-ink-700 rounded-lg px-xs py-0.5 text-xs text-ink-200 focus:outline-none focus:border-byan-500"
+          className="w-20 bg-surface-hover border border-edge-strong rounded-lg px-xs py-0.5 text-xs text-content-body focus:outline-none focus:border-accent-action"
         />
-        <span className="text-[10px] text-ink-600">tokens</span>
+        <span className="text-[10px] text-content-tertiary">jetons</span>
       </div>
     </div>
   );

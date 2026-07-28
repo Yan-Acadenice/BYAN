@@ -4,6 +4,11 @@
 // hardcoded 'v1.0' while the app shipped 1.4.0, the latency was hardcoded '12ms'
 // with nothing measuring it, and the Logs button had no handler. These tests pin
 // each one to something observable so the decoration cannot come back.
+//
+// A fourth thing was wrong, in the other direction: the wording was hardcoded
+// French while Settings offered a language selector, so the one strip visible on
+// every screen ignored the choice. The last describe pins the wording to the
+// locale layer — and pins that the NUMBERS do not move with it.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -11,6 +16,8 @@ import type { AuthSession, ServerStatus, ServerSpawnResult } from '../../shared/
 import StatusStrip from '../components/StatusStrip';
 import { AuthSessionProvider } from '../context/AuthSessionContext';
 import { ToastProvider } from '../components/toast/ToastContext';
+import { I18nProvider } from '../i18n/I18nContext';
+import { type Locale, translate } from '../i18n/locales';
 
 const mockVersion = vi.fn<() => Promise<string>>();
 const mockOpenLogs = vi.fn<() => Promise<{ ok: boolean; path: string; message?: string }>>();
@@ -40,6 +47,21 @@ function renderStrip(props: { version?: string } = {}) {
         <StatusStrip {...props} />
       </AuthSessionProvider>
     </ToastProvider>
+  );
+}
+
+// Same tree, with an explicit locale. The plain renderStrip above deliberately
+// mounts WITHOUT a provider: that path exercises the DEFAULT_LOCALE fallback in
+// useT(), which is French.
+function renderStripIn(locale: Locale) {
+  return render(
+    <I18nProvider initialLocale={locale}>
+      <ToastProvider>
+        <AuthSessionProvider>
+          <StatusStrip />
+        </AuthSessionProvider>
+      </ToastProvider>
+    </I18nProvider>
   );
 }
 
@@ -134,5 +156,50 @@ describe('StatusStrip — logs', () => {
     renderStrip();
     fireEvent.click(screen.getByTestId('status-logs'));
     await waitFor(() => expect(screen.getByTestId('status-logs').textContent).toContain('/fake/logs'));
+  });
+});
+
+describe('StatusStrip — wording comes from the locale layer', () => {
+  it('speaks French with no provider at all — the default locale is French', async () => {
+    renderStrip();
+    // The pending tooltip is the one string visible before any measurement.
+    expect(screen.getByTestId('status-latency').getAttribute('title'))
+      .toBe(translate('fr', 'status.latency.pending'));
+    await waitFor(() => expect(screen.getByTestId('status-version').textContent).toBe('v1.4.0'));
+  });
+
+  it('follows the chosen locale instead of hardcoded French', async () => {
+    renderStripIn('en');
+    expect(screen.getByTestId('status-logs').getAttribute('title'))
+      .toBe(translate('en', 'status.logs.open'));
+    await waitFor(() => expect(screen.getByTestId('status-latency').getAttribute('title'))
+      .toBe(translate('en', 'status.latency.measured', { seconds: 15 })));
+  });
+
+  it('translates the measured latency TOOLTIP without translating the number', async () => {
+    // The point of the whole strip: language is a label concern, the reading is
+    // not. A measured 12 must stay 12 in every language.
+    renderStripIn('fr');
+    await waitFor(() => expect(screen.getByTestId('status-latency').textContent).toMatch(/^\d+ms$/));
+    expect(screen.getByTestId('status-latency').getAttribute('title'))
+      .toBe(translate('fr', 'status.latency.measured', { seconds: 15 }));
+  });
+
+  it('names the log folder in the chosen language when the bridge throws', async () => {
+    mockOpenLogs.mockRejectedValue(new Error('no bridge'));
+    renderStripIn('en');
+    fireEvent.click(screen.getByTestId('status-logs'));
+    await waitFor(() => expect(screen.getByTestId('status-logs').textContent)
+      .toContain(translate('en', 'status.logs.missing')));
+  });
+
+  it('expands the AcadéNice mention from the locale, accents included', () => {
+    renderStripIn('fr');
+    const brand = screen.getByText(translate('fr', 'status.acadenice'));
+    fireEvent.mouseEnter(brand);
+    expect(screen.getByText(translate('fr', 'status.acadenice.hover'))).toBeInTheDocument();
+    // The accent is the whole point — 'Acadenice' shipped unaccented in comments
+    // and it would have been easy to carry that into the visible string.
+    expect(translate('fr', 'status.acadenice')).toContain('é');
   });
 });

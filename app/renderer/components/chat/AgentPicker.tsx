@@ -75,8 +75,8 @@ export default function AgentPicker({ value, onChange, disabled = false }: Agent
         disabled={disabled || loading}
         className={[
           'inline-flex items-center gap-xs px-sm py-xs rounded-lg border text-sm font-medium transition-colors',
-          'border-ink-700 bg-ink-800 text-ink-300',
-          'hover:border-ink-600 hover:text-ink-200',
+          'border-edge-strong bg-surface-hover text-content-secondary',
+          'hover:border-edge-strong hover:text-content-body',
           'disabled:opacity-50 disabled:cursor-not-allowed',
         ].join(' ')}
         aria-haspopup="listbox"
@@ -89,26 +89,26 @@ export default function AgentPicker({ value, onChange, disabled = false }: Agent
           <Bot size={13} className="shrink-0" />
         )}
         <span className="max-w-[160px] truncate">
-          {selected ? selected.name : 'No agent'}
+          {selected ? selected.name : 'Aucun agent'}
         </span>
         <ChevronDown size={11} className="shrink-0" />
       </button>
 
       {open && !disabled && (
         <div
-          className="absolute z-30 mt-1 left-0 min-w-[260px] max-h-72 flex flex-col rounded-xl border border-ink-700 bg-ink-900 shadow-xl"
+          className="absolute z-30 mt-1 left-0 min-w-[260px] max-h-72 flex flex-col rounded-xl border border-edge-strong bg-surface-card shadow-xl"
           role="listbox"
           aria-label="Available agents"
         >
           {/* Search input */}
-          <div className="p-xs border-b border-ink-800">
+          <div className="p-xs border-b border-edge-subtle">
             <input
               autoFocus
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search agents..."
-              className="w-full bg-ink-800 border border-ink-700 rounded-lg px-xs py-xs text-xs text-ink-200 focus:outline-none focus:border-byan-500 placeholder-ink-600"
+              className="w-full bg-surface-hover border border-edge-strong rounded-lg px-xs py-xs text-xs text-content-body focus:outline-none focus:border-accent-action placeholder-content-tertiary"
             />
           </div>
 
@@ -127,8 +127,8 @@ export default function AgentPicker({ value, onChange, disabled = false }: Agent
               className={[
                 'w-full text-left px-sm py-xs text-xs flex items-center gap-xs transition-colors',
                 !value
-                  ? 'bg-byan-900/30 text-byan-300'
-                  : 'text-ink-400 hover:bg-ink-800 hover:text-ink-200',
+                  ? 'bg-teal-900/30 text-teal-300'
+                  : 'text-content-tertiary hover:bg-surface-hover hover:text-content-body',
               ].join(' ')}
             >
               <X size={11} className="shrink-0" />
@@ -136,8 +136,8 @@ export default function AgentPicker({ value, onChange, disabled = false }: Agent
             </button>
 
             {filtered.length === 0 && !error && (
-              <p className="px-sm py-xs text-xs text-ink-500">
-                {query ? 'No match' : 'No agents available'}
+              <p className="px-sm py-xs text-xs text-content-tertiary">
+                {query ? 'Aucune correspondance' : 'Aucun agent disponible'}
               </p>
             )}
 
@@ -151,12 +151,12 @@ export default function AgentPicker({ value, onChange, disabled = false }: Agent
                 className={[
                   'w-full text-left px-sm py-xs text-xs flex flex-col transition-colors',
                   a.id === value
-                    ? 'bg-byan-900/30 text-byan-300'
-                    : 'text-ink-300 hover:bg-ink-800 hover:text-ink-200',
+                    ? 'bg-teal-900/30 text-teal-300'
+                    : 'text-content-secondary hover:bg-surface-hover hover:text-content-body',
                 ].join(' ')}
               >
                 <span className="font-medium">{a.name}</span>
-                <span className="text-[10px] text-ink-500 font-mono">{a.slug}</span>
+                <span className="text-[10px] text-content-tertiary font-mono">{a.slug}</span>
               </button>
             ))}
           </div>

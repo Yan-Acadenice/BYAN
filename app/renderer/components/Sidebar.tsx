@@ -61,14 +61,14 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
   const { t } = useT();
   return (
     <nav
-      className="fixed left-0 top-0 h-full flex flex-col py-4 z-50 bg-ink-900 border-r border-ink-800"
+      className="fixed left-0 top-0 h-full flex flex-col py-4 z-50 bg-surface-card border-r border-edge-subtle"
       style={{ width: '240px' }}
       aria-label="Sidebar Navigation"
     >
       {/* Brand header */}
       <div className="px-md mb-lg">
-        <h1 className="font-h1 text-h1 text-byan-500 font-black tracking-tight">BYAN</h1>
-        <span className="font-mono-code text-mono-code text-ink-400">Orchestrator</span>
+        <h1 className="font-h1 text-h1 text-accent-action font-black tracking-tight">BYAN</h1>
+        <span className="font-mono-code text-mono-code text-content-tertiary">Orchestrator</span>
       </div>
 
       {/* Navigation links */}
@@ -84,8 +84,8 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
                 className={[
                   'w-full flex items-center gap-sm px-sm py-sm rounded transition-all duration-150 border-l-2',
                   isActive
-                    ? 'bg-white/5 text-byan-400 border-byan-500'
-                    : 'text-ink-400 border-transparent hover:bg-ink-800 hover:text-ink-100',
+                    ? 'bg-white/5 text-accent-action border-accent-action'
+                    : 'text-content-tertiary border-transparent hover:bg-surface-hover hover:text-content-body',
                 ].join(' ')}
               >
                 <Icon size={16} />
@@ -105,8 +105,8 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
             className={[
               'w-full flex items-center gap-sm px-sm py-sm rounded transition-all duration-150 border-l-2',
               activePage === 'settings'
-                ? 'bg-white/5 text-byan-400 border-byan-500'
-                : 'text-ink-400 border-transparent hover:bg-ink-800 hover:text-ink-100',
+                ? 'bg-white/5 text-accent-action border-accent-action'
+                : 'text-content-tertiary border-transparent hover:bg-surface-hover hover:text-content-body',
             ].join(' ')}
           >
             <Settings size={16} />
@@ -116,21 +116,21 @@ export default function Sidebar({ activePage, onNavigate }: SidebarProps) {
       </ul>
 
       {/* Acadenice co-branding block */}
-      <div className="mx-sm mt-sm border-t border-ink-800 pt-sm">
+      <div className="mx-sm mt-sm border-t border-edge-subtle pt-sm">
         <button
           type="button"
           onClick={openAcadenice}
           title="AcadéNice — Former avec rigueur. Accompagner avec humanité."
-          className="w-full flex items-center gap-xs px-xs py-xs rounded hover:bg-ink-800 transition-colors group"
+          className="w-full flex items-center gap-xs px-xs py-xs rounded hover:bg-surface-hover transition-colors group"
         >
           <AcadeniceBadge size={16} />
           <div className="flex flex-col items-start leading-tight">
-            <span className="font-medium text-[11px] text-ink-300 group-hover:text-acadenice-teal transition-colors">
+            <span className="font-medium text-[11px] text-content-secondary group-hover:text-acadenice-teal transition-colors">
               AcadéNice
             </span>
-            <span className="text-[10px] italic text-ink-500">Former avec rigueur</span>
+            <span className="text-[10px] italic text-content-tertiary">Former avec rigueur</span>
           </div>
-          <ExternalLink size={10} className="ml-auto text-ink-600 group-hover:text-ink-400" />
+          <ExternalLink size={10} className="ml-auto text-content-muted group-hover:text-content-tertiary" />
         </button>
       </div>
     </nav>

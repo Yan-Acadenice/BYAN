@@ -24,7 +24,7 @@ export default function SlashCommandMenu({
   if (commands.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-lg right-lg mb-xs bg-ink-850 border border-ink-700 rounded-xl overflow-hidden shadow-xl z-10">
+    <div className="absolute bottom-full left-lg right-lg mb-xs bg-surface-raised border border-edge-strong rounded-xl overflow-hidden shadow-xl z-10">
       {commands.map((def, i) => {
         const highlighted = i === highlightedIndex;
         return (
@@ -37,14 +37,14 @@ export default function SlashCommandMenu({
             onMouseEnter={() => onHighlight(i)}
             className={[
               'w-full flex items-center gap-sm px-sm py-sm transition-colors text-left',
-              highlighted ? 'bg-ink-800' : 'hover:bg-ink-800',
+              highlighted ? 'bg-surface-hover' : 'hover:bg-surface-hover',
             ].join(' ')}
           >
-            <span className="font-mono text-byan-400 text-sm">{def.cmd}</span>
+            <span className="font-mono text-accent-action text-sm">{def.cmd}</span>
             {def.argHint && (
-              <span className="font-mono text-xs text-ink-600">{def.argHint}</span>
+              <span className="font-mono text-xs text-content-muted">{def.argHint}</span>
             )}
-            <span className="text-xs text-ink-400">{def.description}</span>
+            <span className="text-xs text-content-tertiary">{def.description}</span>
           </button>
         );
       })}

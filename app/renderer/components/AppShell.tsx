@@ -16,7 +16,7 @@ interface AppShellProps {
 
 export default function AppShell({ activePage, onNavigate, breadcrumb, children }: AppShellProps) {
   return (
-    <div className="h-screen flex overflow-hidden bg-ink-950">
+    <div className="h-screen flex overflow-hidden bg-surface-page">
       <Sidebar activePage={activePage} onNavigate={onNavigate} />
 
       {/* Main content wrapper — offset left by sidebar width. `relative` makes
@@ -29,7 +29,7 @@ export default function AppShell({ activePage, onNavigate, breadcrumb, children 
 
         {/* Scrollable content area — subtract topbar (48px) + status strip (28px) */}
         <main
-          className="flex-1 overflow-y-auto bg-ink-950 p-lg pb-xxl relative"
+          className="flex-1 overflow-y-auto bg-surface-page p-lg pb-xxl relative"
           style={{ height: 'calc(100vh - 48px - 28px)' }}
         >
           <div className="max-w-container-max mx-auto w-full">

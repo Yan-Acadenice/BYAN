@@ -40,11 +40,11 @@ function duration(ms: number): string {
 }
 
 const METRICS: Array<{ key: UsageMetric; label: string; format: (v: number) => string }> = [
-  { key: 'costUsd', label: 'Cout', format: usd },
-  { key: 'durationMs', label: 'Duree', format: duration },
-  { key: 'inputTokens', label: 'Entree', format: String },
-  { key: 'cachedInputTokens', label: 'Entree en cache', format: String },
-  { key: 'cacheWriteInputTokens', label: 'Ecriture de cache', format: String },
+  { key: 'costUsd', label: 'Coût', format: usd },
+  { key: 'durationMs', label: 'Durée', format: duration },
+  { key: 'inputTokens', label: 'Entrée', format: String },
+  { key: 'cachedInputTokens', label: 'Entrée en cache', format: String },
+  { key: 'cacheWriteInputTokens', label: 'Écriture de cache', format: String },
   { key: 'outputTokens', label: 'Sortie', format: String },
   { key: 'reasoningOutputTokens', label: 'Raisonnement', format: String },
 ];
@@ -56,33 +56,36 @@ const ENGINE_ROWS = [
   {
     engine: 'claude' as const,
     label: 'Claude',
-    gap: "claude ne publie aucun detail de tokens : seuls le cout et la duree sont rapportes.",
+    gap: 'claude ne publie aucun détail de tokens : seuls le coût et la durée sont rapportés.',
   },
   {
     engine: 'codex' as const,
     label: 'Codex',
-    gap: "codex ne rapporte aucun montant en dollars (abonnement) : seuls les tokens le sont.",
+    gap: 'codex ne rapporte aucun montant en dollars (abonnement) : seuls les tokens le sont.',
   },
 ];
 
 // One-line recap of a single turn, built only from what that turn reported.
+// The two token counters are labelled in French like every other label in this
+// panel : an "in / out" pair next to "Entrée / Sortie" two rows above would read
+// as two different measurements rather than the same one, summarised.
 function turnRecap(u: LocalChatUsage): string {
   const parts: string[] = [];
   if (typeof u.costUsd === 'number') parts.push(usd(u.costUsd));
   if (typeof u.durationMs === 'number') parts.push(duration(u.durationMs));
-  if (typeof u.inputTokens === 'number') parts.push(`in ${u.inputTokens}`);
-  if (typeof u.outputTokens === 'number') parts.push(`out ${u.outputTokens}`);
+  if (typeof u.inputTokens === 'number') parts.push(`entrée ${u.inputTokens}`);
+  if (typeof u.outputTokens === 'number') parts.push(`sortie ${u.outputTokens}`);
   return parts.length > 0 ? parts.join(' · ') : UNREPORTED;
 }
 
 function Metric({ testId, label, value, gap }: { testId: string; label: string; value: string | null; gap: string }) {
   return (
     <div className="flex items-baseline justify-between gap-sm">
-      <dt className="text-[10px] text-ink-500">{label}</dt>
+      <dt className="text-[10px] text-content-tertiary">{label}</dt>
       <dd
         data-testid={testId}
         title={value === null ? gap : undefined}
-        className={`font-mono-code text-[11px] ${value === null ? 'text-ink-600' : 'text-ink-200'}`}
+        className={`font-mono-code text-[11px] ${value === null ? 'text-content-muted' : 'text-content-body'}`}
       >
         {value ?? UNREPORTED}
       </dd>
@@ -96,10 +99,10 @@ function EngineRow({ row, total }: { row: (typeof ENGINE_ROWS)[number]; total: L
   // on its own instead of contradicting the numbers next to it.
   const missing = METRICS.some((m) => total[m.key] === undefined);
   return (
-    <div data-testid={`usage-row-${row.engine}`} className="px-md py-sm border-t border-ink-800">
+    <div data-testid={`usage-row-${row.engine}`} className="px-md py-sm border-t border-edge-subtle">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-ink-200">{row.label}</span>
-        <span className="font-mono-code text-[10px] text-ink-500">
+        <span className="text-xs text-content-body">{row.label}</span>
+        <span className="font-mono-code text-[10px] text-content-tertiary">
           {total.turns} tour{total.turns > 1 ? 's' : ''}
           {total.model ? ` · ${total.model}` : ''}
         </span>
@@ -119,7 +122,7 @@ function EngineRow({ row, total }: { row: (typeof ENGINE_ROWS)[number]; total: L
         })}
       </dl>
       {missing && (
-        <p data-testid={`usage-note-${row.engine}`} className="mt-xs text-[10px] text-ink-600">
+        <p data-testid={`usage-note-${row.engine}`} className="mt-xs text-[10px] text-content-muted">
           {row.gap}
         </p>
       )}
@@ -134,23 +137,23 @@ export default function UsagePanel({ turns, totals, onClose }: UsagePanelProps) 
       role="dialog"
       aria-label="Consommation de la session"
       data-testid="usage-panel"
-      className="absolute top-full right-0 mt-1 w-80 max-h-96 overflow-y-auto bg-ink-900 border border-ink-700 rounded shadow-lg py-1 z-50"
+      className="absolute top-full right-0 mt-1 w-80 max-h-96 overflow-y-auto bg-surface-card border border-edge-strong rounded shadow-lg py-1 z-50"
     >
       <div className="flex items-center justify-between px-md py-xs">
-        <span className="text-xs text-ink-200">Consommation</span>
+        <span className="text-xs text-content-body">Consommation</span>
         <button
           type="button"
           data-testid="usage-close"
           onClick={onClose}
           title="Fermer"
-          className="text-ink-500 hover:text-ink-200 transition-colors"
+          className="text-content-tertiary hover:text-content-body transition-colors"
         >
           <X size={12} />
         </button>
       </div>
 
       {rows.length === 0 ? (
-        <p className="px-md py-sm text-xs text-ink-500">Aucun tour mesuré dans cette session.</p>
+        <p className="px-md py-sm text-xs text-content-tertiary">Aucun tour mesuré dans cette session.</p>
       ) : (
         rows.map((row) => (
           <EngineRow key={row.engine} row={row} total={totals[row.engine] as LocalChatUsageTotal} />
@@ -158,23 +161,23 @@ export default function UsagePanel({ turns, totals, onClose }: UsagePanelProps) 
       )}
 
       {turns.length > 0 && (
-        <div data-testid="usage-turns" className="px-md py-sm border-t border-ink-800">
-          <p className="text-[10px] text-ink-500">Derniers tours ({turns.length})</p>
+        <div data-testid="usage-turns" className="px-md py-sm border-t border-edge-subtle">
+          <p className="text-[10px] text-content-tertiary">Derniers tours ({turns.length})</p>
           <ul className="mt-xs space-y-xs">
             {turns
               .map((u, i) => ({ u, n: i + 1 }))
               .reverse()
               .map(({ u, n }) => (
                 <li key={n} className="flex items-baseline justify-between gap-sm">
-                  <span className="text-[10px] text-ink-500">{u.engine}</span>
-                  <span className="font-mono-code text-[10px] text-ink-400">{turnRecap(u)}</span>
+                  <span className="text-[10px] text-content-tertiary">{u.engine}</span>
+                  <span className="font-mono-code text-[10px] text-content-tertiary">{turnRecap(u)}</span>
                 </li>
               ))}
           </ul>
         </div>
       )}
 
-      <p data-testid="usage-scope" className="px-md pt-xs pb-sm text-[10px] text-ink-600 border-t border-ink-800">
+      <p data-testid="usage-scope" className="px-md pt-xs pb-sm text-[10px] text-content-muted border-t border-edge-subtle">
         Session en cours uniquement. Rien n&apos;est conservé au redémarrage de l&apos;application.
       </p>
     </div>

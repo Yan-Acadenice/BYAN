@@ -91,12 +91,12 @@ describe('Dashboard', () => {
       sessions: { list: vi.fn().mockReturnValue(neverResolves) },
     });
     render(<Dashboard onNavigate={vi.fn()} />);
-    expect(screen.getByText(/Loading dashboard/i)).toBeTruthy();
+    expect(screen.getByText(/Chargement du tableau de bord/i)).toBeTruthy();
   });
 
   it('renders KPI cards when data resolves', async () => {
     render(<Dashboard onNavigate={vi.fn()} />);
-    await waitFor(() => expect(screen.getByText('Active projects')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Projets actifs')).toBeTruthy());
     // "Recent sessions" appears twice: once in KPI cards, once in the section header.
     expect(screen.getAllByText('Recent sessions').length).toBeGreaterThanOrEqual(1);
   });
@@ -108,7 +108,7 @@ describe('Dashboard', () => {
       sessions: { list: vi.fn().mockRejectedValue(new Error('Network error')) },
     });
     render(<Dashboard onNavigate={vi.fn()} />);
-    await waitFor(() => expect(screen.getByText(/Could not load dashboard/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Impossible de charger le tableau de bord/i)).toBeTruthy());
     expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy();
   });
 });
@@ -118,8 +118,8 @@ describe('Dashboard', () => {
 describe('Projects', () => {
   it('shows loading then empty state', async () => {
     render(<Projects />);
-    expect(screen.getByText(/Loading projects/i)).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/No projects found/i)).toBeTruthy());
+    expect(screen.getByText(/Chargement des projets/i)).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('projects-empty-never')).toBeTruthy());
   });
 
   it('shows error + Retry on API failure', async () => {
@@ -128,8 +128,8 @@ describe('Projects', () => {
       projects: { list: vi.fn().mockRejectedValue(new Error('Unauthorized')), get: vi.fn() },
     });
     render(<Projects />);
-    await waitFor(() => expect(screen.getByText(/Could not load projects/i)).toBeTruthy());
-    expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/Impossible de charger les projets/i)).toBeTruthy());
+    expect(screen.getByRole('button', { name: /Réessayer/i })).toBeTruthy();
   });
 
   it('renders project rows when list returns data', async () => {
@@ -154,8 +154,8 @@ describe('Projects', () => {
 describe('Agents', () => {
   it('shows loading then empty state', async () => {
     render(<Agents />);
-    expect(screen.getByText(/Loading agents/i)).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/No custom agents yet/i)).toBeTruthy());
+    expect(screen.getByText(/Chargement des agents/i)).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('agents-empty-never')).toBeTruthy());
   });
 
   it('shows error + Retry on failure', async () => {
@@ -164,7 +164,7 @@ describe('Agents', () => {
       customAgents: { list: vi.fn().mockRejectedValue(new Error('Error')) },
     });
     render(<Agents />);
-    await waitFor(() => expect(screen.getByText(/Could not load agents/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Impossible de charger les agents/i)).toBeTruthy());
   });
 
   it('renders agent list when data returns', async () => {
@@ -187,8 +187,8 @@ describe('Agents', () => {
 describe('Memory', () => {
   it('shows loading then empty state', async () => {
     render(<Memory />);
-    expect(screen.getByText(/Loading memory/i)).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/No memory entries yet/i)).toBeTruthy());
+    expect(screen.getByText(/Chargement de la mémoire/i)).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('memory-empty-never')).toBeTruthy());
   });
 
   it('shows error + Retry on failure', async () => {
@@ -197,7 +197,7 @@ describe('Memory', () => {
       memory: { list: vi.fn().mockRejectedValue(new Error('Fail')) },
     });
     render(<Memory />);
-    await waitFor(() => expect(screen.getByText(/Could not load memory/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Impossible de charger la mémoire/i)).toBeTruthy());
   });
 });
 
@@ -206,8 +206,8 @@ describe('Memory', () => {
 describe('Knowledge', () => {
   it('shows loading then empty state', async () => {
     render(<Knowledge />);
-    expect(screen.getByText(/Loading knowledge/i)).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/No knowledge entries yet/i)).toBeTruthy());
+    expect(screen.getByText(/Chargement de la connaissance/i)).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId('knowledge-empty-never')).toBeTruthy());
   });
 
   it('renders cards when data returns', async () => {
@@ -227,8 +227,8 @@ describe('Knowledge', () => {
 describe('Sessions', () => {
   it('shows loading then empty state', async () => {
     render(<Sessions />);
-    expect(screen.getByText(/Loading sessions/i)).toBeTruthy();
-    await waitFor(() => expect(screen.getByText(/No sessions yet/i)).toBeTruthy());
+    expect(screen.getByText(/Chargement des sessions/i)).toBeTruthy();
+    await waitFor(() => expect(screen.getByText(/Aucune session pour le moment/i)).toBeTruthy());
   });
 
   it('shows error + Retry on failure', async () => {
@@ -237,7 +237,7 @@ describe('Sessions', () => {
       sessions: { list: vi.fn().mockRejectedValue(new Error('Fail')) },
     });
     render(<Sessions />);
-    await waitFor(() => expect(screen.getByText(/Could not load sessions/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Impossible de charger les sessions/i)).toBeTruthy());
   });
 });
 
@@ -253,7 +253,7 @@ describe('ProjectDetail', () => {
       knowledge: { list: vi.fn().mockReturnValue(neverResolves) },
     });
     render(<ProjectDetail projectId="p1" />);
-    expect(screen.getByText(/Loading project/i)).toBeTruthy();
+    expect(screen.getByText(/Chargement du projet/i)).toBeTruthy();
   });
 
   it('shows not found when project is null', async () => {
@@ -295,12 +295,12 @@ describe('Chat', () => {
       },
     });
     render(<Chat />);
-    expect(screen.getByText(/Loading/i)).toBeTruthy();
+    expect(screen.getByText(/Chargement/i)).toBeTruthy();
   });
 
   it('shows empty state when no conversations exist', async () => {
     render(<Chat />);
-    await waitFor(() => expect(screen.getByText(/No conversations yet/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Aucune conversation pour le moment/i)).toBeTruthy());
   });
 
   it('shows error + Retry when conversations fail to load', async () => {
@@ -368,7 +368,7 @@ describe('Chat', () => {
 
   it('opens NewConversationModal when + button is clicked', async () => {
     render(<Chat />);
-    await waitFor(() => expect(screen.getByText(/No conversations yet/i)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Aucune conversation pour le moment/i)).toBeTruthy());
     const plusBtn = screen.getByTitle('New conversation');
     fireEvent.click(plusBtn);
     // Modal contains a specific subtitle that only appears inside the modal, not in the empty state.
@@ -494,7 +494,7 @@ describe('AgentPicker', () => {
   it('renders "No agent" trigger button when no value', () => {
     mountByanApi();
     render(<AgentPicker value={null} onChange={vi.fn()} />);
-    expect(screen.getByText('No agent')).toBeTruthy();
+    expect(screen.getByText('Aucun agent')).toBeTruthy();
   });
 
   it('shows agent name when value is set', async () => {

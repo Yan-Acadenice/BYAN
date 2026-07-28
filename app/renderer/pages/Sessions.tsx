@@ -72,54 +72,54 @@ export default function Sessions() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-xxl text-ink-400">
+        <div className="flex items-center justify-center py-xxl text-content-tertiary">
           <Loader2 size={20} className="animate-spin mr-sm" />
-          <span className="font-body-sm text-body-sm">Loading sessions...</span>
+          <span className="font-body-sm text-body-sm">Chargement des sessions…</span>
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+        <div className="flex flex-col items-center justify-center py-xxl text-content-tertiary">
           <AlertCircle size={40} className="mb-md text-red opacity-70" />
-          <p className="font-h3 text-h3 text-ink-300 mb-xs">Could not load sessions</p>
-          <p className="font-body-sm text-body-sm text-ink-500 mb-md">{error}</p>
+          <p className="font-h3 text-h3 text-content-secondary mb-xs">Impossible de charger les sessions</p>
+          <p className="font-body-sm text-body-sm text-content-tertiary mb-md">{error}</p>
           <button type="button" className="btn-secondary" onClick={() => void load()}>Retry</button>
         </div>
       ) : sessions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-xxl text-ink-500">
+        <div className="flex flex-col items-center justify-center py-xxl text-content-tertiary">
           <History size={40} className="mb-md opacity-30" />
-          <p className="font-h3 text-h3 text-ink-400 mb-xs">No sessions yet</p>
-          <p className="font-body-sm text-body-sm text-ink-500">Start a session in byan_web or via an agent.</p>
+          <p className="font-h3 text-h3 text-content-tertiary mb-xs">Aucune session pour le moment</p>
+          <p className="font-body-sm text-body-sm text-content-tertiary">Start a session in byan_web or via an agent.</p>
         </div>
       ) : (
-        <div className="bg-ink-900 border border-ink-800 rounded-lg overflow-hidden">
-          <div className="grid grid-cols-[200px_120px_100px_100px_100px] px-md py-sm border-b border-ink-800 bg-ink-950">
+        <div className="bg-surface-card border border-edge-subtle rounded-lg overflow-hidden">
+          <div className="grid grid-cols-[200px_120px_100px_100px_100px] px-md py-sm border-b border-edge-subtle bg-surface-page">
             {['Started', 'Project', 'Agent', 'Status', 'Actions'].map((h) => (
-              <span key={h} className="font-label text-label text-ink-400 uppercase">{h}</span>
+              <span key={h} className="font-label text-label text-content-tertiary uppercase">{h}</span>
             ))}
           </div>
-          <div className="divide-y divide-ink-800/50">
+          <div className="divide-y divide-neutral-900/50">
             {sessions.map((s) => (
               <div
                 key={s.id}
-                className="grid grid-cols-[200px_120px_100px_100px_100px] items-center px-md hover:bg-ink-800 transition-colors"
+                className="grid grid-cols-[200px_120px_100px_100px_100px] items-center px-md hover:bg-surface-hover transition-colors"
                 style={{ height: '56px' }}
               >
-                <span className="font-mono-code text-mono-code text-ink-400 text-[11px]">
+                <span className="font-mono-code text-mono-code text-content-tertiary text-[11px]">
                   {formatTs(s.started_at)}
                 </span>
-                <span className="font-body-sm text-body-sm text-ink-400 truncate">
+                <span className="font-body-sm text-body-sm text-content-tertiary truncate">
                   {s.project_id ? s.project_id.slice(0, 8) + '...' : '—'}
                 </span>
-                <span className="font-body-sm text-body-sm text-ink-400">{s.agent_slug ?? '—'}</span>
+                <span className="font-body-sm text-body-sm text-content-tertiary">{s.agent_slug ?? '—'}</span>
                 <span className={`badge w-fit ${
                   s.status === 'active' ? 'badge-success' :
                   s.status === 'error' ? 'badge-danger' :
                   'badge-neutral'
                 }`}>{s.status}</span>
                 <div className="flex items-center gap-xs">
-                  <button type="button" className="p-1 rounded hover:bg-ink-700 text-ink-500 hover:text-ink-200 transition-colors" title="View">
+                  <button type="button" className="p-1 rounded hover:bg-surface-hover text-content-tertiary hover:text-content-body transition-colors" title="Consulter">
                     <Eye size={14} />
                   </button>
-                  <button type="button" className="p-1 rounded hover:bg-ink-700 text-ink-500 hover:text-ink-200 transition-colors" title="Archive">
+                  <button type="button" className="p-1 rounded hover:bg-surface-hover text-content-tertiary hover:text-content-body transition-colors" title="Archiver">
                     <Archive size={14} />
                   </button>
                 </div>

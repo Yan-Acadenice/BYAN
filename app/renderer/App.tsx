@@ -32,7 +32,7 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 // a chunk is mid-fetch (BrowserWindow backgroundColor is #0a0f1e); this keeps
 // the user oriented without pulling in a spinner library.
 const PageLoader = () => (
-  <div className="w-full h-screen flex items-center justify-center text-ink-400 text-sm">
+  <div className="w-full h-screen flex items-center justify-center text-content-tertiary text-sm">
     Loading…
   </div>
 );

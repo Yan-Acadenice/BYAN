@@ -11,11 +11,11 @@ interface NotFoundProps {
 export default function NotFound({ onBackHome }: NotFoundProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <div className="w-16 h-16 rounded-full bg-ink-800 border border-ink-700 flex items-center justify-center mb-lg">
-        <Compass size={28} className="text-ink-500" />
+      <div className="w-16 h-16 rounded-full bg-surface-hover border border-edge-strong flex items-center justify-center mb-lg">
+        <Compass size={28} className="text-content-tertiary" />
       </div>
-      <h1 className="font-h1 text-h1 text-ink-100 mb-xs">Nothing here</h1>
-      <p className="font-body text-body text-ink-400 mb-xl max-w-sm">
+      <h1 className="font-h1 text-h1 text-content-body mb-xs">Il n'y a rien ici</h1>
+      <p className="font-body text-body text-content-tertiary mb-xl max-w-sm">
         The page you are looking for does not exist or has been moved.
       </p>
       <button
