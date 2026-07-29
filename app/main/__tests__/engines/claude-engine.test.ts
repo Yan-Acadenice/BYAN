@@ -74,24 +74,35 @@ describe('ClaudeEngine argv — model', () => {
   });
 });
 
-describe('ClaudeEngine argv — effort is structurally unreachable', () => {
-  // ANTI-FAKE GUARD. claude exposes no reasoning-effort flag in --print mode, so
-  // an effort arriving on EngineStartOpts must leave NO trace in argv. If this
-  // fails, the adapter grew a setting the CLI does not have.
-  it('never turns an effort into an argument, even when one is passed in', () => {
+describe('ClaudeEngine argv — the effort flag', () => {
+  // This describe used to be called "effort is structurally unreachable" and
+  // asserted the OPPOSITE: that an effort arriving on EngineStartOpts must leave
+  // no trace in argv, because claude had no such flag. That premise was a wrong
+  // measurement, not a design choice.
+  //
+  // Measured on claude 2.1.220: `--effort <level>`, "Effort level for the current
+  // session", valid values low / medium / high / xhigh / max. The guard therefore
+  // flips: the flag must REACH argv, or the setting the user chose does nothing.
+  it('passes the effort through as --effort', () => {
     const { args } = startEngine({ agent: 'dev', model: 'opus', effort: 'high' });
-    for (const arg of args) expect(arg).not.toMatch(/reasoning|effort/i);
-    expect(args.join(' ')).not.toMatch(/reasoning|effort/i);
-    expect(args).not.toContain('high');
-    // The rest of the command line is untouched by the effort being present.
-    expect(args).toEqual([...BASE_ARGS, '--agent', 'dev', '--model', 'opus']);
+    expect(args).toEqual([...BASE_ARGS, '--agent', 'dev', '--model', 'opus', '--effort', 'high']);
   });
 
-  it('does not smuggle the effort into the session env or the spawned command', () => {
-    const { spawnFn } = startEngine({ effort: 'max' });
+  it('omits the flag entirely when no effort was chosen', () => {
+    // Absent, not a literal default: passing a value we invented would override
+    // whatever the CLI or the user's own config decides.
+    const { args } = startEngine({ model: 'opus' });
+    expect(args.join(' ')).not.toContain('--effort');
+  });
+
+  it('carries it on argv, not through the environment', () => {
+    // A setting smuggled through env is invisible to anyone reading the command
+    // line, which is the first thing looked at when a turn behaves oddly.
+    const { spawnFn, args } = startEngine({ effort: 'max' });
     const [cmd, , spawnOpts] = spawnFn.mock.calls[0];
     expect(cmd).toBe('claude');
-    expect(JSON.stringify(spawnOpts.env)).not.toMatch(/reasoning|effort|max/i);
+    expect(args).toContain('--effort');
+    expect(JSON.stringify(spawnOpts.env)).not.toMatch(/reasoning|effort/i);
   });
 });
 

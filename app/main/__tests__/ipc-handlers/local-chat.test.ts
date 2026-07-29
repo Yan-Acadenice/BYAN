@@ -283,14 +283,44 @@ describe('LocalChatBridge — model/effort trust boundary (F6)', () => {
     expect(spawnFn).not.toHaveBeenCalled();
   });
 
-  it('DROPS an effort sent for claude instead of erroring, and says so on started', async () => {
-    // A UI that forgets to hide the control must not break the session — but it
-    // must not be told the setting was applied either.
+  it('APPLIES an effort sent for claude and echoes it on started', async () => {
+    // This used to assert the effort was DROPPED for claude, on the belief that
+    // claude had no such flag. It has one (`--effort`, measured on 2.1.220), so
+    // dropping it would discard a setting the user chose.
     const { bridge, broadcasts } = makeBridge();
     await bridge.start({ cwd, cli: 'claude', effort: 'high', model: 'opus' });
     const started = broadcasts.find((b) => b.type === 'started') as Extract<LocalChatMessage, { type: 'started' }>;
-    expect(started.effort).toBeNull();
+    expect(started.effort).toBe('high');
     expect(started.model).toBe('opus');
+  });
+
+  it('refuses a value claude does not accept, naming the ones it does', async () => {
+    // 'none' is valid for codex and NOT for claude. Letting it through would be
+    // worse than an error: claude warns, ignores it, and runs on its default — so
+    // the user gets a setting that reports success and changes nothing.
+    const { bridge, spawnFn } = makeBridge();
+    await expect(bridge.start({ cwd, cli: 'claude', effort: 'none' as never }))
+      .rejects.toThrow(/effort invalide pour claude/i);
+    expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it('still accepts that same value for codex', async () => {
+    const { bridge, broadcasts } = makeBridge();
+    await bridge.start({ cwd, cli: 'codex', effort: 'none' });
+    const started = broadcasts.find((b) => b.type === 'started') as Extract<LocalChatMessage, { type: 'started' }>;
+    expect(started.effort).toBe('none');
+  });
+
+  it('does not forward a per-turn effort to claude — its flag lives on the process', async () => {
+    // claude reads --effort at spawn. Sending one mid-session would be a control
+    // that reports a change the running process cannot make.
+    const sent: Array<{ turnOpts?: unknown }> = [];
+    const { bridge } = makeBridge();
+    const { sessionId } = await bridge.start({ cwd, cli: 'claude' });
+    const entry = (bridge as unknown as { sessions: Map<string, { session: { send: (m: string, t?: unknown) => Promise<void> } }> }).sessions.get(sessionId);
+    if (entry) entry.session.send = async (_m, t) => { sent.push({ turnOpts: t }); };
+    await bridge.send(sessionId, 'salut', { reasoningEffort: 'high' });
+    expect(sent[0]?.turnOpts).toBeUndefined();
   });
 
   it('turns a tool_use frame into a readable activity instead of a raw payload', async () => {

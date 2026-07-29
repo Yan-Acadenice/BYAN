@@ -9,6 +9,9 @@ import {
   REASONING_EFFORTS,
   isValidEffort,
   engineSupportsEffort,
+  effortsFor,
+  isValidEffortFor,
+  effortAppliesAt,
   isEngineId,
   isSafeModelToken,
   isValidClaudeModel,
@@ -39,10 +42,44 @@ describe('reasoning effort enum', () => {
   });
 });
 
-describe('engineSupportsEffort', () => {
-  it('is codex-only — claude has no reasoning-effort flag in --print mode', () => {
+describe('effort per engine', () => {
+  // This used to assert engineSupportsEffort('claude') === false, "claude has no
+  // reasoning-effort flag in --print mode". Wrong: claude 2.1.220 has
+  // `--effort <level>`. The probe that concluded otherwise missed it.
+  it('both engines take one', () => {
     expect(engineSupportsEffort('codex')).toBe(true);
-    expect(engineSupportsEffort('claude')).toBe(false);
+    expect(engineSupportsEffort('claude')).toBe(true);
+  });
+
+  it('claude rejects none and minimal — the domains DIFFER', () => {
+    // Measured by feeding claude a bogus value: it answers
+    // "Valid values: low, medium, high, xhigh, max". Offering 'none' there would
+    // be a setting the user picked and the CLI silently ignored, because an
+    // unknown value is warned about and then dropped.
+    expect(effortsFor('claude')).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
+    expect(isValidEffortFor('claude', 'none')).toBe(false);
+    expect(isValidEffortFor('claude', 'minimal')).toBe(false);
+    expect(isValidEffortFor('claude', 'max')).toBe(true);
+  });
+
+  it('codex takes the two extra rungs', () => {
+    expect(isValidEffortFor('codex', 'none')).toBe(true);
+    expect(isValidEffortFor('codex', 'minimal')).toBe(true);
+    expect(effortsFor('codex')).toHaveLength(7);
+  });
+
+  it('rejects a value belonging to neither', () => {
+    expect(isValidEffortFor('claude', 'pouet')).toBe(false);
+    expect(isValidEffortFor('codex', 'pouet')).toBe(false);
+    expect(isValidEffortFor('codex', undefined)).toBe(false);
+  });
+
+  it('says WHEN a change takes hold, and it differs', () => {
+    // claude's flag is set at spawn, so a change waits for the next session;
+    // codex takes it per turn. The interface has to state which, or it promises a
+    // moment it cannot keep.
+    expect(effortAppliesAt('claude')).toBe('next-session');
+    expect(effortAppliesAt('codex')).toBe('next-turn');
   });
 });
 

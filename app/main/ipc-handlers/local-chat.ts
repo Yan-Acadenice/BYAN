@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage, LocalChatTurnOpts } from '../../shared/ipc-contract';
-import { REASONING_EFFORTS, engineSupportsEffort, isValidEffort, isValidModelFor } from '../../shared/engine-options';
+import { effortsFor, isValidEffortFor, isValidModelFor } from '../../shared/engine-options';
 import { IpcError, wrap } from './_error';
 import { localSessions, resolveProjectRoot } from '../local-data';
 import { secureStore } from '../secure-store';
@@ -137,14 +137,15 @@ export class LocalChatBridge {
     if (model !== null && !isValidModelFor(cli, model)) {
       throw new IpcError('INVALID_ARGUMENT', `Modele invalide pour ${cli}: ${String(model)}.`);
     }
-    // Effort is CODEX-ONLY. A claude start carrying one is not an error (a UI
-    // that forgets to hide the control must not break) — it is silently
-    // dropped, the mirror of the agent gate just below.
-    const effort = engineSupportsEffort(cli) ? (opts?.effort ?? null) : null;
-    if (effort !== null && !isValidEffort(effort)) {
-      // Caught here rather than at the CLI: an invalid value fails at the API
-      // with HTTP 400 and burns a whole turn (measured).
-      throw new IpcError('INVALID_ARGUMENT', `Niveau d'effort invalide: ${String(opts?.effort)}. Valeurs: ${REASONING_EFFORTS.join(', ')}.`);
+    // BOTH engines take an effort, and the accepted VALUES differ: claude rejects
+    // 'none' and 'minimal'. Validating per engine is what stops a value the user
+    // chose from being silently ignored — claude warns and falls back to its
+    // default rather than failing, so an unchecked value is a dropped setting.
+    const effort = opts?.effort ?? null;
+    if (effort !== null && !isValidEffortFor(cli, effort)) {
+      // Caught here rather than at the CLI: on codex an invalid value fails at
+      // the API with HTTP 400 and burns a whole turn (measured).
+      throw new IpcError('INVALID_ARGUMENT', `Niveau d'effort invalide pour ${cli}: ${String(opts?.effort)}. Valeurs: ${effortsFor(cli).join(', ')}.`);
     }
 
     const sessionId = randomUUID();
@@ -172,12 +173,13 @@ export class LocalChatBridge {
     const entry = this.sessions.get(sessionId);
     if (!entry) throw new IpcError('NOT_FOUND', 'Session locale absente ou fermée.');
     const turnEffort = turnOpts?.reasoningEffort;
-    if (turnEffort !== undefined && turnEffort !== null && !isValidEffort(turnEffort)) {
-      throw new IpcError('INVALID_ARGUMENT', `Niveau d'effort invalide: ${String(turnEffort)}. Valeurs: ${REASONING_EFFORTS.join(', ')}.`);
+    if (turnEffort !== undefined && turnEffort !== null && !isValidEffortFor(entry.engine, turnEffort)) {
+      throw new IpcError('INVALID_ARGUMENT', `Niveau d'effort invalide pour ${entry.engine}: ${String(turnEffort)}. Valeurs: ${effortsFor(entry.engine).join(', ')}.`);
     }
-    // A per-turn effort on an engine without the concept is dropped, not
-    // forwarded — same rule as the session-level gate.
-    const forwarded = engineSupportsEffort(entry.engine) ? turnOpts : undefined;
+    // claude's --effort is a SPAWN flag: it belongs to the process, so a per-turn
+    // change cannot reach a running claude. Forwarding it would be a control that
+    // reports success and changes nothing. codex takes it per turn.
+    const forwarded = entry.engine === 'codex' ? turnOpts : undefined;
     await entry.session.send(message, forwarded);
   }
 

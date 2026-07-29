@@ -115,6 +115,12 @@ function foldUsage(prev: LocalChatUsageTotals, usage: LocalChatUsage): LocalChat
   return { ...prev, [usage.engine]: next };
 }
 
+// Why an object and not a bare boolean: the next thing to carry across a restart
+// (a pinned scope, a draft) belongs here rather than in a second positional flag.
+export interface NewSessionKeep {
+  keepTranscript?: boolean;
+}
+
 export interface UseLocalChat {
   sessionId: string | null;
   messages: LocalMsg[];
@@ -139,8 +145,15 @@ export interface UseLocalChat {
   thinkingTokens: number;
   // Epoch ms the live turn started, for the elapsed counter. Null between turns.
   turnStartedAt: number | null;
-  // Start a fresh local session (drops the current thread).
-  newSession: (opts?: LocalChatStartOpts) => Promise<void>;
+  // Start a fresh local session. Drops the displayed thread unless
+  // `keepTranscript` is set — which the engine switch needs: losing the exchange
+  // to change engine was the reported defect, and the transcript belongs to the
+  // reader, not to the process that produced it.
+  //
+  // What CANNOT be carried is the model-side context: the new engine opens a
+  // fresh thread and has not read a word of the previous one. The caller must say
+  // so; keeping the text on screen without that sentence would be a lie by layout.
+  newSession: (opts?: LocalChatStartOpts, keep?: NewSessionKeep) => Promise<void>;
   // Resume a session : reopens claude in the session's project dir (cwd).
   resume: (recordId: string, cwd?: string) => Promise<void>;
   // Re-read the persisted session list.
@@ -330,7 +343,8 @@ function useLocalChatState(): UseLocalChat {
     });
   }, []);
 
-  const newSession = useCallback(async (opts?: LocalChatStartOpts) => {
+  const newSession = useCallback(async (opts?: LocalChatStartOpts, keep?: NewSessionKeep) => {
+    const keepTranscript = keep?.keepTranscript === true;
     setStarting(true);
     setError(null);
     const prev = sessionRef.current;
@@ -342,12 +356,13 @@ function useLocalChatState(): UseLocalChat {
       // otherwise pass the filter and bleed into the fresh thread.
       sessionRef.current = id;
       setSessionId(id);
-      setMessages([]);
+      if (!keepTranscript) setMessages([]);
       accRef.current = '';
       setStreamText('');
       setStreaming(false);
-      // Usage is SESSION-scoped: a fresh session starts from nothing, exactly
-      // like the thread it replaces.
+      // Usage stays SESSION-scoped even when the transcript is carried over: the
+      // bill belongs to the process that ran the turns, and adding a codex total
+      // onto a claude one would cross two units.
       setUsageTurns([]);
       setUsageTotals({});
       setActivity(null);

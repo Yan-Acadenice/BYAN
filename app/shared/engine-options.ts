@@ -34,22 +34,58 @@ export function isEngineId(v: unknown): v is EngineId {
   return v === 'claude' || v === 'codex';
 }
 
-// ---------- Reasoning effort (codex only) ----------
-// claude exposes NO reasoning-effort flag in --print mode, so effort is a
-// codex-only concept. The bridge drops it for claude rather than faking one.
+// ---------- Reasoning effort ----------
+// BOTH engines expose one, and the domains DIFFER. Measured against the binaries
+// themselves by feeding each an invalid value and reading the rejection:
+//
+//   claude 2.1.220   --effort <level>
+//     "Valid values: low, medium, high, xhigh, max"  (5)
+//     An unknown value is WARNED about and then IGNORED — the run continues on the
+//     default. So an unvalidated value is a silently dropped setting, the same
+//     failure shape as an unknown --agent slug.
+//   codex-cli 0.145  -c model_reasoning_effort=<level>
+//     none, minimal, low, medium, high, xhigh, max  (7)
+//
+// An earlier version of this file claimed claude had no effort flag at all and
+// the claude engine was written so one could not be passed. That was wrong: the
+// flag was there and the measurement missed it.
+//
+// The two also differ in WHEN they apply, which the interface has to say:
+//   claude — per SESSION ("Effort level for the current session"): a change lands
+//            on the next session start.
+//   codex  — per TURN: a change lands on the next message.
 
 export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
+// claude rejects 'none' and 'minimal'. Offering them there would produce a
+// setting the user chose and the CLI silently ignored.
+const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+
 export function isValidEffort(v: unknown): v is ReasoningEffort {
   return typeof v === 'string' && (REASONING_EFFORTS as readonly string[]).includes(v);
 }
 
-// True when the engine supports a reasoning-effort setting at all. Drives both
-// the picker's presence in the DOM and the bridge's gate.
-export function engineSupportsEffort(engine: EngineId): boolean {
-  return engine === 'codex';
+// The values THIS engine actually accepts.
+export function effortsFor(engine: EngineId): readonly ReasoningEffort[] {
+  return engine === 'claude' ? CLAUDE_EFFORTS : REASONING_EFFORTS;
+}
+
+export function isValidEffortFor(engine: EngineId, v: unknown): v is ReasoningEffort {
+  return typeof v === 'string' && (effortsFor(engine) as readonly string[]).includes(v);
+}
+
+// Both engines support one now. Kept as a function because the answer is per
+// engine by nature and the call sites read better than a literal true.
+export function engineSupportsEffort(_engine: EngineId): boolean {
+  return true;
+}
+
+// When a change to the effort takes hold. The interface must say which, because
+// "from the next message" and "at the next session" are not the same promise.
+export function effortAppliesAt(engine: EngineId): 'next-turn' | 'next-session' {
+  return engine === 'claude' ? 'next-session' : 'next-turn';
 }
 
 // ---------- Model presets (display sugar) ----------

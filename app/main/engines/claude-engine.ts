@@ -26,11 +26,7 @@ export class ClaudeEngine implements Engine {
 
   constructor(private readonly deps: EngineDeps) {}
 
-  // `effort` is deliberately NOT destructured from EngineStartOpts, even though
-  // the contract carries it: claude has NO reasoning-effort flag in --print mode.
-  // With no local binding there is nothing to map onto argv by mistake, so a fake
-  // setting is structurally impossible here rather than merely unlikely.
-  start({ sessionId, cwd, agent, model, emit, onClose }: EngineStartOpts): EngineSession {
+  start({ sessionId, cwd, agent, model, effort, emit, onClose }: EngineStartOpts): EngineSession {
     const args = ['--print', '--verbose', '--output-format', 'stream-json', '--input-format', 'stream-json'];
     if (agent) args.push('--agent', agent);
     // --model takes an alias ('opus') or a full name ('claude-fable-5'). The
@@ -38,6 +34,7 @@ export class ClaudeEngine implements Engine {
     // anything isValidModelFor('claude') refuses BEFORE a spawn, so nothing is
     // re-checked here. That guarantee is the bridge's to keep.
     if (model) args.push('--model', model);
+    if (effort) args.push('--effort', effort);
     // NOTE: no --resume. A byan session record id is NOT claude's own session
     // uuid; "reprendre" in native mode = reopen claude in the project dir.
 

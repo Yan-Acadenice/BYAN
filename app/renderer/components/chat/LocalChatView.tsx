@@ -33,9 +33,9 @@ import { resolveClaudeAgent, suggestClaudeAgents } from '../../../shared/agent-s
 import type { LocalChatActivity } from '../../../shared/tool-activity';
 import {
   MODEL_PRESETS,
-  REASONING_EFFORTS,
-  engineSupportsEffort,
-  isValidEffort,
+  effortAppliesAt,
+  effortsFor,
+  isValidEffortFor,
   isValidModelFor,
   type EngineId,
   type ReasoningEffort,
@@ -219,7 +219,7 @@ export default function LocalChatView() {
       } catch { /* no stored model — the CLI default applies */ }
       try {
         const storedEffort = await window.byanApi.store?.get?.<string>('chat.localEffort');
-        if (isValidEffort(storedEffort)) setEffort(storedEffort);
+        if (isValidEffortFor(engine, storedEffort)) setEffort(storedEffort);
       } catch { /* no stored effort */ }
       try {
         const storedAgent = await window.byanApi.store?.get?.<string>('chat.localAgent');
@@ -301,11 +301,45 @@ export default function LocalChatView() {
   });
 
   // Per-turn overrides, read on EVERY send so an effort change applies at once.
-  const turnOpts = () => (engineSupportsEffort(engine) && effort ? { reasoningEffort: effort } : undefined);
+  const turnOpts = () => (engine === 'codex' && effort ? { reasoningEffort: effort } : undefined);
 
+  // Reported together, and it is one defect: "un chat avec codex ca marche pas,
+  // et en plus on perd la session". pickEngine only set a label, so the next
+  // message still went to the running claude session — the switch looked inert.
+  // Getting codex meant clicking "Nouvelle session", which threw the exchange away.
+  //
+  // So the switch ACTS: it opens a session on the chosen engine straight away, and
+  // carries the transcript so nothing readable is lost. What it cannot carry is the
+  // model-side context — the new engine opens a fresh thread and has not read a
+  // word of the previous one — so it says that instead of letting the kept text
+  // imply otherwise.
   const pickEngine = (next: LocalEngine) => {
+    if (next === engine) return;
     setEngine(next);
     try { void window.byanApi.store?.set?.('chat.localEngine', next); } catch { /* non-blocking */ }
+
+    // Nothing on screen and no live session: the first session will simply open on
+    // the right engine. Restarting here would be a spawn nobody asked for.
+    const hasThread = messages.length > 0 || streaming || sessionId !== null;
+    if (!hasThread) {
+      setNotice({ tone: 'info', text: `Moteur ${next}. La prochaine session partira dessus.` });
+      return;
+    }
+
+    const nextModel = modelByEngine[next] ?? null;
+    const nextEffort = isValidEffortFor(next, effort) ? effort : null;
+    const opts = {
+      cli: next,
+      ...(cwd ? { cwd } : {}),
+      ...(nextModel ? { model: nextModel } : {}),
+      ...(nextEffort ? { effort: nextEffort } : {}),
+      ...(next === 'claude' && agent ? { agent } : {}),
+    };
+    void newSession(opts, { keepTranscript: true }).then(() => void refreshSessions());
+    setNotice({
+      tone: 'warn',
+      text: `Session ${next} ouverte. L'échange reste affiché, mais ${next} ne reprend pas le contexte précédent : il repart de zéro.`,
+    });
   };
 
   const pickModel = (next: string | null) => {
@@ -321,8 +355,19 @@ export default function LocalChatView() {
     setEffortOpen(false);
     setEffort(next);
     try { void window.byanApi.store?.set?.('chat.localEffort', next ?? ''); } catch { /* non-blocking */ }
-    // Effort rides on every turn, so it lands on the NEXT message — no restart.
-    setNotice({ tone: 'info', text: next ? `Effort ${next} dès le prochain message.` : 'Effort par défaut restauré.' });
+    // WHEN it lands differs per engine and the sentence has to say which: codex
+    // takes the effort per turn, claude takes it at spawn. Announcing "dès le
+    // prochain message" on claude would promise a change the running process
+    // cannot make.
+    const when = effortAppliesAt(engine) === 'next-turn'
+      ? 'dès le prochain message'
+      : 'à la prochaine session';
+    setNotice({
+      tone: 'info',
+      text: next
+        ? `Effort ${next} ${when}.`
+        : `Effort par défaut du CLI restauré ${when}.`,
+    });
   };
   useEffect(() => {
     void (async () => {
@@ -372,7 +417,7 @@ export default function LocalChatView() {
   // Switching to an engine without an effort concept closes a stale menu; the
   // chip itself leaves the DOM, so an open dropdown would otherwise orphan.
   useEffect(() => {
-    if (!engineSupportsEffort(engine)) setEffortOpen(false);
+    setEffortOpen(false);
   }, [engine]);
 
   useEffect(() => {
@@ -477,14 +522,10 @@ export default function LocalChatView() {
         return;
       }
       case '/effort': {
-        // The command is only offered for codex, but a user can still type it.
-        if (!engineSupportsEffort(engine)) {
-          setNotice({ tone: 'warn', text: `${engine} n'expose aucun reglage d'effort — ce reglage n'existe que pour codex.` });
-          return;
-        }
+        // Both engines take one; the accepted values differ per engine.
         if (!arg) { setEffortOpen(true); return; }
-        if (!isValidEffort(arg)) {
-          setNotice({ tone: 'warn', text: `Effort inconnu: "${arg}". Valeurs: ${REASONING_EFFORTS.join(', ')}.` });
+        if (!isValidEffortFor(engine, arg)) {
+          setNotice({ tone: 'warn', text: `Effort inconnu pour ${engine}: "${arg}". Valeurs: ${effortsFor(engine).join(', ')}.` });
           return;
         }
         pickEffort(arg);
@@ -706,6 +747,69 @@ export default function LocalChatView() {
       },
     ];
   };
+
+  // ONE control, placed in whichever group matches its temporality. claude takes
+  // --effort at SPAWN, so a change there waits for the next session; codex takes it
+  // per turn. Rendering it twice would duplicate forty lines of markup and let the
+  // two copies drift; rendering it in the wrong group would promise the wrong
+  // moment.
+  //
+  // Accessibility, and this is the reported complaint: the controls were 11px text
+  // with 4px of vertical padding — about 19px tall, under the 24x24 CSS px that
+  // WCAG 2.5.8 asks of a pointer target. They now carry 12px text, a 24px minimum
+  // height, a visible focus ring, and a label that NAMES the setting instead of
+  // showing only its value ("Effort : moyen", not "moyen"): a lone value cannot be
+  // identified by someone who did not open the menu.
+  const effortControl = (
+    <div className="flex items-center gap-xs">
+      <div ref={effortRef} className="relative">
+        <button
+          type="button"
+          data-testid="local-effort-chip"
+          onClick={() => setEffortOpen((o) => !o)}
+          title={engine === 'claude'
+            ? "Effort de raisonnement — appliqué à la prochaine session claude"
+            : "Effort de raisonnement — appliqué dès le prochain message codex"}
+          aria-haspopup="menu"
+          aria-expanded={effortOpen}
+          aria-label={`Effort de raisonnement, actuellement ${effort ?? 'défaut du CLI'}`}
+          className="flex items-center gap-xs min-h-[24px] px-sm py-1 rounded-full text-xs text-content-body hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-action transition-colors"
+        >
+          <Gauge size={13} aria-hidden="true" />
+          <span className="text-content-tertiary">Effort</span>
+          <span className="font-mono-code">{effort ?? 'auto'}</span>
+        </button>
+        {effortOpen && (
+          <div role="menu" aria-label="Niveau d'effort" className="absolute bottom-full left-0 mb-1 w-48 bg-surface-raised border border-edge-strong rounded-xl shadow-glass py-1 z-50">
+            <button
+              type="button"
+              role="menuitem"
+              data-testid="local-effort-auto"
+              onClick={() => pickEffort(null)}
+              className="w-full text-left px-md py-1.5 min-h-[24px] text-xs text-content-body hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-action"
+            >
+              Défaut du CLI
+            </button>
+            {effortsFor(engine).map((level) => (
+              <button
+                key={level}
+                type="button"
+                role="menuitem"
+                data-testid={`local-effort-${level}`}
+                onClick={() => pickEffort(level)}
+                aria-current={effort === level ? 'true' : undefined}
+                className="w-full text-left px-md py-1.5 min-h-[24px] text-xs text-content-body hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-action flex items-center justify-between"
+              >
+                {level}
+                {effort === level && <Check size={12} className="text-accent-action" aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
 
   return (
     <div className="flex flex-col h-full" data-testid="local-chat-view">
@@ -1013,58 +1117,18 @@ export default function LocalChatView() {
         {/* The settings themselves, grouped by WHEN they land. Two labels, two
             groups — that separation is the whole point of the lot. */}
         <div className="flex items-center gap-md flex-wrap px-lg pt-sm" data-testid="local-next-settings">
-          {/* Effort rides on every turn, so it belongs to the next MESSAGE, not
-              to a restart. It is ABSENT on claude, not greyed: claude exposes no
-              reasoning-effort flag, so a disabled control would advertise a
-              setting that does not exist. */}
-          {engineSupportsEffort(engine) && (
+          {/* codex takes the effort per TURN, so there it belongs to the next
+              message. On claude it is a spawn flag and moves to the group below. */}
+          {effortAppliesAt(engine) === 'next-turn' && (
             <div className="flex items-center gap-xs">
               <span className="text-[10px] uppercase tracking-wider text-content-tertiary">Prochain message</span>
-              <div ref={effortRef} className="relative">
-                <button
-                  type="button"
-                  data-testid="local-effort-chip"
-                  onClick={() => setEffortOpen((o) => !o)}
-                  title="Effort de raisonnement (codex) — appliqué au prochain message"
-                  aria-haspopup="menu"
-                  aria-expanded={effortOpen}
-                  className="flex items-center gap-xs text-[11px] text-content-secondary hover:text-content-strong transition-colors"
-                >
-                  <Gauge size={12} />
-                  {effort ?? 'effort auto'}
-                </button>
-                {effortOpen && (
-                  <div role="menu" className="absolute bottom-full left-0 mb-1 w-44 bg-surface-raised border border-edge-strong rounded-xl shadow-glass py-1 z-50">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      data-testid="local-effort-auto"
-                      onClick={() => pickEffort(null)}
-                      className="w-full text-left px-md py-xs text-xs text-content-body hover:bg-surface-hover"
-                    >
-                      Defaut du CLI
-                    </button>
-                    {REASONING_EFFORTS.map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        role="menuitem"
-                        data-testid={`local-effort-${level}`}
-                        onClick={() => pickEffort(level)}
-                        className="w-full text-left px-md py-xs text-xs text-content-body hover:bg-surface-hover flex items-center justify-between"
-                      >
-                        {level}
-                        {effort === level && <Check size={11} className="text-accent-action" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {effortControl}
             </div>
           )}
 
           <div className="flex items-center gap-sm">
             <span className="text-[10px] uppercase tracking-wider text-content-tertiary">Prochain démarrage</span>
+            {effortAppliesAt(engine) === 'next-session' && effortControl}
 
             {/* Project directory the next session runs in (F4) — click to change. */}
             <button
@@ -1099,30 +1163,34 @@ export default function LocalChatView() {
                   type="button"
                   data-testid="local-engine-claude"
                   onClick={() => pickEngine('claude')}
+                  aria-pressed={engine === 'claude'}
                   className={[
-                    'flex items-center gap-xs px-sm py-1 text-[11px] transition-colors',
+                    'flex items-center gap-xs px-sm py-1 min-h-[24px] text-xs transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-action',
                     engine === 'claude'
                       ? 'bg-wash-action text-on-wash-action'
-                      : 'text-content-secondary hover:text-content-strong',
+                      : 'text-content-secondary hover:text-content-strong hover:bg-surface-hover',
                   ].join(' ')}
                   title="Chat local via claude"
                 >
-                  <Cpu size={11} />
+                  <Cpu size={12} aria-hidden="true" />
                   Claude
                 </button>
                 <button
                   type="button"
                   data-testid="local-engine-codex"
                   onClick={() => pickEngine('codex')}
+                  aria-pressed={engine === 'codex'}
                   className={[
-                    'flex items-center gap-xs px-sm py-1 text-[11px] transition-colors',
+                    'flex items-center gap-xs px-sm py-1 min-h-[24px] text-xs transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-action',
                     engine === 'codex'
                       ? 'bg-wash-action text-on-wash-action'
-                      : 'text-content-secondary hover:text-content-strong',
+                      : 'text-content-secondary hover:text-content-strong hover:bg-surface-hover',
                   ].join(' ')}
                   title="Chat local via codex"
                 >
-                  <Cpu size={11} />
+                  <Cpu size={12} aria-hidden="true" />
                   Codex
                 </button>
               </div>

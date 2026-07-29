@@ -262,12 +262,16 @@ async function withLiveThreadAndBothEngines() {
 }
 
 describe('LocalChatView — effort chip presence', () => {
-  it('is ABSENT from the DOM on claude — not merely disabled', async () => {
-    // claude exposes no reasoning-effort flag; a greyed control would advertise
-    // a setting that does not exist.
+  // These three used to assert the OPPOSITE: that the control was absent on
+  // claude because claude exposed no reasoning-effort flag. That was a wrong
+  // measurement, not a design choice — claude 2.1.220 has `--effort <level>`,
+  // "Effort level for the current session", and the earlier probe missed it. So
+  // the assertions flip: the control is offered on BOTH engines, and what differs
+  // is the accepted VALUES and WHEN a change takes hold.
+  it('is offered on claude too — the flag exists', async () => {
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     expect(await screen.findByTestId('local-model-chip')).toBeInTheDocument();
-    expect(screen.queryByTestId('local-effort-chip')).toBeNull();
+    expect(screen.getByTestId('local-effort-chip')).toBeInTheDocument();
   });
 
   it('appears on codex', async () => {
@@ -275,11 +279,32 @@ describe('LocalChatView — effort chip presence', () => {
     expect(screen.getByTestId('local-effort-chip')).toBeInTheDocument();
   });
 
-  it('disappears again when the user switches back to claude', async () => {
+  it('offers only the values claude accepts — no none, no minimal', async () => {
+    // Measured: claude answers "Valid values: low, medium, high, xhigh, max" and
+    // an unknown value is WARNED about then IGNORED. Offering 'none' there would
+    // be a setting the user picked and the CLI silently dropped.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.click(await screen.findByTestId('local-effort-chip'));
+    expect(await screen.findByTestId('local-effort-high')).toBeInTheDocument();
+    expect(screen.queryByTestId('local-effort-none')).toBeNull();
+    expect(screen.queryByTestId('local-effort-minimal')).toBeNull();
+  });
+
+  it('offers the two extra values on codex', async () => {
     await renderAsCodex();
-    expect(screen.getByTestId('local-effort-chip')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('local-engine-claude'));
-    await waitFor(() => expect(screen.queryByTestId('local-effort-chip')).toBeNull());
+    fireEvent.click(screen.getByTestId('local-effort-chip'));
+    expect(await screen.findByTestId('local-effort-none')).toBeInTheDocument();
+    expect(screen.getByTestId('local-effort-minimal')).toBeInTheDocument();
+  });
+
+  it('says WHEN a change lands, and it differs per engine', async () => {
+    // claude takes --effort at spawn, so a change waits for the next session;
+    // codex takes it per turn. Same control, two different promises — and a
+    // promise the interface does not state is a promise the user cannot rely on.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.click(await screen.findByTestId('local-effort-chip'));
+    fireEvent.click(await screen.findByTestId('local-effort-high'));
+    expect(await screen.findByText(/prochaine session/i)).toBeInTheDocument();
   });
 });
 
@@ -901,13 +926,17 @@ describe('LocalChatView — les deux temporalites du bandeau', () => {
     expect(settings).toHaveTextContent(/prochain démarrage/i);
   });
 
-  it('the "prochain message" group is absent on claude, where effort does not exist', async () => {
+  it('on claude, the effort waits for the next SESSION, not the next message', async () => {
+    // Was written as "the prochain message group is absent on claude, where effort
+    // does not exist". Effort does exist on claude — it is a spawn flag, so the
+    // temporality is the session, not the turn. The group is present and says so.
     mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
     render(<LocalChatView />, { wrapper: LocalChatProvider });
     await screen.findByTestId('local-model-chip');
     const settings = screen.getByTestId('local-next-settings');
     expect(settings).not.toHaveTextContent(/prochain message/i);
     expect(settings).toHaveTextContent(/prochain démarrage/i);
+    expect(settings).toHaveTextContent(/effort/i);
   });
 });
 
@@ -1149,5 +1178,87 @@ describe('LocalChatView — codex absent : absence cote offre, explication cote 
     expect(notice).toHaveTextContent(/détection n'a pas répondu/i);
     expect(notice).not.toHaveTextContent(/introuvable/i);
     expect(mockStoreSet).not.toHaveBeenCalledWith('chat.localEngine', 'codex');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Changer de moteur : reproche direct de Yan — "quand je veux faire un chat avec
+// codex ca marche pas, et en plus on perd la session".
+//
+// Les deux plaintes sont UN defaut. pickEngine ne posait qu'une etiquette : le
+// message suivant partait toujours sur la session claude en cours, donc le
+// changement paraissait sans effet. Pour obtenir codex il fallait cliquer
+// "Nouvelle session", et la on perdait l'echange.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — changer de moteur agit et garde la conversation', () => {
+  it('bascule sur codex IMMEDIATEMENT au lieu d\'attendre un redemarrage manuel', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('bonjour');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    emit({ type: 'complete', sessionId: 'sess-1', result: 'salut' });
+    await waitFor(() => expect(screen.getByText('salut')).toBeInTheDocument());
+
+    mockStart.mockClear();
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    // Une session codex demarre sans que l'utilisateur ait a la demander.
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({ cli: 'codex' })
+    ));
+  });
+
+  it('garde la conversation a l\'ecran quand le moteur change', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('bonjour');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    emit({ type: 'complete', sessionId: 'sess-1', result: 'salut' });
+    await waitFor(() => expect(screen.getByText('salut')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    // Perdre l'echange etait le reproche. Il reste lisible.
+    await waitFor(() => expect(screen.getByText('bonjour')).toBeInTheDocument());
+    expect(screen.getByText('salut')).toBeInTheDocument();
+  });
+
+  it('dit que le nouveau moteur ne reprend PAS le contexte precedent', async () => {
+    // Garder le transcript a l'ecran sans le dire serait un mensonge : codex
+    // demarre un fil neuf, il n'a pas lu ce que claude a repondu. Regle 3 —
+    // aucune commande muette.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    type('bonjour');
+    pressEnter();
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    emit({ type: 'complete', sessionId: 'sess-1', result: 'salut' });
+    await waitFor(() => expect(screen.getByText('salut')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    expect(await screen.findByText(/ne reprend pas|sans le contexte|repart de zéro/i)).toBeInTheDocument();
+  });
+
+  it('sans session en cours, changer de moteur ne demarre rien', async () => {
+    // Rien a porter, donc rien a redemarrer : la premiere session partira sur le
+    // bon moteur toute seule.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+
+    mockStart.mockClear();
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).toHaveAttribute('aria-pressed', 'true'));
+    expect(mockStart).not.toHaveBeenCalled();
   });
 });
