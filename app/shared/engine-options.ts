@@ -39,7 +39,14 @@ export function isEngineId(v: unknown): v is EngineId {
 // themselves by feeding each an invalid value and reading the rejection:
 //
 //   claude 2.1.220   --effort <level>
-//     "Valid values: low, medium, high, xhigh, max"  (5)
+//     The help text says "Valid values: low, medium, high, xhigh, max" and it is
+//     INCOMPLETE: 'ultracode' is accepted too, silently. Established by probing —
+//     'pouet' and 'ultraplan' both draw "Unknown --effort value", 'ultracode' and
+//     'max' draw nothing. The two rejected controls are what make that a
+//     measurement rather than a hopeful reading.
+//     So SIX values on claude, and the CLI's own error message is not the whole
+//     authority. Reading it and stopping there is how the first version of this
+//     file ended up short.
 //     An unknown value is WARNED about and then IGNORED — the run continues on the
 //     default. So an unvalidated value is a silently dropped setting, the same
 //     failure shape as an unknown --agent slug.
@@ -55,13 +62,20 @@ export function isEngineId(v: unknown): v is EngineId {
 //            on the next session start.
 //   codex  — per TURN: a change lands on the next message.
 
-export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+// The UNION of both engines — the type's domain, not any single engine's menu.
+// Never offer this list to a user: pick effortsFor(engine).
+export const REASONING_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultracode'] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
-// claude rejects 'none' and 'minimal'. Offering them there would produce a
-// setting the user chose and the CLI silently ignored.
-const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+// claude rejects 'none' and 'minimal'; codex rejects 'ultracode' with an
+// invalid_enum_value from the API. Neither list is a subset of the other, which
+// is exactly why they are two lists and not one with a flag.
+// Two EXPLICIT lists, because neither is a subset of the other. Deriving codex's
+// from "everything" handed it 'ultracode', which its API rejects — a defect my own
+// test caught, and the reason this is spelled out per engine instead of computed.
+const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultracode'] as const;
+const CODEX_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 
 export function isValidEffort(v: unknown): v is ReasoningEffort {
   return typeof v === 'string' && (REASONING_EFFORTS as readonly string[]).includes(v);
@@ -69,7 +83,7 @@ export function isValidEffort(v: unknown): v is ReasoningEffort {
 
 // The values THIS engine actually accepts.
 export function effortsFor(engine: EngineId): readonly ReasoningEffort[] {
-  return engine === 'claude' ? CLAUDE_EFFORTS : REASONING_EFFORTS;
+  return engine === 'claude' ? CLAUDE_EFFORTS : CODEX_EFFORTS;
 }
 
 export function isValidEffortFor(engine: EngineId, v: unknown): v is ReasoningEffort {

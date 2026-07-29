@@ -21,10 +21,15 @@ import {
 } from '../engine-options';
 
 describe('reasoning effort enum', () => {
-  it('holds the 7 values the API reports as supported', () => {
-    // Live-sourced 2026-07-27: "Supported values are: 'none', 'minimal',
-    // 'low', 'medium', 'high', 'xhigh', and 'max'." A 5-value draft was wrong.
-    expect([...REASONING_EFFORTS]).toEqual(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
+  it('holds the UNION of both engines, 8 values', () => {
+    // History of this one assertion, because it is a lesson in reading sources:
+    //   a 5-value draft from memory            -> wrong
+    //   7, live-sourced from the codex API      -> right for codex, incomplete overall
+    //   8, after probing claude                 -> 'ultracode' is claude-only and
+    //                                              absent from claude's own help text
+    // This is the TYPE's domain. No engine offers all eight, so nothing should
+    // ever show this list to a user — that is what effortsFor(engine) is for.
+    expect([...REASONING_EFFORTS]).toEqual(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max', 'ultracode']);
   });
 
   it('accepts every supported value', () => {
@@ -51,20 +56,28 @@ describe('effort per engine', () => {
     expect(engineSupportsEffort('claude')).toBe(true);
   });
 
+  it('claude takes ultracode, which its own help text omits', () => {
+    // The CLI help lists five values and is INCOMPLETE. Probed: 'pouet' and
+    // 'ultraplan' both draw "Unknown --effort value", 'ultracode' and 'max' draw
+    // nothing. The two rejected controls are what make this a measurement instead
+    // of a hopeful reading — and reading the help and stopping there is how this
+    // list was short in the first place.
+    expect(effortsFor('claude')).toEqual(['low', 'medium', 'high', 'xhigh', 'max', 'ultracode']);
+    expect(isValidEffortFor('claude', 'ultracode')).toBe(true);
+  });
+
   it('claude rejects none and minimal — the domains DIFFER', () => {
-    // Measured by feeding claude a bogus value: it answers
-    // "Valid values: low, medium, high, xhigh, max". Offering 'none' there would
-    // be a setting the user picked and the CLI silently ignored, because an
-    // unknown value is warned about and then dropped.
-    expect(effortsFor('claude')).toEqual(['low', 'medium', 'high', 'xhigh', 'max']);
     expect(isValidEffortFor('claude', 'none')).toBe(false);
     expect(isValidEffortFor('claude', 'minimal')).toBe(false);
     expect(isValidEffortFor('claude', 'max')).toBe(true);
   });
 
-  it('codex takes the two extra rungs', () => {
+  it('codex takes the two low rungs but NOT ultracode', () => {
+    // Neither list is a subset of the other, which is why they are two lists.
+    // codex answers invalid_enum_value from the API on 'ultracode'.
     expect(isValidEffortFor('codex', 'none')).toBe(true);
     expect(isValidEffortFor('codex', 'minimal')).toBe(true);
+    expect(isValidEffortFor('codex', 'ultracode')).toBe(false);
     expect(effortsFor('codex')).toHaveLength(7);
   });
 
