@@ -11,8 +11,12 @@
 //      PRIMAIRE de son createur, pas celui du dossier ;
 //   2. avec le setgid pose, le fichier herite du groupe mais ressort en 644 car
 //      le umask 022 retire l ecriture au groupe -> il faut umask(0o002) ;
-//   3. le setgid se propage aux sous-dossiers crees ensuite : une seule pose a
-//      la racine suffit pour l arborescence creee apres ;
+//   3. le setgid se propage aux sous-dossiers crees DANS un dossier qui le
+//      porte. La propagation ne vaut donc que pour ce qui est cree APRES la
+//      pose : sur une arborescence deja ecrite, il faut le donner a chaque
+//      dossier. Mesure du 2026-08-12 sur un serveur reel : avec le bit sur la
+//      seule racine, 1 dossier sur 1187 le portait et un sous-dossier cree
+//      ensuite ressortait au groupe primaire de son createur ;
 //   4. fs.constants n expose aucune constante S_ISGID, d ou le litteral 0o2000.
 //
 // Toutes les dependances a effet de bord (fs, platform, exec, umask) sont
@@ -167,9 +171,24 @@ function ensureOwnership(rootPath, target, options) {
   function ouvrirAuGroupe(p, st) {
     if (!groupWritable || typeof fs.chmodSync !== 'function') return;
     const actuel = Number(st.mode) & 0o7777;
-    // g+w partout ; g+x en plus sur un dossier, sinon le groupe ne peut pas le
-    // traverser meme en ayant le droit d y ecrire.
-    const vise = actuel | 0o020 | (st.isDirectory && st.isDirectory() ? 0o010 : 0);
+    const estDossier = Boolean(st.isDirectory && st.isDirectory());
+    // g+w partout ; sur un dossier, g+x en plus (sinon le groupe ne peut pas le
+    // traverser meme en ayant le droit d'y ecrire) ET le setgid.
+    //
+    // LE SETGID VA SUR CHAQUE DOSSIER, PAS SEULEMENT SUR LA RACINE.
+    //
+    // Mesure du 2026-08-12 sur un serveur reel, avec --group docker : le gid
+    // etait bien pose sur les 7831 entrees, mais un seul dossier sur 1187
+    // portait le setgid — la racine. Un sous-dossier cree ensuite sous _byan/
+    // ressortait en gid 1003 (le groupe primaire de son createur) et mode 755.
+    // Le groupe partage tenait donc pour ce qui existait, et lachait pour tout
+    // ce qui serait ecrit apres : exactement ce dont un projet a plusieurs
+    // mains a besoin.
+    //
+    // Le bit ne se propage qu'AUX DOSSIERS CREES DANS un dossier qui le porte.
+    // Sur une arborescence deja posee, les sous-dossiers existent deja : il faut
+    // le leur donner un par un, pendant ce meme parcours.
+    const vise = actuel | 0o020 | (estDossier ? 0o010 | SETGID : 0);
     if (vise === actuel) return;
     try {
       fs.chmodSync(p, vise);

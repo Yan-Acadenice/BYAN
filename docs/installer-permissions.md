@@ -105,10 +105,25 @@ Trois gestes, dans cet ordre, et les trois sont necessaires.
    correction se fait donc apres l'ecriture, par un parcours recursif de
    l'arborescence posee.
 
-2. **Le bit setgid `0o2000` sur le dossier.** Sans lui, un fichier cree dans le
-   dossier prend le groupe primaire de son createur et pas celui du dossier. Le
-   bit se pose sur la racine `_byan/` : la mesure du 2026-08-11 montre qu'il se
-   propage tout seul aux sous-dossiers crees dedans, une seule pose suffit.
+2. **Le bit setgid `0o2000` sur CHAQUE dossier.** Sans lui, un fichier cree dans
+   le dossier prend le groupe primaire de son createur et pas celui du dossier.
+
+   La mesure du 2026-08-11 montre que le bit se propage tout seul aux
+   sous-dossiers crees DANS un dossier qui le porte. Une premiere version en a
+   conclu qu'une seule pose a la racine suffisait. C'est faux sur une
+   arborescence deja ecrite, et le terrain l'a tranche : essai du 2026-08-12 sur
+   un serveur reel, `--group docker`, le gid etait bien pose sur les 7831
+   entrees mais **un seul dossier sur 1187 portait le setgid** — la racine. Un
+   sous-dossier cree ensuite sous `_byan/` ressortait au groupe primaire de son
+   createur, en 755.
+
+   La propagation ne vaut que pour ce qui est cree APRES la pose. Les
+   sous-dossiers d'une installation existent deja au moment ou l'on pose le
+   bit : il faut le leur donner un par un, pendant le meme parcours recursif.
+   Sinon le groupe partage tient pour l'existant et lache pour tout ce qui sera
+   ecrit ensuite — c'est-a-dire pour ce dont un projet a plusieurs mains a
+   reellement besoin.
+
    Detail d'ecriture : `fs.constants` n'expose pas de constante `S_ISGID`, le
    bit s'ecrit en litteral octal `0o2000`.
 

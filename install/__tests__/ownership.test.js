@@ -556,3 +556,70 @@ describePosix('ensureOwnership / ensureSharedGroup (vrai fs, sans privilege)', (
     expect(ownership.ownershipOf(path.join(dir, 'a.txt'))).toEqual(avant);
   });
 });
+
+// LE SETGID VA SUR CHAQUE DOSSIER, PAS SEULEMENT SUR LA RACINE.
+//
+// Mesure du 2026-08-12 sur thor, avec --group docker sur une vraie installation :
+// le gid etait pose sur les 7831 entrees, mais UN SEUL dossier sur 1187 portait
+// le setgid. Un sous-dossier cree ensuite sous _byan/ ressortait au groupe
+// primaire de son createur, en 755. Le groupe partage tenait pour l'existant et
+// lachait pour la suite -- c'est-a-dire pour ce dont un projet a plusieurs mains
+// a reellement besoin.
+describe('groupWritable : l heritage vaut pour ce qui sera cree ensuite', () => {
+  let racine;
+
+  beforeEach(() => {
+    racine = fs.mkdtempSync(path.join(os.tmpdir(), 'byan-setgid-'));
+    fs.mkdirSync(path.join(racine, 'sous'), { mode: 0o755 });
+    fs.mkdirSync(path.join(racine, 'sous', 'profond'), { mode: 0o755 });
+    fs.writeFileSync(path.join(racine, 'sous', 'f.txt'), 'x', { mode: 0o644 });
+  });
+
+  afterEach(() => fs.rmSync(racine, { recursive: true, force: true }));
+
+  it('pose le setgid sur CHAQUE dossier, pas seulement la racine', () => {
+    const moi = process.getuid();
+    const monGid = process.getgid();
+    ownership.ensureOwnership(racine, { uid: moi, gid: monGid },
+      { skipUnchanged: false, groupWritable: true });
+
+    for (const rel of ['.', 'sous', 'sous/profond']) {
+      const mode = fs.statSync(path.join(racine, rel)).mode & 0o7777;
+      // Le chemin figure dans l'assertion : sans lui, un echec dirait
+      // "0 attendu 1024" sans dire OU.
+      expect(`${rel}:${(mode & 0o2000).toString(8)}`).toBe(`${rel}:2000`);
+      expect(mode & 0o020).toBe(0o020);
+      expect(mode & 0o010).toBe(0o010);
+    }
+  });
+
+  it('un fichier recoit g+w mais pas le setgid', () => {
+    // Le setgid sur un fichier ordinaire ne signifie pas la meme chose que sur
+    // un dossier ; on ne le pose que la ou il porte l'heritage.
+    ownership.ensureOwnership(racine, { uid: process.getuid(), gid: process.getgid() },
+      { skipUnchanged: false, groupWritable: true });
+    const mode = fs.statSync(path.join(racine, 'sous', 'f.txt')).mode & 0o7777;
+    expect(mode & 0o020).toBe(0o020);
+    expect(mode & 0o2000).toBe(0);
+  });
+
+  it('LA PREUVE : un dossier cree APRES la passe herite du groupe', () => {
+    ownership.ensureOwnership(racine, { uid: process.getuid(), gid: process.getgid() },
+      { skipUnchanged: false, groupWritable: true });
+
+    // Cree apres coup, au fond de l'arborescence -- le cas du collegue qui
+    // travaille dans le projet le lendemain.
+    const neuf = path.join(racine, 'sous', 'profond', 'cree-apres');
+    fs.mkdirSync(neuf);
+    const modeNeuf = fs.statSync(neuf).mode & 0o7777;
+    expect(modeNeuf & 0o2000).toBe(0o2000);
+    expect(fs.statSync(neuf).gid).toBe(fs.statSync(path.join(racine, 'sous', 'profond')).gid);
+  });
+
+  it('sans groupWritable, aucun mode n est touche', () => {
+    const avant = fs.statSync(path.join(racine, 'sous')).mode & 0o7777;
+    ownership.ensureOwnership(racine, { uid: process.getuid(), gid: process.getgid() },
+      { skipUnchanged: false });
+    expect(fs.statSync(path.join(racine, 'sous')).mode & 0o7777).toBe(avant);
+  });
+});
