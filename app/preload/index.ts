@@ -34,6 +34,8 @@ import {
   LocalChatTurnOpts,
   LocalChatSessionSummary,
   LocalChatHistoryMessage,
+  DispatchPlanRequest,
+  DispatchPlan,
   TerminalOpenOpts,
   TerminalOpenResult,
   LocalProjectEntry,
@@ -108,7 +110,8 @@ const api: ByanApi = {
     stop: (sessionId: string) => invoke<void>(IPC_CHANNELS.localChat.stop, sessionId),
     list: () => invoke<LocalChatSessionSummary[]>(IPC_CHANNELS.localChat.list),
     agents: (cwd?: string) => invoke<string[]>(IPC_CHANNELS.localChat.agents, cwd),
-    history: (sessionId: string) => invoke<LocalChatHistoryMessage[]>(IPC_CHANNELS.localChat.history, sessionId)
+    history: (sessionId: string) => invoke<LocalChatHistoryMessage[]>(IPC_CHANNELS.localChat.history, sessionId),
+    plan: (input: DispatchPlanRequest) => invoke<DispatchPlan>(IPC_CHANNELS.localChat.plan, input)
   },
   terminal: {
     open: (opts: TerminalOpenOpts) => invoke<TerminalOpenResult>(IPC_CHANNELS.terminal.open, opts)

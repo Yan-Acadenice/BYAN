@@ -144,6 +144,7 @@ describe('codex engine — JSONL mapping', () => {
     await bridge.send(sessionId, 'lance ls');
     broadcasts.length = 0;
     const p = procs[0];
+    const before = Date.now();
     p.emitLine({ type: 'thread.started', thread_id: '019f-uuid' });
     p.emitLine({ type: 'item.started', item: {
       id: 'item_1',
@@ -157,7 +158,24 @@ describe('codex engine — JSONL mapping', () => {
     const tool = broadcasts.find((b) => b.type === 'tool') as Extract<LocalChatMessage, { type: 'tool' }>;
     expect(tool).toBeTruthy();
     // The login-shell wrapper is stripped: '/usr/bin/zsh -lc ls' reads as 'ls'.
-    expect(tool.activity).toEqual({ name: 'commande', detail: 'ls', phase: 'start' });
+    //
+    // The id is 't1:item_1', not 'item_1': codex restarts its item numbering at
+    // every turn, so the raw id would make turn 2's 'item_1' close turn 1's step
+    // and report a duration spanning both — a WRONG measurement, not a missing
+    // one. The turn prefix is what keeps them apart, so it is pinned here.
+    // Still toEqual, so no extra field slips in; `at` is bounded below because
+    // `expect.any(Number)` alone would also accept a fabricated 0. Codex frames
+    // carry no clock of their own, so the instant is taken as the line is read.
+    const activity = tool.activity;
+    expect(activity).toEqual({
+      name: 'commande',
+      detail: 'ls',
+      phase: 'start',
+      id: 't1:item_1',
+      at: expect.any(Number),
+    });
+    expect(activity?.at ?? 0).toBeGreaterThanOrEqual(before);
+    expect(activity?.at ?? 0).toBeLessThanOrEqual(Date.now());
   });
 
   it('marks the same command as finished on completion', async () => {

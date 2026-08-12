@@ -17,7 +17,7 @@
 //   BETWEEN — an amber divergence line whenever a chosen setting is not the one
 //          the live conversation is running, with a way to restart now.
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, X, Plus, Loader2, MessageSquare, Cpu, History, Check, Folder, Gauge, Bot, AlertTriangle, RotateCcw } from 'lucide-react';
 import MessageMarkdown from './MessageMarkdown';
 import { useLocalChat } from '../../hooks/useLocalChat';
@@ -31,7 +31,19 @@ import { trailingIgnoredMessage, unknownCommandMessage } from './command-copy';
 import { parseSlashInput } from '../../lib/slash-commands';
 import { resolveClaudeAgent, suggestClaudeAgents } from '../../../shared/agent-slugs';
 import type { LocalChatActivity } from '../../../shared/tool-activity';
+import type { DispatchPlan } from '../../../shared/dispatch/plan';
+import DispatchPanel from './dispatch/DispatchPanel';
 import {
+  ContaminationPanel,
+  RaisedHandPanel,
+  RewindPanel,
+  WorkTimeline,
+  slicesFromActivity,
+} from './workflow';
+import { contaminationSteps, contaminationVisible, raisedHandState, rewindPoints } from './workflow/fromLocal';
+import {
+  AGENT_SUPPORT_NOTE,
+  agentSupport,
   MODEL_PRESETS,
   effortAppliesAt,
   effortsFor,
@@ -112,7 +124,7 @@ function ActivityLine({ activity, thinkingTokens, elapsedS }: {
 export default function LocalChatView() {
   const {
     messages, streaming, streamText, starting, error, sessionId, sessions,
-    usageTurns, usageTotals, sessionCwd, activity, thinkingTokens, turnStartedAt,
+    usageTurns, usageTotals, sessionCwd, activity, activitySteps, thinkingTokens, turnStartedAt,
     newSession, resume, refreshSessions, send, stop,
   } = useLocalChat();
   const [sessionsOpen, setSessionsOpen] = useState(false);
@@ -122,6 +134,9 @@ export default function LocalChatView() {
   // Ticks once a second while a turn runs, so the elapsed counter actually moves.
   // A frozen number would be worse than none: it would suggest a frozen turn.
   const [elapsedS, setElapsedS] = useState(0);
+  // La frise du tour. Recalculee seulement quand les etapes bougent : convertir
+  // a chaque rendu ferait le meme travail pendant toute la frappe de l'utilisateur.
+  const timelineSlices = useMemo(() => slicesFromActivity(activitySteps), [activitySteps]);
   useEffect(() => {
     if (turnStartedAt === null) { setElapsedS(0); return; }
     const tick = () => setElapsedS(Math.max(0, Math.floor((Date.now() - turnStartedAt) / 1000)));
@@ -138,6 +153,16 @@ export default function LocalChatView() {
   const [effort, setEffort] = useState<ReasoningEffort | null>(null);
   const [agent, setAgent] = useState<string | null>(null);
   const [modelOpen, setModelOpen] = useState(false);
+  // L5 — le plan calcule pour le dernier message envoye, et le fait que
+  // l'utilisateur ait ecarte sa proposition. Le plan survit au tour : c'est
+  // apres coup qu'on se demande pourquoi le chat a choisi ce reglage.
+  const [dispatchPlan, setDispatchPlan] = useState<DispatchPlan | null>(null);
+  const [planDismissed, setPlanDismissed] = useState(false);
+  // L'etape en echec dont l'utilisateur a ecarte la question. On retient son
+  // IDENTIFIANT, pas un simple booleen : un nouvel echec, plus tard, doit se
+  // signaler a nouveau. Un booleen ferait taire le panneau pour toute la session,
+  // et le prochain vrai probleme passerait inapercu.
+  const [contaminationEcartee, setContaminationEcartee] = useState<string | null>(null);
   const [effortOpen, setEffortOpen] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
@@ -169,6 +194,19 @@ export default function LocalChatView() {
   const model = modelByEngine[engine] ?? null;
   const codexAvailable = codexDetected === true;
 
+  // Les trois autres ecrans, branches sur des signaux locaux reels. Chacun rend
+  // une valeur vide quand son signal est absent : on ne dessine pas un chantier
+  // qui n'a pas eu lieu.
+  const contamination = useMemo(() => contaminationSteps(activitySteps, engine), [activitySteps, engine]);
+  const retours = useMemo(() => rewindPoints(usageTurns, engine), [usageTurns, engine]);
+  // Ecarter la main levee est un choix d'affichage, pas un changement d'etat :
+  // le blocage reste ce qu'il est, on arrete juste de le montrer pour ce tour.
+  const [handDismissed, setHandDismissed] = useState(false);
+  const mainLevee = useMemo(
+    () => raisedHandState({ error, sessionCwd, engine, codexAvailable }),
+    [error, sessionCwd, engine, codexAvailable],
+  );
+
   // The live identity. Component state first; the module memo is the fallback
   // that survives the unmount a mode switch causes. Both are gated on the id, so
   // neither can describe a session that is no longer the one running.
@@ -198,9 +236,20 @@ export default function LocalChatView() {
         detected = Boolean(clis?.codex);
       } catch { /* detection failed — stays unknown, not absent */ }
       setCodexDetected(detected ?? null);
+      // Le moteur retenu, dans une variable LOCALE. Tout ce qui doit etre valide
+      // « pour le moteur » se compare a celle-ci, jamais a l'etat `engine` : un
+      // `set` d'etat ne change pas la constante deja capturee par cette
+      // fermeture, et valider contre l'ancienne valeur laissait passer un effort
+      // du mauvais moteur. Constate le 2026-08-05 : codex restaure avec l'effort
+      // `ultracode`, et le premier envoi mourait sur une erreur dure du
+      // processus principal.
+      let moteurRetenu: LocalEngine = 'claude';
       try {
         const saved = await window.byanApi.store?.get?.<string>('chat.localEngine');
-        if (saved === 'codex' && detected === true) setEngine('codex');
+        if (saved === 'codex' && detected === true) {
+          moteurRetenu = 'codex';
+          setEngine('codex');
+        }
       } catch { /* keep the claude default */ }
       // Restore the model / effort / agent choices. Each is re-validated against
       // the SHARED guards rather than trusted: a stored value can predate a
@@ -219,7 +268,7 @@ export default function LocalChatView() {
       } catch { /* no stored model — the CLI default applies */ }
       try {
         const storedEffort = await window.byanApi.store?.get?.<string>('chat.localEffort');
-        if (isValidEffortFor(engine, storedEffort)) setEffort(storedEffort);
+        if (isValidEffortFor(moteurRetenu, storedEffort)) setEffort(storedEffort);
       } catch { /* no stored effort */ }
       try {
         const storedAgent = await window.byanApi.store?.get?.<string>('chat.localAgent');
@@ -301,7 +350,98 @@ export default function LocalChatView() {
   });
 
   // Per-turn overrides, read on EVERY send so an effort change applies at once.
-  const turnOpts = () => (engine === 'codex' && effort ? { reasoningEffort: effort } : undefined);
+  // Dernier filet avant le pont.
+  //
+  // Le pont refuse un effort que le moteur ne connait pas, et il a raison — mais
+  // sa garde ne devrait jamais se declencher : quand elle le fait, le tour MEURT
+  // sur une erreur technique au milieu de la conversation (« Niveau d'effort
+  // invalide pour codex: ultracode », constate le 2026-08-05). Le recalage au
+  // changement de moteur et a la restauration devrait suffire ; cette ligne
+  // garantit que TOUT autre chemin, present ou futur, ne peut pas reproduire le
+  // symptome. Un effort filtre ici n'est pas perdu : le moteur applique son
+  // defaut, ce qui est exactement ce que l'utilisateur verra affiche.
+  const turnOpts = () =>
+    engine === 'codex' && effort && isValidEffortFor(engine, effort)
+      ? { reasoningEffort: effort }
+      : undefined;
+
+  // ---------------------------------------------------------------------------
+  // L5 — le plan de dispatch : ce que le chat decide pour CE message
+  // ---------------------------------------------------------------------------
+
+  // Ce que le plan retient et qui s'applique TOUT DE SUITE. Un champ marque
+  // `proposed` n'est pas dedans : il coute le fil de la conversation, il attend
+  // une decision. `undefined` veut dire "le plan ne change rien sur cette case",
+  // ce qui n'est pas la meme chose que `null` (le plan retient explicitement
+  // "aucune valeur").
+  interface ReglageRetenu {
+    engine?: LocalEngine;
+    model?: string | null;
+    agent?: string | null;
+    effort?: ReasoningEffort | null;
+  }
+
+  function appliedFromPlan(plan: DispatchPlan | null): ReglageRetenu {
+    if (!plan) return {};
+    const pris: ReglageRetenu = {};
+    if (plan.runtime.applies === 'immediate' && plan.runtime.changed) pris.engine = plan.runtime.value;
+    if (plan.agent.applies === 'immediate' && plan.agent.changed) pris.agent = plan.agent.value;
+    if (plan.model.applies === 'immediate' && plan.model.changed) pris.model = plan.model.value;
+    if (plan.effort.applies === 'immediate' && plan.effort.changed) pris.effort = plan.effort.value;
+    return pris;
+  }
+
+  // Les options de lancement, baties sur le plan quand il tranche et sur l'etat
+  // courant sinon. On ne lit PAS l'etat React pour les cases que le plan vient
+  // de changer : setEngine et ses voisins ne sont pas commits dans le meme tour
+  // de boucle.
+  function startOptsFrom(pris: ReglageRetenu) {
+    const e = pris.engine ?? engine;
+    const m = pris.model !== undefined ? pris.model : model;
+    const a = pris.agent !== undefined ? pris.agent : agent;
+    const f = pris.effort !== undefined ? pris.effort : effort;
+    return {
+      cli: e,
+      ...(cwd ? { cwd } : {}),
+      ...(m ? { model: m } : {}),
+      // Meme garde que startOpts : un effort hors du domaine du moteur retenu
+      // tuerait le tour cote pont.
+      ...(f && isValidEffortFor(e, f) ? { effort: f } : {}),
+      ...(a ? { agent: a } : {}),
+    };
+  }
+
+  function turnOptsFrom(pris: ReglageRetenu) {
+    const e = pris.engine ?? engine;
+    const f = pris.effort !== undefined ? pris.effort : effort;
+    return e === 'codex' && f && isValidEffortFor(e, f) ? { reasoningEffort: f } : undefined;
+  }
+
+  // Le calcul lui-meme vit cote processus principal : il a besoin du roster du
+  // projet et des agents que le CLI honore, deux lectures de disque que le
+  // renderer ne peut pas faire. Un echec rend `null` et le tour part avec les
+  // reglages en cours — jamais une erreur affichee : l'utilisateur a pose une
+  // question, pas demande un reglage.
+  async function computePlan(message: string): Promise<DispatchPlan | null> {
+    try {
+      return await window.byanApi.localChat.plan({
+        message,
+        state: {
+          runtime: engine,
+          model,
+          agentSlug: agent,
+          effort,
+          // Un processus tourne-t-il deja ? C'est ca qui decide, pas le nombre
+          // de messages : `--agent` et `--model` sont des drapeaux de LANCEMENT,
+          // et un processus deja lance ne peut pas les prendre.
+          sessionSpawned: Boolean(sessionId),
+        },
+        ...(cwd ? { cwd } : {}),
+      });
+    } catch {
+      return null;
+    }
+  }
 
   // Reported together, and it is one defect: "un chat avec codex ca marche pas,
   // et en plus on perd la session". pickEngine only set a label, so the next
@@ -318,16 +458,33 @@ export default function LocalChatView() {
     setEngine(next);
     try { void window.byanApi.store?.set?.('chat.localEngine', next); } catch { /* non-blocking */ }
 
+    // L'effort se recale AVANT tout le reste, et sur les deux chemins.
+    //
+    // Les domaines ne se recouvrent pas : `ultracode` n'existe que chez claude,
+    // `none` et `minimal` que chez codex (mesure du 2026-07-27). Un effort du
+    // moteur d'avant est donc silencieusement jete a l'envoi — et la pastille
+    // continuait de l'afficher. On croyait tourner a `ultracode` sur codex ; on
+    // tournait a son defaut. Signale par l'utilisateur le 2026-08-05.
+    const nextEffort = isValidEffortFor(next, effort) ? effort : null;
+    const effortLache = effort !== null && nextEffort === null ? effort : null;
+    if (effortLache) setEffort(null);
+
     // Nothing on screen and no live session: the first session will simply open on
     // the right engine. Restarting here would be a spawn nobody asked for.
     const hasThread = messages.length > 0 || streaming || sessionId !== null;
     if (!hasThread) {
-      setNotice({ tone: 'info', text: `Moteur ${next}. La prochaine session partira dessus.` });
+      setNotice({
+        tone: effortLache ? 'warn' : 'info',
+        text: [
+          `Moteur ${next}. La prochaine session partira dessus.`,
+          // Dire ce qui est perdu, plutot que de le perdre en silence.
+          effortLache ? `L'effort ${effortLache} n'existe pas sur ${next} : remis au defaut.` : '',
+        ].filter(Boolean).join(' '),
+      });
       return;
     }
 
     const nextModel = modelByEngine[next] ?? null;
-    const nextEffort = isValidEffortFor(next, effort) ? effort : null;
     const opts = {
       cli: next,
       ...(cwd ? { cwd } : {}),
@@ -338,7 +495,10 @@ export default function LocalChatView() {
     void newSession(opts, { keepTranscript: true }).then(() => void refreshSessions());
     setNotice({
       tone: 'warn',
-      text: `Session ${next} ouverte. L'échange reste affiché, mais ${next} ne reprend pas le contexte précédent : il repart de zéro.`,
+      text: [
+        `Session ${next} ouverte. L'échange reste affiché, mais ${next} ne reprend pas le contexte précédent : il repart de zéro.`,
+        effortLache ? `L'effort ${effortLache} n'existe pas sur ${next} : remis au defaut.` : '',
+      ].filter(Boolean).join(' '),
     });
   };
 
@@ -428,7 +588,10 @@ export default function LocalChatView() {
 
   // Only claude takes an agent: codex exec has no equivalent flag, its personas
   // live in .codex/prompts and are not selectable from that mode.
-  const engineSupportsAgent = (e: LocalEngine) => e === 'claude';
+  // Plus de « ce moteur ne sait pas faire » : les deux acceptent un agent, mais
+  // pas de la meme facon. `agentSupport` dit COMMENT, et la note dit ce qui
+  // differe — l'injection donne la persona, pas le modele ni les outils declares.
+  const noteAgent = (e: LocalEngine) => AGENT_SUPPORT_NOTE[agentSupport(e)];
 
   // Text typed AFTER a session-opening command. Reported bug: "/byan salut mon
   // reuf" applied the agent and DISCARDED the words, so the message reached
@@ -496,6 +659,9 @@ export default function LocalChatView() {
       text: [
         slug ? `Nouvelle session avec l'agent ${slug}.` : 'Nouvelle session sans agent.',
         hadThread ? 'Le fil précédent est fermé.' : '',
+        // Ce qui DIFFERE selon le moteur, dit au moment ou l'agent est pose. Le
+        // taire laisserait croire que codex charge l'agent comme claude.
+        slug ? (noteAgent(engine) ?? '') : '',
       ].filter(Boolean).join(' '),
     });
   };
@@ -575,10 +741,6 @@ export default function LocalChatView() {
           sendTrailing(trailing);
           return;
         }
-        if (!engineSupportsAgent(engine)) {
-          setNotice({ tone: 'warn', text: "codex ne permet pas de choisir un agent depuis ce mode — bascule sur claude avec /engine claude." });
-          return;
-        }
         // Resolve BEFORE sending: the CLI accepts an unknown slug and silently
         // ignores it, so an unchecked name looks applied and changes nothing.
         const resolved = resolveClaudeAgent(wanted, claudeAgents);
@@ -599,10 +761,6 @@ export default function LocalChatView() {
       case '/byan': {
         // "Parle a BYAN" is an intent, not a setting: resolve the declared slug
         // (bmad-byan here) rather than assume a name, then open the session.
-        if (!engineSupportsAgent(engine)) {
-          setNotice({ tone: 'warn', text: "codex ne permet pas de choisir un agent — bascule sur claude avec /engine claude." });
-          return;
-        }
         const byan = resolveClaudeAgent('byan', claudeAgents);
         if (!byan) {
           setNotice({ tone: 'warn', text: "Aucun agent BYAN declare dans .claude/agents/ pour ce projet." });
@@ -679,13 +837,78 @@ export default function LocalChatView() {
       return;
     }
 
-    // Arm only when this send is the thing that will OPEN a session. A send into
-    // a live session must not leave a snapshot lying around for the next start,
-    // and a start already in flight already armed its own.
-    if (!sessionId && !pendingStartRef.current) armSnapshot({ engine, model, agent });
-    // Bind an on-the-fly session to the selected project dir + engine (F4).
-    void send(raw, startOpts(), turnOpts()).then(() => void refreshSessions());
     setInput('');
+    void (async () => {
+      // Le plan de dispatch, calcule AVANT l'envoi : c'est lui qui dit quel
+      // agent, quel moteur, quel niveau et quelle profondeur ce message merite.
+      //
+      // BEST-EFFORT, ET C'EST DELIBERE. Si le calcul echoue — canal absent,
+      // dossier projet illisible — le message part quand meme avec les reglages
+      // en cours. Un choix de reglage ne doit pas empecher une question d'etre
+      // posee.
+      const plan = await computePlan(raw);
+      setDispatchPlan(plan);
+      setPlanDismissed(false);
+
+      // RELANCER UNE SESSION VIDE NE COUTE RIEN, DONC ON NE LE DEMANDE PAS.
+      //
+      // Le plan raisonne sur "un processus tourne-t-il ?", parce que `--agent`
+      // et `--model` sont des drapeaux de lancement. Il ne sait pas, et n'a pas
+      // a savoir, si ce processus a deja dit quelque chose. Cette distinction
+      // vit ici : une session ouverte SANS aucun message n'a pas de fil a
+      // perdre, donc sa proposition s'accepte toute seule.
+      //
+      // Sans ca, le premier message d'une session fraiche affichait « L'agent X
+      // s'appliquera au prochain demarrage » et rien ne se passait : le
+      // processus gardait l'agent precedent. Constate a l'usage le 2026-08-07.
+      const relanceGratuite = Boolean(sessionId) && messages.length === 0 && !streaming;
+      if (plan && relanceGratuite && plan.acceptCost !== null) {
+        const e = plan.runtime.value;
+        const m = plan.model.value;
+        const a = plan.agent.value;
+        const f = plan.effort.value;
+        setEngine(e);
+        setAgent(a);
+        setModelByEngine((prev) => ({ ...prev, [e]: m ?? undefined }) as ModelByEngine);
+        setEffort(f && isValidEffortFor(e, f) ? f : null);
+        armSnapshot({ engine: e, model: m, agent: a });
+        setPlanDismissed(true);
+        await newSession({
+          cli: e,
+          ...(cwd ? { cwd } : {}),
+          ...(m ? { model: m } : {}),
+          ...(f && isValidEffortFor(e, f) ? { effort: f } : {}),
+          ...(a ? { agent: a } : {}),
+        });
+        await send(raw, undefined, e === 'codex' && f && isValidEffortFor(e, f) ? { reasoningEffort: f } : undefined);
+        await refreshSessions();
+        return;
+      }
+
+      // Ce que le plan applique TOUT DE SUITE : on le pose aussi dans l'etat de
+      // la vue, sinon les boutons du pied de page afficheraient encore l'ancien
+      // reglage alors que le tour part avec le nouveau.
+      const retenu = appliedFromPlan(plan);
+      if (retenu.engine && retenu.engine !== engine) setEngine(retenu.engine);
+      if (retenu.agent !== undefined && retenu.agent !== agent) setAgent(retenu.agent);
+      if (retenu.model !== undefined && retenu.model !== model) {
+        setModelByEngine((prev) => ({ ...prev, [retenu.engine ?? engine]: retenu.model ?? null }));
+      }
+      if (retenu.effort !== undefined && retenu.effort !== effort) setEffort(retenu.effort ?? null);
+
+      // Arm only when this send is the thing that will OPEN a session. A send into
+      // a live session must not leave a snapshot lying around for the next start,
+      // and a start already in flight already armed its own.
+      if (!sessionId && !pendingStartRef.current) {
+        armSnapshot({ engine: retenu.engine ?? engine, model: retenu.model ?? model, agent: retenu.agent ?? agent });
+      }
+      // Bind an on-the-fly session to the selected project dir + engine (F4).
+      // Les valeurs viennent du PLAN, pas de l'etat React : setEngine et ses
+      // voisins ne sont pas commits dans le meme tour de boucle, et lire l'etat
+      // ici enverrait l'ancien reglage.
+      await send(raw, startOptsFrom(retenu), turnOptsFrom(retenu));
+      await refreshSessions();
+    })();
   };
 
   // Pick a project directory for the next new session (F4). Recording it in the
@@ -1023,6 +1246,14 @@ export default function LocalChatView() {
                     assistant bubble was a hardcoded dark ground, which reads as a
                     dark bubble on a white page once the light theme is on. */}
                 <div
+                  // Un marqueur d'INTENTION, pas une classe de style. Les essais de
+                  // bout en bout ciblaient `.rounded-xl` alors que la classe est
+                  // `rounded-2xl` : ils comptaient zero bulle et ne pouvaient donc
+                  // pas prouver qu'une reponse arrive. Constate le 2026-08-05. Une
+                  // classe utilitaire derive au premier changement de style ; ce
+                  // marqueur, non.
+                  data-testid="local-message"
+                  data-role={m.role}
                   className={[
                     'max-w-[80%] rounded-2xl px-sm py-sm text-sm',
                     m.role === 'user'
@@ -1046,6 +1277,109 @@ export default function LocalChatView() {
               </div>
             )}
           </>
+        )}
+        {mainLevee && !handDismissed && (
+          <div className="mt-sm" data-testid="local-raised-hand">
+            <RaisedHandPanel
+              hand={mainLevee.hand}
+              grants={[]}
+              gate={mainLevee.gate}
+              labels={mainLevee.actions}
+              // Le seul bouton qui AGIT : il fait le geste qui debloque.
+              onAllowOnce={() => {
+                if (sessionCwd === null) void onPickFolder();
+                else if (engine === 'codex' && !codexAvailable) pickEngine('claude');
+                else void newSession(startOpts()).then(() => void refreshSessions());
+              }}
+              // Ecarter la question. Le panneau disparait de lui-meme des que le
+              // blocage tombe : rien a remettre a zero ici.
+              onRefuse={() => setHandDismissed(true)}
+            />
+          </div>
+        )}
+        {dispatchPlan && !planDismissed && (
+          <div className="mt-sm">
+            <DispatchPanel
+              plan={dispatchPlan}
+              // Accepter coute le fil : on repart sur une session neuve avec les
+              // valeurs que le plan proposait.
+              onAccept={() => {
+                const p = dispatchPlan;
+                const e = p.runtime.value;
+                const m = p.model.value;
+                const a = p.agent.value;
+                const f = p.effort.value;
+                setEngine(e);
+                setAgent(a);
+                setModelByEngine((prev) => ({ ...prev, [e]: m ?? undefined }) as ModelByEngine);
+                setEffort(f && isValidEffortFor(e, f) ? f : null);
+                armSnapshot({ engine: e, model: m, agent: a });
+                void newSession({
+                  cli: e,
+                  ...(cwd ? { cwd } : {}),
+                  ...(m ? { model: m } : {}),
+                  ...(f && isValidEffortFor(e, f) ? { effort: f } : {}),
+                  ...(a ? { agent: a } : {}),
+                }).then(() => void refreshSessions());
+                setPlanDismissed(true);
+                setNotice({
+                  tone: 'info',
+                  text: "Nouvelle session avec le réglage proposé. Le fil précédent est fermé : le moteur repart sans le contexte de l'échange.",
+                });
+              }}
+              onDismiss={() => setPlanDismissed(true)}
+              // Reprendre la main sur une case : on ouvre le selecteur
+              // correspondant plutot que de deviner une valeur a la place de
+              // l'utilisateur.
+              onOverride={(cle) => {
+                if (cle === 'model') setModelOpen(true);
+                else if (cle === 'effort') setEffortOpen(true);
+                else if (cle === 'runtime') pickEngine(engine === 'claude' ? 'codex' : 'claude');
+                else setInput('/byan ');
+                setPlanDismissed(true);
+              }}
+            />
+          </div>
+        )}
+        {contaminationVisible(contamination, contaminationEcartee) && (
+          <div className="mt-sm" data-testid="local-contamination">
+            <ContaminationPanel
+              steps={contamination}
+              redoCostUsd={null}
+              redoSilenceReason="non-rapporte"
+              // Refaire ENVOIE le message et ferme le panneau. Sans la fermeture,
+              // le geste marchait mais restait invisible : le panneau vit sous le
+              // fil, la reponse arrive au-dessus, et l'utilisateur qui ne fait pas
+              // defiler voit le meme ecran qu'avant son clic. Un bouton qui agit
+              // sans que rien ne bouge est indistinguable d'un bouton mort.
+              onRedo={() => {
+                setContaminationEcartee(contamination[0]?.id ?? null);
+                sendTrailing("reprends a partir de l'etape qui a echoue");
+              }}
+              // Accepter tel quel ECARTE la question. C'est le sens de ce bouton :
+              // « j'ai regarde, ca me va, arrete de me le signaler ». Il etait
+              // cable sur une fonction vide — donc un bouton mort, ce qui est pire
+              // que pas de bouton du tout : il promet une action et n'en fait
+              // aucune. Constate a l'usage le 2026-08-07.
+              onAccept={() => setContaminationEcartee(contamination[0]?.id ?? null)}
+            />
+          </div>
+        )}
+        {timelineSlices.length > 0 && (
+          <div className="mt-sm" data-testid="local-work-timeline">
+            <WorkTimeline slices={timelineSlices} />
+          </div>
+        )}
+        {retours.length > 0 && (
+          <div className="mt-sm" data-testid="local-rewind">
+            <RewindPanel
+              points={retours}
+              onRewind={(id) => {
+                if (id === 'repartir') void newSession(startOpts()).then(() => void refreshSessions());
+                else pickEngine(engine === 'claude' ? 'codex' : 'claude');
+              }}
+            />
+          </div>
         )}
         <div ref={bottomRef} />
       </div>

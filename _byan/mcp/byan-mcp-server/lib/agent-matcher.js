@@ -59,6 +59,43 @@ function tokenize(text) {
     .filter((w) => w.length >= 3 && !STOPWORDS.has(w));
 }
 
+// matchesKeyword — does a keyword really occur in the text?
+//
+// LEFT word boundary only: the keyword must START a word, but may continue.
+//
+// WHY. Measured 2026-08-07 on real chat sentences, plain `includes` scored a
+// specialist that had nothing to do with the request:
+//   "tu peux me lister le dossier src"  -> "peux" contains "ux"      -> ux-designer
+//   "deploie la version en production"  -> "production" has "product" -> pm
+// Short keywords (ux, ui, ci, cd) sit inside common French words. A wrong agent
+// proposed is worse than none: it looks like understanding while being wrong.
+//
+// Why not a boundary on BOTH sides: these are STEMS, not whole words.
+// "documente" must catch "documenter" and "documentation" — that is what makes
+// the French list work at all. With a right-hand boundary, "il faut documenter
+// l'API" stopped routing to the technical writer.
+//
+// What this does NOT fix, and it should be said: "production" does start with
+// "product". That is a VOCABULARY problem (the stem is too short for its
+// meaning), not a mechanism one, and it belongs in DOMAIN_KEYWORDS.
+const WORD_CHAR = /[a-z0-9]/;
+
+export function matchesKeyword(text, keyword) {
+  if (!keyword) return false;
+  // Multi-word keywords keep substring matching: their length already protects
+  // them, and requiring a boundary would break spacing variants.
+  if (/\s/.test(keyword)) return text.includes(keyword);
+
+  let from = 0;
+  for (;;) {
+    const i = text.indexOf(keyword, from);
+    if (i === -1) return false;
+    const before = i === 0 ? '' : text[i - 1];
+    if (!WORD_CHAR.test(before)) return true;
+    from = i + 1;
+  }
+}
+
 // scoreAgent — pure per-agent score. keyword hits (x3) + title/role text overlap.
 export function scoreAgent(taskText, agent) {
   const task = deburr(taskText);
@@ -67,7 +104,7 @@ export function scoreAgent(taskText, agent) {
   const hits = [];
   const kws = DOMAIN_KEYWORDS[agent.name] || [];
   for (const kw of kws) {
-    if (task.includes(deburr(kw))) { keywordScore += 1; hits.push(kw); }
+    if (matchesKeyword(task, deburr(kw))) { keywordScore += 1; hits.push(kw); }
   }
   const agentTokens = tokenize(`${agent.title || ''} ${agent.role || ''}`);
   let textScore = 0;

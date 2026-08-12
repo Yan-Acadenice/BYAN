@@ -12,12 +12,22 @@
 // plus item types command_execution / mcp_tool_call / web_search / file_change
 // and turn.failed / error on failures.
 //
+// Re-measured on codex-cli 0.146 (2026-07-31), for the timeline:
+//   - an `agent_message` item emits item.completed ONLY; a command_execution
+//     emits item.started AND item.completed, both carrying the same item.id;
+//   - no frame carries a timestamp of any kind (top-level keys are exactly
+//     {item,type}), so the instant is stamped when the line is read;
+//   - item ids restart at item_0 on every turn, `exec resume` included — hence
+//     the per-turn namespacing in state.turns.
+//
 // The prompt travels over STDIN (positional '-'), never argv: a message
 // starting with '-' cannot be parsed as a flag, and long prompts do not hit
 // argv limits. The MCP channel is wired per-invocation from the project's
 // .mcp.json via -c overrides (see codex-config.ts) — the codex equivalent of
 // claude reading .mcp.json natively.
 
+import { agentPreamble } from '../../shared/agent-definition';
+import { readClaudeAgentDefinition } from '../claude-agents';
 import type { ChildProcess } from 'child_process';
 import { IpcError } from '../ipc-handlers/_error';
 import { readMcpConfig, type McpServerConfig } from '../mcp-config';
@@ -43,6 +53,7 @@ const RESUME_FLAGS = ['--json', '--skip-git-repo-check'];
 const STDERR_TAIL_LINES = 5;
 
 export type ReadMcpFn = (projectRoot: string) => Promise<McpServerConfig[]>;
+export type ReadAgentFn = (slug: string, projectRoot?: string | null) => string | null;
 
 // codex's turn.completed usage payload -> the IPC usage contract. Wire names are
 // snake_case (live-verified: input_tokens, cached_input_tokens,
@@ -74,16 +85,29 @@ export class CodexEngine implements Engine {
 
   constructor(
     private readonly deps: EngineDeps,
-    private readonly readMcp: ReadMcpFn = readMcpConfig
+    private readonly readMcp: ReadMcpFn = readMcpConfig,
+    private readonly readAgent: ReadAgentFn = readClaudeAgentDefinition
   ) {}
 
-  start({ sessionId, cwd, model, effort, emit, onClose }: EngineStartOpts): EngineSession {
+  start({ sessionId, cwd, agent, model, effort, emit, onClose }: EngineStartOpts): EngineSession {
     const deps = this.deps;
     const readMcp = this.readMcp;
+    // codex n'a pas de `--agent` (mesure du jour, codex-cli 0.146.0). La
+    // definition est donc lue UNE fois au demarrage et mise en tete de chaque
+    // tour. Lue une fois : un fichier qui change en cours de session ne doit pas
+    // faire deriver la persona d'un tour a l'autre.
+    const agentDefinition = agent ? this.readAgent(agent, cwd) : null;
     const state = {
       threadId: null as string | null,
       proc: null as ChildProcess | null,
       stopped: false,
+      // codex numbers its items per PROCESS and runs one process per turn, so
+      // 'item_1' comes back on EVERY turn of the same session (measured on
+      // codex-cli 0.146: a fresh turn and its `exec resume` follow-up both
+      // emitted item_0/item_1/item_2). Without this counter, turn 2's item_1
+      // would be paired with turn 1's item_1 and the timeline would fuse two
+      // unrelated steps into one.
+      turns: 0,
     };
 
     // The session-default effort captured above is the baseline; a turn may
@@ -91,6 +115,9 @@ export class CodexEngine implements Engine {
     async function send(message: string, turnOpts?: LocalChatTurnOpts): Promise<void> {
       if (state.stopped) throw new IpcError('NOT_FOUND', 'Session locale absente ou fermée.');
       if (state.proc) throw new IpcError('INVALID_ARGUMENT', 'Un tour codex est déjà en cours pour cette session.');
+
+      state.turns += 1;
+      const turnKey = `t${state.turns}`;
 
       // Project-scoped MCP wiring, re-read each turn so an edited .mcp.json
       // applies without restarting the session. Unreadable file -> no MCP.
@@ -125,7 +152,9 @@ export class CodexEngine implements Engine {
 
       // The prompt goes through stdin ('-' positional above), then stdin
       // closes so codex knows the instructions are complete.
-      proc.stdin?.write(message);
+      // La persona part avec le tour, pas avec le processus : codex en lance un
+      // par tour, il n'y a pas d'endroit ou l'installer une fois pour toutes.
+      proc.stdin?.write(agentDefinition ? agentPreamble(agent as string, agentDefinition, message) : message);
       proc.stdin?.end();
 
       let sawTerminal = false;
@@ -150,6 +179,10 @@ export class CodexEngine implements Engine {
         } catch {
           return; // codex --json keeps stdout JSONL; ignore stray noise
         }
+        // codex dates nothing: its frame keys are exactly {item,type} (measured
+        // on codex-cli 0.146). The only instant available is the one where this
+        // line is read, and it is stamped here rather than guessed later.
+        const at = Date.now();
         switch (event.type) {
           case 'thread.started':
             if (typeof event.thread_id === 'string') state.threadId = event.thread_id;
@@ -160,7 +193,7 @@ export class CodexEngine implements Engine {
           case 'item.started': {
             const item = (event.item ?? {}) as { type?: string };
             if (item.type && item.type !== 'agent_message' && item.type !== 'reasoning') {
-              emit({ type: 'tool', sessionId, tool: item, activity: codexItemActivity(item, 'start') ?? undefined });
+              emit({ type: 'tool', sessionId, tool: item, activity: codexItemActivity(item, { phase: 'start', at, idPrefix: turnKey }) ?? undefined });
             }
             break;
           }
@@ -170,7 +203,7 @@ export class CodexEngine implements Engine {
               lastAgentText = item.text;
               emit({ type: 'chunk', sessionId, delta: item.text, role: 'assistant' });
             } else if (item.type === 'command_execution' || item.type === 'mcp_tool_call' || item.type === 'web_search' || item.type === 'file_change' || item.type === 'todo_list') {
-              emit({ type: 'tool', sessionId, tool: item, activity: codexItemActivity(item, 'end') ?? undefined });
+              emit({ type: 'tool', sessionId, tool: item, activity: codexItemActivity(item, { phase: 'end', at, idPrefix: turnKey }) ?? undefined });
             }
             break;
           }

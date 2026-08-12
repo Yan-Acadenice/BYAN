@@ -14,7 +14,7 @@ import { IpcError } from '../ipc-handlers/_error';
 import type { Engine, EngineDeps, EngineSession, EngineStartOpts } from './types';
 import { killProcTreeNow, stopProcTree } from './kill-tree';
 import { LineAccumulator } from './stream-lines';
-import { claudeToolActivity } from '../../shared/tool-activity';
+import { claudeToolActivity, claudeToolResultActivity, parseFrameInstant, type StartedCall } from '../../shared/tool-activity';
 
 // Benign claude stderr prefixes (progress/status). Filtered so only real errors
 // surface. Tested per-LINE (never with /m) so an error line that follows a
@@ -58,6 +58,16 @@ export class ClaudeEngine implements Engine {
 
     const lines = new LineAccumulator();
 
+    // claude announces the START of a tool call in the `assistant` frame
+    // (tool_use, with its id) and its END in the `user` frame that follows
+    // (tool_result, carrying the same id in tool_use_id — measured). This map
+    // holds what the start said so the end can be labelled with it: a
+    // tool_result has an id and a verdict but no name of its own.
+    const openCalls = new Map<string, StartedCall>();
+    const remember = (activity: { id?: string; name: string; detail?: string }): void => {
+      if (activity.id) openCalls.set(activity.id, { name: activity.name, detail: activity.detail });
+    };
+
     const parseLine = (line: string): void => {
       let event: Record<string, unknown>;
       try {
@@ -67,6 +77,10 @@ export class ClaudeEngine implements Engine {
         emit({ type: 'chunk', sessionId, delta: line, role: 'assistant' });
         return;
       }
+      // claude timestamps its assistant/user frames (measured: ISO-8601 UTC with
+      // milliseconds). Its clock is preferred over ours because it dates the
+      // production of the frame, not the moment the pipe handed it over.
+      const at = parseFrameInstant(event.timestamp) ?? Date.now();
       switch (event.type) {
         case 'assistant': {
           const msg = (event.message as { content?: unknown })?.content ?? event.content ?? [];
@@ -77,8 +91,25 @@ export class ClaudeEngine implements Engine {
             else if (item && (item as { type?: string }).type === 'tool_use') {
               // The raw item stays on the frame; the normalized label is what the
               // interface can actually show without knowing claude's shape.
-              emit({ type: 'tool', sessionId, tool: item, activity: claudeToolActivity(item) ?? undefined });
+              const activity = claudeToolActivity(item, at) ?? undefined;
+              if (activity) remember(activity);
+              emit({ type: 'tool', sessionId, tool: item, activity });
             }
+          }
+          break;
+        }
+        // The END of a tool call lands here, and the engine used to drop this
+        // whole frame on `default`. Without it a step has one bound and the
+        // interface can never say how long anything took.
+        case 'user': {
+          const content = (event.message as { content?: unknown })?.content;
+          // Our own turn echoed back carries a plain string: nothing to close.
+          if (!Array.isArray(content)) break;
+          for (const block of content) {
+            const activity = claudeToolResultActivity(block, { at, lookup: (id) => openCalls.get(id) });
+            if (!activity) continue;
+            if (activity.id) openCalls.delete(activity.id);
+            emit({ type: 'tool', sessionId, tool: block, activity });
           }
           break;
         }
@@ -87,9 +118,12 @@ export class ClaudeEngine implements Engine {
           if (delta?.type === 'text_delta') emit({ type: 'chunk', sessionId, delta: delta.text ?? '', role: 'assistant' });
           break;
         }
-        case 'tool_use':
-          emit({ type: 'tool', sessionId, tool: event, activity: claudeToolActivity(event) ?? undefined });
+        case 'tool_use': {
+          const activity = claudeToolActivity(event, at) ?? undefined;
+          if (activity) remember(activity);
+          emit({ type: 'tool', sessionId, tool: event, activity });
           break;
+        }
         // Measured on claude 2.1.220: {type:'system',subtype:'thinking_tokens',
         // estimated_tokens,estimated_tokens_delta}. These arrive during the long
         // stretches where no text is produced — exactly when the interface used
@@ -101,6 +135,11 @@ export class ClaudeEngine implements Engine {
           }
           break;
         case 'result':
+          // End of turn: a call still waiting for its tool_result will never get
+          // one. Forgetting it keeps the map bounded — and NO synthetic end is
+          // emitted, so those steps stay open with an unknown duration instead of
+          // being credited with a made-up one.
+          openCalls.clear();
           // is_error:true = a FAILED turn (rate limit, refusal, API error).
           // Surface it as an error, never as a silent success the renderer
           // commits as a reply.

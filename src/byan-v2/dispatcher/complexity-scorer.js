@@ -25,7 +25,18 @@ class ComplexityScorer {
         baseScore: 15
       },
       implementation: {
-        keywords: ['implement', 'create', 'build', 'write', 'develop', 'code', 'add', 'generate'],
+        // fix, deploy, test and document were missing (measured 2026-08-07):
+        // "fix the bug", "deploy the release", "test the handler" and
+        // "document the API" matched no pattern at all and fell to the same
+        // default 45 this list already assigns. Naming them changes no score —
+        // it makes the classification explicit instead of accidental, and it
+        // gives the app's ported copy a root to translate (corrig-, deploi-)
+        // without diverging from this file. Adding them to keywordWeights
+        // instead WOULD move scores by +17, which is why they are only here.
+        keywords: [
+          'implement', 'create', 'build', 'write', 'develop', 'code', 'add', 'generate',
+          'fix', 'deploy', 'test', 'document'
+        ],
         baseScore: 45
       },
       analysis: {

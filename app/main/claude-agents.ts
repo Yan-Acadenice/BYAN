@@ -56,3 +56,34 @@ export function availableClaudeAgents(projectRoot?: string | null): string[] {
   return out.sort();
 }
 
+
+// La DEFINITION d'un agent, pas seulement son nom.
+//
+// POURQUOI. `claude --agent <slug>` charge le fichier lui-meme ; codex n'a pas
+// de drapeau equivalent (mesure du jour, codex-cli 0.146.0). Pour que le choix
+// d'agent marche aussi sur codex, il faut le CONTENU, qu'on met en tete du tour.
+// Voir shared/agent-definition.ts pour la mise en forme et ses limites.
+//
+// Meme ordre de resolution que les noms : le projet d'abord, l'utilisateur
+// ensuite — c'est ainsi que claude tranche un nom defini des deux cotes.
+export function readClaudeAgentDefinition(
+  slug: string,
+  projectRoot?: string | null,
+): string | null {
+  // Le nom vient du renderer. Un nom qui contient un separateur ou des points
+  // pourrait sortir du dossier des agents : on ferme cette porte ici, une fois.
+  if (!/^[A-Za-z0-9._-]+$/.test(slug) || slug.includes('..')) return null;
+
+  const dirs: string[] = [];
+  if (projectRoot) dirs.push(path.join(projectRoot, '.claude', 'agents'));
+  dirs.push(path.join(os.homedir(), '.claude', 'agents'));
+
+  for (const dir of dirs) {
+    try {
+      return fs.readFileSync(path.join(dir, `${slug}.md`), 'utf8');
+    } catch {
+      // Absent ici, on essaie le suivant. Un agent introuvable partout rend null.
+    }
+  }
+  return null;
+}

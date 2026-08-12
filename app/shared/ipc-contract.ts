@@ -11,6 +11,19 @@
 
 import type { EngineId, ReasoningEffort } from './engine-options';
 import type { LocalChatActivity } from './tool-activity';
+import type { DispatchPlan, DispatchPlanState } from './dispatch/plan';
+
+export type { DispatchPlan, DispatchPlanState };
+
+// Ce que le renderer envoie pour obtenir un plan : le message, et l'etat de la
+// session TELLE QU'IL LA CONNAIT. Le dossier projet sert au processus principal
+// a lire le roster et les agents disponibles ; absent, il retombe sur le dossier
+// par defaut, exactement comme `localChat.agents`.
+export interface DispatchPlanRequest {
+  readonly message: string;
+  readonly state: DispatchPlanState;
+  readonly cwd?: string;
+}
 
 export type { LocalChatActivity };
 
@@ -240,8 +253,10 @@ export interface LocalChatStartOpts {
   // main/engines/, never a binary — a renderer-supplied path reaching spawn
   // would be a spawn-any-binary surface. Default: 'claude'.
   cli?: EngineId;
-  // Optional agent slug (claude --agent). Ignored by the codex engine
-  // (personas live in .codex/prompts and exec mode cannot select them).
+  // Optional agent slug. claude le charge nativement (--agent) ; codex n'a pas
+  // de drapeau equivalent et recoit la definition en tete du tour. Les deux
+  // voies ne donnent pas la meme chose : voir shared/engine-options.ts ->
+  // agentSupport et AGENT_SUPPORT_NOTE.
   agent?: string | null;
   // Model for the session (claude --model / codex -m). SESSION-scoped on both
   // engines: claude fixes it at spawn, and while codex accepts -m on `exec
@@ -606,6 +621,17 @@ export interface ByanApi {
     agents(cwd?: string): Promise<string[]>;
     // Load a session's stored messages (to seed the thread on resume).
     history(sessionId: string): Promise<LocalChatHistoryMessage[]>;
+    // Le plan de dispatch pour UN message : quel agent, quel moteur, quelle
+    // gamme de modele, quel effort — et pour chacun, si ca s'applique tout de
+    // suite ou si ca doit etre propose parce que ca coute le fil.
+    //
+    // POURQUOI CA PASSE PAR LE PROCESSUS PRINCIPAL alors que le calcul est pur.
+    // Le calcul a besoin de deux choses qui vivent sur le DISQUE : le roster
+    // (_byan/_config/agent-manifest.csv du dossier projet) et les agents que
+    // `claude --agent` honore vraiment (.claude/agents/). Le renderer n'a acces
+    // ni a l'un ni a l'autre. Il envoie le message et son etat, il recoit le
+    // plan.
+    plan(input: DispatchPlanRequest): Promise<DispatchPlan>;
   };
   terminal: {
     // Open an external terminal running `claude` (or command) in cwd (F5).
@@ -690,7 +716,8 @@ export const IPC_CHANNELS = {
     stop: 'byan:localChat:stop',
     list: 'byan:localChat:list',
     agents: 'byan:localChat:agents',
-    history: 'byan:localChat:history'
+    history: 'byan:localChat:history',
+    plan: 'byan:localChat:plan'
   },
   terminal: {
     open: 'byan:terminal:open'

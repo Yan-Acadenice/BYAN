@@ -298,3 +298,54 @@ describe('LocalChatProvider — persistence across consumer unmount/remount', ()
     await waitFor(() => expect(queryByTestId('count')?.textContent).toBe('2'));
   });
 });
+
+// ---------------------------------------------------------------------------
+// L'historique des etapes, sans lequel la frise n'a rien a dessiner.
+//
+// Le contexte ne gardait que la DERNIERE activite : assez pour la ligne "ce qui
+// se passe maintenant", pas pour un axe du temps. La frise est la troisieme
+// profondeur de lecture du patron, et elle a besoin de toutes les etapes du tour.
+// ---------------------------------------------------------------------------
+describe('useLocalChat — historique des etapes', () => {
+  it('accumule les etapes au lieu de ne garder que la derniere', async () => {
+    const { result } = renderHook(() => useLocalChat(), { wrapper: LocalChatProvider });
+    await act(async () => { await result.current.newSession(); });
+
+    act(() => {
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', phase: 'start', id: 'a', at: 1000 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', phase: 'end', id: 'a', at: 1400 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start', id: 'b', at: 1200 } });
+    });
+
+    expect(result.current.activitySteps).toHaveLength(3);
+    // La ligne "maintenant" continue de ne montrer que la derniere.
+    expect(result.current.activity?.name).toBe('Bash');
+  });
+
+  it('repart de zero au tour suivant : les etapes appartiennent au tour', async () => {
+    const { result } = renderHook(() => useLocalChat(), { wrapper: LocalChatProvider });
+    await act(async () => { await result.current.newSession(); });
+    act(() => {
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', phase: 'start', id: 'a', at: 1000 } });
+    });
+    expect(result.current.activitySteps).toHaveLength(1);
+
+    await act(async () => { await result.current.send('salut'); });
+
+    // Melanger deux tours ferait croire a un chantier plus long qu'il n'a ete.
+    expect(result.current.activitySteps).toHaveLength(0);
+  });
+
+  it('borne la memoire : un tour tres long ne fait pas gonfler l etat sans fin', async () => {
+    const { result } = renderHook(() => useLocalChat(), { wrapper: LocalChatProvider });
+    await act(async () => { await result.current.newSession(); });
+    act(() => {
+      for (let i = 0; i < 600; i += 1) {
+        emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', phase: 'start', id: `s${i}`, at: 1000 + i } });
+      }
+    });
+    expect(result.current.activitySteps.length).toBeLessThanOrEqual(500);
+    // Ce sont les plus RECENTES qu'on garde.
+    expect(result.current.activitySteps[result.current.activitySteps.length - 1]?.id).toBe('s599');
+  });
+});

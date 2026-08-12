@@ -228,3 +228,95 @@ section "App Desktop 1.3.0". L'essentiel :
 - Persistance de l'engine par session dans les enregistrements disque (list()
   etiquette encore tout en 'claude') + vraie reprise de contexte (uuid claude /
   thread_id codex persistes).
+
+## 10. Les quatre ecrans de workflow — ce qui est monte, ce qui ne peut pas l'etre
+
+Les quatre ecrans vivent dans `renderer/components/chat/workflow/` et sont
+couverts par `renderer/__tests__/WorkflowScreens.test.tsx`. **Un seul est monte**,
+et ce n'est pas un oubli : les trois autres n'ont aucune source de donnees dans
+l'application telle qu'elle tourne. Les monter reviendrait a dessiner des chiffres
+inventes — pire que ne rien montrer.
+
+| Ecran | Donnee dont il a besoin | Produite ? |
+|-------|-------------------------|-----------|
+| **`WorkTimeline`** (la frise) | des etapes bornees dans le temps | **oui** — montee dans le chat, derriere le bouton « le detail minute par minute » |
+| `ContaminationPanel` | la nature des etapes ET le graphe de ce qui s'appuie sur quoi | non — le fil ne porte que la succession dans le temps, et une succession n'est pas une dependance |
+| `RewindPanel` | des points de decision nommes + un mecanisme de reprise | non — un chat local n'a aucune reprise, donc rien n'est jamais jete et il n'y a pas de prix a afficher |
+| `RaisedHandPanel` | un protocole de pause et de demande | non — mesure le 2026-07-31 : ni `claude` ni `codex` n'emettent d'evenement d'autorisation sur le fil (`main/engines/`, `shared/ipc-contract.ts`) |
+
+Chemin de donnees de la frise :
+
+```
+moteur -> LocalChatActivity            (shared/tool-activity.ts)
+       -> activitySteps, par tour      (renderer/context/LocalChatContext.tsx)
+       -> buildActivityTimeline        (shared/tool-activity.ts)
+       -> slicesFromActivity           (components/chat/workflow/fromActivity.ts)
+       -> TimelineSlice[] -> WorkTimeline
+```
+
+Deux details qui portent l'honnetete de l'ecran :
+
+- `discarded` vaut 0 partout. C'est une MESURE, pas un remplissage : sans
+  mecanisme de reprise, aucun travail n'est jete. Le jour ou une reprise
+  existera, c'est cette valeur qu'il faudra brancher.
+- Les etapes sont remises a zero au DEBUT d'un tour, jamais a sa fin. La frise
+  repond a « ou est passe le temps ? », une question qu'on se pose une fois le
+  travail fini : l'effacer a la fin la rendrait vide au seul moment ou elle sert.
+
+Les trois ecrans non montes ne sont pas du travail perdu — ils decrivent la vue
+d'un workflow multi-agents, ou ces donnees existent. Ils attendent ce producteur,
+pas une correction.
+
+## 11. Cout par tour dans le panneau d'usage (piege mesure)
+
+`claude` publie `total_cost_usd` : le total de la SESSION, remesure a chaque tour
+(mesure du 2026-07-27 sur trois tours : 0.2319 -> 0.2620 -> 0.2819, monotone).
+Le pli des totaux le sait deja (`costUsd: 'latest'`), mais la liste « derniers
+tours » affichait la valeur brute : trois lignes qui se lisent comme trois couts
+et s'additionnent a 0.78 pour une session qui en a coute 0.28.
+
+`components/chat/panels/turn-cost.ts` en tire le cout reel par soustraction de
+deux cumuls mesures, et dit « cumul » quand il ne peut pas :
+- le tour precedent du meme moteur n'est plus retenu (la liste est bornee a 50) ;
+- le cumul redescend (un cout negatif n'existe pas).
+
+Le rang du tour dans son moteur (`engineTurn`) est pose au pli, depuis un
+compteur hors etat — pas depuis la longueur de la liste, qui est elaguee et
+ferait repartir le rang a 1.
+
+## 12. Les quatre ecrans, tous branches (mise a jour du 2026-07-31)
+
+La section 10 disait qu'un seul ecran sur quatre etait monte. Ce n'est plus vrai :
+les trois autres ont ete ADAPTES a un signal que l'application mesure deja,
+plutot que laisses vides ou nourris de chiffres inventes.
+
+| Ecran | Signal local reel | Source |
+|-------|-------------------|--------|
+| `WorkTimeline` | les etapes bornees dans le temps | `slicesFromActivity` |
+| `ContaminationPanel` | une etape qui a ECHOUE (`ok: false`) et celles qui ont tourne apres, dans le meme tour | `contaminationSteps` |
+| `RewindPanel` | ce que couterait de repartir (`/new`) ou de changer de moteur, chiffre sur les couts par tour reels | `rewindPoints` |
+| `RaisedHandPanel` | ce qui bloque VRAIMENT : dossier non choisi, moteur absent, erreur qui a stoppe le tour | `raisedHandState` |
+
+Tout vit dans `renderer/components/chat/workflow/fromLocal.ts`.
+
+Trois limites assumees, ecrites dans le code la ou elles se posent :
+
+1. **La relation de contamination est TEMPORELLE, pas une dependance prouvee.**
+   Le fil ne porte que l'ordre des gestes. `consumes` dit « a tourne apres »,
+   et la vue doit le formuler ainsi — pas « a consomme la sortie de ».
+2. **L'application ne sait pas revenir au tour 3.** Elle sait repartir de zero
+   et changer de moteur. `rewindPoints` n'offre donc que ces DEUX points :
+   en proposer un par tour promettrait un geste qui n'existe pas.
+3. **Aucun moteur n'emet de demande d'autorisation** (verifie le 2026-07-31,
+   `main/engines/`, `shared/ipc-contract.ts`). La main levee montre donc les
+   blocages reels de l'application, qui appellent le meme geste : trancher pour
+   que ca reparte.
+
+Invariant commun, teste : **quand le signal est absent, la fonction rend une
+valeur vide et l'ecran ne s'affiche pas.** Un panneau de contamination sans
+echec affirmerait un probleme inexistant — c'est pire qu'un panneau absent.
+
+L'intervenant affiche est le MOTEUR (`claude` / `codex`), pas un agent du roster
+BYAN : en local c'est lui qui fait le travail, et lui coller un agent serait un
+mensonge de casting. Les identifiants ne sont pas dans `PEOPLE`, donc la vue
+affiche `UNKNOWN_PERSON_LABEL` a cote du nom de l'outil.

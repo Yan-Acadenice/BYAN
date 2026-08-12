@@ -1,7 +1,7 @@
 {
   "name": "byan-app",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "BYAN Electron desktop app — main + preload + renderer (TypeScript). F1 app shell, F2 IPC contract.",
   "_comment_workspace": "Standalone package.json (NOT an npm workspace). Root /home/yan/BYAN/package.json already publishes create-byan-agent and depends on file:./install/packages/platform-config; activating workspaces would conflict with that publishing flow. app/ owns its own deps and lockfile.",
   "main": "dist/main/index.js",
@@ -44,7 +44,7 @@
     "@fontsource/josefin-sans": "^5.3.0",
     "byan-platform-config": "file:../install/packages/platform-config",
     "chalk": "^4.1.2",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "6.8.9",
     "fs-extra": "^11.3.6",
     "inquirer": "^8.2.7",
     "js-yaml": "^4.3.0",

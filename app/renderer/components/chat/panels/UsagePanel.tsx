@@ -16,6 +16,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import type { LocalChatUsage } from '../../../../shared/ipc-contract';
 import type { LocalChatUsageTotal, LocalChatUsageTotals, UsageMetric } from '../../../context/LocalChatContext';
+import { turnCosts, type TurnCost } from './turn-cost';
 
 export interface UsagePanelProps {
   // Per-turn records, oldest first (already capped by the context).
@@ -69,9 +70,14 @@ const ENGINE_ROWS = [
 // The two token counters are labelled in French like every other label in this
 // panel : an "in / out" pair next to "Entrée / Sortie" two rows above would read
 // as two different measurements rather than the same one, summarised.
-function turnRecap(u: LocalChatUsage): string {
+function turnRecap(u: LocalChatUsage, cost: TurnCost): string {
   const parts: string[] = [];
-  if (typeof u.costUsd === 'number') parts.push(usd(u.costUsd));
+  // Le montant rapporte par claude est le cumul de la session, pas le cout du
+  // tour. `turnCosts` en tire le cout reel quand c'est possible, et dit « cumul »
+  // quand ca ne l'est pas — plutot que d'afficher un nombre qui invite a une
+  // addition fausse.
+  if (cost.kind === 'turn' && cost.usd !== undefined) parts.push(usd(cost.usd));
+  else if (cost.kind === 'cumulative' && cost.usd !== undefined) parts.push(`cumul ${usd(cost.usd)}`);
   if (typeof u.durationMs === 'number') parts.push(duration(u.durationMs));
   if (typeof u.inputTokens === 'number') parts.push(`entrée ${u.inputTokens}`);
   if (typeof u.outputTokens === 'number') parts.push(`sortie ${u.outputTokens}`);
@@ -132,6 +138,9 @@ function EngineRow({ row, total }: { row: (typeof ENGINE_ROWS)[number]; total: L
 
 export default function UsagePanel({ turns, totals, onClose }: UsagePanelProps) {
   const rows = ENGINE_ROWS.filter((r) => totals[r.engine] !== undefined);
+  // Calcule dans l'ordre chronologique : la soustraction a besoin du tour
+  // precedent. L'affichage s'inverse ensuite, pas le calcul.
+  const costs = turnCosts(turns);
   return (
     <div
       role="dialog"
@@ -165,12 +174,12 @@ export default function UsagePanel({ turns, totals, onClose }: UsagePanelProps) 
           <p className="text-[10px] text-content-tertiary">Derniers tours ({turns.length})</p>
           <ul className="mt-xs space-y-xs">
             {turns
-              .map((u, i) => ({ u, n: i + 1 }))
+              .map((u, i) => ({ u, n: i + 1, cost: costs[i] as TurnCost }))
               .reverse()
-              .map(({ u, n }) => (
+              .map(({ u, n, cost }) => (
                 <li key={n} className="flex items-baseline justify-between gap-sm">
                   <span className="text-[10px] text-content-tertiary">{u.engine}</span>
-                  <span className="font-mono-code text-[10px] text-content-tertiary">{turnRecap(u)}</span>
+                  <span className="font-mono-code text-[10px] text-content-tertiary">{turnRecap(u, cost)}</span>
                 </li>
               ))}
           </ul>

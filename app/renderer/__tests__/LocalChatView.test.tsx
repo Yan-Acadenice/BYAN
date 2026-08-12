@@ -290,11 +290,16 @@ describe('LocalChatView — effort chip presence', () => {
     expect(screen.queryByTestId('local-effort-minimal')).toBeNull();
   });
 
-  it('offers the two extra values on codex', async () => {
+  it('offers the codex-only value, and NOT the one its API refuses', async () => {
+    // MESURE CONTRE L'API du 2026-08-05, valeur par valeur : `none` est acceptee,
+    // `minimal` est REFUSEE (« Unsupported value: 'minimal' is not supported with
+    // the ... model »). Ce test attendait `minimal` parce que la mesure d'origine
+    // portait sur ce que la ligne de commande accepte — or elle ne valide rien et
+    // transmet tout. Le CLI n'est pas l'autorite ; l'API l'est.
     await renderAsCodex();
     fireEvent.click(screen.getByTestId('local-effort-chip'));
     expect(await screen.findByTestId('local-effort-none')).toBeInTheDocument();
-    expect(screen.getByTestId('local-effort-minimal')).toBeInTheDocument();
+    expect(screen.queryByTestId('local-effort-minimal')).toBeNull();
   });
 
   it('says WHEN a change lands, and it differs per engine', async () => {
@@ -466,14 +471,41 @@ describe('LocalChatView — slash commands', () => {
     await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localAgent', 'bmad-bmm-dev'));
   });
 
-  it('refuses an agent on codex instead of setting one that cannot apply', async () => {
+  // Ce test epinglait l'inverse : « refuses an agent on codex ». Il decrivait une
+  // croyance, pas une limite. Mesure du 2026-08-04, codex-cli 0.146.0 :
+  // `codex exec --help` n'expose aucun `--agent` — donc pas de selection native.
+  // Mais un agent BYAN est un fichier d'instructions, et codex lit les siennes sur
+  // l'entree standard : la definition part en tete du tour. La commande fonctionne
+  // donc, et c'est l'interface qui doit dire ce qui differe.
+  it('accepte un agent sur codex, en injectant sa definition dans le tour', async () => {
+    await renderAsCodex();
+    type('/byan');
+    pressEnter();
+
+    // L'agent est POSE, plus refuse.
+    await waitFor(() => expect(mockStoreSet).toHaveBeenCalledWith('chat.localAgent', 'bmad-byan'));
+  });
+
+  it('dit ce qui DIFFERE sur codex : la persona, pas le modele ni les outils', async () => {
+    // Laisser croire a une equivalence avec claude serait pire que l'ancien refus.
     await renderAsCodex();
     type('/byan');
     pressEnter();
 
     const notice = await screen.findByTestId('local-notice');
-    expect(notice).toHaveTextContent(/codex/i);
-    expect(mockStoreSet).not.toHaveBeenCalledWith('chat.localAgent', 'bmad-byan');
+    expect(notice).toHaveTextContent(/persona/i);
+    expect(notice.textContent ?? '').toMatch(/mod[eè]le|outil/i);
+  });
+
+  it('ne dit RIEN de particulier sur claude, ou le chargement est natif', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    type('/byan');
+    pressEnter();
+
+    const notice = await screen.findByTestId('local-notice');
+    expect(notice).toHaveTextContent(/Nouvelle session avec l'agent/i);
+    expect(notice.textContent ?? '').not.toMatch(/persona/i);
   });
 
   it('"/usage" opens the usage panel', async () => {
@@ -637,6 +669,13 @@ describe('LocalChatView — ce que la barre annonce doit etre vrai', () => {
 });
 
 
+// An activity frame now has to be PLACEABLE IN TIME, so `at` (epoch ms) is a
+// required field of LocalChatActivity — see shared/tool-activity.ts. These are
+// display tests: the view reads the label and its own elapsed counter, never
+// `at`. A fixed instant therefore keeps the fixtures deterministic, including
+// inside the fake-timers test below where Date.now() is mocked.
+const AT = 1_760_000_000_000;
+
 describe('LocalChatView — pendant que ca travaille', () => {
   it('names the tool and counts the seconds instead of showing a mute spinner', async () => {
     // The complaint this fixes: an agent activation is 20s+ of tool calls before
@@ -653,7 +692,7 @@ describe('LocalChatView — pendant que ca travaille', () => {
       type: 'tool',
       sessionId: 'sess-1',
       tool: {},
-      activity: { name: 'Bash', detail: 'ls', phase: 'start' },
+      activity: { name: 'Bash', detail: 'ls', phase: 'start', at: AT },
     });
 
     const line = await screen.findByTestId('local-activity');
@@ -672,7 +711,7 @@ describe('LocalChatView — pendant que ca travaille', () => {
       type('salut');
       pressEnter();
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start' } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start', at: AT } });
       await act(async () => { await vi.advanceTimersByTimeAsync(0); });
       expect(screen.getByTestId('local-activity').textContent).toContain('0s');
 
@@ -704,7 +743,7 @@ describe('LocalChatView — pendant que ca travaille', () => {
     pressEnter();
     await waitFor(() => expect(mockSend).toHaveBeenCalled());
 
-    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'commande', detail: 'ls', phase: 'end' } });
+    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'commande', detail: 'ls', phase: 'end', at: AT } });
 
     const line = await screen.findByTestId('local-activity');
     expect(line).toHaveTextContent(/terminé/i);
@@ -721,7 +760,7 @@ describe('LocalChatView — pendant que ca travaille', () => {
     type('salut');
     pressEnter();
     await waitFor(() => expect(mockSend).toHaveBeenCalled());
-    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', detail: 'ls', phase: 'start' } });
+    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', detail: 'ls', phase: 'start', at: AT } });
     await screen.findByTestId('local-activity');
     emit({ type: 'complete', sessionId: 'sess-1', result: 'fini' });
     await waitFor(() => expect(screen.getByText('fini')).toBeInTheDocument());
@@ -742,7 +781,7 @@ describe('LocalChatView — pendant que ca travaille', () => {
     type('salut');
     pressEnter();
     await waitFor(() => expect(mockSend).toHaveBeenCalled());
-    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', detail: 'a.ts', phase: 'start' } });
+    emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', detail: 'a.ts', phase: 'start', at: AT } });
     await screen.findByTestId('local-activity');
 
     emit({ type: 'tool', sessionId: 'sess-1', tool: { odd: true } });
@@ -1260,5 +1299,388 @@ describe('LocalChatView — changer de moteur agit et garde la conversation', ()
 
     await waitFor(() => expect(screen.getByTestId('local-engine-codex')).toHaveAttribute('aria-pressed', 'true'));
     expect(mockStart).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// La frise — troisieme profondeur de lecture.
+//
+// Elle repond a « ou est passe le temps ? », une question qu'on ne se pose
+// qu'apres avoir lu la phrase. Donc : jamais en premier ecran, jamais sans
+// mesure, et fermee par defaut.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — la frise du tour', () => {
+  const LIBELLE = /le détail minute par minute/i;
+
+  it('n affiche rien tant qu aucune etape n a ete mesuree', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByText(/chat local avec claude/i);
+    // Une frise vide serait un dessin qui affirme un chantier inexistant.
+    expect(screen.queryByText(LIBELLE)).not.toBeInTheDocument();
+  });
+
+  it('apparait des qu il y a des etapes, et reste fermee', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.change(screen.getByTestId('local-chat-input'), { target: { value: 'salut' } });
+    fireEvent.click(screen.getByTestId('local-chat-send'));
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+
+    act(() => {
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', phase: 'start', id: 'a', at: 1000 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Read', phase: 'end', id: 'a', at: 9000 } });
+      emit({ type: 'complete', sessionId: 'sess-1' });
+    });
+
+    const bouton = await screen.findByRole('button', { name: LIBELLE });
+    // Fermee : la troisieme profondeur ne s'impose pas.
+    expect(bouton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('s ouvre au clic et montre le dessin', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.change(screen.getByTestId('local-chat-input'), { target: { value: 'salut' } });
+    fireEvent.click(screen.getByTestId('local-chat-send'));
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    act(() => {
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start', id: 'a', at: 1000 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'end', id: 'a', at: 9000 } });
+      emit({ type: 'complete', sessionId: 'sess-1' });
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: LIBELLE }));
+    expect(await screen.findByRole('group', { name: LIBELLE })).toBeInTheDocument();
+    // Le dessin lui-meme, pas seulement son cadre : une frise ouverte sur un
+    // panneau vide serait un bouton qui ne mene nulle part.
+    expect(screen.getByTestId('timeline-figure')).toBeInTheDocument();
+    expect(screen.queryByTestId('timeline-empty')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Les trois autres ecrans, branches sur des signaux locaux.
+//
+// La regle est la meme que pour la frise : un ecran ne s'affiche QUE si son
+// signal existe. Un panneau de contamination sans echec, ou un prix du retour
+// sans tour mesure, affirmerait quelque chose de faux.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — contamination, prix du retour, main levee', () => {
+  it('n affiche ni contamination ni prix du retour au demarrage', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByText(/chat local avec claude/i);
+    expect(screen.queryByTestId('local-contamination')).toBeNull();
+    expect(screen.queryByTestId('local-rewind')).toBeNull();
+  });
+
+  it('montre la contamination quand une etape a echoue ET qu une autre a suivi', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.change(screen.getByTestId('local-chat-input'), { target: { value: 'salut' } });
+    fireEvent.click(screen.getByTestId('local-chat-send'));
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+
+    act(() => {
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start', id: 'a', at: 1000 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'end', id: 'a', at: 2000, ok: false } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Edit', phase: 'start', id: 'b', at: 3000 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Edit', phase: 'end', id: 'b', at: 4000, ok: true } });
+      emit({ type: 'complete', sessionId: 'sess-1' });
+    });
+
+    expect(await screen.findByTestId('local-contamination')).toBeInTheDocument();
+  });
+
+  it('ne montre PAS la contamination quand tout a reussi', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.change(screen.getByTestId('local-chat-input'), { target: { value: 'salut' } });
+    fireEvent.click(screen.getByTestId('local-chat-send'));
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    act(() => {
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'start', id: 'a', at: 1000 } });
+      emit({ type: 'tool', sessionId: 'sess-1', tool: {}, activity: { name: 'Bash', phase: 'end', id: 'a', at: 2000, ok: true } });
+      emit({ type: 'complete', sessionId: 'sess-1' });
+    });
+    await screen.findByTestId('local-work-timeline');
+    expect(screen.queryByTestId('local-contamination')).toBeNull();
+  });
+
+  it('montre le prix du retour des qu un tour a ete mesure', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    fireEvent.change(screen.getByTestId('local-chat-input'), { target: { value: 'salut' } });
+    fireEvent.click(screen.getByTestId('local-chat-send'));
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    act(() => {
+      emit({ type: 'complete', sessionId: 'sess-1', usage: { engine: 'claude', costUsd: 0.12, durationMs: 3000 } });
+    });
+    expect(await screen.findByTestId('local-rewind')).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// L'effort affiche doit exister sur le moteur affiche.
+//
+// DEFAUT CONSTATE (2026-08-05, signale par l'utilisateur) : `pickEngine`
+// calculait bien `nextEffort` pour la session — `isValidEffortFor(next, effort)
+// ? effort : null` — mais n'appelait JAMAIS `setEffort`. Consequence : on passe
+// de claude a codex avec l'effort `ultracode`, la session codex part SANS effort
+// (correct, cette valeur n'existe pas chez lui), et la pastille continue
+// d'afficher `ultracode`. L'utilisateur croit que codex tourne a cet effort ; il
+// tourne a son defaut.
+//
+// C'est la meme faute que celle des domaines d'effort : une valeur montree comme
+// appliquee alors qu'elle est silencieusement jetee.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — effort et changement de moteur', () => {
+  it('LACHE un effort qui n existe pas sur le nouveau moteur', async () => {
+    // codex doit etre detecte AVANT le rendu, sinon sa pastille n'existe pas.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+
+    // ultracode : claude seulement (mesure du 2026-07-27 sur claude 2.1.220).
+    type('/effort ultracode');
+    pressEnter();
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('ultracode'));
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    // La pastille ne doit plus annoncer une valeur que codex ne connait pas.
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).not.toHaveTextContent('ultracode'));
+  });
+
+  it('GARDE un effort que les deux moteurs connaissent', async () => {
+    // `medium` existe des deux cotes : le jeter serait une perte gratuite.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+    type('/effort medium');
+    pressEnter();
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('medium'));
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('medium'));
+  });
+
+  it('DIT que l effort a ete lache, au lieu de le faire en silence', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+    type('/effort ultracode');
+    pressEnter();
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('ultracode'));
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    const notice = await screen.findByTestId('local-notice');
+    expect(notice.textContent ?? '').toMatch(/ultracode/);
+  });
+
+  it('propose les efforts de CODEX quand on est sur codex', async () => {
+    await renderAsCodex();
+    fireEvent.click(screen.getByTestId('local-effort-chip'));
+
+    // La valeur propre a codex est la...
+    expect(await screen.findByTestId('local-effort-none')).toBeInTheDocument();
+    // ...celle propre a claude n'y est pas...
+    expect(screen.queryByTestId('local-effort-ultracode')).toBeNull();
+    // ...et `minimal` non plus : l'API la refuse (mesure du 2026-08-05).
+    expect(screen.queryByTestId('local-effort-minimal')).toBeNull();
+  });
+
+  it('propose les efforts de CLAUDE quand on est sur claude', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await screen.findByTestId('local-model-chip');
+    fireEvent.click(screen.getByTestId('local-effort-chip'));
+
+    expect(await screen.findByTestId('local-effort-ultracode')).toBeInTheDocument();
+    expect(screen.queryByTestId('local-effort-none')).toBeNull();
+    expect(screen.queryByTestId('local-effort-minimal')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// L'etat RESTAURE au demarrage doit etre coherent avec lui-meme.
+//
+// DEFAUT CONSTATE (2026-08-05, signale avec capture) : au redemarrage, le moteur
+// sauvegarde (`codex`) etait restaure ligne 229, puis l'effort sauvegarde etait
+// valide ligne 248 par `isValidEffortFor(engine, ...)` — ou `engine` valait
+// encore `claude`, la valeur capturee a l'entree de l'effet. Un `set` d'etat ne
+// change pas la constante deja fermee dessus.
+//
+// Resultat : codex affiche avec l'effort `ultracode`, qui n'existe que chez
+// claude. Le premier envoi echouait sur une erreur dure du processus principal
+// (« Niveau d'effort invalide pour codex »), qui tuait le tour.
+//
+// La lecon : valider contre la valeur QU'ON VIENT DE CALCULER, jamais contre
+// l'etat qu'on est en train de changer.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — coherence de l etat restaure', () => {
+  it('ne restaure PAS un effort claude quand le moteur restaure est codex', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    mockStoreGet.mockImplementation(async (key: string) => {
+      if (key === 'chat.localEngine') return 'codex';
+      if (key === 'chat.localEffort') return 'ultracode'; // claude seulement
+      return null;
+    });
+
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).toHaveAttribute('aria-pressed', 'true'));
+
+    // La pastille ne doit jamais annoncer une valeur que codex refuse.
+    expect(screen.getByTestId('local-effort-chip')).not.toHaveTextContent('ultracode');
+  });
+
+  it('restaure un effort que le moteur restaure connait', async () => {
+    // `high` existe des deux cotes : le jeter serait une perte gratuite.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    mockStoreGet.mockImplementation(async (key: string) => {
+      if (key === 'chat.localEngine') return 'codex';
+      if (key === 'chat.localEffort') return 'high';
+      return null;
+    });
+
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('high');
+  });
+
+  it('restaure un effort propre a CODEX quand codex est restaure', async () => {
+    // Le miroir du premier cas : `none` n'existe que chez codex, et il doit
+    // survivre. Une validation qui refuserait tout serait aussi fausse.
+    // (`minimal` a servi ici jusqu'au 2026-08-05 : l'API le refuse, il est sorti
+    // de la liste.)
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    mockStoreGet.mockImplementation(async (key: string) => {
+      if (key === 'chat.localEngine') return 'codex';
+      if (key === 'chat.localEffort') return 'none';
+      return null;
+    });
+
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('none');
+  });
+
+  it('garde l effort claude quand codex n est PAS installe, donc pas restaure', async () => {
+    // Le moteur sauvegarde ne s'applique que si le binaire est la. Si codex est
+    // absent, on reste sur claude et `ultracode` est parfaitement valide.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude' });
+    mockStoreGet.mockImplementation(async (key: string) => {
+      if (key === 'chat.localEngine') return 'codex';
+      if (key === 'chat.localEffort') return 'ultracode';
+      return null;
+    });
+
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('ultracode'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Le dernier filet : l'interface ne tend JAMAIS au processus principal un effort
+// que le moteur refuse.
+//
+// L'erreur vue par l'utilisateur venait du pont : « Niveau d'effort invalide pour
+// codex: ultracode ». Le pont a raison de refuser — c'est sa garde. Mais elle ne
+// devrait jamais avoir a se declencher : quand elle le fait, le tour MEURT sur une
+// erreur technique au milieu de la conversation. La vue doit filtrer avant.
+//
+// Ce test ne remplace pas la correction de l'etat restaure : il empeche TOUT autre
+// chemin, present ou futur, de reproduire le meme symptome.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — aucun effort invalide ne part vers le pont', () => {
+  it('n envoie pas un effort claude sur un tour codex, meme si l etat en porte un', async () => {
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+
+    // On pose l'effort AVANT de basculer : c'est le seul moyen d'avoir une valeur
+    // claude en memoire, et c'est exactement la situation qui a casse.
+    type('/effort ultracode');
+    pressEnter();
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('ultracode'));
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+
+    mockSend.mockClear();
+    type('test');
+    pressEnter();
+
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    // mockSend est declare sans parametres, donc TypeScript voit un tuple vide.
+    // On lit l'appel par une vue non typee : le test porte sur ce qui a ete PASSE,
+    // pas sur la signature du bouchon.
+    const appel = mockSend.mock.calls[0] as unknown as unknown[];
+    const troisieme = appel?.[2] as { reasoningEffort?: string } | undefined;
+    expect(troisieme?.reasoningEffort).not.toBe('ultracode');
+  });
+
+  it('envoie bien un effort que codex connait', async () => {
+    // La garde ne doit pas tout jeter : `high` existe chez codex.
+    mockCliDetect.mockResolvedValue({ claude: '/usr/bin/claude', codex: '/usr/bin/codex' });
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    await waitFor(() => expect(screen.getByTestId('local-engine-codex')).not.toBeDisabled());
+    fireEvent.click(screen.getByTestId('local-engine-codex'));
+    type('/effort high');
+    pressEnter();
+    await waitFor(() => expect(screen.getByTestId('local-effort-chip')).toHaveTextContent('high'));
+
+    mockSend.mockClear();
+    type('test');
+    pressEnter();
+
+    await waitFor(() => expect(mockSend).toHaveBeenCalled());
+    // mockSend est declare sans parametres, donc TypeScript voit un tuple vide.
+    // On lit l'appel par une vue non typee : le test porte sur ce qui a ete PASSE,
+    // pas sur la signature du bouchon.
+    const appel = mockSend.mock.calls[0] as unknown as unknown[];
+    const troisieme = appel?.[2] as { reasoningEffort?: string } | undefined;
+    expect(troisieme?.reasoningEffort).toBe('high');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Le prix du retour ne doit pas avaler la reponse.
+//
+// VU A L'ECRAN (2026-08-05, capture) : apres « salut mon reuf » et une reponse
+// d'une ligne, le panneau « Revenir en arriere » occupait tout l'espace en
+// dessous. La frise, elle, est derriere un bouton — le panneau le PLUS lourd
+// etait le seul a s'imposer. Incoherence, et la reponse se lisait mal.
+// ---------------------------------------------------------------------------
+describe('LocalChatView — le prix du retour reste replie', () => {
+  it('n affiche pas le panneau apres un seul tour sans cout', async () => {
+    // Le cas exact de la capture. Rien a perdre, donc rien a peser.
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    act(() => {
+      emit({ type: 'complete', sessionId: 'sess-1', usage: { engine: 'codex', outputTokens: 12 } });
+    });
+    await waitFor(() => expect(screen.getByTestId('local-usage-toggle')).toBeInTheDocument());
+    expect(screen.queryByTestId('local-rewind')).toBeNull();
+  });
+
+  it('propose le panneau REPLIE quand il y a un cout a peser', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    act(() => {
+      emit({ type: 'complete', sessionId: 'sess-1', usage: { engine: 'claude', costUsd: 0.12 } });
+    });
+
+    // Il existe, mais ferme : la reponse reste lisible.
+    const bouton = await screen.findByRole('button', { name: /revenir en arrière/i });
+    expect(bouton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByTestId('rewind')).toBeNull();
+  });
+
+  it('s ouvre au clic et montre les points', async () => {
+    render(<LocalChatView />, { wrapper: LocalChatProvider });
+    type('salut');
+    pressEnter();
+    await waitFor(() => expect(listeners.length).toBeGreaterThan(0));
+    act(() => {
+      emit({ type: 'complete', sessionId: 'sess-1', usage: { engine: 'claude', costUsd: 0.12 } });
+    });
+
+    fireEvent.click(await screen.findByRole('button', { name: /revenir en arrière/i }));
+    expect(await screen.findByTestId('rewind')).toBeInTheDocument();
   });
 });

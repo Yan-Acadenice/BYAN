@@ -19,17 +19,29 @@ import { spawn } from 'child_process';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage, LocalChatTurnOpts } from '../../shared/ipc-contract';
+import { IPC_CHANNELS, LocalChatStartOpts, LocalChatMessage, LocalChatSessionSummary, LocalChatHistoryMessage, LocalChatTurnOpts, DispatchPlanRequest, DispatchPlan } from '../../shared/ipc-contract';
 import { effortsFor, isValidEffortFor, isValidModelFor } from '../../shared/engine-options';
 import { IpcError, wrap } from './_error';
 import { localSessions, resolveProjectRoot } from '../local-data';
 import { secureStore } from '../secure-store';
 import { resolveExecutable, spawnEnv } from '../resolve-bin';
 import { availableClaudeAgents } from '../claude-agents';
+import { loadRoster, declaredModelForSlug } from '../roster';
+import { buildDispatchPlan } from '../../shared/dispatch/plan';
+import { isModelTier } from '../../shared/workmanship';
 import type { Engine, EngineId, EngineSession, SpawnFn } from '../engines/types';
 import { isEngineId } from '../engines/types';
 import { ClaudeEngine } from '../engines/claude-engine';
 import { CodexEngine, type ReadMcpFn } from '../engines/codex-engine';
+import { SessionHistoryStore } from '../session-history-store';
+import {
+  appendMessage,
+  closeRecord,
+  completeTurn,
+  createRecord,
+  failTurn,
+  type SessionHistoryRecord,
+} from '../../shared/session-history';
 
 export type { SpawnFn } from '../engines/types';
 
@@ -61,6 +73,12 @@ export interface LocalChatDeps {
   spawnEnv?: () => NodeJS.ProcessEnv;
   // .mcp.json reader handed to the codex engine. Injected in tests.
   readMcp?: ReadMcpFn;
+  // Le magasin d'historique sur disque. Injecte dans les tests (dossier
+  // temporaire) ; par defaut il ecrit dans le projet de la session.
+  historyStore?: SessionHistoryStore;
+  // L'horloge, pour que les tests puissent poser des dates stables. Par defaut
+  // l'heure reelle en ISO.
+  now?: () => string;
 }
 
 // Cap on concurrent local CLI processes — a runaway renderer looping start()
@@ -70,6 +88,18 @@ const MAX_SESSIONS = 8;
 interface SessionEntry {
   engine: EngineId;
   session: EngineSession;
+  // L'enregistrement d'historique de CETTE session, tenu a jour en memoire et
+  // reecrit sur disque a chaque evenement notable. Le garder ici plutot que de
+  // relire le fichier a chaque trame evite une lecture par bloc de flux.
+  record: SessionHistoryRecord;
+  // Le texte de la reponse en cours d'ecriture, accumule depuis les blocs. Le
+  // pont est le seul endroit qui les voit tous ; sans cette accumulation
+  // l'historique aurait les questions et pas les reponses.
+  streamed: string;
+  // Debut du tour en cours et nombre d'etapes d'outil observees, remis a zero a
+  // chaque envoi.
+  turnStartedAt: string | null;
+  turnSteps: number;
 }
 
 export class LocalChatBridge {
@@ -77,6 +107,12 @@ export class LocalChatBridge {
   private readonly defaultCwd: () => (string | undefined) | Promise<string | undefined>;
   private readonly engines: Record<EngineId, Engine>;
   private readonly sessions = new Map<string, SessionEntry>();
+  // Nomme historyStore et pas history : la classe porte deja une METHODE
+  // history(sessionId) (le canal IPC du meme nom), et un champ homonyme la
+  // masque — TS2300, puis TS2349 « expression non appelable » sur
+  // this.history(...). Deux choses differentes ne partagent pas un nom.
+  private readonly historyStore: SessionHistoryStore;
+  private readonly now: () => string;
   // Set true by stopAll() at app quit so a late start() cannot spawn a session
   // that would escape the reaping sweep and orphan.
   private _quitting = false;
@@ -94,6 +130,16 @@ export class LocalChatBridge {
       claude: new ClaudeEngine(engineDeps),
       codex: new CodexEngine(engineDeps, deps.readMcp),
     };
+    this.historyStore = deps.historyStore ?? new SessionHistoryStore(() => resolveProjectRoot());
+    this.now = deps.now ?? (() => new Date().toISOString());
+  }
+
+  // Ecrit l'enregistrement courant d'une session. Regroupe ici pour que chaque
+  // transition soit « je replie, j'ecris » et pas « je replie » d'un cote et
+  // « j'oublie d'ecrire » de l'autre.
+  private persist(entry: SessionEntry, next: SessionHistoryRecord): void {
+    entry.record = next;
+    this.historyStore.write(next);
   }
 
   // Spawn a local CLI session in the project directory. cwd must be an existing
@@ -149,23 +195,132 @@ export class LocalChatBridge {
     }
 
     const sessionId = randomUUID();
+    const startedAt = this.now();
+    const record = createRecord({
+      id: sessionId,
+      engine: cli,
+      model,
+      effort,
+      agent: opts?.agent ?? null,
+      cwd,
+      at: startedAt,
+    });
+    // Une session de plus arrive : c'est le moment de verifier que le dossier
+    // n'en garde pas trop. Elaguer a la lecture ferait payer le menage a
+    // l'ouverture de la page.
+    this.historyStore.prune(undefined, cwd);
+
     const session = this.engines[cli].start({
       sessionId,
       cwd,
-      // --agent is a claude concept; codex personas live in .codex/prompts and
+      // L'agent part vers les DEUX moteurs. claude le charge nativement
+      // (--agent) ; codex n'a pas de drapeau equivalent (mesure du jour,
+      // codex-cli 0.146.0 : aucun --agent dans `codex exec --help`), son
+      // adaptateur met donc la definition en tete du tour. Voir
+      // shared/engine-options.ts -> agentSupport.
       // are not selectable from exec mode, so the option does not cross over.
-      agent: cli === 'claude' ? opts?.agent : null,
+      agent: opts?.agent ?? null,
       model,
       effort,
-      emit: (msg) => this.broadcast(msg),
-      onClose: () => { this.sessions.delete(sessionId); },
+      // Chaque trame passe par ici AVANT d'aller au renderer : c'est le seul
+      // point du programme qui les voit toutes, pour les deux moteurs. L'ecriture
+      // est faite en premier pour qu'une exception d'affichage ne fasse pas
+      // perdre la mesure.
+      emit: (msg) => {
+        this.record(sessionId, msg);
+        this.broadcast(msg);
+      },
+      onClose: () => {
+        const entry = this.sessions.get(sessionId);
+        if (entry) this.persist(entry, closeRecord(entry.record, this.now()));
+        this.sessions.delete(sessionId);
+      },
     });
-    this.sessions.set(sessionId, { engine: cli, session });
+    this.sessions.set(sessionId, {
+      engine: cli,
+      session,
+      record,
+      streamed: '',
+      turnStartedAt: null,
+      turnSteps: 0,
+    });
+    this.historyStore.write(record);
     // The frame echoes what was ACTUALLY applied, not what was asked: a claude
     // session reports effort null even if the renderer sent one, so the UI
     // reflects reality instead of its own request.
     this.broadcast({ type: 'started', sessionId, cli, model, effort, cwd });
     return { sessionId, cwd };
+  }
+
+  // Traduit une trame moteur en avancement de l'enregistrement d'historique.
+  //
+  // Ce qui est mesure et ce qui ne l'est pas : le texte de la reponse vient des
+  // blocs accumules (avec repli sur le `result` quand aucun bloc n'est arrive) ;
+  // le cout et les jetons viennent du champ `usage` du moteur, TEL QUEL. Rien
+  // n'est deduit ni comble : un tour sans `usage` est enregistre avec un cout
+  // 'none', pas avec un zero.
+  private record(sessionId: string, msg: LocalChatMessage): void {
+    const entry = this.sessions.get(sessionId);
+    if (!entry) return;
+    const at = this.now();
+
+    switch (msg.type) {
+      case 'chunk':
+        entry.streamed += msg.delta;
+        break;
+
+      case 'tool':
+        entry.turnSteps += 1;
+        break;
+
+      case 'complete': {
+        const resultText = typeof msg.result === 'string' ? msg.result : '';
+        const text = entry.streamed || resultText;
+        let next = entry.record;
+        if (text) next = appendMessage(next, 'assistant', text, at);
+        next = completeTurn(next, {
+          usage: msg.usage,
+          startedAt: entry.turnStartedAt ?? at,
+          endedAt: at,
+          steps: entry.turnSteps,
+        });
+        entry.streamed = '';
+        entry.turnStartedAt = null;
+        entry.turnSteps = 0;
+        this.persist(entry, next);
+        break;
+      }
+
+      case 'error': {
+        // Une erreur reste dans la transcription : sans elle, une session qui a
+        // echoue se relit comme une session vide, ce qui est le contraire de
+        // l'information utile.
+        let next = appendMessage(entry.record, 'system', `Erreur: ${msg.error}`, at);
+        next = failTurn(next, {
+          error: msg.error,
+          startedAt: entry.turnStartedAt ?? at,
+          endedAt: at,
+          steps: entry.turnSteps,
+        });
+        entry.streamed = '';
+        entry.turnStartedAt = null;
+        entry.turnSteps = 0;
+        this.persist(entry, next);
+        break;
+      }
+
+      case 'stopped':
+        // Un tour interrompu n'a pas produit de mesure : on jette l'accumulateur
+        // et on ne pose pas de tour. Le tour a eu lieu mais on ne sait rien de ce
+        // qu'il a coute, et un tour a 0 dirait le contraire.
+        entry.streamed = '';
+        entry.turnStartedAt = null;
+        entry.turnSteps = 0;
+        break;
+
+      default:
+        break;
+    }
   }
 
   async send(sessionId: string, message: string, turnOpts?: LocalChatTurnOpts): Promise<void> {
@@ -232,6 +387,36 @@ export class LocalChatBridge {
     return [];
   }
 
+  // Le plan de dispatch pour un message. Le calcul lui-meme est PUR et vit dans
+  // shared/dispatch/plan.ts ; ce que cette methode apporte, c'est le DISQUE —
+  // le roster du projet et les agents que le CLI honore vraiment — auxquels le
+  // renderer n'a pas acces.
+  //
+  // DEUX PASSES, ET C'EST VOULU. Le modele que le plan doit respecter comme
+  // plancher est celui declare par l'agent RETENU (front-matter `model:`), et on
+  // ne sait quel agent est retenu qu'une fois le plan calcule. On calcule donc
+  // une premiere fois pour connaitre l'agent, on lit son modele declare, puis on
+  // recalcule avec ce plancher. Le calcul est pur et sans entree/sortie : la
+  // seconde passe ne coute rien de plus qu'un appel de fonction.
+  async plan(input: DispatchPlanRequest): Promise<DispatchPlan> {
+    const root = input.cwd || (await this.defaultCwd()) || null;
+    const roster = loadRoster(root);
+    const availableSlugs = availableClaudeAgents(root);
+    const base = { message: input.message, state: input.state, roster, availableSlugs };
+
+    const premier = buildDispatchPlan(base);
+    const slug = premier.agent.value;
+    if (slug === null) return premier;
+
+    const declare = declaredModelForSlug(slug, root);
+    // Un agent peut declarer un modele que l'echelle ne connait pas (un nom
+    // complet, une future gamme). On ne s'en sert comme plancher que s'il tombe
+    // sur un barreau connu — sinon le plancher n'aurait pas de rang comparable.
+    if (!isModelTier(declare)) return premier;
+
+    return buildDispatchPlan({ ...base, agentFloorModel: declare });
+  }
+
   register(ipcMain: IpcMain): void {
     ipcMain.handle(IPC_CHANNELS.localChat.start, wrap((_evt, opts?: LocalChatStartOpts) => this.start(opts)));
     ipcMain.handle(IPC_CHANNELS.localChat.send, wrap((_evt, sessionId: string, message: string, turnOpts?: LocalChatTurnOpts) => this.send(sessionId, message, turnOpts)));
@@ -239,6 +424,7 @@ export class LocalChatBridge {
     ipcMain.handle(IPC_CHANNELS.localChat.list, wrap(() => this.list()));
     ipcMain.handle(IPC_CHANNELS.localChat.agents, wrap((_evt, cwd?: string) => this.agents(cwd)));
     ipcMain.handle(IPC_CHANNELS.localChat.history, wrap((_evt, sessionId: string) => this.history(sessionId)));
+    ipcMain.handle(IPC_CHANNELS.localChat.plan, wrap((_evt, input: DispatchPlanRequest) => this.plan(input)));
   }
 }
 

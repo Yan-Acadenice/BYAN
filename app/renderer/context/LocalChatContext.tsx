@@ -82,10 +82,20 @@ export type LocalChatUsageTotal = {
 
 export type LocalChatUsageTotals = Partial<Record<EngineId, LocalChatUsageTotal>>;
 
+// Un tour retenu, plus son RANG dans son moteur. Le rang est pose ici, au pli,
+// parce que c'est le seul endroit qui connait le nombre de tours deja vus. Sans
+// lui, le panneau ne peut pas distinguer le premier tour d'une session (dont le
+// cumul est bien le cout) d'un tour dont le precedent a ete elague (dont on ne
+// sait rien). Ce champ est derive cote interface, il ne vient pas du moteur.
+export type LocalChatUsageTurn = LocalChatUsage & { readonly engineTurn: number };
+
 // How many per-turn records are retained. A long session must not grow this
 // array (nor the panel that renders it) without bound. The TOTALS are folded
 // separately and keep accumulating past the cap, so trimming the list loses the
 // per-turn breakdown of old turns, never the session's arithmetic.
+// Au-dela, la frise est deja illisible et l'etat pese pour rien.
+const ACTIVITY_STEPS_CAP = 500;
+
 const USAGE_TURNS_CAP = 50;
 
 // Fold one reported turn into the running per-engine totals.
@@ -132,7 +142,7 @@ export interface UseLocalChat {
   sessions: LocalChatSessionSummary[];
   // Per-turn usage exactly as the engines reported it, oldest first, capped at
   // USAGE_TURNS_CAP. Empty until a turn completes carrying a usage payload.
-  usageTurns: LocalChatUsage[];
+  usageTurns: LocalChatUsageTurn[];
   // The same numbers folded per engine. Separate from usageTurns so the cap on
   // the list never truncates the session's arithmetic.
   usageTotals: LocalChatUsageTotals;
@@ -141,6 +151,9 @@ export interface UseLocalChat {
   sessionCwd: string | null;
   // The engine's current step (tool call, command, search). Null between turns.
   activity: LocalChatActivity | null;
+  // Toutes les etapes du tour en cours, dans l'ordre observe, bornees a
+  // ACTIVITY_STEPS_CAP. C'est la matiere de la frise.
+  activitySteps: LocalChatActivity[];
   // Reasoning tokens claude reports during the turn. 0 between turns.
   thinkingTokens: number;
   // Epoch ms the live turn started, for the elapsed counter. Null between turns.
@@ -186,7 +199,10 @@ function useLocalChatState(): UseLocalChat {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<LocalChatSessionSummary[]>([]);
-  const [usageTurns, setUsageTurns] = useState<LocalChatUsage[]>([]);
+  const [usageTurns, setUsageTurns] = useState<LocalChatUsageTurn[]>([]);
+  // Combien de tours chaque moteur a rapportes dans cette session. Remis a zero
+  // partout ou les totaux le sont : le rang appartient a la session.
+  const engineTurnCountRef = useRef<Partial<Record<EngineId, number>>>({});
   const [usageTotals, setUsageTotals] = useState<LocalChatUsageTotals>({});
   // The folder main ACTUALLY resolved. Without it the header would keep inviting
   // the user to pick a directory while a session is already working in one.
@@ -195,6 +211,10 @@ function useLocalChatState(): UseLocalChat {
   // was dropped, which is why a 20-60s turn showed a bare spinner and read as an
   // app doing nothing.
   const [activity, setActivity] = useState<LocalChatActivity | null>(null);
+  // Toutes les etapes du tour, pas seulement la derniere. La ligne "ce qui se
+  // passe maintenant" se contente du dernier evenement ; un axe du temps a besoin
+  // de l'ensemble, et sans lui la frise n'a rien a dessiner.
+  const [activitySteps, setActivitySteps] = useState<LocalChatActivity[]>([]);
   const [thinkingTokens, setThinkingTokens] = useState(0);
   // When the live turn began, so the interface can show elapsed time. A silent
   // stretch with a counter running is legible; the same stretch without one is
@@ -271,7 +291,14 @@ function useLocalChatState(): UseLocalChat {
           // below — a property narrowing does not survive a function boundary.
           const usage = m.usage;
           if (usage) {
-            setUsageTurns((prev) => [...prev, usage].slice(-USAGE_TURNS_CAP));
+            // Le rang est compte a part, pas deduit de la liste : la liste est
+            // elaguee, donc compter ses elements ferait repartir le rang a 1 apres
+            // le premier elagage et transformerait un cumul en cout. Un compteur
+            // hors etat, pas un effet de bord dans un actualiseur — celui-ci peut
+            // etre rejoue et compterait le tour deux fois.
+            const rank = (engineTurnCountRef.current[usage.engine] ?? 0) + 1;
+            engineTurnCountRef.current[usage.engine] = rank;
+            setUsageTurns((prev) => [...prev, { ...usage, engineTurn: rank }].slice(-USAGE_TURNS_CAP));
             setUsageTotals((prev) => foldUsage(prev, usage));
           }
           break;
@@ -297,7 +324,13 @@ function useLocalChatState(): UseLocalChat {
         case 'tool':
           // A frame with no recognisable activity is still evidence of work, so
           // the previous label is kept rather than blanked.
-          if (m.activity) setActivity(m.activity);
+          if (m.activity) {
+            setActivity(m.activity);
+            // Borne haute : un tour tres long ne doit pas faire gonfler l'etat sans
+            // fin. On garde les plus RECENTES — une frise tronquee par le debut
+            // reste lisible, une application qui grossit jusqu'a ramer ne l'est pas.
+            setActivitySteps((prev) => [...prev, m.activity as LocalChatActivity].slice(-ACTIVITY_STEPS_CAP));
+          }
           break;
         case 'thinking':
           // Monotonic per turn: claude reports a running estimate, and a count
@@ -336,8 +369,10 @@ function useLocalChatState(): UseLocalChat {
       // whoever logs in next.
       setUsageTurns([]);
       setUsageTotals({});
+      engineTurnCountRef.current = {};
       setSessionCwd(null);
       setActivity(null);
+      setActivitySteps([]);
       setThinkingTokens(0);
       setTurnStartedAt(null);
     });
@@ -365,7 +400,9 @@ function useLocalChatState(): UseLocalChat {
       // onto a claude one would cross two units.
       setUsageTurns([]);
       setUsageTotals({});
+      engineTurnCountRef.current = {};
       setActivity(null);
+      setActivitySteps([]);
       setThinkingTokens(0);
       setTurnStartedAt(null);
       // Stop the outgoing session so its claude child is not orphaned (the main
@@ -414,11 +451,12 @@ function useLocalChatState(): UseLocalChat {
     setMessages((prev) => [...prev, { id: makeId('u'), role: 'user', content }]);
     setError(null); // a new turn clears the previous turn's error banner
     setStreaming(true);
-    // Redundant today with the clears on complete/error/stopped — mutation
-    // testing confirms removing THIS one alone breaks nothing. It stays as the
-    // guard for a future frame path that ends a turn without going through one
-    // of those three, which would otherwise label a new turn with old work.
     setActivity(null);
+    // C'est ICI que les etapes repartent de zero, et nulle part ailleurs. La fin
+    // du tour ne les efface pas : la frise repond a « ou est passe le temps ? »,
+    // une question qu'on se pose une fois le travail fini. L'effacer a la fin la
+    // rendrait illisible au seul moment ou elle sert.
+    setActivitySteps([]);
     setThinkingTokens(0);
     setTurnStartedAt(Date.now());
     accRef.current = '';
@@ -498,7 +536,7 @@ function useLocalChatState(): UseLocalChat {
 
   return {
     sessionId, messages, streaming, streamText, starting, error, sessions,
-    usageTurns, usageTotals, sessionCwd, activity, thinkingTokens, turnStartedAt,
+    usageTurns, usageTotals, sessionCwd, activity, activitySteps, thinkingTokens, turnStartedAt,
     newSession, resume, refreshSessions, send, stop,
   };
 }

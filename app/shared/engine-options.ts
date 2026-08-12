@@ -23,6 +23,15 @@
 //   FAMILY  (advisory)  : catch an obvious cross-engine mistake (a GPT id typed
 //                         into claude). An unknown-but-safe token PASSES, and the
 //                         CLI itself answers whether the model exists.
+//
+// LOT L2 (2026-08-07): effortsFor(engine, model) and MODEL_PRESETS.codex both
+// delegate to dispatch/model-effort.ts for the codex model x effort matrix —
+// see that module's header for the four contradicting sources and how each
+// was resolved. This is a one-way import (this file -> model-effort.ts):
+// model-effort.ts never imports a VALUE from here, only types, so there is no
+// runtime cycle.
+
+import { effortsForModel, listedCodexModels } from './dispatch/model-effort';
 
 // ---------- Engine id ----------
 // Lives here (not in main/engines/types.ts) so shared + renderer + main all read
@@ -75,19 +84,48 @@ export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 // from "everything" handed it 'ultracode', which its API rejects — a defect my own
 // test caught, and the reason this is spelled out per engine instead of computed.
 const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultracode'] as const;
-const CODEX_EFFORTS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
+// MESURE CONTRE L'API, valeur par valeur, le 2026-08-05 (codex-cli 0.146.0,
+// modele gpt-5.6-sol) : none, low, medium, high, xhigh, max sont acceptees ;
+// `minimal` est REFUSEE (« Unsupported value: 'minimal' is not supported with
+// the ... model »), `ultracode` aussi.
+//
+// POURQUOI ELLE Y ETAIT. La mesure precedente portait sur ce que la LIGNE DE
+// COMMANDE accepte, pas sur ce que le MODELE supporte. Verifie le meme jour :
+// `codex exec -c model_reasoning_effort=pouet` demarre sans broncher — le CLI ne
+// valide rien du tout, il transmet et c'est l'API qui tranche. Une valeur lue
+// dans l'aide du CLI n'est donc PAS une valeur utilisable.
+//
+// La liste ci-dessous vient de l'API. C'est la seule autorite.
+const CODEX_EFFORTS = ['none', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 
 export function isValidEffort(v: unknown): v is ReasoningEffort {
   return typeof v === 'string' && (REASONING_EFFORTS as readonly string[]).includes(v);
 }
 
-// The values THIS engine actually accepts.
-export function effortsFor(engine: EngineId): readonly ReasoningEffort[] {
+// LOT L2 (2026-08-07) — la validite par MOTEUR ci-dessus n'est plus le fond
+// de l'histoire cote codex : la mesure du jour (`codex debug models`,
+// codex-cli 0.146.0, cf. shared/dispatch/model-effort.ts) montre que la
+// validite d'un effort depend du MODELE, pas seulement du moteur (gpt-5.4
+// refuse 'max', gpt-5.6-sol l'accepte). Un dispatch qui choisit modele et
+// effort separement peut donc emettre une paire qui passe cette fonction sans
+// modele et se fait quand meme refuser par l'API, apres le lancement.
+//
+// effortsFor(engine, model) delegue au module dedie QUAND un modele est
+// fourni. SANS modele, le comportement reste l'ancien exactement (le ternaire
+// ci-dessus) : de nombreux appelants existants appellent effortsFor(engine)
+// seul (main/ipc-handlers/local-chat.ts notamment) et ne doivent rien voir
+// changer.
+export function effortsFor(engine: EngineId, model?: string | null): readonly ReasoningEffort[] {
+  if (model) {
+    return effortsForModel(engine, model).efforts;
+  }
   return engine === 'claude' ? CLAUDE_EFFORTS : CODEX_EFFORTS;
 }
 
-export function isValidEffortFor(engine: EngineId, v: unknown): v is ReasoningEffort {
-  return typeof v === 'string' && (effortsFor(engine) as readonly string[]).includes(v);
+// `model` optionnel, retro-compatible : sans lui, la validation reste au
+// niveau du moteur, comme avant ce lot.
+export function isValidEffortFor(engine: EngineId, v: unknown, model?: string | null): v is ReasoningEffort {
+  return typeof v === 'string' && (effortsFor(engine, model) as readonly string[]).includes(v);
 }
 
 // Both engines support one now. Kept as a function because the answer is per
@@ -119,11 +157,16 @@ export const MODEL_PRESETS: Record<EngineId, ModelPreset[]> = {
     { value: 'fable', label: 'Fable (alias)' },
     { value: 'haiku', label: 'Haiku (alias)' },
   ],
-  // Seeded with the id live-verified on a real codex turn (F1). Extend as
-  // needed; the free-text field covers anything absent here.
-  codex: [
-    { value: 'gpt-5.6-sol', label: 'gpt-5.6-sol' },
-  ],
+  // Le catalogue reel a NEUF modeles (`codex debug models`, mesure le
+  // 2026-08-07, codex-cli 0.146.0 — voir dispatch/model-effort.ts). Une
+  // premiere version de cette liste n'en portait qu'un (gpt-5.6-sol) —
+  // l'ecart entre "ce que le picker propose" et "ce que le catalogue offre"
+  // est exactement le genre de drift que ce module existe pour prevenir.
+  // listedCodexModels() exclut les deux marques visibility='hide' du
+  // catalogue (gpt-5.6-sol-wm, codex-auto-review) : un modele que le
+  // catalogue lui-meme cache ne doit pas apparaitre dans le picker. Le champ
+  // texte libre couvre toujours tout ce qui est absent d'ici.
+  codex: listedCodexModels().map((value) => ({ value, label: value })),
 };
 
 // ---------- Guards ----------
@@ -182,3 +225,39 @@ export function isPlausibleCodexModel(v: unknown): v is string {
 export function isValidModelFor(engine: EngineId, v: unknown): v is string {
   return engine === 'claude' ? isValidClaudeModel(v) : isPlausibleCodexModel(v);
 }
+
+// ---------------------------------------------------------------------------
+// Comment chaque moteur honore le choix d'un agent
+// ---------------------------------------------------------------------------
+//
+// MESURE (codex-cli 0.146.0) : `codex exec --help` n'expose AUCUN `--agent`.
+// Son `--profile` superpose un fichier de configuration, ce n'est pas une
+// definition d'agent. L'application en concluait « codex ne permet pas de
+// choisir un agent » et refusait la commande.
+//
+// Le constat est juste, la conclusion non. Un agent BYAN est un fichier
+// d'instructions ; codex lit ses instructions sur l'entree standard, et c'est
+// deja par la que l'application envoie le message. On met donc la definition en
+// tete du tour (voir shared/agent-definition.ts).
+//
+// Un booleen ne peut pas porter cette nuance : les deux voies ne donnent pas la
+// meme chose. Le type dit COMMENT, et la note dit ce qui differe.
+
+export type AgentSupport = 'native' | 'injected' | 'none';
+
+export function agentSupport(engine: EngineId): AgentSupport {
+  // claude : le CLI charge la definition, avec ses outils et son modele.
+  // codex : les instructions partent en tete du message, la persona seulement.
+  return engine === 'claude' ? 'native' : 'injected';
+}
+
+// Ce qu'il faut dire a l'utilisateur, et rien de plus. Le mode natif n'a rien a
+// expliquer ; le mode injecte doit annoncer ce qu'il ne fait PAS, sinon on laisse
+// croire a une equivalence.
+export const AGENT_SUPPORT_NOTE: Readonly<Record<AgentSupport, string | null>> = {
+  native: null,
+  injected:
+    "codex n'a pas de selection d'agent : ses instructions sont injectees en tete du tour. "
+    + 'Tu obtiens la persona, pas le modele ni les outils declares dans sa definition.',
+  none: "ce moteur n'accepte pas de choix d'agent.",
+};

@@ -13,6 +13,7 @@ import * as path from 'path';
 import { ClaudeEngine } from '../../engines/claude-engine';
 import type { EngineStartOpts, SpawnFn } from '../../engines/types';
 import type { LocalChatMessage } from '../../../shared/ipc-contract';
+import { buildActivityTimeline, type LocalChatActivity } from '../../../shared/tool-activity';
 
 // Minimal fake ChildProcess (same shape as the local-chat bridge tests).
 class FakeProc extends EventEmitter {
@@ -52,6 +53,35 @@ function startEngine(opts: Partial<EngineStartOpts> = {}) {
 
 function complete(emitted: LocalChatMessage[]) {
   return emitted.find((m) => m.type === 'complete') as Extract<LocalChatMessage, { type: 'complete' }> | undefined;
+}
+
+// The activity lines the interface would receive, in order.
+function activities(emitted: LocalChatMessage[]): LocalChatActivity[] {
+  return emitted
+    .filter((m): m is Extract<LocalChatMessage, { type: 'tool' }> => m.type === 'tool')
+    .map((m) => m.activity)
+    .filter((a): a is LocalChatActivity => Boolean(a));
+}
+
+// Verbatim from the 2026-07-31 probe against claude 2.1.220: the assistant frame
+// opens the call, the user frame that FOLLOWS closes it with the same id. Both
+// carry a top-level ISO timestamp.
+const CALL_ID = 'toolu_014EfRMVkQAPt7UPB79ggMXh';
+const T_START = '2026-07-31T09:41:16.116Z';
+const T_END = '2026-07-31T09:41:23.120Z';
+
+function toolUseFrame(id = CALL_ID, timestamp = T_START) {
+  return {
+    type: 'assistant',
+    timestamp,
+    message: { role: 'assistant', content: [{ type: 'tool_use', id, name: 'Bash', input: { command: 'ls' } }] },
+  };
+}
+
+function toolResultFrame(id = CALL_ID, timestamp = T_END, is_error?: boolean) {
+  const block: Record<string, unknown> = { type: 'tool_result', tool_use_id: id, content: 'total 4' };
+  if (is_error !== undefined) block.is_error = is_error;
+  return { type: 'user', timestamp, message: { role: 'user', content: [block] } };
 }
 
 describe('ClaudeEngine argv — model', () => {
@@ -159,5 +189,116 @@ describe('ClaudeEngine usage on complete', () => {
     expect(emitted.some((m) => m.type === 'complete')).toBe(false);
     const err = emitted.find((m) => m.type === 'error') as Extract<LocalChatMessage, { type: 'error' }>;
     expect(err?.error).toContain('boom');
+  });
+});
+
+// Until now the engine only ever announced that a tool STARTED, so no step had a
+// second bound and no duration could be shown. claude does publish the end — in
+// the `user` frame that follows the call — and the engine fell through to
+// `default` and dropped it. These tests pin the pairing.
+describe('ClaudeEngine — bounding a tool call in time', () => {
+  it('closes the call opened by the assistant frame, on the id claude itself gave', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    proc.emitStdout(toolResultFrame(CALL_ID, T_END, false));
+
+    const [begun, ended] = activities(emitted);
+    expect(begun).toEqual({ name: 'Bash', detail: 'ls', phase: 'start', id: CALL_ID, at: Date.parse(T_START) });
+    expect(ended).toEqual({ name: 'Bash', detail: 'ls', phase: 'end', id: CALL_ID, at: Date.parse(T_END), ok: true });
+  });
+
+  it('yields ONE step with a measured duration once both halves are in', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    proc.emitStdout(toolResultFrame());
+
+    const timeline = buildActivityTimeline(activities(emitted));
+    expect(timeline.steps).toHaveLength(1);
+    // 09:41:23.120 - 09:41:16.116, straight from claude's own clock.
+    expect(timeline.steps[0]).toMatchObject({ name: 'Bash', open: false, durationMs: 7004 });
+    expect(timeline.openCount).toBe(0);
+  });
+
+  it('dates the step from claude\'s stamp, not from the moment we read the pipe', () => {
+    // The pipe delivers whenever it delivers; the frame says when the work
+    // actually happened. A step drawn on read-time would drift under buffering.
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    expect(activities(emitted)[0].at).toBe(Date.parse(T_START));
+    expect(Math.abs(activities(emitted)[0].at - Date.now())).toBeGreaterThan(1000);
+  });
+
+  it('falls back to our own clock only when the frame carries no stamp', () => {
+    const before = Date.now();
+    const { proc, emitted } = startEngine();
+    proc.emitStdout({ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'toolu_z', name: 'Read', input: {} }] } });
+    const at = activities(emitted)[0].at;
+    expect(at).toBeGreaterThanOrEqual(before);
+    expect(at).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('leaves a call with no result OPEN — no invented end at the end of the turn', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    proc.emitStdout({ type: 'result', result: 'ok', total_cost_usd: 0.01, duration_ms: 9000 });
+
+    expect(activities(emitted)).toHaveLength(1);
+    const timeline = buildActivityTimeline(activities(emitted));
+    expect(timeline.openCount).toBe(1);
+    expect(timeline.steps[0].endedAt).toBeUndefined();
+    // The turn reports 9000 ms; that is the TURN, not this step. Borrowing it
+    // would be inventing a measurement.
+    expect(timeline.steps[0].durationMs).toBeUndefined();
+  });
+
+  it('reports a failed tool as a step that did not go through', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    proc.emitStdout(toolResultFrame(CALL_ID, T_END, true));
+    expect(activities(emitted)[1].ok).toBe(false);
+  });
+
+  it('leaves the verdict unknown when claude reports none', () => {
+    // Measured: a Read result carries no is_error field at all.
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    proc.emitStdout(toolResultFrame(CALL_ID, T_END));
+    expect(activities(emitted)[1].ok).toBeUndefined();
+  });
+
+  it('pairs two interleaved calls by id rather than by arrival order', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame('toolu_a', '2026-07-31T09:41:00.000Z'));
+    proc.emitStdout(toolUseFrame('toolu_b', '2026-07-31T09:41:01.000Z'));
+    proc.emitStdout(toolResultFrame('toolu_b', '2026-07-31T09:41:02.000Z'));
+    proc.emitStdout(toolResultFrame('toolu_a', '2026-07-31T09:41:05.000Z'));
+
+    const timeline = buildActivityTimeline(activities(emitted));
+    expect(timeline.steps.map((s) => s.durationMs)).toEqual([5000, 1000]);
+    // b ran entirely inside a: the interface can show two lanes, not a queue.
+    expect(timeline.concurrent).toBe(true);
+  });
+
+  it('forgets what is still open once the turn is over', () => {
+    // The map of live calls must not grow for the whole life of a session. The
+    // price is visible and accepted: a result arriving after the turn's own
+    // terminal frame can no longer be given the name of its start.
+    const { proc, emitted } = startEngine();
+    proc.emitStdout(toolUseFrame());
+    proc.emitStdout({ type: 'result', result: 'ok' });
+    proc.emitStdout(toolResultFrame());
+    expect(activities(emitted)[1]).toMatchObject({ name: 'outil', phase: 'end', id: CALL_ID });
+  });
+
+  it('ignores a user frame that is only our own turn echoed back', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout({ type: 'user', timestamp: T_START, message: { role: 'user', content: 'salut' } });
+    expect(activities(emitted)).toHaveLength(0);
+  });
+
+  it('ignores a tool_result that names no call — it would close nothing', () => {
+    const { proc, emitted } = startEngine();
+    proc.emitStdout({ type: 'user', timestamp: T_END, message: { content: [{ type: 'tool_result', content: 'x' }] } });
+    expect(activities(emitted)).toHaveLength(0);
   });
 });

@@ -76,9 +76,14 @@ describe('effort per engine', () => {
     // Neither list is a subset of the other, which is why they are two lists.
     // codex answers invalid_enum_value from the API on 'ultracode'.
     expect(isValidEffortFor('codex', 'none')).toBe(true);
-    expect(isValidEffortFor('codex', 'minimal')).toBe(true);
+    // `minimal` a ete RETIRE : mesure contre l'API du 2026-08-05, elle refuse
+    // cette valeur (« Unsupported value: 'minimal' is not supported with the ...
+    // model »). Ce test affirmait l'inverse parce que la mesure d'origine portait
+    // sur ce que la ligne de commande accepte — or elle ne valide rien et
+    // transmet tout. Le CLI n'est pas l'autorite ; l'API l'est.
+    expect(isValidEffortFor('codex', 'minimal')).toBe(false);
     expect(isValidEffortFor('codex', 'ultracode')).toBe(false);
-    expect(effortsFor('codex')).toHaveLength(7);
+    expect(effortsFor('codex')).toHaveLength(6);
   });
 
   it('rejects a value belonging to neither', () => {

@@ -329,6 +329,7 @@ describe('LocalChatBridge — model/effort trust boundary (F6)', () => {
     // which is why it dropped these frames and showed a bare spinner.
     const { bridge, fake, broadcasts } = makeBridge();
     await bridge.start({ cwd, cli: 'claude' });
+    const before = Date.now();
     fake.emitStdout({
       type: 'assistant',
       message: { content: [{
@@ -340,7 +341,26 @@ describe('LocalChatBridge — model/effort trust boundary (F6)', () => {
     });
     const tool = broadcasts.find((b) => b.type === 'tool') as Extract<LocalChatMessage, { type: 'tool' }>;
     expect(tool).toBeTruthy();
-    expect(tool.activity).toEqual({ name: 'Bash', detail: 'ls', phase: 'start' });
+    // An activity now also has to be PAIRABLE and PLACEABLE IN TIME, so `id` and
+    // `at` joined the shape (shared/tool-activity.ts). `id` is what lets the
+    // later tool_result close THIS call rather than some other one, so it is
+    // pinned verbatim — it is the whole point of the field.
+    //
+    // Deliberately still toEqual, not toMatchObject: exhaustiveness is what
+    // stops a stray field appearing unnoticed. Only the clock-derived value is
+    // matched loosely, and it is bounded just below — `expect.any(Number)` alone
+    // would accept a fabricated 0, which is exactly the lie this field must not
+    // tell. This frame carries no timestamp of its own, so `at` is our clock.
+    const activity = tool.activity;
+    expect(activity).toEqual({
+      name: 'Bash',
+      detail: 'ls',
+      phase: 'start',
+      id: 'toolu_018WtHBQRwsdZ9C3ffwtzkxk',
+      at: expect.any(Number),
+    });
+    expect(activity?.at ?? 0).toBeGreaterThanOrEqual(before);
+    expect(activity?.at ?? 0).toBeLessThanOrEqual(Date.now());
   });
 
   it('surfaces the reasoning counter that arrives while no text is produced', async () => {
