@@ -22,6 +22,41 @@ describe('codex-native-setup', () => {
     await fs.remove(tmpProject);
   });
 
+  // LE HOME EST UN PARAMETRE (F6). Ces tests simulent os.homedir() pour se
+  // proteger de la machine hote ; celui-ci fait l'inverse : il verifie que le
+  // homeDir passe en option gagne CONTRE os.homedir(). C'est ce qui permet a
+  // l'installateur d'ecrire dans le home de l'utilisateur cible plutot que dans
+  // /root quand il tourne sous elevation de privilege.
+  test('homeDir en option l\'emporte sur os.homedir pour la configuration Codex', async () => {
+    const autreHome = await fs.mkdtemp(path.join(os.tmpdir(), 'byan-codex-cible-'));
+    try {
+      const r = await setup.patchCodexConfig(tmpProject, { homeDir: autreHome, apiToken: '' });
+      expect(r.path).toBe(path.join(autreHome, '.codex', 'config.toml'));
+      expect(await fs.pathExists(r.path)).toBe(true);
+      // Et rien n'a ete ecrit dans le home du processus.
+      expect(await fs.pathExists(path.join(tmpHome, '.codex', 'config.toml'))).toBe(false);
+    } finally {
+      await fs.remove(autreHome);
+    }
+  });
+
+  test('homeDir en option l\'emporte aussi pour les skills et la detection', async () => {
+    const autreHome = await fs.mkdtemp(path.join(os.tmpdir(), 'byan-codex-cible2-'));
+    try {
+      // detectCodex regarde le home CIBLE : ~/.codex y est absent...
+      expect(await setup.detectCodex(autreHome)).toBe(false);
+      await fs.ensureDir(path.join(autreHome, '.codex'));
+      expect(await setup.detectCodex(autreHome)).toBe(true);
+
+      await fs.outputFile(path.join(tmpProject, '.claude', 'skills', 'byan-byan', 'SKILL.md'), '# skill');
+      const r = await setup.installCodexNativeSkills(tmpProject, { homeDir: autreHome });
+      expect(r.destDir).toBe(path.join(autreHome, '.codex', 'skills'));
+      expect(await fs.pathExists(path.join(autreHome, '.codex', 'skills', 'byan-byan', 'SKILL.md'))).toBe(true);
+    } finally {
+      await fs.remove(autreHome);
+    }
+  });
+
   test('stripServerSections preserves unrelated servers', () => {
     const before = [
       "[mcp_servers.foo]",
@@ -196,6 +231,35 @@ describe('codex-native-setup', () => {
         apiUrl: 'http://x',
         apiToken: 'a',
       })
-    ).toThrow(/single quote/);
+    ).toThrow(/apostrophe interdite/);
+  });
+
+  // LE MESSAGE NOMME LE CHAMP, PAS SA VALEUR.
+  //
+  // Ce message remonte dans le detail de l'etape codex, que install-engine
+  // journalise et que l'assistant web rediffuse au navigateur. Y recopier la
+  // valeur refusee ferait voyager un jeton d'API en clair.
+  test('la valeur refusee ne figure pas dans le message d erreur', () => {
+    const jeton = "byan_secret'avec_apostrophe";
+    try {
+      setup.buildByanBlock({ serverPath: '/ok.js', apiUrl: 'http://x', apiToken: jeton });
+      throw new Error('aurait du lever');
+    } catch (err) {
+      expect(err.message).not.toContain(jeton);
+      expect(err.message).not.toContain('byan_secret');
+      expect(err.message).toContain('BYAN_API_TOKEN');
+    }
+  });
+
+  // config.toml porte le jeton d'API : il doit se fermer, y compris quand il
+  // existait deja (fs.writeFile n'applique le mode qu'a la creation).
+  test('config.toml est ecrit en 0600, et le reste a la reecriture', async () => {
+    const r1 = await setup.patchCodexConfig(tmpProject, { homeDir: tmpHome, apiToken: 'byan_tok' });
+    expect(fs.statSync(r1.path).mode & 0o777).toBe(0o600);
+    expect(fs.statSync(path.dirname(r1.path)).mode & 0o777).toBe(0o700);
+
+    fs.chmodSync(r1.path, 0o644);
+    await setup.patchCodexConfig(tmpProject, { homeDir: tmpHome, apiToken: 'byan_tok' });
+    expect(fs.statSync(r1.path).mode & 0o777).toBe(0o600);
   });
 });

@@ -1,6 +1,6 @@
 {
   "name": "create-byan-agent",
-  "version": "2.59.1",
+  "version": "2.59.3",
   "description": "BYAN v2.8 - Intelligent AI agent creator with ELO trust system + scientific fact-check + Hermes universal dispatcher + native Claude Code integration (hooks, skills, MCP server). Multi-platform (Claude Code, Codex). Merise Agile + TDD + 71 Mantras. ~54% LLM cost savings.",
   "main": "src/index.js",
   "bin": {
@@ -79,7 +79,6 @@
     "@anthropic-ai/claude-code": "^2.1.114",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^12.9.0",
-    "byan-platform-config": "file:./install/packages/platform-config",
     "chalk": "^4.1.2",
     "commander": "^11.1.0",
     "fs-extra": "^11.2.0",
@@ -90,9 +89,6 @@
     "winston": "^3.19.0",
     "ws": "^8.20.0"
   },
-  "bundleDependencies": [
-    "byan-platform-config"
-  ],
   "devDependencies": {
     "jest": "^29.7.0"
   },

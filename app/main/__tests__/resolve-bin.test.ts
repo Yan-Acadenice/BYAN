@@ -121,3 +121,80 @@ describe.skipIf(POSIX_ONLY)('resolveExecutable', () => {
     expect(got).toBeNull();
   });
 });
+
+// LA BRANCHE WINDOWS (F3, chantier installateur-multi-os-droits).
+//
+// Le module etait cross-plateforme dans sa MECANIQUE (path.join, path.delimiter)
+// mais pas dans son VOCABULAIRE : la liste de dossiers ne contenait que des
+// chemins POSIX, et la resolution cherchait le nom nu. Sous Windows, npm pose un
+// relais nomme claude.cmd dans %APPDATA%\npm — chercher "claude" n'y trouve rien.
+// Le paquet @anthropic-ai/claude-code declare d'ailleurs son binaire en
+// bin/claude.exe sur TOUTES les plateformes (lu le 2026-08-11 dans son
+// package.json ; sur cette machine Linux le fichier .exe est un binaire ELF).
+//
+// Ces cas passent une plateforme injectee, donc ils tournent partout, y compris
+// sur le runner Linux — c'est la seule facon de prouver la branche Windows.
+describe('branche Windows', () => {
+  const winDeps = {
+    platform: 'win32' as NodeJS.Platform,
+    env: {
+      PATH: 'C:\\Windows\\System32',
+      SHELL: '',
+      APPDATA: 'C:\\Users\\yan\\AppData\\Roaming',
+      LOCALAPPDATA: 'C:\\Users\\yan\\AppData\\Local',
+      PATHEXT: '.COM;.EXE;.BAT;.CMD',
+    } as never,
+    home: 'C:\\Users\\yan',
+    spawnSync: (() => ({ status: 1, stdout: '' })) as never,
+    readdirSync: () => { throw new Error('ENOENT'); },
+  };
+
+  it('cherche dans les dossiers Windows, pas dans /usr/local/bin', () => {
+    const dirs = commonBinDirs('C:\\Users\\yan', winDeps.env, 'win32');
+    expect(dirs.some((d) => d.includes('AppData') && d.endsWith('npm'))).toBe(true);
+    expect(dirs).not.toContain('/usr/local/bin');
+    expect(dirs).not.toContain('/opt/homebrew/bin');
+  });
+
+  it('resout claude en claude.cmd via PATHEXT', () => {
+    // PATHEXT est en majuscules, le relais pose par npm s'appelle claude.cmd :
+    // le systeme de fichiers Windows est insensible a la casse, donc la sonde
+    // trouve l'un par l'autre. Le faux systeme de fichiers doit modeler ca,
+    // sinon le test echoue sur une propriete que Windows n'a pas.
+    const surDisque = path.win32.join('C:\\Users\\yan\\AppData\\Roaming\\npm', 'claude.cmd');
+    const got = resolveExecutable('claude', {
+      ...winDeps,
+      statSync: ((p: string) => {
+        if (p.toLowerCase() === surDisque.toLowerCase()) return { isFile: () => true };
+        throw new Error('ENOENT');
+      }) as never,
+    });
+    expect(got?.toLowerCase()).toBe(surDisque.toLowerCase());
+  });
+
+  it('ne retient pas un fichier sans extension de PATHEXT', () => {
+    // Un fichier nomme exactement "claude", sans extension, existe mais n'est
+    // pas executable sous Windows. Le retenir donnerait un faux positif.
+    const nu = path.win32.join('C:\\Users\\yan\\AppData\\Roaming\\npm', 'claude');
+    const got = resolveExecutable('claude', {
+      ...winDeps,
+      statSync: ((p: string) => {
+        if (p === nu) return { isFile: () => true };
+        throw new Error('ENOENT');
+      }) as never,
+    });
+    expect(got).toBeNull();
+  });
+
+  it('un nom deja suffixe passe tel quel', () => {
+    const exe = path.win32.join('C:\\Users\\yan\\AppData\\Roaming\\npm', 'node.exe');
+    const got = resolveExecutable('node.exe', {
+      ...winDeps,
+      statSync: ((p: string) => {
+        if (p === exe) return { isFile: () => true };
+        throw new Error('ENOENT');
+      }) as never,
+    });
+    expect(got).toBe(exe);
+  });
+});

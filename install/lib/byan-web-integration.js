@@ -13,7 +13,7 @@ const {
   validate: { validateByanWebReachability },
   credentials: { writeCredentials: sharedWriteCredentials },
   urlUtils: { stripApiSuffix },
-} = require('byan-platform-config');
+} = require('../packages/platform-config');
 const { purgeGoogleKeys } = require('./home-credentials');
 
 // Shared primitives return { path: string } — unwrap to plain string for
@@ -45,7 +45,7 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
   // Soft-purge Google keys from ~/.byan/credentials.json — ALWAYS, meme si
   // l'utilisateur decline byan_web : les cles Google ne sont plus utilisees
   // par BYAN quel que soit le choix (proxy server-side).
-  const purgeResult = purgeGoogleKeys();
+  const purgeResult = purgeGoogleKeys(options.homeDir ? { homeDir: options.homeDir } : {});
   if (purgeResult.purged.length > 0) {
     const backupMsg = purgeResult.backupPath ? ` (backup : ${purgeResult.backupPath})` : '';
     console.log(chalk.gray(`  Cles Google retirees de ~/.byan/credentials.json${backupMsg}`));
@@ -71,7 +71,14 @@ async function setupByanWebIntegration(projectRoot, options = {}) {
   // boot (env -> ~/.byan/credentials.json -> localhost). This is what makes the
   // MCP portable across shells/OSes and Claude Code AND Codex, instead of
   // relying on .mcp.json ${} expansion or settings.local.json env injection.
-  const credsResult = await sharedWriteCredentials({ BYAN_API_URL: stripApiSuffix(inputs.apiUrl), BYAN_API_TOKEN: inputs.token });
+  // Le home est celui de la CIBLE quand l'appelant le connait. Sous elevation,
+  // os.homedir() rend /root : ce flux interactif y ecrivait le jeton de
+  // l'utilisateur, alors que le chemin non interactif (install-engine) passait
+  // deja le bon home. Les deux ecrivent maintenant au meme endroit.
+  const credsResult = await sharedWriteCredentials(
+    { BYAN_API_URL: stripApiSuffix(inputs.apiUrl), BYAN_API_TOKEN: inputs.token },
+    options.homeDir ? { homedir: options.homeDir } : {}
+  );
 
 
   if (!options.quiet) {

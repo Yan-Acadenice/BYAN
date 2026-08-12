@@ -9,6 +9,7 @@
 
 const { execSync, spawn } = require('child_process');
 const logger = require('../utils/logger');
+const { commandExists } = require('../resolve-binary');
 
 /**
  * @typedef {Object} LaunchOptions
@@ -64,14 +65,11 @@ const LAUNCH_CONFIGS = {
       
       return args;
     },
-    checkAvailable: () => {
-      try {
-        execSync('which claude', { stdio: 'ignore' });
-        return true;
-      } catch {
-        return false;
-      }
-    }
+    // Meme resolveur que le moteur d'installation. Avant, cette sonde lancait
+    // `which claude` : absente de Windows, et fausse des que le processus
+    // n'herite pas du PATH de l'utilisateur. Le commentaire en tete de
+    // webui-detection.test.js documente la panne que cette divergence a produite.
+    checkAvailable: () => commandExists('claude'),
   },
   
   'codex': {
@@ -98,14 +96,7 @@ const LAUNCH_CONFIGS = {
       
       return args;
     },
-    checkAvailable: () => {
-      try {
-        execSync('which codex', { stdio: 'ignore' });
-        return true;
-      } catch {
-        return false;
-      }
-    }
+    checkAvailable: () => commandExists('codex'),
   }
 };
 

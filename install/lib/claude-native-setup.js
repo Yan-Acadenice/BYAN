@@ -23,7 +23,7 @@ const chalk = require('chalk');
 
 const TEMPLATE_ROOT = path.resolve(__dirname, '..', 'templates');
 const { whitelistMcpServer } = require('./settings-local');
-const { mcpConfig } = require('byan-platform-config');
+const { mcpConfig } = require('../packages/platform-config');
 
 async function copyClaudeHooks(projectRoot) {
   const src = path.join(TEMPLATE_ROOT, '.claude', 'hooks');

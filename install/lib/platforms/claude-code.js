@@ -15,7 +15,8 @@ const logger = require('../utils/logger');
 // merge the canonical .mcp.json writer uses (READ-MERGE-WRITE, relative paths,
 // no secret, byan-channel inert). installDirectMCP delegates to it instead of
 // hand-building a divergent entry with an absolute path that overwrote siblings.
-const { mcpConfig } = require('byan-platform-config');
+const { mcpConfig } = require('../../packages/platform-config');
+const apiDefaults = require('../api-defaults');
 
 const PLATFORM_NAME = 'Claude Code';
 // Relative path discipline: the byan server entry args[0] is repo-relative
@@ -172,10 +173,13 @@ async function installDirectMCP(projectRoot, agents, config) {
   // READ-MERGE-WRITE through the shared pure merge so this writer is byte-for-byte
   // identical to the canonical .mcp.json writer: relative server path, no secret,
   // existing mcpServers.* preserved, and the inert byan-channel entry added.
-  // apiUrl is irrelevant to the entry shape (the server resolves its own config),
-  // but the merge signature accepts it; a localhost placeholder keeps it valid.
+  // apiUrl is irrelevant to the entry shape (the server resolves its own config,
+  // and mergeByanEntry strips BYAN_API_URL from the env it writes), but the merge
+  // signature accepts it. On passe quand meme la source unique plutot qu'un
+  // localhost code en dur : une valeur de remplissage qui ressemble a un defaut
+  // finit par etre lue comme un defaut.
   const existingConfig = await fileUtils.readJson(configPath);
-  const merged = mcpConfig.mergeByanEntry(existingConfig, { apiUrl: 'http://localhost:3737' });
+  const merged = mcpConfig.mergeByanEntry(existingConfig, { apiUrl: apiDefaults.PROD_API_URL });
 
   // Write updated config
   await fileUtils.writeJson(configPath, merged, { spaces: 2 });

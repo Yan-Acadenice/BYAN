@@ -216,11 +216,24 @@ const routes = {
         ask: null,
       });
 
+      // La face web recoit la MEME structure que le terminal, etapes sautees
+      // comprises. Sans elles, l'assistant continuerait d'annoncer une reussite
+      // sur un perimetre reduit en silence.
+      const sautees = result.skipped || [];
+      const messageOk = sautees.length
+        ? `Installation BYAN terminee — ${sautees.length} etape(s) sautee(s)`
+        : 'Installation BYAN terminee';
       server.broadcastComplete(result.ok, {
-        message: result.ok ? 'Installation BYAN terminee' : 'Installation terminee avec des etapes en echec',
+        message: result.ok ? messageOk : 'Installation terminee avec des etapes en echec',
         projectRoot,
         verify: result.verify,
         steps: result.steps,
+        skipped: sautees,
+        // La page de fin affiche ces deux-la : sans eux, elle ne pouvait pas
+        // dire au nom de qui l'installation a tourne ni si les droits ont pu
+        // etre repris.
+        targetUser: result.targetUser,
+        ownership: result.ownership,
         launch: result.launch,
       });
     } catch (err) {

@@ -13,7 +13,7 @@ const fs   = require('fs-extra');
 
 // Module under test (loaded once; all I/O goes to tmpdir per test)
 const { runMigration } = require('../lib/migrate-mcp-config');
-const { mcpConfig: { TOKEN_PLACEHOLDER } } = require('byan-platform-config');
+const { mcpConfig: { TOKEN_PLACEHOLDER } } = require('../../install/packages/platform-config');
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Helpers

@@ -18,27 +18,47 @@ const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
 const chalk = require('chalk');
+const apiDefaults = require('./api-defaults');
 
 const SERVER_NAME = 'byan';
 
-function getCodexConfigPath() {
-  return path.join(os.homedir(), '.codex', 'config.toml');
+// Le home est un PARAMETRE, pas une constante lue sur le processus.
+//
+// Motif mesure le 2026-08-11 : sous elevation de privilege, os.homedir() rend
+// /root. Ces trois fonctions ecrivaient donc dans /root/.codex au lieu du home
+// de l'utilisateur qui a lance la commande. home-credentials.js et
+// global-skills-sync.js acceptaient deja un homeDir ; ce module etait le seul
+// a ne pas offrir de porte d'entree, ce qui rendait la correction inapplicable.
+function safeHome() {
+  try {
+    return os.homedir();
+  } catch {
+    return '';
+  }
 }
 
-function getCodexSkillsDir() {
-  return path.join(os.homedir(), '.codex', 'skills');
+function getCodexConfigPath(homeDir) {
+  return path.join(homeDir || safeHome(), '.codex', 'config.toml');
 }
 
-async function detectCodex() {
-  return fs.pathExists(path.join(os.homedir(), '.codex'));
+function getCodexSkillsDir(homeDir) {
+  return path.join(homeDir || safeHome(), '.codex', 'skills');
+}
+
+async function detectCodex(homeDir) {
+  return fs.pathExists(path.join(homeDir || safeHome(), '.codex'));
 }
 
 // TOML literal-string escape: single quotes don't interpret backslashes,
 // so paths and tokens land verbatim. We just refuse values containing "'".
-function tomlLiteral(value) {
+function tomlLiteral(value, label) {
   const s = String(value);
   if (s.includes("'")) {
-    throw new Error(`Cannot encode value with single quote in TOML literal: ${s}`);
+    // LA VALEUR REFUSEE NE VOYAGE PAS DANS LE MESSAGE. Elle peut etre un jeton
+    // d'API : le message d'erreur remonte dans le detail de l'etape, journalise
+    // par install-engine et rediffuse au navigateur par l'assistant web. On
+    // nomme le champ, pas son contenu.
+    throw new Error(`valeur non encodable en litteral TOML (apostrophe interdite) : champ ${label || 'inconnu'}`);
   }
   return `'${s}'`;
 }
@@ -74,20 +94,20 @@ function buildByanBlock({ serverPath, apiUrl, apiToken, startupTimeoutSec = 15 }
   const lines = [
     '',
     '[mcp_servers.byan]',
-    `command = ${tomlLiteral('node')}`,
-    `args = [${tomlLiteral(serverPath)}]`,
+    `command = ${tomlLiteral('node', 'command')}`,
+    `args = [${tomlLiteral(serverPath, 'serverPath')}]`,
     `startup_timeout_sec = ${Number.isFinite(startupTimeoutSec) ? startupTimeoutSec : 15}`,
     '',
     '[mcp_servers.byan.env]',
-    `BYAN_API_URL = ${tomlLiteral(apiUrl)}`,
-    `BYAN_API_TOKEN = ${tomlLiteral(apiToken)}`,
+    `BYAN_API_URL = ${tomlLiteral(apiUrl, 'BYAN_API_URL')}`,
+    `BYAN_API_TOKEN = ${tomlLiteral(apiToken, 'BYAN_API_TOKEN')}`,
     '',
   ];
   return lines.join('\n');
 }
 
 async function patchCodexConfig(projectRoot, options = {}) {
-  const configPath = getCodexConfigPath();
+  const configPath = getCodexConfigPath(options.homeDir);
   const serverPath = path.join(
     projectRoot,
     '_byan',
@@ -103,10 +123,11 @@ async function patchCodexConfig(projectRoot, options = {}) {
     existing = await fs.readFile(configPath, 'utf8');
   }
 
-  const apiUrl =
-    options.apiUrl ||
-    process.env.BYAN_API_URL ||
-    'http://localhost:3737';
+  // Une seule source pour l'URL de l'API (install/lib/api-defaults.js). Le
+  // defaut valait localhost:3737 : un projet installe sur une machine qui
+  // n'heberge pas byan_web recevait une configuration pointant sur un port ou
+  // rien n'ecoute.
+  const apiUrl = apiDefaults.apiUrl({ explicit: options.apiUrl, homeDir: options.homeDir });
   const apiToken =
     options.apiToken !== undefined
       ? options.apiToken
@@ -123,7 +144,21 @@ async function patchCodexConfig(projectRoot, options = {}) {
   const merged =
     (stripped.trimEnd().length > 0 ? stripped.trimEnd() + '\n' : '') + block;
 
-  await fs.writeFile(configPath, merged, 'utf8');
+  // CE FICHIER PORTE UN JETON D'API : IL SE FERME.
+  //
+  // fs.writeFile n'applique le mode qu'a la CREATION ; sur une reecriture, le
+  // fichier garde ses droits d'origine. D'ou le chmod qui suit, et le 0700 sur
+  // le dossier. Meme sequence que packages/platform-config/lib/credentials.js
+  // pour ~/.byan/credentials.json. Sans ca, config.toml sortait en 644 : lisible
+  // par tout compte de la machine.
+  await fs.writeFile(configPath, merged, { encoding: 'utf8', mode: 0o600 });
+  try {
+    await fs.chmod(configPath, 0o600);
+    await fs.chmod(path.dirname(configPath), 0o700);
+  } catch (_e) {
+    // Un systeme de fichiers sans droits POSIX (Windows, exFAT) ne sait pas
+    // faire ca. L'ecriture, elle, a eu lieu : on ne la defait pas pour autant.
+  }
   return { path: configPath, hadExisting: existing.length > 0, tokenSet: apiToken.length > 0 };
 }
 
@@ -172,7 +207,7 @@ function defaultSkillSourceDirs(projectRoot, options = {}) {
 }
 
 async function installCodexNativeSkills(projectRoot, options = {}) {
-  const destDir = options.destDir || getCodexSkillsDir();
+  const destDir = options.destDir || getCodexSkillsDir(options.homeDir);
   const sourceDirs = options.sourceDirs || defaultSkillSourceDirs(projectRoot, options);
   const overwrite = options.overwrite !== false;
 
@@ -205,7 +240,7 @@ async function installCodexNativeSkills(projectRoot, options = {}) {
 async function setupCodexNative(projectRoot, options = {}) {
   const log = options.quiet ? () => {} : (...a) => console.log(...a);
 
-  const present = await detectCodex();
+  const present = await detectCodex(options.homeDir);
   if (!present && !options.force) {
     log(chalk.gray('  · Codex CLI not detected (~/.codex absent), skipping'));
     return { skipped: true, reason: 'codex-not-detected' };

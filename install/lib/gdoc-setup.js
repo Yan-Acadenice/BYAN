@@ -22,7 +22,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const chalk = require('chalk');
 const inquirer = require('inquirer');
-const { writeCredentials } = require('byan-platform-config');
+const { writeCredentials } = require('../packages/platform-config');
 
 const SA_FILENAME = 'google-sa.json';
 

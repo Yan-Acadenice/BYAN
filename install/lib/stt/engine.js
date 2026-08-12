@@ -9,6 +9,7 @@
 
 const { execSync } = require('child_process');
 const chalk = require('chalk');
+const { commandExists: sharedCommandExists } = require('../resolve-binary');
 
 const PARAKEET_MIN_VRAM = 4000; // 4 GB
 const WHISPER_MIN_VRAM = 1000;  // 1 GB for GPU mode
@@ -45,13 +46,11 @@ function detectGPU() {
  * @param {string} cmd
  * @returns {boolean}
  */
+// Delegue au resolveur partage (install/lib/resolve-binary.js) au lieu de
+// lancer `which`. `which` est absent de Windows, et un processus qui n'herite
+// pas du PATH de l'utilisateur conclut a tort a une absence.
 function commandExists(cmd) {
-  try {
-    execSync(`which ${cmd}`, { stdio: 'pipe' });
-    return true;
-  } catch {
-    return false;
-  }
+  return sharedCommandExists(cmd);
 }
 
 /**

@@ -19,7 +19,7 @@
 
 const childProcess = require('child_process');
 const fs = require('fs-extra');
-const { envConfig } = require('byan-platform-config');
+const { envConfig } = require('../../platform-config');
 
 // Marker delimiting the managed block in a POSIX shell profile. The block is
 // the unit of idempotency: we slice it out and rewrite it on every call.

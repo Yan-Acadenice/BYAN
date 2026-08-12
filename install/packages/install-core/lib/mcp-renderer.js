@@ -10,7 +10,7 @@
  * READ-MERGE-WRITE behavior.
  */
 
-const { mcpConfig, urlUtils } = require('byan-platform-config');
+const { mcpConfig, urlUtils } = require('../../platform-config');
 
 class McpUrlError extends Error {
   constructor(message) {

@@ -8,7 +8,13 @@
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 
-const DEFAULT_API_URL = 'http://localhost:3737';
+// La valeur proposee par defaut vient de la source unique (install/lib/
+// api-defaults.js). Elle valait localhost:3737 : la question proposait donc a
+// l'utilisateur de pointer sur sa propre machine, ou byan_web ne tourne pas.
+// Chargement par chemin relatif, comme le reste des liens entre install/lib et
+// ce paquet — la dependance file: avait produit le defaut d'empaquetage
+// corrige en 2.59.3.
+const { PROD_API_URL: DEFAULT_API_URL } = require('../../../lib/api-defaults');
 const ENV_KEYS = ['BYAN_API_TOKEN', 'BYAN_API_URL'];
 const LEANTIME_ENV_KEYS = [
   'LEANTIME_API_URL',

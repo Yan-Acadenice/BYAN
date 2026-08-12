@@ -50,6 +50,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const { commandExists, resolveBinary, firstAvailable } = require('./native-helper');
+const { commandOnPath } = require('./resolve-binary');
 
 // Pinned install target. Bumping rtk = change these two constants only. We pin a
 // TAG so the install is reproducible and supply-chain-bounded (see header).
@@ -214,8 +215,14 @@ function locateRtk({ run = execSync, has = commandExists, resolve = resolveBinar
 
 /**
  * pickStrategy() -> the first install strategy whose tool is on PATH, or null.
+ *
+ * LA SONDE EST STRICTEMENT PATH, ET C'EST VOULU. La strategie retenue lance sa
+ * commande par son NOM NU (`brew install ...`, `cargo install ...`). Depuis que
+ * commandExists accepte un binaire trouve hors PATH — le bon comportement pour
+ * detecter claude dans ~/.local/bin — repondre oui ici promettrait un
+ * lancement que le shell ne saurait pas resoudre.
  */
-function pickStrategy({ has = commandExists } = {}) {
+function pickStrategy({ has = commandOnPath } = {}) {
   return firstAvailable(installStrategies(), { has });
 }
 
@@ -358,7 +365,7 @@ function setupRtkIntegration({
  * (BYAN_SKIP_RTK=1), and (c) an installer is actually on PATH — so we never prompt
  * for something we cannot deliver, and never block a non-interactive/CI install.
  */
-function shouldOfferRtk({ env = process.env, isTTY = !!(process.stdin && process.stdin.isTTY), has = commandExists } = {}) {
+function shouldOfferRtk({ env = process.env, isTTY = !!(process.stdin && process.stdin.isTTY), has = commandOnPath } = {}) {
   if (env && env.BYAN_SKIP_RTK === '1') return false;
   if (!isTTY) return false;
   return Boolean(pickStrategy({ has }));

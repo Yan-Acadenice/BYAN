@@ -14,12 +14,23 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { commandExists: sharedCommandExists } = require('./resolve-binary');
 
 /**
  * commandExists(cmd) -> boolean. Is an executable resolvable on PATH?
- * Uses POSIX `command -v` (and `where` on Windows). The runner is injectable.
+ *
+ * La sonde par defaut ne passe plus par un shell. Elle delegue au resolveur
+ * partage (install/lib/resolve-binary.js), qui parcourt le PATH en JavaScript
+ * et connait PATHEXT sous Windows. Motif mesure le 2026-08-11 : trois sondes
+ * concurrentes coexistaient dans install/ et se contredisaient, et celle-ci
+ * lancait un shell pour repondre a une question que le systeme de fichiers
+ * suffit a trancher.
+ *
+ * Le lanceur reste injectable pour les tests qui simulent deja un shell : quand
+ * `run` est fourni explicitement, on garde l'ancien chemin.
  */
-function commandExists(cmd, { run = execSync, platform = process.platform } = {}) {
+function commandExists(cmd, { run = null, platform = process.platform, env = process.env } = {}) {
+  if (!run) return sharedCommandExists(cmd, { platform, env });
   const probe = platform === 'win32' ? `where ${cmd}` : `command -v ${cmd}`;
   try {
     run(probe, { stdio: 'pipe' });

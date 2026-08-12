@@ -7,7 +7,7 @@ const path = require('path');
 const { setupByanWebIntegration } = require('../lib/byan-web-integration');
 const { purgeGoogleKeys, writeCredentials } = require('../lib/home-credentials');
 
-jest.mock('byan-platform-config', () => ({
+jest.mock('../packages/platform-config', () => ({
   mcpConfig: {
     ensureMcpConfig: jest.fn().mockResolvedValue({ path: '/mock/mcp.json' }),
   },
@@ -43,7 +43,7 @@ afterEach(() => {
 
 test('setupByanWebIntegration: user declines -> configured false', async () => {
   const { project } = await makeFixture();
-  const byanPlatformConfig = require('byan-platform-config');
+  const byanPlatformConfig = require('../packages/platform-config');
   byanPlatformConfig.tokenPrompt.promptForToken.mockResolvedValue({ configured: false });
 
   const result = await setupByanWebIntegration(project);
@@ -52,7 +52,7 @@ test('setupByanWebIntegration: user declines -> configured false', async () => {
 
 test('setupByanWebIntegration: credentials written, integration succeeds', async () => {
   const { project } = await makeFixture();
-  const byanPlatformConfig = require('byan-platform-config');
+  const byanPlatformConfig = require('../packages/platform-config');
 
   byanPlatformConfig.tokenPrompt.promptForToken.mockResolvedValue({
     configured: true,

@@ -449,6 +449,45 @@ class ByanApp {
       if (s.projectRoot) html += `<p><strong>Projet :</strong> <code>${this.escapeHtml(s.projectRoot)}</code></p>`;
       if (s.mode) html += `<p><strong>Mode :</strong> ${this.escapeHtml(s.mode)}</p>`;
       if (s.platforms && s.platforms.length) html += `<p><strong>Plateformes :</strong> ${s.platforms.map(p => this.escapeHtml(p)).join(', ')}</p>`;
+
+      // CE QUI N'A PAS TOURNE SE DIT ICI AUSSI.
+      //
+      // Le moteur diffuse `skipped`, `verify.skipped` et `ownership` depuis la
+      // correction du rapport honnete, mais cette page n'en affichait rien :
+      // l'assistant web continuait d'annoncer une reussite pleine sur un
+      // perimetre reduit, exactement le defaut corrige cote terminal.
+      if (s.verify && typeof s.verify.passed === 'number') {
+        html += `<p><strong>Verification :</strong> ${s.verify.passed}/${s.verify.total} controles`;
+        if (s.verify.skipped && s.verify.skipped.length) {
+          html += ` — ${s.verify.skipped.length} saute(s) sur ${s.verify.intendedTotal || '?'}`;
+        }
+        html += '</p>';
+      }
+      if (s.skipped && s.skipped.length) {
+        html += '<p><strong>Etapes sautees :</strong></p><ul>';
+        for (const e of s.skipped) {
+          html += `<li><code>${this.escapeHtml(e.id)}</code> — ${this.escapeHtml(e.reason || 'sans raison donnee')}</li>`;
+        }
+        html += '</ul>';
+      }
+      if (s.targetUser && s.targetUser.elevated) {
+        const qui = s.targetUser.name || s.targetUser.uid;
+        html += `<p><strong>Utilisateur cible :</strong> ${this.escapeHtml(String(qui))} (${this.escapeHtml(s.targetUser.source || 'inconnu')})</p>`;
+      }
+      if (s.ownership) {
+        const issue = s.ownership.overall || s.ownership.outcome;
+        const couleur = issue === 'failed' ? 'var(--error)' : 'inherit';
+        html += `<p style="color:${couleur}"><strong>Droits :</strong> ${this.escapeHtml(String(issue))}`;
+        if (s.ownership.changed) html += ` — ${s.ownership.changed} entree(s) reprises`;
+        html += '</p>';
+        for (const p of s.ownership.homeFailed || []) {
+          html += `<p style="color:var(--error)">Echec de reprise sur <code>${this.escapeHtml(p)}</code></p>`;
+        }
+        if (s.ownership.homeSkipped) {
+          html += `<p style="color:var(--text-muted)">${this.escapeHtml(s.ownership.homeSkipped)}</p>`;
+        }
+      }
+
       html += '<p style="margin-top:1rem;color:var(--text-muted);">Tu peux fermer cette fenetre.</p>';
       summary.innerHTML = html;
     } else {

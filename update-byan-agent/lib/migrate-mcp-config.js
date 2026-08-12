@@ -16,7 +16,7 @@ const {
   mcpConfig: { readMcpConfig, ensureMcpConfig, TOKEN_PLACEHOLDER },
   envConfig:  { readEnvToken, updateDotenv },
   urlUtils:   { stripApiSuffix },
-} = require('byan-platform-config');
+} = require('../../install/packages/platform-config');
 
 /**
  * @param {string} projectRoot   — absolute path to the project root

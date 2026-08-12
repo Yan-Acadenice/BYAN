@@ -15,6 +15,8 @@ const { getDomainQuestions, buildPhase2Prompt } = require('../lib/domain-questio
 const { generateProjectAgentsDoc } = require('../lib/project-agents-generator');
 const { launchPhase2Chat, generateDefaultConfig } = require('../lib/phase2-chat');
 const { setupByanWebIntegration, validateByanWebReachability } = require('../lib/byan-web-integration');
+const { resolveTargetUser } = require('../lib/target-user');
+const { commandExists: resolveCommandExists } = require('../lib/resolve-binary');
 const { setupLeantimeIntegration, validateLeantimeReachability } = require('../lib/byan-leantime-integration');
 const { setupRtkIntegration, shouldOfferRtk } = require('../lib/rtk-integration');
 const { setupClaudeNative } = require('../lib/claude-native-setup');
@@ -180,51 +182,29 @@ async function copyV2Runtime(templateDir, projectRoot, spinner) {
 // Detect installed platforms (Yanstaller logic)
 // Detects SYSTEM binaries, not project folders (.codex, .github/agents are created by yanstaller)
 async function detectPlatforms() {
+  // Meme resolveur que le moteur d'installation (install/lib/resolve-binary.js),
+  // et meme utilisateur cible que lui. Cette fonction lancait `which codex` puis
+  // `which claude` : `which` est absent de Windows, et sous elevation le PATH
+  // interroge est celui de root, donc les deux binaires passaient pour absents.
+  // Le repli sur ~/.config n'aidait pas non plus, os.homedir() rendant /root.
+  const cible = resolveTargetUser({ cwd: process.cwd() });
+  const home = cible.home || os.homedir();
   const platforms = {
-    codex: false,
-    claude: false
+    codex: resolveCommandExists('codex', { home }),
+    claude: resolveCommandExists('claude', { home }),
   };
 
-  // Codex detection (binary + config, NOT project .codex/ folder)
-  try {
-    const result = execSync('which codex 2>/dev/null', { encoding: 'utf8' }).trim();
-    if (result) {
-      platforms.codex = true;
-    }
-  } catch (e) {
-    // Fallback: check config directory
-    const codexPaths = [
-      path.join(os.homedir(), '.config', 'codex'),
-      path.join(os.homedir(), '.codex')
-    ];
-    for (const p of codexPaths) {
-      if (fs.existsSync(p)) {
-        platforms.codex = true;
-        break;
-      }
-    }
-  }
-  
-  // Claude Code detection (binary + config)
-  try {
-    const result = execSync('which claude 2>/dev/null', { encoding: 'utf8' }).trim();
-    if (result) {
-      platforms.claude = true;
-    }
-  } catch (e) {
-    // Fallback: check config directory
-    const claudePaths = [
-      path.join(os.homedir(), '.config', 'claude'),
-      path.join(os.homedir(), '.claude')
-    ];
-    for (const p of claudePaths) {
-      if (fs.existsSync(p)) {
-        platforms.claude = true;
-        break;
-      }
-    }
-  }
-  
+  // Repli par le dossier de configuration, dans le home de la CIBLE : un CLI
+  // installe puis retire laisse sa configuration, et un binaire hors de tout
+  // emplacement connu reste detectable par elle.
+  const parConfig = (nom) => [
+    path.join(home, '.config', nom),
+    path.join(home, `.${nom}`),
+  ].some((p) => fs.existsSync(p));
+
+  if (!platforms.codex) platforms.codex = parConfig('codex');
+  if (!platforms.claude) platforms.claude = parConfig('claude');
+
   return platforms;
 }
 
@@ -1395,7 +1375,7 @@ async function install(options = {}) {
     console.log(chalk.cyan('byan_web integration (optional — service payant)'));
     let byanWebResult = { configured: false };
     try {
-      byanWebResult = await setupByanWebIntegration(projectRoot);
+      byanWebResult = await setupByanWebIntegration(projectRoot, { homeDir: resolveTargetUser({ cwd: projectRoot }).home || undefined });
     } catch (error) {
       console.log(chalk.yellow(`  [WARN] byan_web setup skipped: ${error.message}`));
     }
@@ -1914,11 +1894,35 @@ async function installAuto(options) {
   // Default is notice-only ; --sync-skills opts in to an unattended sync.
   const ask = skillsSyncConsent(options);
 
+  // --ask ouvre les questions au lieu du parcours automatique. On reutilise le
+  // demandeur existant (setupByanWebIntegration -> promptForToken), qui pose
+  // l'URL et le token puis ecrit .env, .mcp.json et ~/.byan/credentials.json.
+  // En ecrire un second ferait diverger l'experience entre create-byan-agent et
+  // update-byan-agent, exactement ce que l'extraction de token-prompt evitait.
+  let apiUrlChoisie = options.apiUrl || null;
+  if (options.ask) {
+    console.log(chalk.cyan('\n  Mode question : configuration de l API byan_web\n'));
+    try {
+      // Le home de la CIBLE, pas celui du processus : sous elevation, ce flux
+      // ecrivait le jeton de l'utilisateur dans /root/.byan.
+      const cible = resolveTargetUser({ cwd: projectRoot });
+      const r = await setupByanWebIntegration(projectRoot, { homeDir: cible.home || undefined });
+      if (r && r.configured && r.apiUrl) apiUrlChoisie = r.apiUrl;
+    } catch (error) {
+      console.log(chalk.yellow(`  [WARN] configuration byan_web ignoree : ${error.message}`));
+    }
+  }
+
   try {
     const result = await engine.runInstall({
       projectRoot,
       projectName: options.name || undefined,
       rtk: options.rtk !== false,
+      apiUrl: apiUrlChoisie,
+      // commander pose options.chown a false quand --no-chown est donne.
+      chown: options.chown !== false,
+      owner: options.owner || null,
+      group: options.group || null,
     }, {
       onStep: ({ index, total, label }) => {
         if (spinner) spinner.succeed();
@@ -1932,15 +1936,56 @@ async function installAuto(options) {
     console.log('');
     console.log(chalk.green.bold(`  Installation terminee — verification ${result.verify.passed}/${result.verify.total}`));
 
+    // Ce qui n'a PAS tourne se dit a voix haute. Avant, une etape ecartee
+    // disparaissait du plan et le compteur affichait une reussite sur un
+    // perimetre reduit sans le signaler (mesure du 2026-08-11).
+    for (const s of result.skipped || []) {
+      console.log(chalk.yellow(`  Etape sautee : ${s.id} — ${s.reason}`));
+    }
+    for (const c of (result.verify.skipped || [])) {
+      console.log(chalk.gray(`  Controle saute : ${c.name} — ${c.reason}`));
+    }
+    // Qui a ete pris pour cible, et ce qui a ete repris. Sans cette ligne,
+    // "Claude Code introuvable" reste une affirmation que personne ne peut
+    // verifier, et une reprise de droits reste invisible.
+    if (result.targetUser && result.targetUser.source !== 'self') {
+      const t = result.targetUser;
+      console.log(chalk.gray(`  Utilisateur cible : ${t.name || t.uid} (${t.source}), home ${t.home}`));
+    }
+    if (result.ownership) {
+      const o = result.ownership;
+      const g = o.group ? `, groupe ${o.group.name} : ${o.group.outcome}` : '';
+      // On affiche l'issue D'ENSEMBLE : le projet, le home et le groupe peuvent
+      // diverger, et n'annoncer que le projet taisait un echec sur ~/.byan.
+      const issue = o.overall || o.outcome;
+      const teinte = issue === 'failed' ? chalk.yellow : chalk.gray;
+      console.log(teinte(`  Droits : ${issue}${o.changed ? ` — ${o.changed} entree(s) reprises` : ''}${g}`));
+      if (o.homeSkipped) console.log(chalk.gray(`    ${o.homeSkipped}`));
+      for (const p of o.homeFailed || []) console.log(chalk.yellow(`    echec sur ${p}`));
+    }
+
     // End-of-install launch (F5): start Claude Code, with the byan-channel
     // when this CLI version supports it. --no-launch or a non-interactive
     // terminal prints the command instead of running it.
     if (result.launch) {
-      if (options.launch !== false && isTTY) {
+      // SOUS ELEVATION, ON N'OUVRE PAS CLAUDE — ON DONNE LA COMMANDE.
+      //
+      // Lancer claude ici le ferait tourner en root : tout ce qu'il ecrirait
+      // ensuite dans le projet reviendrait a root, et defairait la reprise des
+      // droits acquise a l'etape precedente. Le mode non interactif imprime deja
+      // la commande ; on emprunte le meme chemin plutot que d'inventer une
+      // descente de privilege pour un shell interactif.
+      const sousElevation = Boolean(result.targetUser && result.targetUser.elevated);
+      if (options.launch !== false && isTTY && !sousElevation) {
         console.log(chalk.cyan(`  Lancement de Claude Code : ${result.launch.command}\n`));
         const { spawnSync } = require('child_process');
         spawnSync(result.launch.command, { stdio: 'inherit', shell: true });
       } else {
+        if (sousElevation) {
+          const qui = result.targetUser.name || result.targetUser.uid;
+          console.log(chalk.yellow(`  Installation lancee sous elevation : Claude Code n'est pas demarre ici.`));
+          console.log(chalk.gray(`  Reprends la main en tant que ${qui}, puis dans le projet :`));
+        }
         console.log(chalk.gray(`  Pour lancer Claude Code : ${result.launch.command}`));
       }
     } else {
@@ -2013,6 +2058,11 @@ program
   .option('--no-launch', 'Ne pas lancer Claude Code en fin d installation (mode --cli)')
   .option('--no-rtk', 'Ne pas installer rtk automatiquement (mode --cli)')
   .option('--sync-skills', 'Mode --cli : synchroniser sans demander les copies globales ~/.claude/skills divergentes')
+  .option('--ask', 'Mode --cli : poser les questions (URL de l API byan_web, token) au lieu du parcours automatique')
+  .option('--api-url <url>', 'URL de l API byan_web (defaut : le host de production ; BYAN_API_URL de l environnement le remplace)')
+  .option('--no-chown', 'Ne pas reprendre le proprietaire des fichiers poses (installation deliberee en root)')
+  .option('--owner <user>', 'Forcer l utilisateur cible (nom ou uid) au lieu de le deduire de l elevation')
+  .option('--group <name>', 'Groupe partage pose sur le projet (setgid) : un usermod -aG suffit ensuite a donner l acces')
   .option('--legacy', 'Interview complete d origine (l ancien parcours a questions)')
   .action(async (options) => {
     const mode = chooseInstallMode(options);

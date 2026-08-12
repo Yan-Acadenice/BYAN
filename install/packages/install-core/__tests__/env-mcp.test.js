@@ -26,7 +26,7 @@ const {
   validateApiUrl,
   McpUrlError,
 } = require('../lib/mcp-renderer');
-const { mcpConfig } = require('byan-platform-config');
+const { mcpConfig } = require('../../platform-config');
 
 // Shape-only fixture. NOT a real token: 'byan_' + 64 zeroes.
 const FAKE_TOKEN = 'byan_' + '0'.repeat(64);

@@ -22,9 +22,38 @@ import * as path from 'path';
 export interface ResolveDeps {
   env?: NodeJS.ProcessEnv;
   home?: string;
+  platform?: NodeJS.Platform;
   spawnSync?: typeof realSpawnSync;
   statSync?: (p: string) => { isFile(): boolean };
   readdirSync?: (p: string) => string[];
+}
+
+// Extensions qu'un executable porte sous Windows. Sans elles, chercher "claude"
+// dans un dossier ne trouve rien : npm y pose un relais nomme claude.cmd, et le
+// paquet @anthropic-ai/claude-code declare son binaire en bin/claude.exe (le
+// meme nom sur toutes les plateformes, verifie le 2026-08-11 dans son
+// package.json). Meme regle que install/lib/resolve-binary.js cote installateur.
+const DEFAULT_PATHEXT = '.COM;.EXE;.BAT;.CMD';
+
+// Le module de chemin suit la plateforme VISEE, pas celle de l'hote.
+//
+// Sans ca, la branche Windows est intestable : sur un runner Linux, path.join
+// pose des '/' et path.delimiter vaut ':', donc un PATH Windows
+// 'C:\Windows\System32' se coupe en deux au ':' du lecteur. Le test passerait
+// ou echouerait pour la mauvaise raison. Meme choix que le resolveur de
+// l'installateur (install/lib/resolve-binary.js).
+function pathFor(platform: NodeJS.Platform): path.PlatformPath {
+  return platform === 'win32' ? path.win32 : path.posix;
+}
+
+function candidateNames(name: string, env: NodeJS.ProcessEnv, platform: NodeJS.Platform): string[] {
+  if (platform !== 'win32') return [name];
+  const exts = (env.PATHEXT || DEFAULT_PATHEXT).split(';').map((e) => e.trim()).filter(Boolean);
+  // Un nom qui porte deja une extension connue passe tel quel. Sinon, seules
+  // les variantes suffixees comptent : sous Windows, un fichier sans extension
+  // de PATHEXT n'est pas executable, et le retenir donnerait un faux positif.
+  const deja = exts.some((e) => name.toLowerCase().endsWith(e.toLowerCase()));
+  return deja ? [name] : exts.map((e) => name + e);
 }
 
 // Markers bracket the PATH so any interactive banner / prompt noise printed by
@@ -34,17 +63,30 @@ const PATH_MARK_B = '__BYAN_PATH_B__';
 
 // User-level bin dirs a GUI-launch PATH commonly misses. Expanded from HOME so a
 // fresh machine still resolves the usual CLI install locations.
-export function commonBinDirs(home = os.homedir()): string[] {
+export function commonBinDirs(home = os.homedir(), env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): string[] {
+  const p = pathFor(platform);
+  if (platform === 'win32') {
+    // Sous Windows, aucun des dossiers POSIX ci-dessous n'existe. npm pose son
+    // relais dans le prefixe (%APPDATA%\npm par defaut) ; les installateurs
+    // deposent sous %LOCALAPPDATA%\Programs et %ProgramFiles%.
+    return [
+      env.APPDATA ? p.join(env.APPDATA, 'npm') : '',
+      env.LOCALAPPDATA ? p.join(env.LOCALAPPDATA, 'Programs') : '',
+      env.ProgramFiles || '',
+      p.join(home, '.bun', 'bin'),
+      p.join(home, '.cargo', 'bin'),
+    ].filter(Boolean);
+  }
   return [
-    path.join(home, '.claude', 'local'),   // Claude Code local install
-    path.join(home, '.local', 'bin'),      // pip / pipx / npm --prefix ~/.local
-    path.join(home, 'bin'),
-    path.join(home, '.npm-global', 'bin'),
-    path.join(home, '.yarn', 'bin'),
-    path.join(home, '.bun', 'bin'),
-    path.join(home, '.volta', 'bin'),
-    path.join(home, '.deno', 'bin'),
-    path.join(home, '.cargo', 'bin'),      // rtk (rust) lands here
+    p.join(home, '.claude', 'local'),   // Claude Code local install
+    p.join(home, '.local', 'bin'),      // pip / pipx / npm --prefix ~/.local
+    p.join(home, 'bin'),
+    p.join(home, '.npm-global', 'bin'),
+    p.join(home, '.yarn', 'bin'),
+    p.join(home, '.bun', 'bin'),
+    p.join(home, '.volta', 'bin'),
+    p.join(home, '.deno', 'bin'),
+    p.join(home, '.cargo', 'bin'),      // rtk (rust) lands here
     '/usr/local/bin',
     '/opt/homebrew/bin',                   // macOS arm64 Homebrew
     '/usr/bin',
@@ -93,17 +135,18 @@ export function loginShellPath(deps: ResolveDeps = {}): string | null {
 export function nodeVersionBinDirs(deps: ResolveDeps = {}): string[] {
   const home = deps.home ?? os.homedir();
   const readdirSync = deps.readdirSync ?? ((p: string) => fs.readdirSync(p));
+  const p = pathFor(deps.platform ?? process.platform);
   const roots = [
-    path.join(home, '.nvm', 'versions', 'node'),
-    path.join(home, '.local', 'share', 'fnm', 'node-versions'),
-    path.join(home, '.fnm', 'node-versions'),
+    p.join(home, '.nvm', 'versions', 'node'),
+    p.join(home, '.local', 'share', 'fnm', 'node-versions'),
+    p.join(home, '.fnm', 'node-versions'),
   ];
   const out: string[] = [];
   for (const root of roots) {
     try {
       for (const v of readdirSync(root)) {
-        out.push(path.join(root, v, 'bin'));                    // nvm
-        out.push(path.join(root, v, 'installation', 'bin'));    // fnm
+        out.push(p.join(root, v, 'bin'));                    // nvm
+        out.push(p.join(root, v, 'installation', 'bin'));    // fnm
       }
     } catch { /* root absent — skip */ }
   }
@@ -116,33 +159,41 @@ export function nodeVersionBinDirs(deps: ResolveDeps = {}): string[] {
 export function buildAugmentedPath(deps: ResolveDeps = {}): string {
   const env = deps.env ?? process.env;
   const home = deps.home ?? os.homedir();
+  const platform = deps.platform ?? process.platform;
+  const p = pathFor(platform);
   const parts: string[] = [];
-  if (env.PATH) parts.push(...env.PATH.split(path.delimiter));
+  if (env.PATH) parts.push(...env.PATH.split(p.delimiter));
   const shellPath = loginShellPath(deps);
-  if (shellPath) parts.push(...shellPath.split(path.delimiter));
-  parts.push(...commonBinDirs(home));
+  if (shellPath) parts.push(...shellPath.split(p.delimiter));
+  parts.push(...commonBinDirs(home, env, platform));
   parts.push(...nodeVersionBinDirs(deps));
 
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const p of parts) {
-    if (!p || seen.has(p)) continue;
-    seen.add(p);
-    out.push(p);
+  for (const dir of parts) {
+    if (!dir || seen.has(dir)) continue;
+    seen.add(dir);
+    out.push(dir);
   }
-  return out.join(path.delimiter);
+  return out.join(p.delimiter);
 }
 
 // Absolute path of an executable, scanning the augmented PATH. null when nowhere.
 export function resolveExecutable(name: string, deps: ResolveDeps = {}): string | null {
   const statSync = deps.statSync ?? ((p: string) => fs.statSync(p));
-  const dirs = buildAugmentedPath(deps).split(path.delimiter);
+  const env = deps.env ?? process.env;
+  const platform = deps.platform ?? process.platform;
+  const p = pathFor(platform);
+  const noms = candidateNames(name, env, platform);
+  const dirs = buildAugmentedPath(deps).split(p.delimiter);
   for (const dir of dirs) {
     if (!dir) continue;
-    const full = path.join(dir, name);
-    try {
-      if (statSync(full).isFile()) return full;
-    } catch { /* not here — keep scanning */ }
+    for (const candidat of noms) {
+      const full = p.join(dir, candidat);
+      try {
+        if (statSync(full).isFile()) return full;
+      } catch { /* not here — keep scanning */ }
+    }
   }
   return null;
 }

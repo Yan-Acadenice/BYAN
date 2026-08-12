@@ -8,7 +8,7 @@ const {
   mcpConfig: { mergeLeantimeRefs, looksLikeSecret },
   validate: { validateLeantimeReachability },
   tokenPrompt: { LEANTIME_ENV_KEYS },
-} = require('byan-platform-config');
+} = require('../packages/platform-config');
 
 // Synthetic token — shape only, never a real secret (avoids Push Protection
 // false positives and leaks). 'lt_' prefix matches the Leantime key shape.

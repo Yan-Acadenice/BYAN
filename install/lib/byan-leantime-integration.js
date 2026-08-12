@@ -22,7 +22,7 @@ const {
   envConfig: { updateSettingsLocal: sharedUpdateSettingsLocal, updateDotenv: sharedUpdateDotenv },
   tokenPrompt: { promptForLeantime },
   validate: { validateLeantimeReachability },
-} = require('byan-platform-config');
+} = require('../packages/platform-config');
 
 // Shared writers return { path } — unwrap to a plain string path for the
 // console report, matching byan-web-integration's surface.

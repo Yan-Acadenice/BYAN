@@ -38,7 +38,7 @@ const inquirer = require('inquirer');
 
 const {
   mcpConfig: { addMcpEntry },
-} = require('byan-platform-config');
+} = require('../../packages/platform-config');
 const { whitelistMcpServer } = require('../settings-local');
 
 const EXTENSIONS = [];
